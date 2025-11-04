@@ -9,16 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@auth/core": "^0.34.3",
+    "@auth/core": "^0.41.1",
     "@elevenlabs/react": "^0.5.0",
-    "mascotbot-sdk-react": "latest",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.76.1",
     "axios": "^1.12.2",
     "dotenv": "^17.2.3",
     "framer-motion": "^12.23.24",
-    "next": "14.2.5",
-    "next-auth": "^4.24.13",
+    "mascotbot-sdk-react": "file:./mascotbot-sdk-react-0.1.6.tgz",
+    "next": "^14.2.33",
+    "next-auth": "^4.24.7",
     "openai": "^6.7.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
