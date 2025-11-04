@@ -1,0 +1,19 @@
+
+> aiva-elevenlabs-avatar@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 22.3s
+ ○ Compiling / ...
+ ✓ Compiled / in 29.5s (1360 modules)
+ GET / 200 in 31514ms
+ ✓ Compiled in 3.6s (638 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1072ms (752 modules)
+ GET /favicon.ico 200 in 1313ms
+Terminate batch job (Y/N)? 
+^C[?25h

@@ -1,0 +1,17 @@
+client_id = "47e544227d17b95ad7a64e506f27007d"
+name = "EFRO Integration"
+application_url = "https://dev.avatarsalespro.com"
+embedded = false
+
+[webhooks]
+api_version = "2025-10"
+
+[access_scopes]
+scopes = "write_inventory,read_inventory,read_product_listings,read_products,write_products"
+optional_scopes = []
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://dev.avatarsalespro.com/api/auth/callback/shopify"
+]

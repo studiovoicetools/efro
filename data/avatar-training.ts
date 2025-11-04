@@ -1,0 +1,82 @@
+// ERSTELLE DIESE DATEI: data/avatar-training.ts
+export const avatarTrainingData = {
+  // Produkt-Fragen und Antworten
+  productQuestions: [
+    {
+      question: "Was ist das für ein Material?",
+      response: "Das Produkt ist aus {material}. Sehr hochwertig und langlebig!"
+    },
+    {
+      question: "Gibt es das in anderen Farben?",
+      response: "Ja, verfügbar in {farben}. Welche Farbe gefällt dir am besten?"
+    },
+    {
+      question: "Ist das wasserdicht?",
+      response: "Ja, das Material ist {wasserfest}. Perfekt für Outdoor-Aktivitäten!"
+    },
+    {
+      question: "Welche Größe empfehlst du?",
+      response: "Für {produkt} empfehle ich {größe}. Soll ich dir helfen die richtige Größe zu finden?"
+    }
+  ],
+  
+  // Checkout-Begleitung
+  checkoutAssistance: [
+    {
+      step: "warenkorb",
+      message: "Super Auswahl! Dein Warenkorb ist bereit. Möchtest du direkt zur Kasse?"
+    },
+    {
+      step: "versand", 
+      message: "Kostenloser Versand ab 50€ - fast geschafft! 🚚"
+    },
+    {
+      step: "bezahlung",
+      message: "Sicher bezahlen mit PayPal, Kreditkarte oder Klarna. Ich begleite dich durch den Prozess!"
+    },
+    {
+      step: "bestellung_abgeschlossen",
+      message: "🎉 Danke für deine Bestellung! Deine Produkte sind auf dem Weg."
+    }
+  ],
+  
+  // Cross-Selling Trigger
+  crossSellingTriggers: [
+    {
+      when: "hoodie",
+      suggest: ["cap", "tshirt", "beanie"],
+      message: "💡 Dazu passt eine Cap oder T-Shirt perfekt! Möchtest du das auch sehen?"
+    },
+    {
+      when: "snowboard", 
+      suggest: ["bindungen", "schuhe", "helm", "brille"],
+      message: "🏂 Vergiss nicht die passende Ausrüstung! Ich zeige dir Snowboard-Zubehör."
+    },
+    {
+      when: "jacke",
+      suggest: ["hoodie", "mütze", "handschuhe"],
+      message: "❄️ Dazu passen Handschuhe und Mütze perfekt für kalte Tage!"
+    },
+    {
+      when: "schuhe",
+      suggest: ["socken", "einlegesohlen", "pflegemittel"],
+      message: "👟 Für deine neuen Schuhe empfehle ich spezielle Socken und Pflegemittel."
+    }
+  ],
+
+  // Verkaufstechniken
+  salesTechniques: [
+    {
+      situation: "kunde_unsicher",
+      response: "Das Produkt ist sehr beliebt! 94% unserer Kunden sind zufrieden. Möchtest du es probieren?"
+    },
+    {
+      situation: "preis_bedenken", 
+      response: "Die Qualität rechtfertigt den Preis! Dazu gibt es 30 Tage Rückgaberecht."
+    },
+    {
+      situation: "farbe_auswahl",
+      response: "{farbe} ist gerade total im Trend! Aber {andere_farbe} ist auch sehr schön."
+    }
+  ]
+};
