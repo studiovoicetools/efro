@@ -1,77 +1,55 @@
 ﻿// src/app/api/shopify-webhook/route.ts
-import { NextRequest, NextResponse, headers } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
 
-export const runtime = "nodejs";
-
-// 🧩 Supabase-Verbindung
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl =
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 🧩 Hilfsfunktion für sichere HMAC-Prüfung
-function safeTimingEqual(a: string, b: string) {
-  const aBuf = Buffer.from(a, "utf8");
-  const bBuf = Buffer.from(b, "utf8");
-  if (aBuf.length !== bBuf.length) return false;
-  return crypto.timingSafeEqual(aBuf, bBuf);
-}
-
-// 🧾 Haupt-Webhook-Handler
+/**
+ * Shopify → Supabase Synchronisierung über SKU
+ * Wird aufgerufen, wenn ein Produkt erstellt oder aktualisiert wird.
+ */
 export async function POST(request: NextRequest) {
   try {
-    const secret = process.env.SHOPIFY_API_SECRET!;
-    const hmacHeader = headers().get("x-shopify-hmac-sha256") || "";
-    const topic = headers().get("x-shopify-topic") || "unknown";
-    const bodyText = await request.text();
+    const body = await request.json();
+    const variant = body.variants?.[0];
 
-    // 🧮 HMAC-Überprüfung
-    const generatedHmac = crypto
-      .createHmac("sha256", secret)
-      .update(bodyText, "utf8")
-      .digest("base64");
-
-    if (!safeTimingEqual(generatedHmac, hmacHeader)) {
-      console.error("❌ Ungültige HMAC-Signatur für", topic);
-      return NextResponse.json({ error: "Invalid HMAC" }, { status: 401 });
+    const sku = variant?.sku;
+    if (!sku) {
+      console.warn("❌ Keine SKU im Webhook gefunden:", body);
+      return NextResponse.json({ ok: false, error: "SKU fehlt" }, { status: 400 });
     }
 
-    const body = JSON.parse(bodyText);
-    console.log(`📦 Webhook empfangen: ${topic}`);
+    const productData = {
+      sku,
+      title: body.title || "",
+      description: body.body_html || "",
+      price: parseFloat(variant?.price || "0"),
+      compare_at_price: parseFloat(variant?.compare_at_price || "0"),
+      image_url: body.images?.[0]?.src || "",
+      category: body.product_type || "",
+      tags: body.tags || "",
+      updated_at: new Date().toISOString(),
+    };
 
-    // Nur Produkt-Events verarbeiten
-    if (["products/create", "products/update", "products/delete"].includes(topic)) {
-      const { id, title, handle, images, variants } = body;
-      if (!id) {
-        return NextResponse.json({ error: "Invalid product data" }, { status: 400 });
-      }
+    const { error } = await supabase
+      .from("products")
+      .upsert(productData, { onConflict: "sku" });
 
-      // 🔄 Produkt speichern/aktualisieren
-      const { error } = await supabase
-        .from("products")
-        .upsert({
-          shopify_id: id.toString(),
-          title,
-          handle,
-          image_url: images?.[0]?.src || null,
-          price: variants?.[0]?.price || "0",
-          compare_at_price: variants?.[0]?.compare_at_price || null,
-          url: `https://dein-shop.myshopify.com/products/${handle}`,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) {
-        console.error("❌ Supabase-Fehler:", error);
-        return NextResponse.json({ error: "Database error" }, { status: 500 });
-      }
-
-      console.log("✅ Produkt erfolgreich synchronisiert:", title);
+    if (error) {
+      console.error("❌ Supabase Sync Error:", error);
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("❌ Webhook-Fehler:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.log(`✅ Produkt synchronisiert: ${sku}`);
+    return NextResponse.json({ ok: true, sku });
+  } catch (err: any) {
+    console.error("❌ Webhook Error:", err);
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
+
+export const runtime = "nodejs";
