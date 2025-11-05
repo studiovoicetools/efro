@@ -1,45 +1,60 @@
-﻿import { NextResponse } from "next/server";
+﻿// src/app/api/query/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { query, language = "de" } = await req.json();
-    if (!query) {
-      return NextResponse.json({ ok: false, error: "Fehlende Query" });
+    // 🔹 Lazy Supabase-Initialisierung erst zur Laufzeit
+    const supabaseUrl =
+      process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("❌ Supabase-Umgebungsvariablen fehlen!");
+      return NextResponse.json(
+        { error: "Supabase environment variables missing" },
+        { status: 500 }
+      );
     }
 
-    console.log("ğŸ” Suche gestartet:", query);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 1ï¸âƒ£ Eingabetext in Embedding umwandeln
-    const embed = await openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: query,
+    // 🔹 Anfrage auslesen
+    const body = await req.json();
+    const { q, limit = 10 } = body as { q?: string; limit?: number };
+
+    if (!q) {
+      return NextResponse.json({ error: "Kein Suchbegriff angegeben" }, { status: 400 });
+    }
+
+    console.log(`🔍 Supabase Query gestartet für: "${q}"`);
+
+    // 🔹 Volltextsuche in Produkten
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .ilike("title", `%${q}%`)
+      .limit(limit);
+
+    if (error) {
+      console.error("❌ Supabase Query Error:", error.message);
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      query: q,
+      results: data || [],
+      count: data?.length || 0,
     });
-    const queryVector = embed.data[0].embedding;
-
-    // 2ï¸âƒ£ Ã„hnlichste Produkte suchen (Supabase Vektor-Suche)
-    const { data, error } = await supabase.rpc("match_products", {
-      query_embedding: queryVector,
-      match_count: 5, // top 5 Produkte
-      filter_lang: language,
-    });
-
-    if (error) throw error;
-
-    console.log(`âœ… ${data?.length || 0} Produkte gefunden.`);
-    return NextResponse.json({ ok: true, results: data });
   } catch (err: any) {
-    console.error("Fehler in /api/query:", err.message);
-    return NextResponse.json({ ok: false, error: err.message });
+    console.error("❌ Query API Fehler:", err);
+    return NextResponse.json(
+      { error: err.message || "Unbekannter Fehler" },
+      { status: 500 }
+    );
   }
 }
-
