@@ -12,32 +12,18 @@ import crypto from "crypto";
  *   → plan, active, updated_at
  */
 
+export const runtime = "nodejs";
+
 const ADMIN_VERSION = "2024-07";
 type Plan = "basic" | "pro" | "enterprise";
 
-const PRICES: Record<
-  Plan,
-  { amount: number; currency: "EUR"; recurring?: boolean }
-> = {
+const PRICES: Record<Plan, { amount: number; currency: "EUR"; recurring?: boolean }> = {
   basic: { amount: 299.0, currency: "EUR" },
   pro: { amount: 699.0, currency: "EUR" },
   enterprise: { amount: 999.0, currency: "EUR", recurring: true },
 };
 
-/** 🧩  Supabase-Verbindung mit Fallbacks **/
-const supabaseUrl =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("❌ Supabase-Umgebungsvariablen fehlen!");
-  throw new Error("Supabase-Umgebungsvariablen fehlen!");
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-/** 🔐 Sichere Fetch-Funktion für Shopify GraphQL **/
+/** 🔐 Sichere Shopify GraphQL Helper-Funktion **/
 async function adminGraphQL<T>(
   shop: string,
   accessToken: string,
@@ -56,8 +42,9 @@ async function adminGraphQL<T>(
   });
 
   const text = await res.text();
+
   if (!res.ok) {
-    console.error("❌ Shopify-HTTP-Fehler:", res.status, text);
+    console.error("❌ Shopify HTTP Error:", res.status, text);
     throw new Error(`Shopify HTTP ${res.status}: ${text}`);
   }
 
@@ -72,7 +59,23 @@ async function adminGraphQL<T>(
 /** 🚀 Billing-Hauptlogik **/
 export async function POST(request: NextRequest) {
   try {
-    // DEV-Bypass
+    // 🧩 Lazy Supabase-Initialisierung — erst zur Laufzeit
+    const supabaseUrl =
+      process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("❌ Supabase-Umgebungsvariablen fehlen!");
+      return NextResponse.json(
+        { error: "Supabase environment variables missing." },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // DEV-BYPASS
     if (process.env.BILLING_DISABLED === "true") {
       console.log("⚠️ Billing deaktiviert (DEV-Modus)");
       return NextResponse.json({
@@ -101,7 +104,10 @@ export async function POST(request: NextRequest) {
       !/^.+\.myshopify\.com$/i.test(shop) &&
       !/^admin\.shopify\.com\/store\//i.test(shop)
     ) {
-      return NextResponse.json({ error: "Ungültige Shop-Domain" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Ungültige Shop-Domain" },
+        { status: 400 }
+      );
     }
 
     const cfg = PRICES[plan];
@@ -109,7 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unbekannter Plan" }, { status: 400 });
     }
 
-    // Access Token ermitteln
+    // 🔑 Access Token abrufen (aus Supabase oder Env)
     let accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || "";
     const { data: shopRow } = await supabase
       .from("shops")
@@ -131,7 +137,7 @@ export async function POST(request: NextRequest) {
         ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/billing`
         : "https://admin.shopify.com");
 
-    /** 🧾 Enterprise-Abo **/
+    /** 💎 Enterprise-Plan (monatlich wiederkehrend) **/
     if (plan === "enterprise") {
       const MUTATION = `
         mutation appSubscriptionCreate($name: String!, $returnUrl: URL!, $test: Boolean, $lineItems: [AppSubscriptionLineItemInput!]!) {
@@ -144,7 +150,7 @@ export async function POST(request: NextRequest) {
       `;
 
       const variables = {
-        name: "AIVA Enterprise",
+        name: "EFRO Enterprise",
         returnUrl: safeReturnUrl,
         test: process.env.SHOPIFY_BILLING_TEST === "true",
         lineItems: [
@@ -164,7 +170,10 @@ export async function POST(request: NextRequest) {
       const confirmationUrl = result?.data?.appSubscriptionCreate?.confirmationUrl;
 
       if (errors?.length) {
-        return NextResponse.json({ error: "Billing-Fehler", details: errors }, { status: 400 });
+        return NextResponse.json(
+          { error: "Billing-Fehler", details: errors },
+          { status: 400 }
+        );
       }
 
       await supabase
@@ -179,7 +188,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, confirmationUrl, plan });
     }
 
-    /** 💳 Einmalige Käufe (Basic / Pro) **/
+    /** 💳 Basic / Pro Einmalzahlung **/
     const ONE_TIME = `
       mutation appPurchaseOneTimeCreate($name: String!, $price: MoneyInput!, $returnUrl: URL!, $test: Boolean) {
         appPurchaseOneTimeCreate(name: $name, price: $price, returnUrl: $returnUrl, test: $test) {
@@ -191,7 +200,7 @@ export async function POST(request: NextRequest) {
     `;
 
     const variables = {
-      name: plan === "pro" ? "AIVA Pro" : "AIVA Basic",
+      name: plan === "pro" ? "EFRO Pro" : "EFRO Basic",
       price: { amount: cfg.amount, currencyCode: cfg.currency },
       returnUrl: safeReturnUrl,
       test: process.env.SHOPIFY_BILLING_TEST === "true",
@@ -202,7 +211,10 @@ export async function POST(request: NextRequest) {
     const confirmationUrl = result?.data?.appPurchaseOneTimeCreate?.confirmationUrl;
 
     if (errors?.length) {
-      return NextResponse.json({ error: "Billing-Fehler", details: errors }, { status: 400 });
+      return NextResponse.json(
+        { error: "Billing-Fehler", details: errors },
+        { status: 400 }
+      );
     }
 
     await supabase
@@ -217,7 +229,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, confirmationUrl, plan });
   } catch (error) {
     console.error("❌ Billing API error:", error);
-    return NextResponse.json({ error: "Billing processing failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Billing processing failed" },
+      { status: 500 }
+    );
   }
 }
-

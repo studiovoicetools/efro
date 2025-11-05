@@ -1,24 +1,27 @@
-﻿// src/app/api/checkout/url/route.ts
-import { NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseClient } from "@/lib/getSupabaseClient";
 
-/**
- * Diese Route gibt die zuletzt erstellte Checkout-URL zurÃ¼ck.
- * In einer echten App wÃ¼rde sie aus einer Session oder Datenbank kommen.
- * Hier nutzen wir einen Dummy-Mechanismus.
- */
-let lastCheckoutUrl: string | null = null;
+export const runtime = "nodejs";
 
-export async function GET() {
-  if (lastCheckoutUrl) {
-    return NextResponse.json({ success: true, checkoutUrl: lastCheckoutUrl });
-  } else {
-    return NextResponse.json({ success: false, error: "Kein Warenkorb gefunden" });
+export async function POST(req: NextRequest) {
+  try {
+    const { cartId } = await req.json();
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("carts")
+      .select("checkout_url")
+      .eq("id", cartId)
+      .single();
+
+    if (error) throw error;
+
+    if (!data?.checkout_url)
+      return NextResponse.json({ error: "Kein Checkout-Link gefunden" }, { status: 404 });
+
+    return NextResponse.json({ success: true, url: data.checkout_url });
+  } catch (err: any) {
+    console.error("❌ Checkout URL Fehler:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-
-export async function POST(request: Request) {
-  const { checkoutUrl } = await request.json();
-  lastCheckoutUrl = checkoutUrl;
-  return NextResponse.json({ success: true });
-}
-

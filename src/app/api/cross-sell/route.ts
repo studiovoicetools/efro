@@ -1,23 +1,24 @@
-﻿// src/app/api/cross-sell/route.ts
-import { NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseClient } from "@/lib/getSupabaseClient";
 
-/**
- * Liefert passende Cross-Selling-Kategorien zu einer gegebenen Kategorie.
- * In Phase 2 kÃ¶nnen diese Daten direkt aus Supabase gelesen werden.
- */
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const category = searchParams.get("category")?.toLowerCase() || "";
+export const runtime = "nodejs";
 
-  const mapping: Record<string, string[]> = {
-    hoodie: ["cap", "t-shirt", "jacke"],
-    shirt: ["hoodie", "jacke", "hose"],
-    jacke: ["hoodie", "mÃ¼tze"],
-    cap: ["hoodie", "shirt"],
-    snowboard: ["jacke", "handschuhe", "helm"],
-  };
+export async function POST(req: NextRequest) {
+  try {
+    const { sku } = await req.json();
+    const supabase = getSupabaseClient();
 
-  const related = mapping[category] || ["accessoires"];
-  return NextResponse.json({ success: true, related });
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .ilike("cross_sell_skus", `%${sku}%`)
+      .limit(5);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, related: data });
+  } catch (err: any) {
+    console.error("❌ Cross-sell Fehler:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
-
