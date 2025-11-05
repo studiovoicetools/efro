@@ -1,8 +1,8 @@
-// components/ShopifyProductPageAvatar.tsx
+﻿// components/ShopifyProductPageAvatar.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { MascotProvider, MascotRive } from "@mascotbot-sdk/react";
+import { MascotProvider, MascotRive } from "mascotbot-sdk-react";
 
 export function ShopifyProductPageAvatar() {
   const [currentProduct, setCurrentProduct] = useState<any>(null);
@@ -29,18 +29,18 @@ export function ShopifyProductPageAvatar() {
         },
         body: JSON.stringify({
           items: [{
-            id: currentProduct?.variantId, // Variante ID benötigt
+            id: currentProduct?.variantId, // Variante ID benÃ¶tigt
             quantity: 1
           }]
         })
       });
       
       if (response.ok) {
-        console.log('✅ Produkt im Warenkorb');
-        // Avatar spricht Bestätigung
+        console.log('âœ… Produkt im Warenkorb');
+        // Avatar spricht BestÃ¤tigung
       }
     } catch (error) {
-      console.error('❌ Warenkorb-Fehler:', error);
+      console.error('âŒ Warenkorb-Fehler:', error);
     }
   };
 
@@ -57,12 +57,12 @@ export function ShopifyProductPageAvatar() {
               onClick={addToCart}
               className="w-full bg-orange-500 text-white py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
             >
-              🛒 In den Warenkorb
+              ğŸ›’ In den Warenkorb
             </button>
             
-            {/* Cross-Selling Vorschläge */}
+            {/* Cross-Selling VorschlÃ¤ge */}
             <div className="mt-3 text-sm text-gray-600">
-              <p>💡 Charlie empfiehlt dieses Produkt!</p>
+              <p>ğŸ’¡ Charlie empfiehlt dieses Produkt!</p>
             </div>
           </div>
         )}
@@ -70,3 +70,4 @@ export function ShopifyProductPageAvatar() {
     </MascotProvider>
   );
 }
+

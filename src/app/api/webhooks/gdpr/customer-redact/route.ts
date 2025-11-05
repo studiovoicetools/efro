@@ -1,4 +1,4 @@
-// src/app/api/webhooks/gdpr/customer-redact/route.ts
+﻿// src/app/api/webhooks/gdpr/customer-redact/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
@@ -12,8 +12,9 @@ function isValidShopifyHmac(req: NextRequest, rawBody: Buffer) {
 export async function POST(req: NextRequest) {
   const raw = Buffer.from(await req.arrayBuffer());
   if (!isValidShopifyHmac(req, raw)) {
-    return NextResponse.json({ error: "Ungültige Signatur" }, { status: 401 });
+    return NextResponse.json({ error: "UngÃ¼ltige Signatur" }, { status: 401 });
   }
-  // TODO: Kundendaten löschen/anonymisieren, falls gespeichert
+  // TODO: Kundendaten lÃ¶schen/anonymisieren, falls gespeichert
   return NextResponse.json({ ok: true });
 }
+

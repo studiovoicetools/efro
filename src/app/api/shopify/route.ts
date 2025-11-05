@@ -1,4 +1,4 @@
-// src/app/api/shopify/route.ts
+﻿// src/app/api/shopify/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -18,11 +18,12 @@ export async function GET(req: NextRequest) {
       redirectUri
     )}&state=${plan}&grant_options[]=per-user`;
 
-    console.log("🔗 OAuth Start:", installUrl);
+    console.log("ğŸ”— OAuth Start:", installUrl);
 
     return NextResponse.redirect(installUrl);
   } catch (err) {
-    console.error("❌ Fehler beim Start der Auth:", err);
+    console.error("âŒ Fehler beim Start der Auth:", err);
     return NextResponse.json({ error: "Auth-Start fehlgeschlagen" }, { status: 500 });
   }
 }
+

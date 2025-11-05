@@ -1,32 +1,44 @@
-// app/api/supabase-products/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+﻿import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export async function GET(request: NextRequest) {
+export const runtime = "nodejs";
+
+export async function GET() {
+  console.log("📦 Supabase Products API aufgerufen");
+
   try {
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
+    // Supabase Client initialisieren
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-    // Supabase Client erstellen
-    const supabase = createClient();
-
-    // Produkte aus Supabase abrufen
-    let query = supabase.from('products').select('*');
-
-    // Nach Kategorie filtern, falls angegeben
-    if (category) {
-      query = query.ilike('category', `%${category}%`);
-    }
-
-    const { data: products, error } = await query;
+    // Produkte abrufen
+    let { data: products, error } = await supabase
+      .from("products")
+      .select("*")
+      .limit(50);
 
     if (error) {
-      throw error;
+      console.error("❌ Supabase-Fehler:", error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ products: products || [] });
-  } catch (error) {
-    console.error('Supabase Products Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+    console.log(`✅ ${products?.length || 0} Produkte gefunden.`);
+    return NextResponse.json({
+      success: true,
+      products: products || [],
+      total: products?.length || 0,
+    });
+  } catch (err: any) {
+    console.error("❌ API-Fehler:", err.message);
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500 }
+    );
   }
 }
+

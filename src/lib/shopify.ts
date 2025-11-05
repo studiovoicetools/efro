@@ -1,4 +1,4 @@
-// src/lib/shopify.ts
+﻿// src/lib/shopify.ts
 // ---------------------------------------------
 // Shopify Storefront API Helper
 // ---------------------------------------------
@@ -7,11 +7,11 @@ const domain = process.env.SHOPIFY_STORE_DOMAIN!;
 const token = process.env.SHOPIFY_STOREFRONT_TOKEN!;
 
 if (!domain || !token) {
-  throw new Error("❌ Shopify environment variables missing!");
+  throw new Error("âŒ Shopify environment variables missing!");
 }
 
 /**
- * Universelle Fetch-Funktion für Storefront-GraphQL-Abfragen.
+ * Universelle Fetch-Funktion fÃ¼r Storefront-GraphQL-Abfragen.
  */
 export async function shopifyFetch<T>(
   query: string,
@@ -40,7 +40,7 @@ export async function shopifyFetch<T>(
 }
 
 // ---------------------------------------------------------
-//  GraphQL Queries & Mutations für Cart und Produkte
+//  GraphQL Queries & Mutations fÃ¼r Cart und Produkte
 // ---------------------------------------------------------
 
 export const CART_CREATE = /* GraphQL */ `
@@ -110,4 +110,5 @@ export const PRODUCT_DEFAULT_VARIANT = /* GraphQL */ `
     }
   }
 `;
+
 

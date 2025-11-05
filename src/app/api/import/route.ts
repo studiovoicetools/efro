@@ -1,88 +1,99 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { parse } from "csv-parse/sync";
 import OpenAI from "openai";
 
-// Supabase-Client initialisieren
+export const runtime = "nodejs";
+
+// Supabase initialisieren
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-
-export const runtime = "nodejs";
+// OpenAI initialisieren
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
 export async function POST(req: Request) {
   console.log("📦 Import-API wurde aufgerufen!");
 
   try {
-    // Datei auslesen
+    // Datei empfangen
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+
     if (!file) {
       return NextResponse.json({ ok: false, error: "Keine Datei empfangen." });
     }
 
-    // Datei lesen
-    const text = await file.text();
-    const textWithoutBOM = text.replace(/^\uFEFF/, ""); // BOM entfernen
+    // CSV-Inhalt lesen und evtl. BOM entfernen
+    const text = (await file.text()).replace(/^\uFEFF/, "");
 
-    // CSV korrekt parsen (Komma-getrennt, Header aktiv)
-    const records = parse(textWithoutBOM, {
+    // CSV parsen → records: Array<Record<string, string>>
+    const records = parse(text, {
       columns: true,
       skip_empty_lines: true,
       trim: true,
       relax_quotes: true,
       delimiter: ",",
-    });
+    }) as Record<string, string>[];
 
-    console.log("🧾 CSV Records Preview:", records.slice(0, 3));
+    console.log("🧠 CSV Records Preview:", records.slice(0, 3));
 
     let inserted = 0;
-    const errors: any[] = [];
+    const errors: { row: number; message: string }[] = [];
 
-    for (const [i, r] of records.entries()) {
+    // Iterator sauber in Array umwandeln → kein TS-Fehler mehr
+    for (const [i, r] of Array.from(records.entries())) {
       try {
+        const row = r as Record<string, any>;
+
         // Pflichtfelder prüfen
-        if (!r.sku || !r.title) {
-          errors.push({ row: i + 1, message: "Pflichtfelder fehlen (sku/title)" });
+        if (!row.sku || !row.title) {
+          errors.push({
+            row: i + 1,
+            message: "Pflichtfelder fehlen (sku/title)",
+          });
           continue;
         }
 
-        // 🧩 Alle Felder vorbereiten (inkl. neuer Spalten)
+        // Produktdaten strukturieren
         const productData = {
-          sku: r.sku,
-          title: r.title,
-          description: r.description || "",
-          price: r.price ? parseFloat(r.price) : 0,
-          compare_at_price: r.compare_at_price ? parseFloat(r.compare_at_price) : null,
-          tags: r.tags || "",
-          category: r.category || "",
-          inventory: r.inventory ? parseInt(r.inventory) : 0,
-          image_url: r.image_url || "",
-          product_url: r.product_url || "",
-          cross_sell_skus: r.cross_sell_skus || "",
-          upsell_skus: r.upsell_skus || "",
-          language: r.language || "de",
-          color: r.color || "",
-          size: r.size || "",
-          variant_id: r.variant_id || "",
+          sku: row.sku,
+          title: row.title,
+          description: row.description || "",
+          price: row.price ? parseFloat(row.price) : 0,
+          compare_at_price: row.compare_at_price
+            ? parseFloat(row.compare_at_price)
+            : null,
+          tags: row.tags || "",
+          category: row.category || "",
+          inventory: row.inventory ? parseInt(row.inventory) : 0,
+          image_url: row.image_url || "",
+          product_url: row.product_url || "",
+          cross_sell_skus: row.cross_sell_skus || "",
+          upsell_skus: row.upsell_skus || "",
+          language: row.language || "de",
+          color: row.color || "",
+          size: row.size || "",
+          variant_id: row.variant_id || "",
           available:
-            typeof r.available === "string"
-              ? r.available.toLowerCase().trim() === "true"
-              : !!r.available,
+            typeof row.available === "string"
+              ? row.available.toLowerCase().trim() === "true"
+              : !!row.available,
         };
 
-        // 🧠 Produkt einfügen oder aktualisieren (Upsert)
+        // Produkt in Supabase speichern (Upsert)
         const { error: upsertErr } = await supabase
           .from("products")
           .upsert(productData, { onConflict: "sku" });
 
         if (upsertErr) throw upsertErr;
 
-        // 🧬 Embedding erzeugen (Titel + Beschreibung + Tags)
-        const inputText = `${r.title}\n${r.description}\n${r.tags}`;
+        // Embedding erzeugen
+        const inputText = `${row.title}\n${row.description}\n${row.tags}`;
         const embeddingResp = await openai.embeddings.create({
           model: "text-embedding-3-small",
           input: inputText,
@@ -90,21 +101,23 @@ export async function POST(req: Request) {
 
         const vector = embeddingResp.data[0].embedding;
 
-        // 🧠 Embedding in Supabase speichern
+        // Embedding speichern
         const { error: embedErr } = await supabase
           .from("product_embeddings")
-          .upsert({ sku: r.sku, embedding: vector });
+          .upsert({ sku: row.sku, embedding: vector });
 
         if (embedErr) throw embedErr;
 
         inserted++;
       } catch (err: any) {
-        console.error("Zeilenfehler:", err.message);
+        console.error("❌ Zeilenfehler:", err.message);
         errors.push({ row: i + 1, message: err.message });
       }
     }
 
-    console.log(`✅ Import abgeschlossen. Erfolgreich: ${inserted}, Fehler: ${errors.length}`);
+    console.log(
+      `✅ Import abgeschlossen. Erfolgreich: ${inserted}, Fehler: ${errors.length}`
+    );
 
     return NextResponse.json({
       ok: errors.length === 0,
@@ -113,7 +126,8 @@ export async function POST(req: Request) {
       errors,
     });
   } catch (err: any) {
-    console.error("Import-Fehler:", err);
+    console.error("❌ Import-Fehler:", err);
     return NextResponse.json({ ok: false, error: err.message });
   }
 }
+

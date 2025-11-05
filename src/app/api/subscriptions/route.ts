@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 🔥 AKTUALISIERTE Abo-Features - JETZT MIT SPRACHSTEUERUNG FÜR ALLE
+// ğŸ”¥ AKTUALISIERTE Abo-Features - JETZT MIT SPRACHSTEUERUNG FÃœR ALLE
 const tierFeatures = {
   basic: {
     maxProducts: 10,
-    hasVoiceRecognition: true,  // ✅ GEÄNDERT: Jetzt true für Basic
+    hasVoiceRecognition: true,  // âœ… GEÃ„NDERT: Jetzt true fÃ¼r Basic
     hasCrossSelling: false,
     hasAnalytics: false,
     multilingual: false,
@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("🔍 Checking subscription for shop:", shop);
+    console.log("ğŸ” Checking subscription for shop:", shop);
 
-    // Demo: Immer Basic zurückgeben für Tests
+    // Demo: Immer Basic zurÃ¼ckgeben fÃ¼r Tests
     const shopConfig = {
       id: 'demo-shop',
       domain: shop,
@@ -58,14 +58,15 @@ export async function GET(request: NextRequest) {
       createdAt: new Date().toISOString()
     };
 
-    console.log("✅ Shop config:", shopConfig);
+    console.log("âœ… Shop config:", shopConfig);
     return NextResponse.json(shopConfig);
 
   } catch (error) {
-    console.error("❌ Subscription API error:", error);
+    console.error("âŒ Subscription API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+

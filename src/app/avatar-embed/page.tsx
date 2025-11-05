@@ -1,76 +1,67 @@
-// app/api/shopify-products/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+﻿// src/app/avatar-embed/page.tsx
+"use client";
 
-export async function GET(request: NextRequest) {
-  const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
-  const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+import React, { useEffect, useState } from "react";
 
-  try {
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category') || '';
+/**
+ * EFRO Avatar Embed Test Page
+ * --------------------------------
+ * Diese Seite dient nur zur Vorschau des Avatars.
+ * Sie ist kein API-Endpunkt, sondern eine visuelle Testumgebung.
+ */
+export default function AvatarEmbedPage() {
+  const [loaded, setLoaded] = useState(false);
 
-    const url = `https://${storeDomain}/admin/api/2024-01/products.json`;
-    const response = await fetch(url, {
-      headers: {
-        'X-Shopify-Access-Token': accessToken!,
-        'Content-Type': 'application/json',
-      },
-    });
+  useEffect(() => {
+    // Beispiel: simuliert Laden des Avatars
+    const timer = setTimeout(() => setLoaded(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
-    console.log('📡 Shopify API Response Status:', response.status);
+  return (
+    <main
+      style={{
+        fontFamily: "Inter, Arial, sans-serif",
+        padding: "40px",
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #f9fafb 0%, #eef2f7 100%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#222",
+      }}
+    >
+      <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "1rem" }}>
+        🧩 EFRO Avatar Preview
+      </h1>
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Shopify API Error:', errorText);
-      return NextResponse.json(
-        { error: `Shopify API failed: ${response.status}`, details: errorText },
-        { status: response.status }
-      );
-    }
+      {!loaded ? (
+        <p style={{ opacity: 0.6 }}>Avatar wird geladen...</p>
+      ) : (
+        <div
+          style={{
+            width: 320,
+            height: 320,
+            borderRadius: "16px",
+            background: "#fff",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "1.2rem",
+          }}
+        >
+          🎙️ EFRO Avatar läuft!
+        </div>
+      )}
 
-    const data = await response.json();
-    console.log('✅ Shopify Products Found:', data.products?.length || 0);
-
-    // Einfache Filterung
-    let products = data.products || [];
-    
-    if (category) {
-      const searchTerm = category.toLowerCase();
-      products = products.filter((product: any) => {
-        const titleMatch = product.title?.toLowerCase().includes(searchTerm);
-        const tagsMatch = product.tags?.toLowerCase().includes(searchTerm);
-        const typeMatch = product.product_type?.toLowerCase().includes(searchTerm);
-        
-        return titleMatch || tagsMatch || typeMatch;
-      });
-    }
-
-    // Transformiere für den Avatar
-    const formattedProducts = products.map((product: any) => ({
-      id: product.id.toString(),
-      title: product.title,
-      handle: product.handle,
-      imageUrl: product.image?.src || product.images?.[0]?.src || null,
-      imageAlt: product.image?.alt || product.title,
-      price: product.variants?.[0]?.price || '0.00',
-      compareAtPrice: product.variants?.[0]?.compare_at_price || null,
-      url: `https://${storeDomain}/products/${product.handle}`,
-      available: product.status === 'active',
-      category: product.product_type || 'general',
-      tags: product.tags || ''
-    }));
-
-    return NextResponse.json({ 
-      success: true,
-      products: formattedProducts,
-      total: formattedProducts.length
-    });
-
-  } catch (error) {
-    console.error('❌ Shopify Connection Failed:', error);
-    return NextResponse.json(
-      { error: 'Connection failed', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
+      <p style={{ marginTop: "2rem", fontSize: "0.9rem", opacity: 0.7 }}>
+        Diese Seite dient nur als lokale Vorschau.
+        <br />
+        Die Produktdaten werden über <code>/api/shopify-products</code> geladen.
+      </p>
+    </main>
+  );
 }
+

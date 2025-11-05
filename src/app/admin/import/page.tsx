@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState } from "react";
 
 export default function ImportPage() {
@@ -7,11 +7,11 @@ export default function ImportPage() {
 
   const handleUpload = async () => {
     if (!file) {
-      setStatus("❌ Bitte zuerst eine CSV-Datei auswählen.");
+      setStatus("âŒ Bitte zuerst eine CSV-Datei auswÃ¤hlen.");
       return;
     }
 
-    setStatus("⏳ Wird hochgeladen...");
+    setStatus("â³ Wird hochgeladen...");
     const formData = new FormData();
     formData.append("file", file);
 
@@ -23,21 +23,21 @@ export default function ImportPage() {
 
       const data = await res.json();
       if (data.ok) {
-        setStatus(`✅ Erfolgreich: ${data.inserted} neu, ${data.updated} aktualisiert.`);
+        setStatus(`âœ… Erfolgreich: ${data.inserted} neu, ${data.updated} aktualisiert.`);
       } else {
-        setStatus(`⚠️ Teilweise Fehler: ${data.errors?.length || 0} fehlerhafte Zeilen.`);
+        setStatus(`âš ï¸ Teilweise Fehler: ${data.errors?.length || 0} fehlerhafte Zeilen.`);
         console.warn(data.errors);
       }
     } catch (err) {
       console.error(err);
-      setStatus("❌ Upload fehlgeschlagen. Siehe Konsole für Details.");
+      setStatus("âŒ Upload fehlgeschlagen. Siehe Konsole fÃ¼r Details.");
     }
   };
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>🗂️ Produkt-Import</h1>
-      <p>Wähle deine <b>products.csv</b> Datei und lade sie hoch.</p>
+      <h1>ğŸ—‚ï¸ Produkt-Import</h1>
+      <p>WÃ¤hle deine <b>products.csv</b> Datei und lade sie hoch.</p>
 
       <input
         type="file"
@@ -55,3 +55,4 @@ export default function ImportPage() {
     </div>
   );
 }
+

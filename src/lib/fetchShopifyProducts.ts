@@ -1,4 +1,4 @@
-export interface ShopifyProduct {
+﻿export interface ShopifyProduct {
   id: string;
   title: string;
   handle: string;
@@ -18,7 +18,7 @@ export async function fetchShopifyProducts({
   limit?: number;
 }): Promise<{ items: ShopifyProduct[]; totalCount: number }> {
   
-  console.log("🔄 Starte Produktsuche:", q);
+  console.log("ğŸ”„ Starte Produktsuche:", q);
   
   const params = new URLSearchParams();
   params.set("q", q);
@@ -28,18 +28,18 @@ export async function fetchShopifyProducts({
     // DIREKT zu Supabase - keine Umwege
     const res = await fetch(`/api/supabase-products?${params.toString()}`);
     
-    console.log("📡 API Response Status:", res.status);
+    console.log("ğŸ“¡ API Response Status:", res.status);
     
     if (!res.ok) {
       throw new Error(`API error: ${res.status}`);
     }
 
     const data = await res.json();
-    console.log("✅ Produkte erhalten:", data.items?.length || 0);
+    console.log("âœ… Produkte erhalten:", data.items?.length || 0);
     return data;
     
   } catch (error) {
-    console.error("❌ Produktsuche fehlgeschlagen:", error);
+    console.error("âŒ Produktsuche fehlgeschlagen:", error);
     
     // Sofortiger Fallback
     const fallbackProducts = getStaticProducts(q, limit);
@@ -94,3 +94,4 @@ function getStaticProducts(query: string, limit: number): ShopifyProduct[] {
     .filter(p => p.title.toLowerCase().includes(query.toLowerCase()))
     .slice(0, limit);
 }
+

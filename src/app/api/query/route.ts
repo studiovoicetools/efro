@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 
@@ -17,16 +17,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Fehlende Query" });
     }
 
-    console.log("🔍 Suche gestartet:", query);
+    console.log("ğŸ” Suche gestartet:", query);
 
-    // 1️⃣ Eingabetext in Embedding umwandeln
+    // 1ï¸âƒ£ Eingabetext in Embedding umwandeln
     const embed = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: query,
     });
     const queryVector = embed.data[0].embedding;
 
-    // 2️⃣ Ähnlichste Produkte suchen (Supabase Vektor-Suche)
+    // 2ï¸âƒ£ Ã„hnlichste Produkte suchen (Supabase Vektor-Suche)
     const { data, error } = await supabase.rpc("match_products", {
       query_embedding: queryVector,
       match_count: 5, // top 5 Produkte
@@ -35,10 +35,11 @@ export async function POST(req: Request) {
 
     if (error) throw error;
 
-    console.log(`✅ ${data?.length || 0} Produkte gefunden.`);
+    console.log(`âœ… ${data?.length || 0} Produkte gefunden.`);
     return NextResponse.json({ ok: true, results: data });
   } catch (err: any) {
     console.error("Fehler in /api/query:", err.message);
     return NextResponse.json({ ok: false, error: err.message });
   }
 }
+

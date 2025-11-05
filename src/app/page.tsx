@@ -1,4 +1,4 @@
-// app/page.tsx
+﻿// app/page.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -10,7 +10,7 @@ import {
   MascotProvider,
   MascotRive,
   useMascotElevenlabs,
-} from "@mascotbot-sdk/react";
+} from "mascotbot-sdk-react";
 
 const globalConversation: { current: any } = { current: null };
 
@@ -52,7 +52,7 @@ function ChatInterface({
       setMessages([
         {
           id: "1",
-          text: "Hallo! Ich bin Charlie. Sage „Zeig mir Hoodies“ oder „T-Shirts“!",
+          text: "Hallo! Ich bin Charlie. Sage â€Zeig mir Hoodiesâ€œ oder â€T-Shirtsâ€œ!",
           sender: "assistant",
           timestamp: new Date(),
         },
@@ -82,7 +82,7 @@ function ChatInterface({
   return (
     <div className="w-80 h-96 flex flex-col bg-white/95 backdrop-blur rounded-2xl border-2 border-orange-200 shadow-xl mb-4">
       <div className="p-3 border-b border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50 rounded-t-2xl font-semibold text-gray-800">
-        💬 Charlie – Verkaufsassistent
+        ğŸ’¬ Charlie â€“ Verkaufsassistent
       </div>
       <div className="flex-1 p-3 overflow-y-auto text-sm">
         {messages.map((m) => (
@@ -99,7 +99,7 @@ function ChatInterface({
         <div ref={endRef} />
         {products.length > 0 && (
           <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-xl">
-            <div className="text-green-700 font-medium mb-2">🛍️ Gefundene Produkte ({products.length})</div>
+            <div className="text-green-700 font-medium mb-2">ğŸ›ï¸ Gefundene Produkte ({products.length})</div>
             <div className="grid grid-cols-2 gap-2">
               {products.slice(0, 2).map((p) => (
                 <a key={p.id} href={p.url} target="_blank" className="flex gap-2 p-2 bg-white rounded-lg border border-green-100">
@@ -116,7 +116,7 @@ function ChatInterface({
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}
-          placeholder="Schreibe hier …"
+          placeholder="Schreibe hier â€¦"
           className="flex-1 px-3 py-2 text-sm border border-orange-200 rounded-xl resize-none"
         />
         <button onClick={send} disabled={!inputText.trim()} className="px-3 bg-orange-500 text-white rounded-xl disabled:opacity-40">
@@ -184,7 +184,7 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
   const handleCheckout = async () => {
     setShowCheckoutOverlay(true);
     setIsCheckoutLoading(true);
-    await speak("Ich öffne jetzt deinen Warenkorb …");
+    await speak("Ich Ã¶ffne jetzt deinen Warenkorb â€¦");
     try {
       const res = await fetch("/api/cart/add", {
         method: "POST",
@@ -193,7 +193,7 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
       });
       const data = await res.json();
       if (data?.checkoutUrl) {
-        await speak("Fertig! Ich öffne die Bezahlseite.");
+        await speak("Fertig! Ich Ã¶ffne die Bezahlseite.");
         setTimeout(() => {
           window.open(data.checkoutUrl, "_blank");
           setShowCheckoutOverlay(false);
@@ -216,25 +216,25 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
     setLastHeard(t);
 
     if (t.includes("hoodie")) {
-      await speak("Ich suche Hoodies …");
+      await speak("Ich suche Hoodies â€¦");
       await fetchProductsFromShopify("hoodie");
       await fetchCrossSell("hoodie");
     } else if (t.includes("shirt")) {
-      await speak("Ich zeige dir T-Shirts …");
+      await speak("Ich zeige dir T-Shirts â€¦");
       await fetchProductsFromShopify("shirt");
       await fetchCrossSell("shirt");
     } else if (t.includes("jacke")) {
-      await speak("Ich zeige dir Jacken …");
+      await speak("Ich zeige dir Jacken â€¦");
       await fetchProductsFromShopify("jacke");
       await fetchCrossSell("jacke");
     } else if (t.includes("cap")) {
-      await speak("Ich suche Caps …");
+      await speak("Ich suche Caps â€¦");
       await fetchProductsFromShopify("cap");
       await fetchCrossSell("cap");
     } else if (t.includes("kasse") || t.includes("bezahlen")) {
       await handleCheckout();
     } else {
-      await speak("Sag z. B. „Zeig mir Hoodies“ oder „Zur Kasse“.");
+      await speak("Sag z. B. â€Zeig mir Hoodiesâ€œ oder â€Zur Kasseâ€œ.");
     }
   }, []);
 
@@ -256,13 +256,13 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
     <>
       {/* Debug oben links */}
       <div className="fixed top-4 left-4 z-50 bg-black/90 text-white p-4 rounded-2xl text-sm font-mono min-w-80 border border-gray-700">
-        <div>🔌 {connectionStatus}</div>
-        <div>🎤 {listening ? "Listening" : "Idle"}</div>
-        <div>💬 Chat {isChatOpen ? "OPEN" : "CLOSED"}</div>
-        <div>📦 Produkte: {products.length}</div>
-        <div>🧠 LipSync: {isIntercepting ? "On" : "Off"}</div>
-        <div>🎙️ Mic: {isMuted ? "Mute" : "Live"}</div>
-        <div className="mt-1 border-t border-gray-600 pt-1 text-xs opacity-80">Letzter Befehl: {lastHeard || "—"}</div>
+        <div>ğŸ”Œ {connectionStatus}</div>
+        <div>ğŸ¤ {listening ? "Listening" : "Idle"}</div>
+        <div>ğŸ’¬ Chat {isChatOpen ? "OPEN" : "CLOSED"}</div>
+        <div>ğŸ“¦ Produkte: {products.length}</div>
+        <div>ğŸ§  LipSync: {isIntercepting ? "On" : "Off"}</div>
+        <div>ğŸ™ï¸ Mic: {isMuted ? "Mute" : "Live"}</div>
+        <div className="mt-1 border-t border-gray-600 pt-1 text-xs opacity-80">Letzter Befehl: {lastHeard || "â€”"}</div>
       </div>
 
       {/* Avatar UI unten rechts */}
@@ -279,7 +279,7 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
               isChatOpen ? "bg-orange-500 text-white border-orange-500" : "bg-white text-gray-800 border-orange-200"
             }`}
           >
-            {isChatOpen ? "💬 Chat schließen" : "💬 Chat öffnen"}
+            {isChatOpen ? "ğŸ’¬ Chat schlieÃŸen" : "ğŸ’¬ Chat Ã¶ffnen"}
           </button>
 
           {connectionStatus === "connected" ? (
@@ -288,7 +288,7 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
                 Stop
               </button>
               <button onClick={() => setIsMuted(!isMuted)} className="h-12 px-4 bg-white border rounded-lg shadow-lg">
-                {isMuted ? "🔇 Stumm" : "🎤 Aktiv"}
+                {isMuted ? "ğŸ”‡ Stumm" : "ğŸ¤ Aktiv"}
               </button>
               <button
                 onClick={handleCheckout}
@@ -297,7 +297,7 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
                   isCheckoutLoading ? "bg-emerald-300" : "bg-emerald-500 hover:bg-emerald-600"
                 } text-white`}
               >
-                {isCheckoutLoading ? "⏳ Öffne Kasse …" : "🛒 Zur Kasse"}
+                {isCheckoutLoading ? "â³ Ã–ffne Kasse â€¦" : "ğŸ›’ Zur Kasse"}
               </button>
             </>
           ) : (
@@ -308,7 +308,7 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
                 isConnecting ? "bg-orange-400" : "bg-orange-500 hover:bg-orange-600"
               }`}
             >
-              {isConnecting ? "🔄 Verbinde…" : "🎤 Mit Charlie sprechen"}
+              {isConnecting ? "ğŸ”„ Verbindeâ€¦" : "ğŸ¤ Mit Charlie sprechen"}
             </button>
           )}
         </div>
@@ -323,7 +323,7 @@ function ElevenLabsAvatar({ dynamicVariables }: { dynamicVariables?: Record<stri
                 <path d="M370.3 105.4c-5.3-2.1-10.7-3.9-16.1-5.3..." />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold tracking-wide">Kasse wird geöffnet …</h2>
+            <h2 className="text-xl font-semibold tracking-wide">Kasse wird geÃ¶ffnet â€¦</h2>
             <p className="text-sm opacity-75">Bitte einen Moment Geduld</p>
           </div>
         </div>
@@ -346,3 +346,4 @@ export default function Home() {
     </MascotProvider>
   );
 }
+

@@ -1,8 +1,8 @@
-// src/app/api/shopify-products/route.ts
+﻿// src/app/api/shopify-products/route.ts
 import { NextResponse } from "next/server";
 
 /**
- * Diese Route lädt Produkte aus deinem Shopify-Store (Storefront-API).
+ * Diese Route lÃ¤dt Produkte aus deinem Shopify-Store (Storefront-API).
  * Sie kann optional nach Kategorie (z. B. "hoodie") filtern.
  */
 export async function GET(request: Request) {
@@ -72,3 +72,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: (e as Error).message });
   }
 }
+

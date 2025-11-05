@@ -1,4 +1,10 @@
-// components/CrossSellingSuggestions.tsx
+﻿// components/CrossSellingSuggestions.tsx
+
+"use client";
+
+import React, { useState, useEffect } from "react";
+
+
 interface CrossSellingProps {
   currentProduct: any;
   onProductSelect: (product: any) => void;
@@ -18,7 +24,7 @@ export function CrossSellingSuggestions({ currentProduct, onProductSelect }: Cro
       const data = await response.json();
       
       if (data.success) {
-        // Aktuelles Produkt ausschließen
+        // Aktuelles Produkt ausschlieÃŸen
         const filtered = data.products.filter((p: any) => p.id !== product.id);
         setSuggestions(filtered);
       }
@@ -31,7 +37,7 @@ export function CrossSellingSuggestions({ currentProduct, onProductSelect }: Cro
 
   return (
     <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200">
-      <h4 className="font-semibold text-blue-800 mb-2">💡 Passend dazu:</h4>
+      <h4 className="font-semibold text-blue-800 mb-2">ğŸ’¡ Passend dazu:</h4>
       <div className="space-y-2">
         {suggestions.map((product) => (
           <div 
@@ -46,7 +52,7 @@ export function CrossSellingSuggestions({ currentProduct, onProductSelect }: Cro
             />
             <div className="flex-1">
               <p className="text-xs font-medium">{product.title}</p>
-              <p className="text-xs text-green-600 font-bold">{product.price} €</p>
+              <p className="text-xs text-green-600 font-bold">{product.price} â‚¬</p>
             </div>
           </div>
         ))}
@@ -54,3 +60,4 @@ export function CrossSellingSuggestions({ currentProduct, onProductSelect }: Cro
     </div>
   );
 }
+

@@ -1,9 +1,9 @@
-// src/app/api/cross-sell/route.ts
+﻿// src/app/api/cross-sell/route.ts
 import { NextResponse } from "next/server";
 
 /**
  * Liefert passende Cross-Selling-Kategorien zu einer gegebenen Kategorie.
- * In Phase 2 können diese Daten direkt aus Supabase gelesen werden.
+ * In Phase 2 kÃ¶nnen diese Daten direkt aus Supabase gelesen werden.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const mapping: Record<string, string[]> = {
     hoodie: ["cap", "t-shirt", "jacke"],
     shirt: ["hoodie", "jacke", "hose"],
-    jacke: ["hoodie", "mütze"],
+    jacke: ["hoodie", "mÃ¼tze"],
     cap: ["hoodie", "shirt"],
     snowboard: ["jacke", "handschuhe", "helm"],
   };
@@ -20,3 +20,4 @@ export async function GET(request: Request) {
   const related = mapping[category] || ["accessoires"];
   return NextResponse.json({ success: true, related });
 }
+

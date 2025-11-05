@@ -1,9 +1,9 @@
-// src/app/api/checkout/url/route.ts
+﻿// src/app/api/checkout/url/route.ts
 import { NextResponse } from "next/server";
 
 /**
- * Diese Route gibt die zuletzt erstellte Checkout-URL zurück.
- * In einer echten App würde sie aus einer Session oder Datenbank kommen.
+ * Diese Route gibt die zuletzt erstellte Checkout-URL zurÃ¼ck.
+ * In einer echten App wÃ¼rde sie aus einer Session oder Datenbank kommen.
  * Hier nutzen wir einen Dummy-Mechanismus.
  */
 let lastCheckoutUrl: string | null = null;
@@ -21,3 +21,4 @@ export async function POST(request: Request) {
   lastCheckoutUrl = checkoutUrl;
   return NextResponse.json({ success: true });
 }
+

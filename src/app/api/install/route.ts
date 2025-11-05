@@ -1,8 +1,8 @@
-// src/app/api/install/route.ts
+﻿// src/app/api/install/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Baut eine OAuth-Install-URL für Custom Distribution:
+ * Baut eine OAuth-Install-URL fÃ¼r Custom Distribution:
  * /api/install?shop=SHOP_DOMAIN&plan=basic|pro|enterprise
  */
 export async function GET(req: NextRequest) {
@@ -21,10 +21,10 @@ export async function GET(req: NextRequest) {
       "write_products",
       "read_script_tags",
       "write_script_tags",
-      // ggf. weitere benötigte Scopes ergänzen
+      // ggf. weitere benÃ¶tigte Scopes ergÃ¤nzen
     ].join(",");
 
-    // Nach erfolgreichem OAuth kommst du hier zurück:
+    // Nach erfolgreichem OAuth kommst du hier zurÃ¼ck:
     const redirectUri =
       process.env.NEXT_PUBLIC_APP_URL
         ? `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/shopify?plan=${plan}`
@@ -40,3 +40,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Fehler beim Erzeugen der Install-URL" }, { status: 500 });
   }
 }
+

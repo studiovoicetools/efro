@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Product {
@@ -12,7 +12,7 @@ interface Product {
 
 interface ProductCardsProps {
   products: Product[];
-  visible: boolean;            // true → zeigen, false → ausblenden
+  visible: boolean;            // true â†’ zeigen, false â†’ ausblenden
   onClose?: () => void;        // optionaler Callback (z. B. Auto-fade)
 }
 
@@ -30,7 +30,7 @@ export default function ProductCards({ products, visible, onClose }: ProductCard
           style={{
             position: "fixed",
             right: "20px",
-            bottom: "120px", // Platz über dem Avatar
+            bottom: "120px", // Platz Ã¼ber dem Avatar
             zIndex: 9999,
             display: "flex",
             flexDirection: "column",
@@ -85,10 +85,10 @@ export default function ProductCards({ products, visible, onClose }: ProductCard
                   }}
                 >
                   {p.description?.slice(0, 50) ?? ""}
-                  {p.description && p.description.length > 50 ? "…" : ""}
+                  {p.description && p.description.length > 50 ? "â€¦" : ""}
                 </p>
                 <p style={{ fontWeight: "bold", color: "#0070f3", marginBottom: "8px" }}>
-                  {p.price?.toFixed(2)} €
+                  {p.price?.toFixed(2)} â‚¬
                 </p>
                 <a
                   href={p.product_url}
@@ -105,13 +105,13 @@ export default function ProductCards({ products, visible, onClose }: ProductCard
                     fontWeight: 500,
                   }}
                 >
-                  Zum Produkt →
+                  Zum Produkt â†’
                 </a>
               </div>
             </motion.div>
           ))}
 
-          {/* Schließen-Button */}
+          {/* SchlieÃŸen-Button */}
           <button
             onClick={onClose}
             style={{
@@ -124,10 +124,11 @@ export default function ProductCards({ products, visible, onClose }: ProductCard
               fontSize: "0.8rem",
             }}
           >
-            ✕ Schließen
+            âœ• SchlieÃŸen
           </button>
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
+
