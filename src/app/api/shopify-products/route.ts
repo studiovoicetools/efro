@@ -1,75 +1,63 @@
-﻿// src/app/api/shopify-products/route.ts
-import { NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
-/**
- * Diese Route lÃ¤dt Produkte aus deinem Shopify-Store (Storefront-API).
- * Sie kann optional nach Kategorie (z. B. "hoodie") filtern.
- */
-export async function GET(request: Request) {
+export const runtime = "nodejs";
+
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category");
+    const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
 
-    const domain = process.env.SHOPIFY_STORE_DOMAIN;
-    const token = process.env.SHOPIFY_STOREFRONT_TOKEN;
-
-    if (!domain || !token) {
-      throw new Error("Fehlende Shopify Umgebungsvariablen (.env)");
+    if (!storeDomain || !accessToken) {
+      console.error("❌ Shopify API Credentials fehlen!");
+      return NextResponse.json({ error: "Shopify credentials missing" }, { status: 500 });
     }
 
-    const query = `
-      query GetProducts($query: String) {
-        products(first: 10, query: $query) {
-          edges {
-            node {
-              id
-              title
-              handle
-              onlineStoreUrl
-              availableForSale
-              featuredImage { url altText }
-              priceRange {
-                minVariantPrice { amount currencyCode }
-                maxVariantPrice { amount currencyCode }
-              }
-            }
-          }
-        }
-      }
-    `;
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get("category") || "";
 
-    const variables = {
-      query: category ? `title:${category}` : "",
-    };
-
-    const res = await fetch(`https://${domain}/api/2024-07/graphql.json`, {
-      method: "POST",
+    const url = `https://${storeDomain}/admin/api/2024-01/products.json`;
+    const response = await fetch(url, {
       headers: {
+        "X-Shopify-Access-Token": accessToken,
         "Content-Type": "application/json",
-        "X-Shopify-Storefront-Access-Token": token,
       },
-      body: JSON.stringify({ query, variables }),
     });
 
-    const result = await res.json();
-    const edges = result?.data?.products?.edges || [];
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Shopify API Error:", errorText);
+      return NextResponse.json({ error: errorText }, { status: response.status });
+    }
 
-    const products = edges.map((edge: any) => ({
-      id: edge.node.id,
-      title: edge.node.title,
-      handle: edge.node.handle,
-      url: edge.node.onlineStoreUrl,
-      available: edge.node.availableForSale,
-      price: edge.node.priceRange.minVariantPrice.amount,
-      imageUrl: edge.node.featuredImage?.url,
-      imageAlt: edge.node.featuredImage?.altText || "",
-      category: category || "allgemein",
+    const data = await response.json();
+    let products = data.products || [];
+
+    if (category) {
+      const searchTerm = category.toLowerCase();
+      products = products.filter((p: any) =>
+        [p.title, p.tags, p.product_type].some((f: string) =>
+          f?.toLowerCase().includes(searchTerm)
+        )
+      );
+    }
+
+    const formatted = products.map((p: any) => ({
+      id: p.id.toString(),
+      title: p.title,
+      handle: p.handle,
+      imageUrl: p.images?.[0]?.src || null,
+      price: p.variants?.[0]?.price || "0.00",
+      available: p.status === "active",
+      url: `https://${storeDomain}/products/${p.handle}`,
     }));
 
-    return NextResponse.json({ success: true, products });
-  } catch (e) {
-    console.error("Fehler bei shopify-products:", e);
-    return NextResponse.json({ success: false, error: (e as Error).message });
+    return NextResponse.json({
+      success: true,
+      products: formatted,
+      total: formatted.length,
+    });
+  } catch (err: any) {
+    console.error("❌ Shopify Products Error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-
