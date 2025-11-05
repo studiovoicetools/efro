@@ -2,22 +2,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-/**
- * Shopify → Supabase Synchronisierung über SKU
- * Sicher auch während des Next.js-Builds (lazy init).
- */
+/** Sichere Lazy-Initialisierung von Supabase */
 function getSupabase() {
   const supabaseUrl =
     process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-  // 🔒 Schutz: Render-Build kann keine envs lesen → nicht crashen!
+  // Debug-Output für Render-Logs
+  console.log("🔍 ENV-Check:", {
+    SUPABASE_URL: supabaseUrl ? supabaseUrl.slice(0, 30) + "..." : null,
+    HAS_KEY: !!supabaseKey,
+  });
+
   if (!supabaseUrl || !supabaseKey || !supabaseUrl.startsWith("http")) {
-    console.warn("⚠️ Supabase env wird erst zur Laufzeit geladen (Build-Phase).");
+    console.warn("⚠️ Supabase-Env-Variablen fehlen oder ungültig (Build-Phase).");
     return null;
   }
-
   return createClient(supabaseUrl, supabaseKey);
 }
 
@@ -25,7 +26,6 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   const supabase = getSupabase();
-
   if (!supabase) {
     return NextResponse.json(
       { ok: false, error: "Supabase nicht initialisiert (Build-Phase)" },
@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
       tags: body.tags || "",
       updated_at: new Date().toISOString(),
     };
+
+    console.log("🧩 Supabase Upsert für:", productData);
 
     const { error } = await supabase
       .from("products")
