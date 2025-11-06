@@ -2,8 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Baut eine OAuth-Install-URL fÃ¼r Custom Distribution:
- * /api/install?shop=SHOP_DOMAIN&plan=basic|pro|enterprise
+ * 🚀 Shopify Installations-Handler
+ * Startet den OAuth-Flow für die App-Installation.
+ * Beispiel: /api/install?shop=mystore.myshopify.com&plan=basic|pro|enterprise
  */
 export async function GET(req: NextRequest) {
   try {
@@ -19,25 +20,29 @@ export async function GET(req: NextRequest) {
     const scopes = [
       "read_products",
       "write_products",
-      "read_script_tags",
+      "read_customers",
+      "read_orders",
       "write_script_tags",
-      // ggf. weitere benÃ¶tigte Scopes ergÃ¤nzen
+      "read_script_tags"
     ].join(",");
 
-    // Nach erfolgreichem OAuth kommst du hier zurÃ¼ck:
     const redirectUri =
       process.env.NEXT_PUBLIC_APP_URL
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/shopify?plan=${plan}`
-        : `http://localhost:3000/api/auth/callback/shopify?plan=${plan}`;
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/shopify/callback?plan=${plan}`
+        : `http://localhost:3000/api/shopify/callback?plan=${plan}`;
 
     const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${encodeURIComponent(
       clientId
     )}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
-    return NextResponse.json({ installUrl });
+    console.log("🔗 Install URL erstellt:", installUrl);
+
+    // Direkt weiterleiten
+    return NextResponse.redirect(installUrl);
   } catch (e) {
-    console.error("Install-URL Fehler:", e);
+    console.error("❌ Install-URL Fehler:", e);
     return NextResponse.json({ error: "Fehler beim Erzeugen der Install-URL" }, { status: 500 });
   }
 }
 
+export const runtime = "nodejs";
