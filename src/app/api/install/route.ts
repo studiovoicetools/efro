@@ -23,15 +23,20 @@ export async function GET(req: NextRequest) {
       "write_script_tags",
       "read_inventory",
       "write_inventory",
-      "read_product_listings",
+      "read_product_listings"
     ].join(",");
 
-    const redirectUri = ${appUrl}/api/shopify/callback?plan=;
-    const installUrl = https:///admin/oauth/authorize?client_id=&scope=&redirect_uri=;
+    const redirectUri = `${appUrl}/api/shopify/callback?plan=${plan}`;
+    const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${encodeURIComponent(
+      clientId
+    )}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
     return NextResponse.json({ installUrl });
   } catch (e) {
     console.error("Install-URL Fehler:", e);
-    return NextResponse.json({ error: "Fehler beim Erzeugen der Install-URL" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Fehler beim Erzeugen der Install-URL" },
+      { status: 500 }
+    );
   }
 }

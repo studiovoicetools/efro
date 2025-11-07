@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase.from("products").upsert(productData, { onConflict: "sku" });
     if (error) throw error;
 
-    console.log(✅ Produkt synchronisiert (sku=) []);
+    console.log("✅ Produkt synchronisiert:", sku, []);
     return NextResponse.json({ ok: true, sku, topic });
   } catch (err: any) {
     console.error("❌ Webhook Error:", err);
