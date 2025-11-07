@@ -1,4 +1,7 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+import { NextRequest, NextResponse } from "next/server";
 
 
 
@@ -63,3 +66,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

@@ -1,4 +1,7 @@
-﻿// src/app/api/webhooks/gdpr/customer-redact/route.ts
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+// src/app/api/webhooks/gdpr/customer-redact/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
@@ -17,4 +20,5 @@ export async function POST(req: NextRequest) {
   // TODO: Kundendaten lÃ¶schen/anonymisieren, falls gespeichert
   return NextResponse.json({ ok: true });
 }
+
 

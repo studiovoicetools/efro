@@ -1,4 +1,7 @@
-﻿// src/app/api/billing/route.ts
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+// src/app/api/billing/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
@@ -235,3 +238,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

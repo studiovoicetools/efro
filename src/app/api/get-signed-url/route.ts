@@ -1,4 +1,7 @@
-﻿// src/app/api/get-signed-url/route.ts
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+// src/app/api/get-signed-url/route.ts
 import { NextResponse } from "next/server";
 
 /**
@@ -39,4 +42,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Fehler beim Erstellen der signierten URL" }, { status: 500 });
   }
 }
+
 

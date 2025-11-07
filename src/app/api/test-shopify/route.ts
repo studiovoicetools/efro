@@ -1,3 +1,6 @@
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export const runtime = "nodejs";
 // src/app/api/test-shopify/route.ts
 import { NextResponse } from "next/server";
@@ -11,5 +14,6 @@ export async function GET() {
     return NextResponse.json({ success: false, error: err.message });
   }
 }
+
 
 

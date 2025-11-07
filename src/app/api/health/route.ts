@@ -1,3 +1,6 @@
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 // src/app/api/health/route.ts
 import { NextResponse } from "next/server";
 
@@ -15,3 +18,4 @@ export async function GET() {
     timestamp: new Date().toISOString(),
   });
 }
+

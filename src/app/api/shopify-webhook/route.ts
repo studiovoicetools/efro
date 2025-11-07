@@ -1,4 +1,7 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -41,3 +44,4 @@ export async function POST(request: NextRequest) {
 }
 
 export const runtime = "nodejs";
+

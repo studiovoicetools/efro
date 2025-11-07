@@ -1,3 +1,6 @@
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export const runtime = "nodejs";
 // ERSTELLE DIESE DATEI: app/api/install-script/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -24,5 +27,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Installation fehlgeschlagen' }, { status: 500 });
   }
 }
+
 
 

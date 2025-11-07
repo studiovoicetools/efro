@@ -1,4 +1,7 @@
-﻿// src/app/api/shopify/callback/route.ts
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+// src/app/api/shopify/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
@@ -91,3 +94,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Auth-Callback fehlgeschlagen", details: err?.message }, { status: 500 });
   }
 }
+

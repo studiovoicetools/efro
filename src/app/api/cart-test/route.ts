@@ -1,4 +1,7 @@
-﻿// src/app/api/cart-test/route.ts
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+// src/app/api/cart-test/route.ts
 import { NextResponse } from "next/server";
 
 /**
@@ -12,3 +15,4 @@ export async function GET() {
     message: "🛒 Cart test endpoint is working ✅",
   });
 }
+

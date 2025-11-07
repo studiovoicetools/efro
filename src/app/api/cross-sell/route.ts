@@ -1,4 +1,7 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/getSupabaseClient";
 
 export const runtime = "nodejs";
@@ -22,3 +25,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

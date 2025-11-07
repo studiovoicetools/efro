@@ -1,4 +1,7 @@
-﻿// src/app/api/cart/add/route.ts
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+// src/app/api/cart/add/route.ts
 import { NextResponse } from "next/server";
 
 /**
@@ -68,4 +71,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: (e as Error).message });
   }
 }
+
 
