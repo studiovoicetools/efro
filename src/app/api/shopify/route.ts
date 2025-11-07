@@ -1,9 +1,7 @@
-﻿export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
-// src/app/api/shopify/route.ts
+﻿// src/app/api/shopify/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs"; // ⬅️ NEU
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,6 +28,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Auth-Start fehlgeschlagen" }, { status: 500 });
   }
 }
-
-
 
