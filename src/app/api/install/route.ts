@@ -1,5 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs"; // ⬅️ NEU
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -39,4 +41,4 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const runtime = "nodejs";
+

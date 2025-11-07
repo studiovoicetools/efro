@@ -1,13 +1,14 @@
-﻿// ERSTELLE DIESE DATEI: app/api/install-script/route.ts
+export const runtime = "nodejs";
+// ERSTELLE DIESE DATEI: app/api/install-script/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
     const { shopDomain } = await request.json();
     
-    // Hier wÃ¼rdest du in einer echten App den Script-Tag in Shopify installieren
-    // FÃ¼r jetzt simulieren wir das erstmal
-    console.log(`ğŸ› ï¸ Installiere Avatar fÃ¼r Shop: ${shopDomain}`);
+    // Hier würdest du in einer echten App den Script-Tag in Shopify installieren
+    // Für jetzt simulieren wir das erstmal
+    console.log(`🛠️ Installiere Avatar für Shop: ${shopDomain}`);
     
     return NextResponse.json({ 
       success: true, 
@@ -23,4 +24,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Installation fehlgeschlagen' }, { status: 500 });
   }
 }
+
 

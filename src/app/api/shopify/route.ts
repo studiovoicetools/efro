@@ -1,6 +1,8 @@
 ﻿// src/app/api/shopify/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs"; // ⬅️ NEU
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
