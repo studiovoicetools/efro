@@ -4,7 +4,6 @@ export const runtime = "nodejs";
 // src/app/api/health/route.ts
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
 
 /**
  * 🔍 Health Check Endpoint
@@ -18,4 +17,5 @@ export async function GET() {
     timestamp: new Date().toISOString(),
   });
 }
+
 

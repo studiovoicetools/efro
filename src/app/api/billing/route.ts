@@ -15,7 +15,6 @@ import crypto from "crypto";
  *   → plan, active, updated_at
  */
 
-export const runtime = "nodejs";
 
 const ADMIN_VERSION = "2024-07";
 type Plan = "basic" | "pro" | "enterprise";
@@ -238,4 +237,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 

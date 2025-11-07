@@ -5,7 +5,6 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,4 +60,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
 

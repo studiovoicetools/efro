@@ -6,7 +6,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
-export const runtime = "nodejs"; // ⬅️ NEU
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -94,4 +93,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Auth-Callback fehlgeschlagen", details: err?.message }, { status: 500 });
   }
 }
+
 

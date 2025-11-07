@@ -3,7 +3,6 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs"; // ⬅️ NEU
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,6 +42,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Fehler beim Erzeugen der Install-URL" }, { status: 500 });
   }
 }
+
 
 
 

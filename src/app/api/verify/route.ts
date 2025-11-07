@@ -10,5 +10,5 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, shop });
 }
 
-export const runtime = "nodejs";
+
 

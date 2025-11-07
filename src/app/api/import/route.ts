@@ -6,7 +6,6 @@ import { createClient } from "@supabase/supabase-js";
 import { parse } from "csv-parse/sync";
 import OpenAI from "openai";
 
-export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
@@ -76,4 +75,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: err.message });
   }
 }
+
 
