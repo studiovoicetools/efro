@@ -1,8 +1,10 @@
+"use client";
+
 export const revalidate = false;
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const runtime = "nodejs";
-"use client";
+
 
 
 import { useEffect, useState } from "react";
