@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: efro
+    env: node
+    plan: starter
+    buildCommand: "npm ci"
+    startCommand: "npm run start"
+    cache:
+      paths:
+        - node_modules/
+        - package-lock.json
