@@ -57,33 +57,45 @@ export async function GET() {
     const json = await resp.json();
     const edges = json?.data?.products?.edges;
     if (!edges) {
-      return NextResponse.json({ success: false, error: "Shopify Storefront API request failed" });
+      return NextResponse.json({
+        success: false,
+        error: "Shopify Storefront API request failed",
+      });
     }
 
     const products = edges.map(({ node }: any) => {
       const id = node?.id ?? crypto.randomUUID();
       return {
-        id,                                 // Primärschlüssel in products
-        sku: id,                            // <- WICHTIG: SKU = Shopify GID
+        id, // Primärschlüssel in products
+        sku: id, // SKU = Shopify GID
         title: node?.title ?? "Unbenanntes Produkt",
         handle: node?.handle ?? "",
         vendor: node?.vendor ?? "",
         description: node?.description ?? "",
         featuredImage: node?.featuredImage?.url ?? "",
-        price: parseFloat(node?.variants?.edges?.[0]?.node?.price?.amount ?? "0") || 0,
+        price:
+          parseFloat(node?.variants?.edges?.[0]?.node?.price?.amount ?? "0") ||
+          0,
       };
     });
 
-    const { data, error } = await supabase
+    // expliziter Typ-Fix
+    let data: any[] = [];
+
+    const { data: upserted, error } = await supabase
       .from("products")
-      .upsert(products, { onConflict: "id" }); // konfliktziel bleibt id
+      .upsert(products, { onConflict: "id" });
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message });
+      throw new Error(error.message);
     }
 
-   return NextResponse.json({ success: true, count: Array.isArray(data) ? data.length : 0 });
+    data = upserted || [];
 
+    return NextResponse.json({
+      success: true,
+      count: Array.isArray(data) ? data.length : 0,
+    });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });
   }
