@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import React, { useEffect, Suspense } from "react";
+import React, { useEffect, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MascotProvider,
@@ -13,6 +13,7 @@ import {
   useMascotElevenlabs,
   Fit,
   Alignment,
+  RiveState,
 } from "mascotbot-sdk-react";
 
 function EmbedInner() {
@@ -20,20 +21,19 @@ function EmbedInner() {
   const mode = searchParams.get("mode") || "live";
   const shop = searchParams.get("shop");
 
-  // ✅ Typkorrekt: SDK erwartet "disconnected" als initialen Status
+  // ✅ Typkorrekt: Startstatus = "disconnected"
   const elevenlabs = useMascotElevenlabs({
     conversation: {
       status: "disconnected",
     },
   });
 
+  // ✅ Rive-Instanz für MascotClient
+  const riveRef = useRef<RiveState | null>(null);
+
   useEffect(() => {
-    console.log("[Render dynamic OK] – /embed läuft mit Mascot v2");
-    if (mode === "test") {
-      console.log("🧪 Test mode aktiv");
-    } else if (shop) {
-      console.log(`🛍️ Shopify-Modus aktiv für ${shop}`);
-    }
+    console.log("🧩 EmbedPage läuft im Modus:", mode);
+    if (shop) console.log("🛍️ Verbundener Shop:", shop);
   }, [mode, shop]);
 
   return (
@@ -44,16 +44,20 @@ function EmbedInner() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: "#f7f7f7",
+        background: "#f9f9f9",
       }}
     >
       <MascotProvider>
-        <MascotClient>
+        <MascotClient rive={riveRef}>
           <MascotRive
             src="/mascot-v2.riv"
             fit={Fit.Contain}
             alignment={Alignment.Center}
             style={{ width: 400, height: 400 }}
+            onRiveLoad={(rive) => {
+              riveRef.current = rive;
+              console.log("✅ Rive Avatar geladen");
+            }}
           />
         </MascotClient>
       </MascotProvider>
@@ -63,7 +67,7 @@ function EmbedInner() {
 
 export default function EmbedPage() {
   return (
-    <Suspense fallback={<div>Loading Avatar...</div>}>
+    <Suspense fallback={<div>Loading Efro Avatar…</div>}>
       <EmbedInner />
     </Suspense>
   );
