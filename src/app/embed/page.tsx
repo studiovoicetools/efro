@@ -13,7 +13,6 @@ import {
   useMascotElevenlabs,
   Fit,
   Alignment,
-  RiveState,
 } from "mascotbot-sdk-react";
 
 function EmbedInner() {
@@ -21,15 +20,15 @@ function EmbedInner() {
   const mode = searchParams.get("mode") || "live";
   const shop = searchParams.get("shop");
 
-  // ✅ Typkorrekt: Startstatus = "disconnected"
+  // ✅ Typkorrekt laut SDK: Startstatus = "disconnected"
   const elevenlabs = useMascotElevenlabs({
     conversation: {
       status: "disconnected",
     },
   });
 
-  // ✅ Rive-Instanz für MascotClient
-  const riveRef = useRef<RiveState | null>(null);
+  // ✅ Kein RiveState mehr — generisch typisiert
+  const riveRef = useRef<any>(null);
 
   useEffect(() => {
     console.log("🧩 EmbedPage läuft im Modus:", mode);
