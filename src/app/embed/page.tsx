@@ -21,20 +21,21 @@ export default function EmbedPage() {
     onConnect: () => console.log("🎧 ElevenLabs connected"),
   });
 
-  const elevenlabs = useMascotElevenlabs({
-    autoConnect: true,
-  });
+  // Verbindung zu ElevenLabs Avatar vorbereiten (kein autoConnect-Flag)
+  const elevenlabs = useMascotElevenlabs({});
 
   useEffect(() => {
     console.log("👋 EmbedPage mounted");
 
-    // Warten bis Verbindung steht
-    if (!conversation.startSession) return;
+    if (!conversation.startSession) {
+      console.warn("⚠️ ElevenLabs conversation not ready yet.");
+      return;
+    }
 
     if (mode === "test") {
       console.log("🧪 Test mode active");
       conversation.startSession({
-        agentId: "default", // kann später dein echter Agent sein
+        agentId: "default", // Dummy-ID (später dein echter Agent)
         connectionType: "websocket",
         conversationConfig: {
           initialText: "Hello, I’m Efro — your test assistant!",
