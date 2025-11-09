@@ -11,10 +11,8 @@ import {
   MascotClient,
   MascotRive,
   useMascotElevenlabs,
-  Fit,
-  Alignment,
 } from "mascotbot-sdk-react";
-import { Rive } from "@rive-app/react-canvas";
+import { Rive, Fit, Alignment } from "@rive-app/react-canvas";
 
 function EmbedInner() {
   const searchParams = useSearchParams();
@@ -28,28 +26,25 @@ function EmbedInner() {
   const [riveInstance, setRiveInstance] = useState<any>(null);
 
   useEffect(() => {
-    async function loadMascot() {
-      try {
-        // Dummy-Canvas für Headless-Initialisierung (Render-kompatibel)
-        const dummyCanvas = document.createElement("canvas");
-        const rive = new Rive({
-          src: "/mascot-v2.riv",
-          canvas: dummyCanvas,
-          autoplay: true,
-        });
+    try {
+      const dummyCanvas = document.createElement("canvas");
 
-        // Viewport-Anpassung
-        rive.fit = Fit.Contain;
-        rive.alignment = Alignment.Center;
+      // 🔹 Kompatible Initialisierung (kein fit/alignment Property!)
+      const rive = new Rive({
+        src: "/mascot-v2.riv",
+        canvas: dummyCanvas,
+        autoplay: true,
+        layout: new Rive.Layout({
+          fit: Fit.Contain,
+          alignment: Alignment.Center,
+        }),
+      });
 
-        setRiveInstance(rive);
-        console.log("✅ Mascot geladen:", rive);
-      } catch (err) {
-        console.error("❌ Fehler beim Laden von mascot-v2.riv:", err);
-      }
+      setRiveInstance(rive);
+      console.log("✅ Mascot geladen:", rive);
+    } catch (err) {
+      console.error("❌ Fehler beim Laden von mascot-v2.riv:", err);
     }
-
-    loadMascot();
   }, []);
 
   return (
