@@ -1,9 +1,9 @@
+export const revalidate = false;
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const runtime = "nodejs";
 "use client";
 
-// 🚀 Vollständig dynamisch, kein statischer Export
-export const dynamic = "force-dynamic";
-export const revalidate = false;
-export const fetchCache = "force-no-store";
 
 import { useEffect, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
