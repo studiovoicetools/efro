@@ -4,19 +4,15 @@ import { useEffect } from "react";
 import { MascotRive, useMascotElevenlabs } from "@mascotbot-sdk/react";
 
 export default function EmbedPage() {
-  // 🧠 Der Hook benötigt ein Konfigurationsobjekt:
+  // 🎙 Verbindung zu ElevenLabs – exakt nach offiziellem SDK-Schema
   const elevenlabs = useMascotElevenlabs({
-    connection: {
-      apiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || "",
-    },
-    defaults: {
-      voice: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL",
-      model: "eleven_multilingual_v2",
-      autoConnect: true,
-    },
+    apiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || "",
+    voice: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL",
+    model: "eleven_multilingual_v2",
+    autoConnect: true,
   });
 
-  // 🎙 Avatar spricht automatisch beim Laden
+  // 🧠 Avatar spricht automatisch beim Laden
   useEffect(() => {
     if (elevenlabs && typeof elevenlabs.speak === "function") {
       elevenlabs.speak("Hallo! Ich bin Efro – dein smarter Verkaufsassistent.");
@@ -49,15 +45,15 @@ export default function EmbedPage() {
           )
         }
         style={{
-          marginTop: "20px",
+          marginTop: 20,
           padding: "12px 24px",
-          borderRadius: "8px",
+          borderRadius: 8,
           background: "#00C4B3",
           color: "#fff",
           border: "none",
           cursor: "pointer",
           fontWeight: "bold",
-          fontSize: "16px",
+          fontSize: 16,
         }}
       >
         Mit Efro sprechen
