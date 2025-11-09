@@ -24,10 +24,7 @@ function EmbedInner() {
     conversation: { status: "disconnected" },
   });
 
-  // 🧩 State statt Ref — genau das, was der Typ verlangt
   const [riveInstance, setRiveInstance] = useState<any>(null);
-
-  console.log("🧩 Embed läuft:", mode, "Shop:", shop || "–");
 
   return (
     <div
@@ -41,10 +38,9 @@ function EmbedInner() {
       }}
     >
       <MascotProvider>
-        {/* ✅ Jetzt bekommt MascotClient das korrekte rive-Objekt */}
         <MascotClient rive={riveInstance}>
           <MascotRive
-            src="/mascot-v2.riv"
+            file="/mascot-v2.riv"          // ✅ aktuelles SDK-Prop
             fit={Fit.Contain}
             alignment={Alignment.Center}
             style={{ width: 400, height: 400 }}
