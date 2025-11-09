@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MascotProvider,
@@ -25,19 +25,22 @@ function EmbedInner() {
     conversation: { status: "disconnected" },
   });
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [riveInstance, setRiveInstance] = useState<any>(null);
 
   useEffect(() => {
     async function loadMascot() {
       try {
+        // Dummy-Canvas für Headless-Initialisierung (Render-kompatibel)
         const dummyCanvas = document.createElement("canvas");
-
         const rive = new Rive({
           src: "/mascot-v2.riv",
           canvas: dummyCanvas,
           autoplay: true,
         });
+
+        // Viewport-Anpassung
+        rive.fit = Fit.Contain;
+        rive.alignment = Alignment.Center;
 
         setRiveInstance(rive);
         console.log("✅ Mascot geladen:", rive);
@@ -64,15 +67,8 @@ function EmbedInner() {
         {riveInstance ? (
           <MascotClient rive={riveInstance}>
             <div style={{ width: 400, height: 400 }}>
-  <MascotRive
-    onRiveLoad={(rive) => {
-      rive.fit = Fit.Contain;
-      rive.alignment = Alignment.Center;
-    }}
-  />
-</div>
-
-
+              <MascotRive />
+            </div>
           </MascotClient>
         ) : (
           <div>Loading Efro Avatar …</div>
