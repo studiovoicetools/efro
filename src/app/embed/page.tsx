@@ -1,8 +1,9 @@
 "use client";
 
-// ✅ Erzwingt dynamisches Rendering und verhindert statisches Exporten
+// 🚀 Vollständig dynamisch, kein statischer Export
 export const dynamic = "force-dynamic";
 export const revalidate = false;
+export const fetchCache = "force-no-store";
 
 import { useEffect, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
