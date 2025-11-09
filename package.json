@@ -12,6 +12,7 @@
     "@auth/core": "^0.41.1",
     "@elevenlabs/react": "^0.5.0",
     "@mascotbot-sdk/react": "file:mascotbot-sdk-react-0.1.6.tgz",
+    "@rive-app/react-canvas": "^4.23.4",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.76.1",
     "axios": "^1.12.2",
