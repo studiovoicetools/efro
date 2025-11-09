@@ -64,9 +64,11 @@ function EmbedInner() {
         {riveInstance ? (
           <MascotClient rive={riveInstance}>
             <MascotRive
-              layout={{ fit: Fit.Contain, alignment: Alignment.Center }} // ✅ neuer Syntax
-              style={{ width: 400, height: 400 }}
-            />
+  fit={Fit.Contain}
+  alignment={Alignment.Center}
+  style={{ width: 400, height: 400 }}
+/>
+
           </MascotClient>
         ) : (
           <div>Loading Efro Avatar …</div>
