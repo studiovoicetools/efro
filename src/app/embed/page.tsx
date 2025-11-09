@@ -1,4 +1,3 @@
-// src/app/embed/page.tsx
 "use client";
 
 export const dynamic = "force-dynamic";
@@ -16,23 +15,20 @@ import {
   Alignment,
 } from "mascotbot-sdk-react";
 
-// 💡 Diese Komponente wird clientseitig ausgeführt, nicht prerendered!
 function EmbedInner() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") || "live";
-  const shop = searchParams.get("shop") || null;
+  const shop = searchParams.get("shop");
 
-  // Verbindung zu ElevenLabs Avatar herstellen
+  // ✅ Richtige Initialisierung des Hooks ohne ungültiges "start"
   const elevenlabs = useMascotElevenlabs({
-    conversation: {
-      start: true,
-    },
+    conversation: {} // leeres Objekt erlaubt und typkonform
   });
 
   useEffect(() => {
-    console.log("🧩 Embed mounted - dynamic mode active");
+    console.log("🧩 Embed mounted – dynamic mode active");
     if (mode === "test") {
-      console.log("🧪 Test mode active – no static prerender");
+      console.log("🧪 Test mode active – no prerendering");
     }
   }, [mode]);
 
@@ -61,7 +57,6 @@ function EmbedInner() {
   );
 }
 
-// ✅ Suspense schützt gegen "missing suspense with CSR bailout"
 export default function EmbedPage() {
   return (
     <Suspense fallback={<div>Loading Avatar...</div>}>
