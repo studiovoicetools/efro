@@ -64,9 +64,11 @@ function EmbedInner() {
         {riveInstance ? (
           <MascotClient rive={riveInstance}>
             <MascotRive
-  fit={Fit.Contain}
-  alignment={Alignment.Center}
   style={{ width: 400, height: 400 }}
+  onRiveLoad={(rive) => {
+    rive.fit = Fit.Contain;
+    rive.alignment = Alignment.Center;
+  }}
 />
 
           </MascotClient>
