@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import React, { useEffect, Suspense, useState } from "react";
+import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MascotProvider,
@@ -24,25 +24,7 @@ function EmbedInner() {
     conversation: { status: "disconnected" },
   });
 
-  const [riveInstance, setRiveInstance] = useState<any>(null);
-
-  // ✅ Avatar laden, sobald Komponente bereit
-  useEffect(() => {
-    (async () => {
-      try {
-        const rive = await MascotRive.load("/mascot-v2.riv");
-        setRiveInstance(rive);
-        console.log("✅ Rive geladen:", rive);
-      } catch (err) {
-        console.error("Fehler beim Laden der Rive-Datei:", err);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    console.log("🧩 Embed läuft:", mode);
-    if (shop) console.log("🛍️ Shop:", shop);
-  }, [mode, shop]);
+  console.log("🧩 Embed läuft:", mode, "Shop:", shop || "–");
 
   return (
     <div
@@ -56,15 +38,13 @@ function EmbedInner() {
       }}
     >
       <MascotProvider>
-        <MascotClient rive={riveInstance}>
-          {riveInstance && (
-            <MascotRive
-              rive={riveInstance}
-              fit={Fit.Contain}
-              alignment={Alignment.Center}
-              style={{ width: 400, height: 400 }}
-            />
-          )}
+        <MascotClient>
+          <MascotRive
+            src="/mascot-v2.riv"          // ✅ richtiges Prop in dieser SDK-Version
+            fit={Fit.Contain}
+            alignment={Alignment.Center}
+            style={{ width: 400, height: 400 }}
+          />
         </MascotClient>
       </MascotProvider>
     </div>
