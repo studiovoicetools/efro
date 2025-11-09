@@ -20,19 +20,19 @@ function EmbedInner() {
   const mode = searchParams.get("mode") || "live";
   const shop = searchParams.get("shop");
 
-  // ✅ Typkorrektes Conversation-Objekt mit gültigem Status
+  // ✅ Typkorrekt: SDK erwartet "disconnected" als initialen Status
   const elevenlabs = useMascotElevenlabs({
     conversation: {
-      status: "idle", // gültiger Startzustand
+      status: "disconnected",
     },
   });
 
   useEffect(() => {
-    console.log("[Render: dynamic OK] – /embed läuft in force-dynamic Mode");
+    console.log("[Render dynamic OK] – /embed läuft mit Mascot v2");
     if (mode === "test") {
-      console.log("🧪 Test mode aktiv – kein statisches Prerendering");
+      console.log("🧪 Test mode aktiv");
     } else if (shop) {
-      console.log(`🛍️ Shopify mode für ${shop}`);
+      console.log(`🛍️ Shopify-Modus aktiv für ${shop}`);
     }
   }, [mode, shop]);
 
