@@ -24,7 +24,6 @@ function EmbedInner() {
     conversation: { status: "disconnected" },
   });
 
-  // ✅ Rive-Instanz korrekt speichern
   const [riveInstance, setRiveInstance] = useState<any>(null);
 
   useEffect(() => {
@@ -46,7 +45,7 @@ function EmbedInner() {
       <MascotProvider>
         <MascotClient rive={riveInstance}>
           <MascotRive
-            file="/mascot-v2.riv"        // ✅ neu: richtiges Prop
+            animation="/mascot-v2.riv"  // ✅ korrektes Property laut SDK
             fit={Fit.Contain}
             alignment={Alignment.Center}
             style={{ width: 400, height: 400 }}
