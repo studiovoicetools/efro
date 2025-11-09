@@ -12,7 +12,7 @@ import {
   MascotRive,
   useMascotElevenlabs,
 } from "mascotbot-sdk-react";
-import { Rive, Fit, Alignment } from "@rive-app/react-canvas";
+import { Rive, Fit, Alignment, Layout } from "@rive-app/react-canvas";
 
 function EmbedInner() {
   const searchParams = useSearchParams();
@@ -29,12 +29,12 @@ function EmbedInner() {
     try {
       const dummyCanvas = document.createElement("canvas");
 
-      // 🔹 Kompatible Initialisierung (kein fit/alignment Property!)
+      // ✅ Rive korrekt mit separatem Layout-Import
       const rive = new Rive({
         src: "/mascot-v2.riv",
         canvas: dummyCanvas,
         autoplay: true,
-        layout: new Rive.Layout({
+        layout: new Layout({
           fit: Fit.Contain,
           alignment: Alignment.Center,
         }),
