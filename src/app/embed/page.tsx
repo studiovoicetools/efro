@@ -4,17 +4,12 @@ import { useEffect } from "react";
 import { MascotRive, useMascotElevenlabs } from "@mascotbot-sdk/react";
 
 export default function EmbedPage() {
-  // 💡 Minimalobjekt – wird von allen SDK-Versionen akzeptiert
-  const elevenlabs = useMascotElevenlabs({
-    modelId: "eleven_multilingual_v2",
-    autoConnect: true,
-  });
+  // 🧩 absolut kompatibler Aufruf – keine Properties!
+  const elevenlabs = useMascotElevenlabs({});
 
   useEffect(() => {
     try {
-      elevenlabs?.speak?.(
-        "Hallo! Ich bin Efro – dein smarter Verkaufsassistent."
-      );
+      elevenlabs?.speak?.("Hallo! Ich bin Efro – dein smarter Verkaufsassistent.");
     } catch (err) {
       console.error("Voice init error:", err);
     }
@@ -24,20 +19,15 @@ export default function EmbedPage() {
     <div
       style={{
         display: "flex",
+        flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        flexDirection: "column",
         height: "100vh",
         background: "#0a0a0a",
         color: "#fff",
       }}
     >
-      <MascotRive
-        src="/bear.riv"
-        fit="contain"
-        style={{ width: 360, height: 360 }}
-      />
-
+      <MascotRive src="/bear.riv" fit="contain" style={{ width: 360, height: 360 }} />
       <button
         onClick={() =>
           elevenlabs?.speak?.(
