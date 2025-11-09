@@ -4,17 +4,17 @@ import { useEffect } from "react";
 import { MascotRive, useMascotElevenlabs } from "@mascotbot-sdk/react";
 
 export default function EmbedPage() {
-  // 🎙 Voice setup mit korrekten aktuellen Optionen
-  const elevenlabs = useMascotElevenlabs({
-    voice: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL",
-    model: "eleven_multilingual_v2",
-    autoConnect: true,
-  });
+  // ✅ Hook jetzt ohne Parameter aufrufen
+  const elevenlabs = useMascotElevenlabs();
 
-  // 🧠 Avatar spricht automatisch beim Laden
+  // 🎙 Avatar spricht automatisch beim Laden
   useEffect(() => {
     if (elevenlabs && typeof elevenlabs.speak === "function") {
-      elevenlabs.speak("Hallo! Ich bin Efro – dein smarter Verkaufsassistent.");
+      elevenlabs.speak("Hallo! Ich bin Efro – dein smarter Verkaufsassistent.", {
+        voice: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL",
+        model: "eleven_multilingual_v2",
+        autoConnect: true,
+      });
     }
   }, [elevenlabs]);
 
@@ -40,7 +40,12 @@ export default function EmbedPage() {
       <button
         onClick={() =>
           elevenlabs?.speak?.(
-            "Willkommen zurück! Bereit für das nächste Verkaufsgespräch?"
+            "Willkommen zurück! Bereit für das nächste Verkaufsgespräch?",
+            {
+              voice: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL",
+              model: "eleven_multilingual_v2",
+              autoConnect: true,
+            }
           )
         }
         style={{
