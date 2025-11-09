@@ -4,18 +4,14 @@ import { useEffect } from "react";
 import { MascotRive, useMascotElevenlabs } from "@mascotbot-sdk/react";
 
 export default function EmbedPage() {
-  // 🧠 Hook-Aufruf mit aktuellem Schema (Provider + Options)
+  // 🧠 Korrekte stabile Syntax laut funktionierender SDK-Version
   const elevenlabs = useMascotElevenlabs({
-    provider: "elevenlabs",
-    options: {
-      apiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || "",
-      voice: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL",
-      model: "eleven_multilingual_v2",
-      autoConnect: true,
-    },
+    voiceId: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL",
+    modelId: "eleven_multilingual_v2",
+    autoConnect: true,
   });
 
-  // 🎙 Avatar spricht automatisch nach dem Laden
+  // 🎙 Avatar spricht automatisch beim Laden
   useEffect(() => {
     if (elevenlabs && typeof elevenlabs.speak === "function") {
       elevenlabs.speak("Hallo! Ich bin Efro – dein smarter Verkaufsassistent.");
