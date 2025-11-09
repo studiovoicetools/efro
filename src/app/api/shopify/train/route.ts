@@ -82,7 +82,8 @@ export async function GET() {
       return NextResponse.json({ success: false, error: error.message });
     }
 
-    return NextResponse.json({ success: true, count: data?.length ?? 0 });
+   return NextResponse.json({ success: true, count: Array.isArray(data) ? data.length : 0 });
+
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });
   }
