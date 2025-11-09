@@ -1,49 +1,70 @@
+// src/app/embed/page.tsx
 "use client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import { Suspense } from "react";
+import React, { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  MascotProvider,
+  MascotClient,
+  MascotRive,
+  useMascotElevenlabs,
+  Fit,
+  Alignment,
+} from "mascotbot-sdk-react";
 
-/**
- * Render-sicherer Embed-Wrapper für Efro Avatar.
- * - Kein Prerendering
- * - Suspense korrekt verwendet
- * - useSearchParams nur im Client
- * - Keine ungültigen revalidate-Typen
- */
-
+// 💡 Diese Komponente wird clientseitig ausgeführt, nicht prerendered!
 function EmbedInner() {
-  const params = useSearchParams();
-  const shop = params.get("shop");
-  const mode = params.get("mode");
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode") || "live";
+  const shop = searchParams.get("shop") || null;
 
-  const query = new URLSearchParams();
-  if (shop) query.set("shop", shop);
-  if (mode) query.set("mode", mode);
+  // Verbindung zu ElevenLabs Avatar herstellen
+  const elevenlabs = useMascotElevenlabs({
+    conversation: {
+      start: true,
+    },
+  });
 
-  const src = `/avatar-embed${query.toString() ? `?${query.toString()}` : ""}`;
+  useEffect(() => {
+    console.log("🧩 Embed mounted - dynamic mode active");
+    if (mode === "test") {
+      console.log("🧪 Test mode active – no static prerender");
+    }
+  }, [mode]);
 
   return (
-    <iframe
-      src={src}
-      title="Efro Avatar Embed"
+    <div
       style={{
         width: "100vw",
         height: "100vh",
-        border: "none",
-        overflow: "hidden",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#f7f7f7",
       }}
-      allow="microphone; autoplay; clipboard-read; clipboard-write;"
-    />
+    >
+      <MascotProvider>
+        <MascotClient>
+          <MascotRive
+            src="/mascot-v2.riv"
+            fit={Fit.Contain}
+            alignment={Alignment.Center}
+            style={{ width: 400, height: 400 }}
+          />
+        </MascotClient>
+      </MascotProvider>
+    </div>
   );
 }
 
+// ✅ Suspense schützt gegen "missing suspense with CSR bailout"
 export default function EmbedPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24 }}>Loading Efro…</div>}>
+    <Suspense fallback={<div>Loading Avatar...</div>}>
       <EmbedInner />
     </Suspense>
   );
