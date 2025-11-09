@@ -7,6 +7,10 @@ const nextConfig = {
   output: "standalone",
   generateStaticParams: async () => [],
 
+  // 🩵 Ergänzung: Render darf keine statischen Seiten generieren
+  trailingSlash: false,
+  compress: true,
+
   experimental: {},
 
   // 🔹 Environment Variables für Shopify
