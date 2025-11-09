@@ -4,17 +4,16 @@ import { useEffect } from "react";
 import { MascotRive, useMascotElevenlabs } from "@mascotbot-sdk/react";
 
 export default function EmbedPage() {
-  // 🧠 Korrekte stabile Syntax laut funktionierender SDK-Version
-  const elevenlabs = useMascotElevenlabs({
-    voiceId: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL",
-    modelId: "eleven_multilingual_v2",
-    autoConnect: true,
-  });
+  // Alte stabile SDK-Version: kein Parameterobjekt
+  const elevenlabs = useMascotElevenlabs();
 
-  // 🎙 Avatar spricht automatisch beim Laden
   useEffect(() => {
-    if (elevenlabs && typeof elevenlabs.speak === "function") {
-      elevenlabs.speak("Hallo! Ich bin Efro – dein smarter Verkaufsassistent.");
+    try {
+      elevenlabs?.speak?.(
+        "Hallo! Ich bin Efro – dein smarter Verkaufsassistent."
+      );
+    } catch (err) {
+      console.error("Voice init error:", err);
     }
   }, [elevenlabs]);
 
@@ -24,17 +23,16 @@ export default function EmbedPage() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        flexDirection: "column",
         height: "100vh",
         background: "#0a0a0a",
-        flexDirection: "column",
         color: "#fff",
-        textAlign: "center",
       }}
     >
       <MascotRive
         src="/bear.riv"
         fit="contain"
-        style={{ width: 380, height: 380 }}
+        style={{ width: 360, height: 360 }}
       />
 
       <button
