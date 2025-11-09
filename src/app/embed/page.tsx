@@ -12,55 +12,49 @@ import {
 } from "mascotbot-sdk-react";
 
 export default function EmbedPage() {
-  // 🎤 Voice conversation via ElevenLabs
+  // 🎤 ElevenLabs Konversation (gleiche Lib wie auf deiner Startseite)
   const conversation = useConversation();
 
-  // 🧠 Voice-LipSync-Anbindung
+  // 🔗 LipSync/Gesten an die laufende Konversation koppeln
   useMascotElevenlabs({
     conversation,
     gesture: true,
   });
 
-  // 🗣 Automatisch sprechen beim Laden
+  // 🗣 Begrüßung beim Laden (send ist in manchen Typen nicht deklariert -> safe aufrufen)
   useEffect(() => {
-    try {
-      if (conversation && "send" in conversation) {
-        // @ts-ignore – Types erlauben send evtl. nicht explizit
-        conversation.send({
-          text: "Hallo! Ich bin Efro – dein Verkaufsassistent.",
-        });
-      }
-    } catch (err) {
-      console.warn("Efro Speak Error:", err);
-    }
+    const speak = (text: string) =>
+      (conversation as any)?.send?.({ text }).catch?.(() => {});
+    speak("Hallo! Ich bin Efro – dein Verkaufsassistent.");
   }, [conversation]);
 
-  // 🎨 Layout + Avatar
+  // 🎨 Avatar – Rive wird über MascotClient geladen (nicht auf MascotRive!)
   return (
     <MascotProvider>
       <main
         style={{
           width: "100%",
           height: "100vh",
-          background: "#0a0a0a",
-          color: "#fff",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          background: "#0a0a0a",
+          color: "#fff",
           flexDirection: "column",
         }}
       >
         <MascotClient
-          src="/mascot-v2.riv"
+          src="/mascot-v2.riv"                         // <- dein Dateiname
           artboard="Character"
           inputs={["is_speaking", "gesture"]}
           layout={{ fit: Fit.Contain, alignment: Alignment.Center }}
         >
-          <MascotRive fit={Fit.Contain} />
+          {/* Wichtig: Keine Props auf MascotRive in deiner SDK-Version */}
+          <MascotRive />
         </MascotClient>
 
         <p style={{ marginTop: 20, opacity: 0.8 }}>
-          🎙 Efro ist bereit – sag etwas oder teste mich!
+          🎙 Efro ist bereit – sprich mit mir oder tippe eine Anfrage!
         </p>
       </main>
     </MascotProvider>
