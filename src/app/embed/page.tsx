@@ -5,23 +5,29 @@ import { useConversation } from "@elevenlabs/react";
 import { MascotRive, useMascotElevenlabs } from "mascotbot-sdk-react";
 
 export default function EmbedPage() {
-  // 🎙 Conversation-Objekt vom ElevenLabs-Hook
+  // 🎤 Verbindung zu ElevenLabs
   const conversation = useConversation();
 
-  // 🧠 Mascot-Integration mit Voice-Steuerung
-  const elevenlabs = useMascotElevenlabs({
+  // 🧠 Avatar-Integration (LipSync & Gesten)
+  useMascotElevenlabs({
     conversation,
     gesture: true,
   });
 
-  // 🗣 Avatar soll beim Laden sprechen
+  // 🗣 Avatar spricht automatisch nach dem Laden
   useEffect(() => {
     try {
-      elevenlabs?.speak?.("Hallo! Ich bin Efro – dein Verkaufsassistent.");
+      // Aktuelle SDK: Sprache über conversation.send()
+      if (conversation && "send" in conversation) {
+        // @ts-ignore – alte Typdefinitionen erlauben send nicht explizit
+        conversation.send({
+          text: "Hallo! Ich bin Efro – dein Verkaufsassistent.",
+        });
+      }
     } catch (err) {
       console.warn("Efro Speak Error:", err);
     }
-  }, [elevenlabs]);
+  }, [conversation]);
 
   return (
     <div
@@ -40,26 +46,9 @@ export default function EmbedPage() {
         fit="contain"
         style={{ width: 320, height: 320 }}
       />
-      <button
-        onClick={() =>
-          elevenlabs?.speak?.(
-            "Willkommen zurück! Bereit für dein nächstes Verkaufsgespräch?"
-          )
-        }
-        style={{
-          marginTop: 24,
-          padding: "12px 28px",
-          background: "#00C4B3",
-          color: "#fff",
-          border: "none",
-          borderRadius: 12,
-          fontWeight: "bold",
-          cursor: "pointer",
-          fontSize: 16,
-        }}
-      >
-        Mit Efro sprechen
-      </button>
+      <p style={{ marginTop: 20, opacity: 0.8 }}>
+        🎙 Efro ist bereit – sprich mit mir!
+      </p>
     </div>
   );
 }
