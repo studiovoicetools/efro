@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import React, { useEffect, Suspense, useRef } from "react";
+import React, { useEffect, Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MascotProvider,
@@ -20,19 +20,16 @@ function EmbedInner() {
   const mode = searchParams.get("mode") || "live";
   const shop = searchParams.get("shop");
 
-  // ✅ Typkorrekt laut SDK: Startstatus = "disconnected"
   const elevenlabs = useMascotElevenlabs({
-    conversation: {
-      status: "disconnected",
-    },
+    conversation: { status: "disconnected" },
   });
 
-  // ✅ Kein RiveState mehr — generisch typisiert
-  const riveRef = useRef<any>(null);
+  // ✅ Rive-Instanz korrekt speichern
+  const [riveInstance, setRiveInstance] = useState<any>(null);
 
   useEffect(() => {
-    console.log("🧩 EmbedPage läuft im Modus:", mode);
-    if (shop) console.log("🛍️ Verbundener Shop:", shop);
+    console.log("🧩 Embed läuft:", mode);
+    if (shop) console.log("🛍️ Shop:", shop);
   }, [mode, shop]);
 
   return (
@@ -47,15 +44,16 @@ function EmbedInner() {
       }}
     >
       <MascotProvider>
-        <MascotClient rive={riveRef}>
+        {/* ✅ Hier wird die tatsächliche Rive-Instanz übergeben */}
+        <MascotClient rive={riveInstance}>
           <MascotRive
             src="/mascot-v2.riv"
             fit={Fit.Contain}
             alignment={Alignment.Center}
             style={{ width: 400, height: 400 }}
             onRiveLoad={(rive) => {
-              riveRef.current = rive;
-              console.log("✅ Rive Avatar geladen");
+              setRiveInstance(rive);
+              console.log("✅ Rive Avatar geladen:", rive);
             }}
           />
         </MascotClient>
