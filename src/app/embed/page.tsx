@@ -13,13 +13,8 @@ import {
 
 export default function EmbedPage() {
   const conversation = useConversation({
-    onConnect: () => console.log("🎧 Connected to ElevenLabs."),
-    onDisconnect: () => console.log("🔌 Disconnected."),
-  });
-
-  const elevenlabs = useMascotElevenlabs({
-    conversation,
-    gesture: true,
+    onConnect: () => console.log("🎧 Connected to ElevenLabs"),
+    onDisconnect: () => console.log("🔌 Disconnected"),
   });
 
   useEffect(() => {
@@ -35,9 +30,15 @@ export default function EmbedPage() {
           inputs={["is_speaking", "gesture"]}
           layout={{ fit: Fit.Contain, alignment: Alignment.Center }}
         >
-          <MascotRive />
+          {/* ⬇️ useMascotElevenlabs wird jetzt INNERHALB von MascotClient verwendet */}
+          <MascotContent conversation={conversation} />
         </MascotClient>
       </main>
     </MascotProvider>
   );
+}
+
+function MascotContent({ conversation }: { conversation: any }) {
+  useMascotElevenlabs({ conversation, gesture: true });
+  return <MascotRive />;
 }
