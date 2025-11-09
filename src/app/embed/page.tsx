@@ -17,12 +17,12 @@ export default function EmbedPage() {
   const mode = searchParams.get("mode");
   const shop = searchParams.get("shop");
 
-  // 1️⃣ Conversation-Objekt aus ElevenLabs-React-SDK
+  // 1️⃣ ElevenLabs Conversation-Hook
   const conversation = useConversation({
     onConnect: () => console.log("🎧 ElevenLabs connected"),
   });
 
-  // 2️⃣ useMascotElevenlabs verlangt laut Render-SDK ein Pflicht-Objekt mit conversation
+  // 2️⃣ Mascotbot-Integration (conversation ist Pflicht)
   const elevenlabs = useMascotElevenlabs({
     conversation,
   });
@@ -31,28 +31,31 @@ export default function EmbedPage() {
     console.log("👋 EmbedPage mounted");
 
     if (!conversation.startSession) {
-      console.warn("⚠️ ElevenLabs conversation not ready yet.");
+      console.warn("⚠️ Conversation API not ready");
       return;
     }
 
+    const startEfro = async (text: string) => {
+      try {
+        const session = await conversation.startSession({
+          agentId: "default",
+          connectionType: "websocket",
+        });
+        // Sobald Session aktiv ist, Text senden
+        if (session && "send" in session) {
+          session.send({ text });
+        }
+      } catch (err) {
+        console.error("❌ Failed to start session:", err);
+      }
+    };
+
     if (mode === "test") {
       console.log("🧪 Test mode active");
-      conversation.startSession({
-        agentId: "default",
-        connectionType: "websocket",
-        conversationConfig: {
-          initialText: "Hello, I’m Efro — your test assistant!",
-        },
-      });
+      startEfro("Hello, I’m Efro — your test assistant!");
     } else if (shop) {
       console.log(`🛍️ Shopify mode for ${shop}`);
-      conversation.startSession({
-        agentId: "default",
-        connectionType: "websocket",
-        conversationConfig: {
-          initialText: `Welcome back to ${shop}!`,
-        },
-      });
+      startEfro(`Welcome back to ${shop}!`);
     } else {
       console.log("😶 Default mode (no parameters)");
     }
