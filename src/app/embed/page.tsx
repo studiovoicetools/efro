@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useConversation } from "@elevenlabs/react";
 import {
   useMascotElevenlabs,
@@ -12,14 +13,27 @@ import {
 } from "mascotbot-sdk-react";
 
 export default function EmbedPage() {
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
+  const shop = searchParams.get("shop");
+
   const conversation = useConversation({
-    onConnect: () => console.log("🎧 Connected to ElevenLabs"),
-    onDisconnect: () => console.log("🔌 Disconnected"),
+    onConnect: () => console.log("🎧 ElevenLabs connected"),
   });
 
   useEffect(() => {
-    console.log("✅ EmbedPage mounted – client mode only (no prerender)");
-  }, []);
+    console.log("👋 EmbedPage mounted");
+    if (mode === "test") {
+      console.log("🧪 Test mode active");
+      // Avatar spricht Test-Text
+      conversation.say?.("Hello, I’m Efro — your test assistant!");
+    } else if (shop) {
+      console.log(`🛍️ Shopify mode for ${shop}`);
+      conversation.say?.(`Welcome back to ${shop}!`);
+    } else {
+      console.log("😶 Default mode (no parameters)");
+    }
+  }, [mode, shop, conversation]);
 
   return (
     <MascotProvider>
@@ -30,15 +44,9 @@ export default function EmbedPage() {
           inputs={["is_speaking", "gesture"]}
           layout={{ fit: Fit.Contain, alignment: Alignment.Center }}
         >
-          {/* ⬇️ useMascotElevenlabs wird jetzt INNERHALB von MascotClient verwendet */}
-          <MascotContent conversation={conversation} />
+          <MascotRive />
         </MascotClient>
       </main>
     </MascotProvider>
   );
-}
-
-function MascotContent({ conversation }: { conversation: any }) {
-  useMascotElevenlabs({ conversation, gesture: true });
-  return <MascotRive />;
 }
