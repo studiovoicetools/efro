@@ -44,10 +44,9 @@ function EmbedInner() {
       }}
     >
       <MascotProvider>
-        {/* ✅ Hier wird die tatsächliche Rive-Instanz übergeben */}
         <MascotClient rive={riveInstance}>
           <MascotRive
-            src="/mascot-v2.riv"
+            file="/mascot-v2.riv"        // ✅ neu: richtiges Prop
             fit={Fit.Contain}
             alignment={Alignment.Center}
             style={{ width: 400, height: 400 }}
