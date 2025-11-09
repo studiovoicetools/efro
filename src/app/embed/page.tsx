@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MascotProvider,
@@ -13,6 +13,7 @@ import {
   useMascotElevenlabs,
   Fit,
   Alignment,
+  loadRiveFile, // ✅ offizielle Utility-Funktion des SDK
 } from "mascotbot-sdk-react";
 
 function EmbedInner() {
@@ -26,6 +27,20 @@ function EmbedInner() {
 
   const [riveInstance, setRiveInstance] = useState<any>(null);
 
+  useEffect(() => {
+    // ✅ Mascot Rive-Datei korrekt laden
+    async function loadMascot() {
+      try {
+        const rive = await loadRiveFile("/mascot-v2.riv");
+        setRiveInstance(rive);
+        console.log("✅ Mascot geladen:", rive);
+      } catch (err) {
+        console.error("❌ Fehler beim Laden des Mascot-Rive-Files:", err);
+      }
+    }
+    loadMascot();
+  }, []);
+
   return (
     <div
       style={{
@@ -38,18 +53,17 @@ function EmbedInner() {
       }}
     >
       <MascotProvider>
-        <MascotClient rive={riveInstance}>
-          <MascotRive
-            file="/mascot-v2.riv"          // ✅ aktuelles SDK-Prop
-            fit={Fit.Contain}
-            alignment={Alignment.Center}
-            style={{ width: 400, height: 400 }}
-            onRiveLoad={(rive: any) => {
-              setRiveInstance(rive);
-              console.log("✅ Rive geladen:", rive);
-            }}
-          />
-        </MascotClient>
+        {riveInstance ? (
+          <MascotClient rive={riveInstance}>
+            <MascotRive
+              fit={Fit.Contain}
+              alignment={Alignment.Center}
+              style={{ width: 400, height: 400 }}
+            />
+          </MascotClient>
+        ) : (
+          <div>Loading Efro Avatar …</div>
+        )}
       </MascotProvider>
     </div>
   );
