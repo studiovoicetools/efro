@@ -25,19 +25,17 @@ function EmbedInner() {
     conversation: { status: "disconnected" },
   });
 
-  // 🟢 Ref für Dummy-Canvas, damit TypeScript zufrieden ist
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [riveInstance, setRiveInstance] = useState<any>(null);
 
   useEffect(() => {
     async function loadMascot() {
       try {
-        // Dummy-Canvas erzeugen (wird nicht gerendert, nur für TS-Parameter)
         const dummyCanvas = document.createElement("canvas");
 
         const rive = new Rive({
           src: "/mascot-v2.riv",
-          canvas: dummyCanvas, // ✅ Pflichtparameter für Typ "RiveParameters"
+          canvas: dummyCanvas,
           autoplay: true,
         });
 
@@ -66,8 +64,7 @@ function EmbedInner() {
         {riveInstance ? (
           <MascotClient rive={riveInstance}>
             <MascotRive
-              fit={Fit.Contain}
-              alignment={Alignment.Center}
+              layout={{ fit: Fit.Contain, alignment: Alignment.Center }} // ✅ neuer Syntax
               style={{ width: 400, height: 400 }}
             />
           </MascotClient>
