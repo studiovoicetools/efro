@@ -1,15 +1,15 @@
-"use client"; // ⚠️ MUSS DIE ALLERERSTE ZEILE SEIN
+"use client";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useMascotElevenlabs } from "mascotbot-sdk-react";
 import { MascotProvider, MascotClient, MascotRive, Fit, Alignment } from "mascotbot-sdk-react";
 
 export default function EmbedPage() {
-  const elevenlabs = useMascotElevenlabs();
+  const elevenlabs = useMascotElevenlabs({}); // ✅ Fix: Übergabe leeres Objekt
 
   useEffect(() => {
     console.log("Embed mounted – dynamic mode active");
