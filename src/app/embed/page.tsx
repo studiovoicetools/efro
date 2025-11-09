@@ -1,65 +1,50 @@
 "use client";
 
 export const dynamic = "force-dynamic";
-export const revalidate = false;
+export const revalidate = 0;
+export const runtime = "nodejs";
 
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useConversation } from "@elevenlabs/react";
-import {
-  useMascotElevenlabs,
-  MascotProvider,
-  MascotClient,
-  MascotRive,
-  Fit,
-  Alignment,
-} from "mascotbot-sdk-react";
 
-export default function EmbedPage() {
-  const searchParams = useSearchParams();
-  const mode = searchParams.get("mode");
-  const shop = searchParams.get("shop");
+/**
+ * Render-sicherer Embed-Wrapper für Efro Avatar.
+ * - Kein Prerendering
+ * - Suspense korrekt verwendet
+ * - useSearchParams nur im Client
+ * - Keine ungültigen revalidate-Typen
+ */
 
-  const conversation = useConversation({
-    onConnect: () => console.log("🎧 ElevenLabs connected"),
-  });
+function EmbedInner() {
+  const params = useSearchParams();
+  const shop = params.get("shop");
+  const mode = params.get("mode");
 
-  const elevenlabs = useMascotElevenlabs({ conversation });
+  const query = new URLSearchParams();
+  if (shop) query.set("shop", shop);
+  if (mode) query.set("mode", mode);
 
-  useEffect(() => {
-    console.log("👋 EmbedPage mounted");
-
-    const startEfro = async (text: string) => {
-      try {
-        await conversation.startSession({
-          agentId: "default",
-          connectionType: "websocket",
-        });
-        // Text an Avatar schicken
-        // @ts-ignore
-        conversation.send?.({ text });
-      } catch (err) {
-        console.error("❌ Failed to start session:", err);
-      }
-    };
-
-    if (mode === "test") startEfro("Hello, I’m Efro — your test assistant!");
-    else if (shop) startEfro(`Welcome back to ${shop}!`);
-  }, [mode, shop, conversation]);
+  const src = `/avatar-embed${query.toString() ? `?${query.toString()}` : ""}`;
 
   return (
-    <Suspense fallback={<div>Loading Efro...</div>}>
-      <MascotProvider>
-        <main className="w-full h-screen flex items-center justify-center bg-white">
-          <MascotClient
-            src="/mascot-v2.riv"
-            layout={{ fit: Fit.Contain, alignment: Alignment.Center }}
-            inputs={["is_speaking", "gesture"]}
-          >
-            <MascotRive />
-          </MascotClient>
-        </main>
-      </MascotProvider>
+    <iframe
+      src={src}
+      title="Efro Avatar Embed"
+      style={{
+        width: "100vw",
+        height: "100vh",
+        border: "none",
+        overflow: "hidden",
+      }}
+      allow="microphone; autoplay; clipboard-read; clipboard-write;"
+    />
+  );
+}
+
+export default function EmbedPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading Efro…</div>}>
+      <EmbedInner />
     </Suspense>
   );
 }
