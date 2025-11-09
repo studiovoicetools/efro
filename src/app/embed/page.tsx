@@ -1,7 +1,8 @@
 "use client";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// ❌ Kein revalidate = 0  →  ✅ richtig ist:
+export const revalidate = false;
 export const runtime = "nodejs";
 
 import React, { Suspense, useEffect, useState } from "react";
@@ -29,7 +30,6 @@ function EmbedInner() {
     try {
       const dummyCanvas = document.createElement("canvas");
 
-      // ✅ Rive korrekt mit separatem Layout-Import
       const rive = new Rive({
         src: "/mascot-v2.riv",
         canvas: dummyCanvas,
