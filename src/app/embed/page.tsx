@@ -22,18 +22,20 @@ export default function EmbedPage() {
   });
 
   useEffect(() => {
-    console.log("👋 EmbedPage mounted");
-    if (mode === "test") {
-      console.log("🧪 Test mode active");
-      // Avatar spricht Test-Text
-      conversation.say?.("Hello, I’m Efro — your test assistant!");
-    } else if (shop) {
-      console.log(`🛍️ Shopify mode for ${shop}`);
-      conversation.say?.(`Welcome back to ${shop}!`);
-    } else {
-      console.log("😶 Default mode (no parameters)");
-    }
-  }, [mode, shop, conversation]);
+  console.log("👋 EmbedPage mounted");
+
+  if (mode === "test") {
+    console.log("🧪 Test mode active");
+    // Avatar spricht Test-Text
+    conversation.send?.({ text: "Hello, I’m Efro — your test assistant!" });
+  } else if (shop) {
+    console.log(`🛍️ Shopify mode for ${shop}`);
+    conversation.send?.({ text: `Welcome back to ${shop}!` });
+  } else {
+    console.log("😶 Default mode (no parameters)");
+  }
+}, [mode, shop, conversation]);
+
 
   return (
     <MascotProvider>
