@@ -2,24 +2,30 @@
 
 import { useEffect } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { MascotRive, useMascotElevenlabs } from "mascotbot-sdk-react";
+import {
+  Alignment,
+  Fit,
+  MascotClient,
+  MascotProvider,
+  MascotRive,
+  useMascotElevenlabs,
+} from "mascotbot-sdk-react";
 
 export default function EmbedPage() {
-  // 🎤 Verbindung zu ElevenLabs
+  // 🎤 Voice conversation via ElevenLabs
   const conversation = useConversation();
 
-  // 🧠 Avatar-Integration (LipSync & Gesten)
+  // 🧠 Voice-LipSync-Anbindung
   useMascotElevenlabs({
     conversation,
     gesture: true,
   });
 
-  // 🗣 Avatar spricht automatisch nach dem Laden
+  // 🗣 Automatisch sprechen beim Laden
   useEffect(() => {
     try {
-      // Aktuelle SDK: Sprache über conversation.send()
       if (conversation && "send" in conversation) {
-        // @ts-ignore – alte Typdefinitionen erlauben send nicht explizit
+        // @ts-ignore – Types erlauben send evtl. nicht explizit
         conversation.send({
           text: "Hallo! Ich bin Efro – dein Verkaufsassistent.",
         });
@@ -29,26 +35,34 @@ export default function EmbedPage() {
     }
   }, [conversation]);
 
+  // 🎨 Layout + Avatar
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "column",
-        background: "#0a0a0a",
-        color: "#fff",
-      }}
-    >
-      <MascotRive
-        src="/bear.riv"
-        fit="contain"
-        style={{ width: 320, height: 320 }}
-      />
-      <p style={{ marginTop: 20, opacity: 0.8 }}>
-        🎙 Efro ist bereit – sprich mit mir!
-      </p>
-    </div>
+    <MascotProvider>
+      <main
+        style={{
+          width: "100%",
+          height: "100vh",
+          background: "#0a0a0a",
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <MascotClient
+          src="/mascot-v2.riv"
+          artboard="Character"
+          inputs={["is_speaking", "gesture"]}
+          layout={{ fit: Fit.Contain, alignment: Alignment.Center }}
+        >
+          <MascotRive fit={Fit.Contain} />
+        </MascotClient>
+
+        <p style={{ marginTop: 20, opacity: 0.8 }}>
+          🎙 Efro ist bereit – sag etwas oder teste mich!
+        </p>
+      </main>
+    </MascotProvider>
   );
 }
