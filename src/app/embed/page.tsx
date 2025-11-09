@@ -1,9 +1,15 @@
 "use client";
 
+// ❌ diese Zeilen ALLE entfernen
+// export const dynamic = "force-dynamic";
+// export const revalidate = false;
+// export const runtime = "nodejs";
+
+// ✅ Korrekte Build-Signalisierung:
+export const dynamicParams = true;
+export const fetchCache = "force-no-store";
 export const dynamic = "force-dynamic";
-// ❌ Kein revalidate = 0  →  ✅ richtig ist:
-export const revalidate = false;
-export const runtime = "nodejs";
+
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
