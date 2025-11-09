@@ -1,53 +1,43 @@
 "use client";
 
+import { useConversation } from "@elevenlabs/react";
 import { useEffect } from "react";
-import { MascotRive, useMascotElevenlabs } from "@mascotbot-sdk/react";
+import { MascotRive, useMascotElevenlabs } from "mascotbot-sdk-react";
 
 export default function EmbedPage() {
-  // 🧩 absolut kompatibler Aufruf – keine Properties!
-  const elevenlabs = useMascotElevenlabs({});
+  // 🎤 Verbindung zu ElevenLabs (Pflichtobjekt)
+  const conversation = useConversation();
+
+  // 🔗 Verbindung zur Mascot-SDK herstellen
+  const { isIntercepting } = useMascotElevenlabs({
+    conversation,
+    gesture: true,
+  });
 
   useEffect(() => {
-    try {
-      elevenlabs?.speak?.("Hallo! Ich bin Efro – dein smarter Verkaufsassistent.");
-    } catch (err) {
-      console.error("Voice init error:", err);
+    if (conversation && typeof conversation.send === "function") {
+      conversation.send({
+        text: "Hallo! Ich bin Efro – dein Verkaufsassistent.",
+      });
     }
-  }, [elevenlabs]);
+  }, [conversation]);
 
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
         height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
         background: "#0a0a0a",
-        color: "#fff",
+        color: "white",
       }}
     >
-      <MascotRive src="/bear.riv" fit="contain" style={{ width: 360, height: 360 }} />
-      <button
-        onClick={() =>
-          elevenlabs?.speak?.(
-            "Willkommen zurück! Bereit für das nächste Verkaufsgespräch?"
-          )
-        }
-        style={{
-          marginTop: 20,
-          padding: "12px 24px",
-          borderRadius: 8,
-          background: "#00C4B3",
-          color: "#fff",
-          border: "none",
-          cursor: "pointer",
-          fontWeight: "bold",
-          fontSize: 16,
-        }}
-      >
-        Mit Efro sprechen
-      </button>
+      <MascotRive src="/bear.riv" fit="contain" style={{ width: 300, height: 300 }} />
+      <p style={{ marginTop: 16, opacity: 0.8 }}>
+        {isIntercepting ? "🎙 Stimme aktiv" : "🕔 Verbinde ..."}
+      </p>
     </div>
   );
 }
