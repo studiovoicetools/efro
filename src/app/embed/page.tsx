@@ -26,6 +26,19 @@ function EmbedInner() {
 
   const [riveInstance, setRiveInstance] = useState<any>(null);
 
+  // ✅ Avatar laden, sobald Komponente bereit
+  useEffect(() => {
+    (async () => {
+      try {
+        const rive = await MascotRive.load("/mascot-v2.riv");
+        setRiveInstance(rive);
+        console.log("✅ Rive geladen:", rive);
+      } catch (err) {
+        console.error("Fehler beim Laden der Rive-Datei:", err);
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     console.log("🧩 Embed läuft:", mode);
     if (shop) console.log("🛍️ Shop:", shop);
@@ -44,16 +57,14 @@ function EmbedInner() {
     >
       <MascotProvider>
         <MascotClient rive={riveInstance}>
-          <MascotRive
-            animation="/mascot-v2.riv"  // ✅ korrektes Property laut SDK
-            fit={Fit.Contain}
-            alignment={Alignment.Center}
-            style={{ width: 400, height: 400 }}
-            onRiveLoad={(rive) => {
-              setRiveInstance(rive);
-              console.log("✅ Rive Avatar geladen:", rive);
-            }}
-          />
+          {riveInstance && (
+            <MascotRive
+              rive={riveInstance}
+              fit={Fit.Contain}
+              alignment={Alignment.Center}
+              style={{ width: 400, height: 400 }}
+            />
+          )}
         </MascotClient>
       </MascotProvider>
     </div>
@@ -62,7 +73,7 @@ function EmbedInner() {
 
 export default function EmbedPage() {
   return (
-    <Suspense fallback={<div>Loading Efro Avatar…</div>}>
+    <Suspense fallback={<div>Loading Efro Avatar …</div>}>
       <EmbedInner />
     </Suspense>
   );
