@@ -17,15 +17,13 @@ export default function EmbedPage() {
   const mode = searchParams.get("mode");
   const shop = searchParams.get("shop");
 
-  // 1️⃣ ElevenLabs Conversation-Hook
+  // 🧠 ElevenLabs Conversation Hook
   const conversation = useConversation({
     onConnect: () => console.log("🎧 ElevenLabs connected"),
   });
 
-  // 2️⃣ Mascotbot-Integration (conversation ist Pflicht)
-  const elevenlabs = useMascotElevenlabs({
-    conversation,
-  });
+  // 🐼 MascotBot Integration mit Conversation
+  const elevenlabs = useMascotElevenlabs({ conversation });
 
   useEffect(() => {
     console.log("👋 EmbedPage mounted");
@@ -37,13 +35,15 @@ export default function EmbedPage() {
 
     const startEfro = async (text: string) => {
       try {
-        const session = await conversation.startSession({
+        // Diese SDK-Version gibt KEIN Session-Objekt zurück
+        await conversation.startSession({
           agentId: "default",
           connectionType: "websocket",
         });
-        // Sobald Session aktiv ist, Text senden
-        if (session && "send" in session) {
-          session.send({ text });
+        // Text direkt über conversation senden (nicht über session)
+        if ("send" in conversation) {
+          // @ts-ignore: send ist dynamisch vorhanden
+          conversation.send({ text });
         }
       } catch (err) {
         console.error("❌ Failed to start session:", err);
