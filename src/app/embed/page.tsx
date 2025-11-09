@@ -13,8 +13,8 @@ import {
   useMascotElevenlabs,
   Fit,
   Alignment,
-  loadRiveFile, // ✅ offizielle Utility-Funktion des SDK
 } from "mascotbot-sdk-react";
+import { Rive } from "@rive-app/react-canvas"; // ✅ offizieller Fallback-Import
 
 function EmbedInner() {
   const searchParams = useSearchParams();
@@ -28,14 +28,17 @@ function EmbedInner() {
   const [riveInstance, setRiveInstance] = useState<any>(null);
 
   useEffect(() => {
-    // ✅ Mascot Rive-Datei korrekt laden
+    // ✅ Mascot .riv manuell laden
     async function loadMascot() {
       try {
-        const rive = await loadRiveFile("/mascot-v2.riv");
+        const rive = new Rive({
+          src: "/mascot-v2.riv",
+          autoplay: true,
+        });
         setRiveInstance(rive);
         console.log("✅ Mascot geladen:", rive);
       } catch (err) {
-        console.error("❌ Fehler beim Laden des Mascot-Rive-Files:", err);
+        console.error("❌ Fehler beim Laden von mascot-v2.riv:", err);
       }
     }
     loadMascot();
