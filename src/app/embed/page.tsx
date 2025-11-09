@@ -20,17 +20,21 @@ function EmbedInner() {
   const mode = searchParams.get("mode") || "live";
   const shop = searchParams.get("shop");
 
-  // ✅ Richtige Initialisierung des Hooks ohne ungültiges "start"
+  // ✅ Typkorrektes Conversation-Objekt mit gültigem Status
   const elevenlabs = useMascotElevenlabs({
-    conversation: {} // leeres Objekt erlaubt und typkonform
+    conversation: {
+      status: "idle", // gültiger Startzustand
+    },
   });
 
   useEffect(() => {
-    console.log("🧩 Embed mounted – dynamic mode active");
+    console.log("[Render: dynamic OK] – /embed läuft in force-dynamic Mode");
     if (mode === "test") {
-      console.log("🧪 Test mode active – no prerendering");
+      console.log("🧪 Test mode aktiv – kein statisches Prerendering");
+    } else if (shop) {
+      console.log(`🛍️ Shopify mode für ${shop}`);
     }
-  }, [mode]);
+  }, [mode, shop]);
 
   return (
     <div
