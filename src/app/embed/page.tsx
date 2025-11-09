@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MascotProvider,
@@ -14,7 +14,7 @@ import {
   Fit,
   Alignment,
 } from "mascotbot-sdk-react";
-import { Rive } from "@rive-app/react-canvas"; // ✅ offizieller Fallback-Import
+import { Rive } from "@rive-app/react-canvas";
 
 function EmbedInner() {
   const searchParams = useSearchParams();
@@ -25,22 +25,29 @@ function EmbedInner() {
     conversation: { status: "disconnected" },
   });
 
+  // 🟢 Ref für Dummy-Canvas, damit TypeScript zufrieden ist
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [riveInstance, setRiveInstance] = useState<any>(null);
 
   useEffect(() => {
-    // ✅ Mascot .riv manuell laden
     async function loadMascot() {
       try {
+        // Dummy-Canvas erzeugen (wird nicht gerendert, nur für TS-Parameter)
+        const dummyCanvas = document.createElement("canvas");
+
         const rive = new Rive({
           src: "/mascot-v2.riv",
+          canvas: dummyCanvas, // ✅ Pflichtparameter für Typ "RiveParameters"
           autoplay: true,
         });
+
         setRiveInstance(rive);
         console.log("✅ Mascot geladen:", rive);
       } catch (err) {
         console.error("❌ Fehler beim Laden von mascot-v2.riv:", err);
       }
     }
+
     loadMascot();
   }, []);
 
