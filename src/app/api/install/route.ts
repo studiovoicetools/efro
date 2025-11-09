@@ -1,44 +1,22 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-export const runtime = "nodejs"; // ⬅️ NEU
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const shop = searchParams.get("shop");
-    const plan = searchParams.get("plan") || "basic";
-
-    if (!shop)
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop");
+    if (!shop) {
       return NextResponse.json({ error: "Parameter 'shop' fehlt" }, { status: 400 });
+    }
 
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\n|\r/g, "");
-    if (!appUrl)
-      return NextResponse.json({ error: "NEXT_PUBLIC_APP_URL fehlt" }, { status: 500 });
-
-    const clientId = process.env.SHOPIFY_API_KEY!;
-    const scopes = [
-      "read_products",
-      "write_products",
-      "read_script_tags",
-      "write_script_tags",
-      "read_inventory",
-      "write_inventory",
-      "read_product_listings"
-    ].join(",");
-
-    const redirectUri = `${appUrl}/api/shopify/callback?plan=${plan}`;
-
-    const installUrl =
-      `https://${shop}/admin/oauth/authorize` +
-      `?client_id=${encodeURIComponent(clientId)}` +
-      `&scope=${encodeURIComponent(scopes)}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    // Beispielhafte Install-URL-Erzeugung
+    const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${process.env.SHOPIFY_API_KEY}&scope=read_products,write_products&redirect_uri=${process.env.APP_URL}/api/shopify/callback`;
 
     return NextResponse.json({ installUrl });
-  } catch (e) {
-    console.error("Install-URL Fehler:", e);
-    return NextResponse.json({ error: "Fehler beim Erzeugen der Install-URL" }, { status: 500 });
+  } catch (err: any) {
+    console.error("Install-URL Fehler:", err);
+    return NextResponse.json({ error: "Installationsfehler", detail: err.message }, { status: 500 });
   }
 }
-
-
