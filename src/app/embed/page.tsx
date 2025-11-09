@@ -1,26 +1,27 @@
 "use client";
 
-import { useConversation } from "@elevenlabs/react";
 import { useEffect } from "react";
+import { useConversation } from "@elevenlabs/react";
 import { MascotRive, useMascotElevenlabs } from "mascotbot-sdk-react";
 
 export default function EmbedPage() {
-  // 🎤 Verbindung zu ElevenLabs (Pflichtobjekt)
+  // 🎙 Conversation-Objekt vom ElevenLabs-Hook
   const conversation = useConversation();
 
-  // 🔗 Verbindung zur Mascot-SDK herstellen
-  const { isIntercepting } = useMascotElevenlabs({
+  // 🧠 Mascot-Integration mit Voice-Steuerung
+  const elevenlabs = useMascotElevenlabs({
     conversation,
     gesture: true,
   });
 
+  // 🗣 Avatar soll beim Laden sprechen
   useEffect(() => {
-    if (conversation && typeof conversation.send === "function") {
-      conversation.send({
-        text: "Hallo! Ich bin Efro – dein Verkaufsassistent.",
-      });
+    try {
+      elevenlabs?.speak?.("Hallo! Ich bin Efro – dein Verkaufsassistent.");
+    } catch (err) {
+      console.warn("Efro Speak Error:", err);
     }
-  }, [conversation]);
+  }, [elevenlabs]);
 
   return (
     <div
@@ -31,13 +32,34 @@ export default function EmbedPage() {
         justifyContent: "center",
         flexDirection: "column",
         background: "#0a0a0a",
-        color: "white",
+        color: "#fff",
       }}
     >
-      <MascotRive src="/bear.riv" fit="contain" style={{ width: 300, height: 300 }} />
-      <p style={{ marginTop: 16, opacity: 0.8 }}>
-        {isIntercepting ? "🎙 Stimme aktiv" : "🕔 Verbinde ..."}
-      </p>
+      <MascotRive
+        src="/bear.riv"
+        fit="contain"
+        style={{ width: 320, height: 320 }}
+      />
+      <button
+        onClick={() =>
+          elevenlabs?.speak?.(
+            "Willkommen zurück! Bereit für dein nächstes Verkaufsgespräch?"
+          )
+        }
+        style={{
+          marginTop: 24,
+          padding: "12px 28px",
+          background: "#00C4B3",
+          color: "#fff",
+          border: "none",
+          borderRadius: 12,
+          fontWeight: "bold",
+          cursor: "pointer",
+          fontSize: 16,
+        }}
+      >
+        Mit Efro sprechen
+      </button>
     </div>
   );
 }
