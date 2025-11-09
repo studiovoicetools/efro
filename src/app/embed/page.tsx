@@ -17,12 +17,15 @@ export default function EmbedPage() {
   const mode = searchParams.get("mode");
   const shop = searchParams.get("shop");
 
+  // 1️⃣ Conversation-Objekt aus ElevenLabs-React-SDK
   const conversation = useConversation({
     onConnect: () => console.log("🎧 ElevenLabs connected"),
   });
 
-  // Verbindung zu ElevenLabs Avatar vorbereiten (kein autoConnect-Flag)
-  const elevenlabs = useMascotElevenlabs({});
+  // 2️⃣ useMascotElevenlabs verlangt laut Render-SDK ein Pflicht-Objekt mit conversation
+  const elevenlabs = useMascotElevenlabs({
+    conversation,
+  });
 
   useEffect(() => {
     console.log("👋 EmbedPage mounted");
@@ -35,7 +38,7 @@ export default function EmbedPage() {
     if (mode === "test") {
       console.log("🧪 Test mode active");
       conversation.startSession({
-        agentId: "default", // Dummy-ID (später dein echter Agent)
+        agentId: "default",
         connectionType: "websocket",
         conversationConfig: {
           initialText: "Hello, I’m Efro — your test assistant!",
