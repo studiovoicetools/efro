@@ -4,8 +4,11 @@ import { useEffect } from "react";
 import { MascotRive, useMascotElevenlabs } from "@mascotbot-sdk/react";
 
 export default function EmbedPage() {
-  // Alte stabile SDK-Version: kein Parameterobjekt
-  const elevenlabs = useMascotElevenlabs();
+  // 💡 Minimalobjekt – wird von allen SDK-Versionen akzeptiert
+  const elevenlabs = useMascotElevenlabs({
+    modelId: "eleven_multilingual_v2",
+    autoConnect: true,
+  });
 
   useEffect(() => {
     try {
