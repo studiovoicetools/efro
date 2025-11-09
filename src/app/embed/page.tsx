@@ -1,9 +1,8 @@
-// 🚀 absolute Minimal-Konfiguration gegen Render-Bug
+"use client"; // ⚠️ MUSS DIE ALLERERSTE ZEILE SEIN
+
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-
-"use client";
 
 import { useEffect, useState } from "react";
 import { useMascotElevenlabs } from "mascotbot-sdk-react";
