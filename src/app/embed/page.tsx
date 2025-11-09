@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import React, { Suspense, useRef } from "react";
+import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MascotProvider,
@@ -20,13 +20,12 @@ function EmbedInner() {
   const mode = searchParams.get("mode") || "live";
   const shop = searchParams.get("shop");
 
-  // 🎧 ElevenLabs Integration (bleibt unverändert)
   const elevenlabs = useMascotElevenlabs({
     conversation: { status: "disconnected" },
   });
 
-  // 🧩 Ref für die Rive-Instanz
-  const riveRef = useRef(null);
+  // 🧩 State statt Ref — genau das, was der Typ verlangt
+  const [riveInstance, setRiveInstance] = useState<any>(null);
 
   console.log("🧩 Embed läuft:", mode, "Shop:", shop || "–");
 
@@ -42,16 +41,15 @@ function EmbedInner() {
       }}
     >
       <MascotProvider>
-        {/* ✅ rive={riveRef} ist Pflichtprop */}
-        <MascotClient rive={riveRef}>
+        {/* ✅ Jetzt bekommt MascotClient das korrekte rive-Objekt */}
+        <MascotClient rive={riveInstance}>
           <MascotRive
             src="/mascot-v2.riv"
             fit={Fit.Contain}
             alignment={Alignment.Center}
             style={{ width: 400, height: 400 }}
             onRiveLoad={(rive: any) => {
-              // Referenz speichern, wenn geladen
-              riveRef.current = rive;
+              setRiveInstance(rive);
               console.log("✅ Rive geladen:", rive);
             }}
           />
