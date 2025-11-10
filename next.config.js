@@ -1,25 +1,31 @@
-import path from "path";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+
+// 🔹 __dirname-Fix für ES-Module (Render benötigt das!)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
-  // 🔹 Für Render: erzeugt eigenständiges Build
+  // 🔹 Render-kompatibles Standalone-Build
   output: "standalone",
 
-  // 🔹 Build-time Environment-Variablen (nur unkritische!)
+  // 🔹 Build-Time Env-Variablen (Frontend-safe)
   env: {
     SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN,
     SHOPIFY_MAX_RESULTS: process.env.SHOPIFY_MAX_RESULTS || "10",
   },
 
+  // 🔹 Remote-Bilder (optional)
   images: {
     remotePatterns: [
       // { protocol: "https", hostname: "**.cdn.shopify.com" },
     ],
   },
 
-  // 🔹 Cache-Header für statische Assets & API
+  // 🔹 Cache-Header für Assets & API
   async headers() {
     return [
       {
@@ -39,7 +45,7 @@ const nextConfig = {
     ];
   },
 
-  // ✅ Alias-Fix für Render-Webpack
+  // 🔹 Webpack-Aliase (funktioniert auch auf Render)
   webpack: (config) => {
     config.resolve.alias["@"] = path.resolve(__dirname, "src");
     config.resolve.alias["@components"] = path.resolve(
