@@ -3,44 +3,41 @@
 const nextConfig = {
   reactStrictMode: true,
 
-  // ⛔️ WICHTIG: Verhindert, dass Render statisch prerendert
-  output: "standalone",
-  generateStaticParams: async () => [],
+  // Wichtig für Render: erzeugt ein selbstenthaltendes Build-Artefakt
+  output: 'standalone',
 
-  // 🩵 Ergänzung: Render darf keine statischen Seiten generieren
-  trailingSlash: false,
-  compress: true,
-
-  experimental: {},
-
-  // 🔹 Environment Variables für Shopify
+  // 🔹 Environment Variables für Shopify (werden zur Buildzeit ins Frontend injiziert – nur Unkritisches hier)
+  //   Kritische Keys (Admin, Server Keys) NUR serverseitig verwenden (Route-Handler),
+  //   nicht unter NEXT_PUBLIC_* weiterreichen.
   env: {
     SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN,
-    SHOPIFY_ADMIN_ACCESS_TOKEN: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN,
-    SHOPIFY_MAX_RESULTS: process.env.SHOPIFY_MAX_RESULTS || "10",
+    SHOPIFY_MAX_RESULTS: process.env.SHOPIFY_MAX_RESULTS || '10',
   },
 
-  // 🔹 Webpack Config für Pfadauflösung
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    };
-    return config;
+  // Optional – falls du externe Bilder/Assets nutzt, kann das ergänzt werden
+  images: {
+    remotePatterns: [
+      // { protocol: 'https', hostname: '**.cdn.shopify.com' },
+    ],
   },
 
-  // 🔹 Keine aggressive Browser-Caches für statische Dateien
+  // 🔹 HTTP-Header für statische Assets:
+  // Lange Caches für unveränderliche Dateien (Rive, SVG, Bilder, Fonts, Media),
+  // KEIN Cache für dynamische API/SSR.
   async headers() {
     return [
+      // Lange Cachezeit für statische, versionsgebundene Assets
       {
-        source: "/:all*(riv|svg|mp3|mp4|png|jpg|jpeg|gif|webp)",
+        source: '/:all*(riv|svg|png|jpg|jpeg|gif|webp|mp4|mp3|woff2|woff|ttf|otf)',
         headers: [
-          {
-            key: "Cache-Control",
-            value:
-              "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-          },
-          { key: "Pragma", value: "no-cache" },
-          { key: "Expires", value: "0" },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      // Beispiel für APIs/SSR ohne Cache (nur wenn nötig – API-Routen haben ohnehin meist no-store Semantik)
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store' },
         ],
       },
     ];
@@ -48,4 +45,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-

@@ -3,9 +3,29 @@ services:
     name: efro
     env: node
     plan: starter
-    buildCommand: "npm ci"
-    startCommand: "npm run start"
-    cache:
-      paths:
-        - node_modules/
-        - package-lock.json
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+
+      # 🔐 Trage die folgenden Variablen im Render-Dashboard ein (NICHT hier in Klartext!).
+      # Diese Zeilen dienen nur als Dokumentation.
+      - key: SHOPIFY_STORE_DOMAIN
+        sync: false
+      - key: SHOPIFY_ADMIN_ACCESS_TOKEN
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: MASCOT_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+
+    healthCheckPath: /api/health
+    autoDeploy: true
