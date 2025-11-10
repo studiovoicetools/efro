@@ -14,10 +14,10 @@
     "jsx": "preserve",
     "incremental": true,
 
-    // ✅ Base URL auf Projektroot
+    // ✅ Base URL für Alias-Pfade
     "baseUrl": ".",
 
-    // ✅ Funktionierende Alias-Mappings
+    // ✅ Einheitliche Alias-Mappings für alle Projektteile
     "paths": {
       "@/*": ["src/*"],
       "@/components/*": ["src/components/*"],
@@ -26,9 +26,8 @@
       "@/lib/*": ["src/lib/*"]
     },
 
-    "plugins": [
-      { "name": "next" }
-    ]
+    // ✅ Next.js TypeScript Plugin
+    "plugins": [{ "name": "next" }]
   },
 
   "include": [

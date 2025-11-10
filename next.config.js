@@ -1,46 +1,55 @@
-// next.config.js
+import path from "path";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
-  // Wichtig für Render: erzeugt ein selbstenthaltendes Build-Artefakt
-  output: 'standalone',
+  // 🔹 Für Render: erzeugt eigenständiges Build
+  output: "standalone",
 
-  // 🔹 Environment Variables für Shopify (werden zur Buildzeit ins Frontend injiziert – nur Unkritisches hier)
-  //   Kritische Keys (Admin, Server Keys) NUR serverseitig verwenden (Route-Handler),
-  //   nicht unter NEXT_PUBLIC_* weiterreichen.
+  // 🔹 Build-time Environment-Variablen (nur unkritische!)
   env: {
     SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN,
-    SHOPIFY_MAX_RESULTS: process.env.SHOPIFY_MAX_RESULTS || '10',
+    SHOPIFY_MAX_RESULTS: process.env.SHOPIFY_MAX_RESULTS || "10",
   },
 
-  // Optional – falls du externe Bilder/Assets nutzt, kann das ergänzt werden
   images: {
     remotePatterns: [
-      // { protocol: 'https', hostname: '**.cdn.shopify.com' },
+      // { protocol: "https", hostname: "**.cdn.shopify.com" },
     ],
   },
 
-  // 🔹 HTTP-Header für statische Assets:
-  // Lange Caches für unveränderliche Dateien (Rive, SVG, Bilder, Fonts, Media),
-  // KEIN Cache für dynamische API/SSR.
+  // 🔹 Cache-Header für statische Assets & API
   async headers() {
     return [
-      // Lange Cachezeit für statische, versionsgebundene Assets
       {
-        source: '/:all*(riv|svg|png|jpg|jpeg|gif|webp|mp4|mp3|woff2|woff|ttf|otf)',
+        source:
+          "/:all*(riv|svg|png|jpg|jpeg|gif|webp|mp4|mp3|woff2|woff|ttf|otf)",
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
         ],
       },
-      // Beispiel für APIs/SSR ohne Cache (nur wenn nötig – API-Routen haben ohnehin meist no-store Semantik)
       {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store' },
-        ],
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];
+  },
+
+  // ✅ Alias-Fix für Render-Webpack
+  webpack: (config) => {
+    config.resolve.alias["@"] = path.resolve(__dirname, "src");
+    config.resolve.alias["@components"] = path.resolve(
+      __dirname,
+      "src/components"
+    );
+    config.resolve.alias["@hooks"] = path.resolve(__dirname, "src/hooks");
+    config.resolve.alias["@utils"] = path.resolve(__dirname, "src/utils");
+    config.resolve.alias["@lib"] = path.resolve(__dirname, "src/lib");
+    return config;
   },
 };
 
