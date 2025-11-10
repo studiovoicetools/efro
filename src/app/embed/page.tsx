@@ -1,15 +1,8 @@
 "use client";
 
-// ❌ diese Zeilen ALLE entfernen
-// export const dynamic = "force-dynamic";
-// export const revalidate = false;
-// export const runtime = "nodejs";
-
-// ✅ Korrekte Build-Signalisierung:
 export const dynamicParams = true;
 export const fetchCache = "force-no-store";
 export const dynamic = "force-dynamic";
-
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -20,6 +13,7 @@ import {
   useMascotElevenlabs,
 } from "mascotbot-sdk-react";
 import { Rive, Fit, Alignment, Layout } from "@rive-app/react-canvas";
+
 
 function EmbedInner() {
   const searchParams = useSearchParams();
