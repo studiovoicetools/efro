@@ -1,53 +1,76 @@
 #!/usr/bin/env bash
 set -e
 
+
+# 🧠 Starte Pre-Flight-Check (Node-Script)
+if [ -f "./render-check.mjs" ]; then
+  echo "🔍 Führe render-check.mjs aus ..."
+  node ./render-check.mjs
+else
+  echo "⚠️  render-check.mjs nicht gefunden – überspringe Vorprüfung"
+fi
+
+
+
+
 echo "🚀 EFRO Render Build Fix gestartet ..."
 echo "📦 Node Version: $(node -v)"
 echo "📦 NPM Version: $(npm -v)"
 echo "----------------------------"
 
-# 1️⃣ Prüfen, ob mascotbot-sdk-react-0.1.6.tgz vorhanden ist
+# 1️⃣ mascotbot-SDK prüfen und kopieren
 if [ -f "./mascotbot-sdk-react-0.1.6.tgz" ]; then
   echo "✅ mascotbot-sdk-react-0.1.6.tgz gefunden – kopiere nach ./src/ ..."
   mkdir -p ./src
-  cp ./mascotbot-sdk-react-0.1.6.tgz ./src/
+  cp -f ./mascotbot-sdk-react-0.1.6.tgz ./src/
 else
-  echo "⚠️ WARNUNG: mascotbot-sdk-react-0.1.6.tgz nicht gefunden!"
+  echo "⚠️  WARNUNG: mascotbot-sdk-react-0.1.6.tgz nicht gefunden!"
 fi
 
-# 2️⃣ CSS-Build-Abhängigkeiten prüfen und ggf. installieren
-echo "🧩 Prüfe Tailwind / PostCSS / Autoprefixer ..."
-if ! npm list tailwindcss >/dev/null 2>&1; then
-  echo "🔧 Installiere tailwindcss ..."
-  npm install -D tailwindcss
-else
-  echo "✅ tailwindcss vorhanden"
+# 2️⃣ PostCSS-Konfiguration automatisch reparieren
+echo "🧠 Überprüfe PostCSS-Konfiguration ..."
+if [ -f "postcss.config.mjs" ] || [ -f "postcss.config.js" ]; then
+  echo "⚙️  Entferne alte PostCSS-Konfigurationsdateien (.mjs / .js)"
+  rm -f postcss.config.mjs postcss.config.js
 fi
 
-if ! npm list postcss >/dev/null 2>&1; then
-  echo "🔧 Installiere postcss ..."
-  npm install -D postcss
+if [ ! -f "postcss.config.cjs" ]; then
+  echo "🧩 Erstelle neue postcss.config.cjs ..."
+  cat <<EOF > postcss.config.cjs
+// postcss.config.cjs (automatisch erzeugt)
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+EOF
 else
-  echo "✅ postcss vorhanden"
+  echo "✅ postcss.config.cjs bereits vorhanden"
 fi
 
-if ! npm list autoprefixer >/dev/null 2>&1; then
-  echo "🔧 Installiere autoprefixer ..."
-  npm install -D autoprefixer
-else
-  echo "✅ autoprefixer vorhanden"
-fi
+# 3️⃣ CSS-Abhängigkeiten prüfen (Tailwind, PostCSS, Autoprefixer)
+echo "🧩 Prüfe CSS-Build-Abhängigkeiten ..."
+for pkg in tailwindcss postcss autoprefixer; do
+  if ! npm list "$pkg" >/dev/null 2>&1; then
+    echo "🔧 Installiere $pkg ..."
+    npm install -D "$pkg"
+  else
+    echo "✅ $pkg vorhanden"
+  fi
+done
 
-echo "----------------------------"
-echo "🧠 CSS-Build-Abhängigkeiten geprüft und aktualisiert"
+# 4️⃣ Node Modules & Cache optimieren
+echo "🧹 Bereinige NPM Cache (optional) ..."
+npm cache verify --force >/dev/null 2>&1 || true
 
-# 3️⃣ Dependencies installieren (schnell + sicher)
-echo "🧩 Installiere npm-Pakete ..."
+# 5️⃣ Dependencies installieren
+echo "📦 Installiere npm-Pakete ..."
 npm install --prefer-offline --no-audit --progress=false
 
-# 4️⃣ Next.js Build starten
+# 6️⃣ Build starten
 echo "🏗  Starte Next.js Build ..."
 npm run build
 
-# 5️⃣ Erfolgsmeldung
+# 7️⃣ Erfolgsmeldung
 echo "✅ Build erfolgreich abgeschlossen!"
