@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -19,7 +19,7 @@ export async function fetchAudioWithCache(
 
   const textHash = crypto.createHash("sha256").update(text).digest("hex");
 
-  // 1️⃣ Prüfen, ob Cache-Eintrag existiert
+  // 1ï¸âƒ£ PrÃ¼fen, ob Cache-Eintrag existiert
   const { data } = await supabase
     .from("cache_audio")
     .select("*")
@@ -28,19 +28,19 @@ export async function fetchAudioWithCache(
     .maybeSingle();
 
   if (data?.audio_url) {
-    console.log("⚡ Audio-Cache-Treffer:", text.slice(0, 40));
+    console.log("âš¡ Audio-Cache-Treffer:", text.slice(0, 40));
     return { audioUrl: data.audio_url, visemeJson: data.viseme_json ? JSON.parse(data.viseme_json) : undefined };
   }
 
-  // 2️⃣ Kein Treffer → Generator ausführen (ElevenLabs-API)
+  // 2ï¸âƒ£ Kein Treffer â†’ Generator ausfÃ¼hren (ElevenLabs-API)
   const { audioBuffer, visemeJson } = await generator();
 
-  // 3️⃣ Datei temporär speichern
+  // 3ï¸âƒ£ Datei temporÃ¤r speichern
   const fileName = `audio-${textHash}.mp3`;
   const localPath = path.join("/tmp", fileName);
   fs.writeFileSync(localPath, audioBuffer);
 
-  // 4️⃣ Hochladen in Supabase Storage (Bucket: public/audio)
+  // 4ï¸âƒ£ Hochladen in Supabase Storage (Bucket: public/audio)
   const { data: upload, error: uploadErr } = await supabase.storage
     .from("public")
     .upload(`audio/${fileName}`, fs.createReadStream(localPath), {
@@ -52,7 +52,7 @@ export async function fetchAudioWithCache(
 
   const audioUrl = `${supabaseUrl}/storage/v1/object/public/${upload.path}`;
 
-  // 5️⃣ In Cache-Tabelle speichern
+  // 5ï¸âƒ£ In Cache-Tabelle speichern
   await supabase.from("cache_audio").upsert({
     shop_domain: shopDomain,
     text_hash: textHash,
@@ -60,6 +60,6 @@ export async function fetchAudioWithCache(
     viseme_json: visemeJson ? JSON.stringify(visemeJson) : null,
   });
 
-  console.log("💾 Audio gecacht:", text.slice(0, 40));
+  console.log("ğŸ’¾ Audio gecacht:", text.slice(0, 40));
   return { audioUrl, visemeJson };
 }

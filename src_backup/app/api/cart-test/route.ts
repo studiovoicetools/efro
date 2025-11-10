@@ -1,11 +1,11 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // src/app/api/cart-test/route.ts
 import { NextResponse } from "next/server";
 
 /**
- * ?? Health-Check f�r API.
+ * ?? Health-Check für API.
  */
 export async function GET() {
   const cartId = `TEST-${Math.floor(100000 + Math.random() * 900000)}`;

@@ -1,4 +1,4 @@
-const CACHE_TTL = 3600 * 1000; // 1h
+﻿const CACHE_TTL = 3600 * 1000; // 1h
 
 const memoryCache: Record<string, { data: any; expires: number }> = {};
 

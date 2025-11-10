@@ -1,4 +1,4 @@
-export type SupabaseProduct = {
+﻿export type SupabaseProduct = {
   id: string;
   title: string;
   description?: string;
@@ -23,7 +23,7 @@ export async function fetchSupabaseProducts({
     if (!res.ok) throw new Error(`status ${res.status}`);
     return await res.json();
   } catch (e) {
-    console.error("❌ fetchSupabaseProducts:", e);
+    console.error("âŒ fetchSupabaseProducts:", e);
     return { items: [] };
   }
 }

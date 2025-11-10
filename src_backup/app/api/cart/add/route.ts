@@ -1,11 +1,11 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // src/app/api/cart/add/route.ts
 import { NextResponse } from "next/server";
 
 /**
- * Fügt ein Produkt in den Warenkorb ein und gibt die Checkout-URL zurück.
+ * FÃ¼gt ein Produkt in den Warenkorb ein und gibt die Checkout-URL zurÃ¼ck.
  * Diese Route funktioniert mit der Shopify Storefront API.
  */
 export async function POST(request: Request) {
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     if (!domain || !token) throw new Error("Fehlende Shopify Umgebungsvariablen");
 
-    // Schritt 1: Produkt-ID über Handle abrufen
+    // Schritt 1: Produkt-ID Ã¼ber Handle abrufen
     const queryProduct = `
       query GetProductID($handle: String!) {
         productByHandle(handle: $handle) { id }

@@ -1,4 +1,4 @@
-// src/app/api/supabase/sync-schema/route.ts
+﻿// src/app/api/supabase/sync-schema/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export const dynamic = "force-dynamic";
 
-// gewünschtes Schema
+// gewÃ¼nschtes Schema
 const requiredColumns = [
   { name: "id", type: "text" },
   { name: "title", type: "text" },
@@ -20,15 +20,15 @@ const requiredColumns = [
 
 export async function GET() {
   try {
-    // 1️⃣ vorhandene Spalten abrufen
+    // 1ï¸âƒ£ vorhandene Spalten abrufen
     const { data: columns, error } = await supabase.rpc("get_table_columns", {
       table_name: "products",
     });
 
     if (error) {
-      console.log("⚠️ Keine Funktion get_table_columns gefunden, wird erstellt …");
+      console.log("âš ï¸ Keine Funktion get_table_columns gefunden, wird erstellt â€¦");
 
-      // 🔧 Funktion einmalig erstellen
+      // ğŸ”§ Funktion einmalig erstellen
       const { error: fnError } = await supabase.rpc("exec_sql", {
         sql: `
           CREATE OR REPLACE FUNCTION get_table_columns(table_name text)
@@ -55,14 +55,14 @@ export async function GET() {
     const missing = requiredColumns.filter(c => !existingCols.includes(c.name));
 
     if (missing.length === 0) {
-      return NextResponse.json({ success: true, message: "Schema ist vollständig ✅" });
+      return NextResponse.json({ success: true, message: "Schema ist vollstÃ¤ndig âœ…" });
     }
 
-    // 2️⃣ Fehlende Spalten hinzufügen
+    // 2ï¸âƒ£ Fehlende Spalten hinzufÃ¼gen
     for (const col of missing) {
       const query = `ALTER TABLE products ADD COLUMN IF NOT EXISTS ${col.name} ${col.type};`;
       await supabase.rpc("exec_sql", { sql: query });
-      console.log(`➕ Spalte hinzugefügt: ${col.name}`);
+      console.log(`â• Spalte hinzugefÃ¼gt: ${col.name}`);
     }
 
     return NextResponse.json({
@@ -70,7 +70,7 @@ export async function GET() {
       added: missing.map(m => m.name),
     });
   } catch (err: any) {
-    console.error("❌ Schema Sync Fehler:", err.message);
+    console.error("âŒ Schema Sync Fehler:", err.message);
     return NextResponse.json({ success: false, error: err.message });
   }
 }

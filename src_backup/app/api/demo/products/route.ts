@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL!;
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Wichtig: wir holen IMMER 'featuredimage' in klein und mappen später
+    // Wichtig: wir holen IMMER 'featuredimage' in klein und mappen spÃ¤ter
     const { data, error } = await supabase
       .from("products_demo")
       .select("title, description, price, vendor, featuredimage, handle, sku, inventory, category")
@@ -44,13 +44,13 @@ export async function GET(request: Request) {
         sku: p.sku ?? null,
         inventory: p.inventory ?? 0,
         category: p.category ?? null,
-        // Mapping hier – API gibt 'featuredImage' zurück, DB bleibt 'featuredimage'
+        // Mapping hier â€“ API gibt 'featuredImage' zurÃ¼ck, DB bleibt 'featuredimage'
         featuredImage: p.featuredimage ?? null,
       })) ?? [];
 
     return NextResponse.json({ success: true, category, products: normalized });
   } catch (err: any) {
-    console.error("❌ Fehler /api/demo/products:", err.message);
+    console.error("âŒ Fehler /api/demo/products:", err.message);
     return NextResponse.json({ success: false, error: err.message });
   }
 }

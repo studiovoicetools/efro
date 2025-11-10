@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL!;
@@ -66,7 +66,7 @@ export async function GET() {
     const products = edges.map(({ node }: any) => {
       const id = node?.id ?? crypto.randomUUID();
       return {
-        id, // Primärschlüssel in products
+        id, // PrimÃ¤rschlÃ¼ssel in products
         sku: id, // SKU = Shopify GID
         title: node?.title ?? "Unbenanntes Produkt",
         handle: node?.handle ?? "",

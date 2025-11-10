@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 
 export default function RecommendationsPage() {
@@ -19,7 +19,7 @@ export default function RecommendationsPage() {
   body: JSON.stringify({ query }),
 });
 const data = await res.json();
-console.log("🔍 API-Antwort:", data);
+console.log("ğŸ” API-Antwort:", data);
 
 
       if (data.ok) {
@@ -37,11 +37,11 @@ console.log("🔍 API-Antwort:", data);
   return (
     <div style={{ padding: "40px", fontFamily: "system-ui" }}>
       <h1 style={{ fontSize: "1.8rem", marginBottom: "10px" }}>
-        🧠 Produkt-Suche testen
+        ğŸ§  Produkt-Suche testen
       </h1>
       <p style={{ marginBottom: "20px", color: "#555" }}>
-        Gib eine Suchanfrage ein (z. B. „weißes T-Shirt“ oder „Hoodie“) und
-        sieh, was dein Avatar empfehlen würde.
+        Gib eine Suchanfrage ein (z. B. â€weiÃŸes T-Shirtâ€œ oder â€Hoodieâ€œ) und
+        sieh, was dein Avatar empfehlen wÃ¼rde.
       </p>
 
       <div style={{ display: "flex", gap: "10px", marginBottom: "30px" }}>
@@ -74,7 +74,7 @@ console.log("🔍 API-Antwort:", data);
         </button>
       </div>
 
-      {error && <p style={{ color: "red" }}>⚠️ {error}</p>}
+      {error && <p style={{ color: "red" }}>âš ï¸ {error}</p>}
 
       <div
         style={{
@@ -117,7 +117,7 @@ console.log("🔍 API-Antwort:", data);
               {p.description}
             </p>
             <p style={{ fontWeight: "bold", color: "#0070f3" }}>
-              {p.price?.toFixed(2)} €
+              {p.price?.toFixed(2)} â‚¬
             </p>
             <a
               href={p.product_url}
@@ -132,7 +132,7 @@ console.log("🔍 API-Antwort:", data);
                 borderRadius: "6px",
               }}
             >
-              Zum Produkt →
+              Zum Produkt â†’
             </a>
           </div>
         ))}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 
@@ -6,24 +6,24 @@ const pricingPlans = [
   {
     tier: 'basic',
     name: 'Basic',
-    price: '299€',
+    price: '299â‚¬',
     period: 'einmalig',
-    description: 'Perfekt für kleine Shops und Starter',
+    description: 'Perfekt fÃ¼r kleine Shops und Starter',
     features: [
       'Avatar spricht & zeigt Produkte',
       'Bis zu 10 Produkte',
       'Standard Sprachausgabe',
       'Shopify Integration'
     ],
-    buttonText: 'Basic Auswählen',
+    buttonText: 'Basic AuswÃ¤hlen',
     popular: false
   },
   {
     tier: 'pro', 
     name: 'Pro',
-    price: '699€',
+    price: '699â‚¬',
     period: 'einmalig',
-    description: 'Ideal für wachsende Shops',
+    description: 'Ideal fÃ¼r wachsende Shops',
     features: [
       'Alles aus Basic',
       'Unbegrenzte Produkte', 
@@ -32,15 +32,15 @@ const pricingPlans = [
       'Emotionale Sprachmodulation',
       'Mehrsprachig (DE/EN/TR)'
     ],
-    buttonText: 'Pro Auswählen',
+    buttonText: 'Pro AuswÃ¤hlen',
     popular: true
   },
   {
     tier: 'enterprise',
     name: 'Enterprise',
-    price: '999€',
+    price: '999â‚¬',
     period: 'pro Monat',
-    description: 'Komplettlösung für Marken',
+    description: 'KomplettlÃ¶sung fÃ¼r Marken',
     features: [
       'Alles aus Pro',
       'Multi-Store Support',
@@ -83,14 +83,14 @@ export default function BillingPage() {
       const data = await response.json();
       
       if (response.ok && data.confirmationUrl) {
-        // Zur Shopify Zahlungsbestätigung weiterleiten
+        // Zur Shopify ZahlungsbestÃ¤tigung weiterleiten
         window.location.href = data.confirmationUrl;
       } else {
         alert('Fehler bei der Abo-Buchung: ' + (data.error || 'Unbekannter Fehler'));
       }
     } catch (error) {
       console.error('Upgrade error:', error);
-      alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+      alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es spÃ¤ter erneut.');
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +105,7 @@ export default function BillingPage() {
             AIVA Avatar Abonnements
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Wählen Sie das perfekte Paket für Ihren Shopify Store. 
+            WÃ¤hlen Sie das perfekte Paket fÃ¼r Ihren Shopify Store. 
             Steigern Sie Ihre Conversion Rate mit unserem KI-Verkaufsavatar.
           </p>
         </div>
@@ -185,18 +185,18 @@ export default function BillingPage() {
         {/* Enterprise Contact */}
         <div className="text-center mt-16 bg-white rounded-2xl shadow-lg p-8 max-w-4xl mx-auto">
           <h3 className="text-2xl font-bold text-gray-900 mb-4">
-            Enterprise Lösung benötigt?
+            Enterprise LÃ¶sung benÃ¶tigt?
           </h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            Für individuelle Anforderungen, Multi-Store Setup oder White-Label Lösungen 
-            kontaktieren Sie unser Sales-Team für ein maßgeschneidertes Angebot.
+            FÃ¼r individuelle Anforderungen, Multi-Store Setup oder White-Label LÃ¶sungen 
+            kontaktieren Sie unser Sales-Team fÃ¼r ein maÃŸgeschneidertes Angebot.
           </p>
           <div className="flex gap-4 justify-center">
             <button className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
-              📞 Sales kontaktieren
+              ğŸ“ Sales kontaktieren
             </button>
             <button className="border border-gray-300 text-gray-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
-              📧 Demo anfragen
+              ğŸ“§ Demo anfragen
             </button>
           </div>
         </div>

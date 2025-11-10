@@ -1,4 +1,4 @@
-// src/app/avatar-embed/page.tsx
+ï»¿// src/app/avatar-embed/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -52,14 +52,14 @@ export default function AvatarEmbedPage() {
             fontSize: "1.2rem",
           }}
         >
-          ??? EFRO Avatar läuft!
+          ??? EFRO Avatar lÃ¤uft!
         </div>
       )}
 
       <p style={{ marginTop: "2rem", fontSize: "0.9rem", opacity: 0.7 }}>
         Diese Seite dient nur als lokale Vorschau.
         <br />
-        Die Produktdaten werden über <code>/api/shopify-products</code> geladen.
+        Die Produktdaten werden Ã¼ber <code>/api/shopify-products</code> geladen.
       </p>
     </main>
   );

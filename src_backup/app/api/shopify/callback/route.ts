@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // src/app/api/shopify/callback/route.ts
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!verifyHmac(sp, secret)) {
-      return NextResponse.json({ error: "Ung�ltige HMAC-Signatur" }, { status: 400 });
+      return NextResponse.json({ error: "Ungültige HMAC-Signatur" }, { status: 400 });
     }
 
     // Access Token holen

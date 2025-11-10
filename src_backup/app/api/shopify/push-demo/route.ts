@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * 🔹 Ziel:
- * Lädt Demo-Produkte aus Supabase (products_demo)
- * und überträgt sie in Shopify mit Tag "efro-demo"
- * → ideal für Showcase & Tests auf der Wix-Startseite
+ * ğŸ”¹ Ziel:
+ * LÃ¤dt Demo-Produkte aus Supabase (products_demo)
+ * und Ã¼bertrÃ¤gt sie in Shopify mit Tag "efro-demo"
+ * â†’ ideal fÃ¼r Showcase & Tests auf der Wix-Startseite
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL!;
@@ -18,10 +18,10 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    // 🔸 Verbindung zu Supabase
+    // ğŸ”¸ Verbindung zu Supabase
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 🔸 Alle Demo-Produkte holen
+    // ğŸ”¸ Alle Demo-Produkte holen
     const { data: demoProducts, error } = await supabase
       .from("products_demo")
       .select("*")
@@ -37,7 +37,7 @@ export async function GET() {
     let uploaded = 0;
     const results: any[] = [];
 
-    // 🔸 Jedes Produkt zu Shopify hochladen
+    // ğŸ”¸ Jedes Produkt zu Shopify hochladen
     for (const p of demoProducts) {
       const mutation = `
         mutation productCreate($input: ProductInput!) {
@@ -90,7 +90,7 @@ export async function GET() {
         results.push({
           title: p.title,
           handle: variables.input.handle,
-          status: "✅ Erfolgreich hochgeladen",
+          status: "âœ… Erfolgreich hochgeladen",
         });
       } else {
         results.push({
@@ -107,7 +107,7 @@ export async function GET() {
       results,
     });
   } catch (err: any) {
-    console.error("❌ Demo Upload Error:", err.message);
+    console.error("âŒ Demo Upload Error:", err.message);
     return NextResponse.json({ success: false, error: err.message });
   }
 }

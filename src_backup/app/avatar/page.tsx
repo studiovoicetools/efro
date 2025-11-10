@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -57,9 +57,9 @@ export default function AvatarPage() {
             <source src="/videos/efro.mp4" type="video/mp4" />
           </video>
 
-          <h2 style={{ marginTop: '20px', fontSize: '24px' }}>Ich bin EFRO 🐼</h2>
+          <h2 style={{ marginTop: '20px', fontSize: '24px' }}>Ich bin EFRO ğŸ¼</h2>
           <p style={{ maxWidth: '500px', lineHeight: 1.5 }}>
-            Dein virtueller Verkaufsprofi – bereit, Produkte zu zeigen, Fragen zu beantworten
+            Dein virtueller Verkaufsprofi â€“ bereit, Produkte zu zeigen, Fragen zu beantworten
             und deine Conversion zu steigern!
           </p>
         </>

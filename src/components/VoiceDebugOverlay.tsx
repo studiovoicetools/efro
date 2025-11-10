@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useRef } from "react";
 
 type Props = {
@@ -37,7 +37,7 @@ export default function VoiceDebugOverlay({ connected, lastText, listening }: Pr
       </div>
       {lastText ? (
         <div className="mt-2 max-w-[260px] truncate">
-          <span className="text-neutral-500">last:</span> “{lastText}”
+          <span className="text-neutral-500">last:</span> â€œ{lastText}â€
         </div>
       ) : null}
     </div>

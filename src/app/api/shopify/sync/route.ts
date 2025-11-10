@@ -1,4 +1,4 @@
-// src/app/api/shopify/sync/route.ts
+﻿// src/app/api/shopify/sync/route.ts
 import { NextResponse } from "next/server";
 import { shopifyFetch } from "@/lib/shopify";
 
@@ -26,7 +26,7 @@ export async function GET() {
     const data = await shopifyFetch(query);
     return NextResponse.json({ success: true, data });
   } catch (err: any) {
-    console.error("❌ Shopify Sync Error:", err.message);
+    console.error("âŒ Shopify Sync Error:", err.message);
     return NextResponse.json({
       success: false,
       error: err.message,

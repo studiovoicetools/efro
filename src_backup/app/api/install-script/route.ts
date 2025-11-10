@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+ï»¿export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // ERSTELLE DIESE DATEI: app/api/install-script/route.ts
@@ -8,9 +8,9 @@ export async function POST(request: NextRequest) {
   try {
     const { shopDomain } = await request.json();
     
-    // Hier würdest du in einer echten App den Script-Tag in Shopify installieren
-    // Für jetzt simulieren wir das erstmal
-    console.log(`??? Installiere Avatar für Shop: ${shopDomain}`);
+    // Hier wÃ¼rdest du in einer echten App den Script-Tag in Shopify installieren
+    // FÃ¼r jetzt simulieren wir das erstmal
+    console.log(`??? Installiere Avatar fÃ¼r Shop: ${shopDomain}`);
     
     return NextResponse.json({ 
       success: true, 

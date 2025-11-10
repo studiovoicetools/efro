@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export interface ShopifyProduct {
   id: string;
@@ -40,15 +40,15 @@ export function ChatProductList({ items }: { items: ShopifyProduct[] }) {
             <div className="text-sm text-neutral-600 mt-1">
               {p.price ? (
                 <>
-                  <b>{Number(p.price).toFixed(2)} €</b>
+                  <b>{Number(p.price).toFixed(2)} â‚¬</b>
                   {p.compareAtPrice && (
                     <span className="line-through text-neutral-400 ml-2">
-                      {Number(p.compareAtPrice).toFixed(2)} €
+                      {Number(p.compareAtPrice).toFixed(2)} â‚¬
                     </span>
                   )}
                 </>
               ) : (
-                "—"
+                "â€”"
               )}
             </div>
           </div>

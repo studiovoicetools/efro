@@ -1,24 +1,24 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // src/app/api/get-signed-url/route.ts
 import { NextResponse } from "next/server";
 
 /**
- * Diese Route erzeugt eine temporäre, signierte URL für die Verbindung
+ * Diese Route erzeugt eine temporÃ¤re, signierte URL fÃ¼r die Verbindung
  * zwischen deinem Avatar und dem ElevenLabs-Realtime-API-Endpunkt.
  * 
  * Die Signatur wird von deinem Server (z. B. Node-Backend oder Next.js-Server)
- * erstellt, um den API-Schlüssel nicht im Frontend preiszugeben.
+ * erstellt, um den API-SchlÃ¼ssel nicht im Frontend preiszugeben.
  */
 export async function POST(request: Request) {
   try {
     const { dynamicVariables } = await request.json();
 
-    // Der API-Schlüssel wird aus der .env geladen:
+    // Der API-SchlÃ¼ssel wird aus der .env geladen:
     const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
     if (!ELEVENLABS_API_KEY) {
-      throw new Error("Fehlender ElevenLabs API-Schlüssel (.env)");
+      throw new Error("Fehlender ElevenLabs API-SchlÃ¼ssel (.env)");
     }
 
     // Anfrage an ElevenLabs: Signierte URL erzeugen

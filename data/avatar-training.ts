@@ -1,22 +1,22 @@
-// ERSTELLE DIESE DATEI: data/avatar-training.ts
+﻿// ERSTELLE DIESE DATEI: data/avatar-training.ts
 export const avatarTrainingData = {
   // Produkt-Fragen und Antworten
   productQuestions: [
     {
-      question: "Was ist das für ein Material?",
+      question: "Was ist das fÃ¼r ein Material?",
       response: "Das Produkt ist aus {material}. Sehr hochwertig und langlebig!"
     },
     {
       question: "Gibt es das in anderen Farben?",
-      response: "Ja, verfügbar in {farben}. Welche Farbe gefällt dir am besten?"
+      response: "Ja, verfÃ¼gbar in {farben}. Welche Farbe gefÃ¤llt dir am besten?"
     },
     {
       question: "Ist das wasserdicht?",
-      response: "Ja, das Material ist {wasserfest}. Perfekt für Outdoor-Aktivitäten!"
+      response: "Ja, das Material ist {wasserfest}. Perfekt fÃ¼r Outdoor-AktivitÃ¤ten!"
     },
     {
-      question: "Welche Größe empfehlst du?",
-      response: "Für {produkt} empfehle ich {größe}. Soll ich dir helfen die richtige Größe zu finden?"
+      question: "Welche GrÃ¶ÃŸe empfehlst du?",
+      response: "FÃ¼r {produkt} empfehle ich {grÃ¶ÃŸe}. Soll ich dir helfen die richtige GrÃ¶ÃŸe zu finden?"
     }
   ],
   
@@ -24,11 +24,11 @@ export const avatarTrainingData = {
   checkoutAssistance: [
     {
       step: "warenkorb",
-      message: "Super Auswahl! Dein Warenkorb ist bereit. Möchtest du direkt zur Kasse?"
+      message: "Super Auswahl! Dein Warenkorb ist bereit. MÃ¶chtest du direkt zur Kasse?"
     },
     {
       step: "versand", 
-      message: "Kostenloser Versand ab 50€ - fast geschafft! 🚚"
+      message: "Kostenloser Versand ab 50â‚¬ - fast geschafft! ğŸšš"
     },
     {
       step: "bezahlung",
@@ -36,7 +36,7 @@ export const avatarTrainingData = {
     },
     {
       step: "bestellung_abgeschlossen",
-      message: "🎉 Danke für deine Bestellung! Deine Produkte sind auf dem Weg."
+      message: "ğŸ‰ Danke fÃ¼r deine Bestellung! Deine Produkte sind auf dem Weg."
     }
   ],
   
@@ -45,22 +45,22 @@ export const avatarTrainingData = {
     {
       when: "hoodie",
       suggest: ["cap", "tshirt", "beanie"],
-      message: "💡 Dazu passt eine Cap oder T-Shirt perfekt! Möchtest du das auch sehen?"
+      message: "ğŸ’¡ Dazu passt eine Cap oder T-Shirt perfekt! MÃ¶chtest du das auch sehen?"
     },
     {
       when: "snowboard", 
       suggest: ["bindungen", "schuhe", "helm", "brille"],
-      message: "🏂 Vergiss nicht die passende Ausrüstung! Ich zeige dir Snowboard-Zubehör."
+      message: "ğŸ‚ Vergiss nicht die passende AusrÃ¼stung! Ich zeige dir Snowboard-ZubehÃ¶r."
     },
     {
       when: "jacke",
-      suggest: ["hoodie", "mütze", "handschuhe"],
-      message: "❄️ Dazu passen Handschuhe und Mütze perfekt für kalte Tage!"
+      suggest: ["hoodie", "mÃ¼tze", "handschuhe"],
+      message: "â„ï¸ Dazu passen Handschuhe und MÃ¼tze perfekt fÃ¼r kalte Tage!"
     },
     {
       when: "schuhe",
       suggest: ["socken", "einlegesohlen", "pflegemittel"],
-      message: "👟 Für deine neuen Schuhe empfehle ich spezielle Socken und Pflegemittel."
+      message: "ğŸ‘Ÿ FÃ¼r deine neuen Schuhe empfehle ich spezielle Socken und Pflegemittel."
     }
   ],
 
@@ -68,15 +68,15 @@ export const avatarTrainingData = {
   salesTechniques: [
     {
       situation: "kunde_unsicher",
-      response: "Das Produkt ist sehr beliebt! 94% unserer Kunden sind zufrieden. Möchtest du es probieren?"
+      response: "Das Produkt ist sehr beliebt! 94% unserer Kunden sind zufrieden. MÃ¶chtest du es probieren?"
     },
     {
       situation: "preis_bedenken", 
-      response: "Die Qualität rechtfertigt den Preis! Dazu gibt es 30 Tage Rückgaberecht."
+      response: "Die QualitÃ¤t rechtfertigt den Preis! Dazu gibt es 30 Tage RÃ¼ckgaberecht."
     },
     {
       situation: "farbe_auswahl",
-      response: "{farbe} ist gerade total im Trend! Aber {andere_farbe} ist auch sehr schön."
+      response: "{farbe} ist gerade total im Trend! Aber {andere_farbe} ist auch sehr schÃ¶n."
     }
   ]
 };

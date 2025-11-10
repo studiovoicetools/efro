@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // src/app/api/query/route.ts
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Kein Suchbegriff angegeben" }, { status: 400 });
     }
 
-    console.log(`?? Supabase Query gestartet f�r: "${q}"`);
+    console.log(`?? Supabase Query gestartet für: "${q}"`);
 
     // ?? Volltextsuche in Produkten
     const { data, error } = await supabase

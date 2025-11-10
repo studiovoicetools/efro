@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+ï»¿export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // src/app/api/billing/route.ts
@@ -8,11 +8,11 @@ import crypto from "crypto";
 
 /**
  * Diese Route erzeugt Shopify-Billing-Links und aktualisiert Supabase:
- *  - Basic / Pro › einmalige App-Käufe
- *  - Enterprise › wiederkehrendes Abo
+ *  - Basic / Pro â€º einmalige App-KÃ¤ufe
+ *  - Enterprise â€º wiederkehrendes Abo
  *
  * Nach erfolgreicher Erstellung wird in Supabase gespeichert:
- *   › plan, active, updated_at
+ *   â€º plan, active, updated_at
  */
 
 
@@ -61,7 +61,7 @@ async function adminGraphQL<T>(
 /** ?? Billing-Hauptlogik **/
 export async function POST(request: NextRequest) {
   try {
-    // ?? Lazy Supabase-Initialisierung — erst zur Laufzeit
+    // ?? Lazy Supabase-Initialisierung â€” erst zur Laufzeit
     const supabaseUrl =
       process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey =
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       !/^admin\.shopify\.com\/store\//i.test(shop)
     ) {
       return NextResponse.json(
-        { error: "Ungültige Shop-Domain" },
+        { error: "UngÃ¼ltige Shop-Domain" },
         { status: 400 }
       );
     }
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
 
     if (!accessToken) {
       return NextResponse.json(
-        { error: "Kein Admin-Access-Token verfügbar" },
+        { error: "Kein Admin-Access-Token verfÃ¼gbar" },
         { status: 500 }
       );
     }

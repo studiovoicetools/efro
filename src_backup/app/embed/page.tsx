@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamicParams = true;
 export const fetchCache = "force-no-store";
@@ -41,9 +41,9 @@ function EmbedInner() {
       });
 
       setRiveInstance(rive);
-      console.log("✅ Mascot geladen:", rive);
+      console.log("âœ… Mascot geladen:", rive);
     } catch (err) {
-      console.error("❌ Fehler beim Laden von mascot-v2.riv:", err);
+      console.error("âŒ Fehler beim Laden von mascot-v2.riv:", err);
     }
   }, []);
 
@@ -66,7 +66,7 @@ function EmbedInner() {
             </div>
           </MascotClient>
         ) : (
-          <div>Loading Efro Avatar …</div>
+          <div>Loading Efro Avatar â€¦</div>
         )}
       </MascotProvider>
     </div>
@@ -75,7 +75,7 @@ function EmbedInner() {
 
 export default function EmbedPage() {
   return (
-    <Suspense fallback={<div>Loading Efro Avatar …</div>}>
+    <Suspense fallback={<div>Loading Efro Avatar â€¦</div>}>
       <EmbedInner />
     </Suspense>
   );

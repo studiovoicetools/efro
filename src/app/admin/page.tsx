@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 
@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Beispiel-Shops für Demo
+  // Beispiel-Shops fÃ¼r Demo
   const defaultShops: ShopConfig[] = [
     {
       id: "shop-1",
@@ -78,16 +78,16 @@ export default function AdminDashboard() {
       if (shop.apiKeys.elevenlabs && shop.apiKeys.mascotbot) {
         const isValid = await validateApiKeys(shop.apiKeys);
         if (isValid) {
-          alert("✅ Shop-Konfiguration erfolgreich gespeichert und validiert!");
+          alert("âœ… Shop-Konfiguration erfolgreich gespeichert und validiert!");
         } else {
-          alert("⚠️ Shop gespeichert, aber API Keys könnten ungültig sein.");
+          alert("âš ï¸ Shop gespeichert, aber API Keys kÃ¶nnten ungÃ¼ltig sein.");
         }
       }
       
       setIsEditing(false);
       setCurrentShop(null);
     } catch (error) {
-      alert("❌ Fehler beim Speichern der Shop-Konfiguration");
+      alert("âŒ Fehler beim Speichern der Shop-Konfiguration");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🛍️ Multi-Shop Avatar Management
+            ğŸ›ï¸ Multi-Shop Avatar Management
           </h1>
           <p className="text-gray-600">
             Verwalte deine Shops und konfiguriere die Voice Avatare
@@ -170,7 +170,7 @@ export default function AdminDashboard() {
                     }));
                     setShops(updatedShops);
                     localStorage.setItem('avatar-shops', JSON.stringify(updatedShops));
-                    alert(`✅ ${shop.name} ist jetzt der aktive Shop`);
+                    alert(`âœ… ${shop.name} ist jetzt der aktive Shop`);
                   }}
                   className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
                 >
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
             className="bg-white rounded-2xl shadow-lg p-6 border-2 border-dashed border-gray-300 hover:border-orange-300 hover:bg-orange-50 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[200px]"
           >
             <div className="text-4xl text-gray-400 mb-2">+</div>
-            <div className="text-gray-600 font-medium">Neuen Shop hinzufügen</div>
+            <div className="text-gray-600 font-medium">Neuen Shop hinzufÃ¼gen</div>
           </div>
         </div>
 
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Primärfarbe *
+                      PrimÃ¤rfarbe *
                     </label>
                     <div className="flex gap-2">
                       <input

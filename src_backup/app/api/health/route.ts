@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+ï»¿export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // src/app/api/health/route.ts
@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 /**
  * ?? Health Check Endpoint
  * Wird von Render oder externen Monitoren aufgerufen,
- * um die Betriebsfähigkeit der App zu prüfen.
+ * um die BetriebsfÃ¤higkeit der App zu prÃ¼fen.
  */
 export async function GET() {
   return NextResponse.json({

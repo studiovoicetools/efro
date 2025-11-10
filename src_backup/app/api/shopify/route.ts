@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+Ôªøexport const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 /**
  * Diese Route wird vom Avatar oder der Installationslogik genutzt,
  * um Shopify-Shop-Informationen oder Auth-Daten abzufragen.
- * Sie l‰uft immer dynamisch, da `request.url` und `fetch` verwendet werden.
+ * Sie l√§uft immer dynamisch, da `request.url` und `fetch` verwendet werden.
  */
 
 export async function GET(request: Request) {
@@ -21,9 +21,9 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log(`?? Shopify-GET f¸r Shop: ${shop}`);
+    console.log(`?? Shopify-GET f√ºr Shop: ${shop}`);
 
-    // Beispiel-Shopify-Abfrage (kann sp‰ter durch echten Call ersetzt werden)
+    // Beispiel-Shopify-Abfrage (kann sp√§ter durch echten Call ersetzt werden)
     const apiKey = process.env.SHOPIFY_API_KEY;
     const apiSecret = process.env.SHOPIFY_API_SECRET;
     const redirectUri = `${process.env.APP_URL}/api/shopify/callback`;
@@ -45,8 +45,8 @@ export async function GET(request: Request) {
 }
 
 /**
- * Optionaler POST-Handler ñ falls du sp‰ter z. B. Produktsynchronisation oder Webhooks
- * an diese Route schicken willst. Momentan leer, aber funktionsf‰hig.
+ * Optionaler POST-Handler ‚Äì falls du sp√§ter z. B. Produktsynchronisation oder Webhooks
+ * an diese Route schicken willst. Momentan leer, aber funktionsf√§hig.
  */
 export async function POST(request: Request) {
   try {

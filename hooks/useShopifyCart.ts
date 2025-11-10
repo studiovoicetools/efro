@@ -1,4 +1,4 @@
-// ERSTELLE DIESE DATEI: hooks/useShopifyCart.ts
+﻿// ERSTELLE DIESE DATEI: hooks/useShopifyCart.ts
 import { useState, useEffect } from 'react';
 
 export function useShopifyCart() {
@@ -21,7 +21,7 @@ export function useShopifyCart() {
     }
   };
 
-  // Produkt zum Warenkorb hinzufügen
+  // Produkt zum Warenkorb hinzufÃ¼gen
   const addToCart = async (variantId: string, quantity: number = 1) => {
     try {
       setIsLoading(true);
@@ -43,13 +43,13 @@ export function useShopifyCart() {
       if (response.ok) {
         const result = await response.json();
         await getCart(); // Warenkorb aktualisieren
-        console.log('✅ Produkt im Warenkorb:', result);
+        console.log('âœ… Produkt im Warenkorb:', result);
         return { success: true, data: result };
       } else {
-        throw new Error('Hinzufügen fehlgeschlagen');
+        throw new Error('HinzufÃ¼gen fehlgeschlagen');
       }
     } catch (error) {
-      console.error('❌ Warenkorb-Fehler:', error);
+      console.error('âŒ Warenkorb-Fehler:', error);
       return { success: false, error };
     } finally {
       setIsLoading(false);
@@ -63,7 +63,7 @@ export function useShopifyCart() {
 
   // Warenkorb beim Start laden
   useEffect(() => {
-    // Nur im Browser ausführen
+    // Nur im Browser ausfÃ¼hren
     if (typeof window !== 'undefined') {
       getCart();
     }
