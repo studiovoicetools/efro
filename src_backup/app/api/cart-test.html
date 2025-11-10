@@ -1,0 +1,10 @@
+<script>
+fetch("/api/cart/add", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ handle: "dein-produkt-handle", quantity: 1 }),
+})
+  .then(r => r.json())
+  .then(console.log)
+  .catch(console.error);
+</script>
