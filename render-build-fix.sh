@@ -57,7 +57,23 @@ else
   echo "✅ TypeScript vorhanden"
 fi
 
-# 7️⃣ Next.js Build starten
+# 7️⃣ Supabase SSR sicherstellen
+if ! npm list @supabase/ssr >/dev/null 2>&1; then
+  echo "🧩 Installiere fehlendes @supabase/ssr-Modul ..."
+  npm install @supabase/ssr@0.0.10 --save-dev
+else
+  echo "✅ @supabase/ssr bereits vorhanden"
+fi
+
+# 8️⃣ Sicherheits-Check-Ausgabe
+echo "----------------------------"
+echo "✅ Final Check:"
+echo "   - Tailwind-Version: $(npm list tailwindcss | grep 'tailwindcss@' | awk -F'@' '{print $2}' | tail -n1)"
+echo "   - TypeScript: $(npx tsc --version 2>/dev/null || echo 'nicht installiert')"
+echo "   - Supabase SSR: $(npm list @supabase/ssr | grep '@supabase/ssr@' | awk -F'@' '{print $2}' | tail -n1)"
+echo "----------------------------"
+
+# 9️⃣ Next.js Build starten
 echo "🏗️  Starte Next.js Build ..."
 npm run build
 
