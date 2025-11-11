@@ -45,6 +45,16 @@ EOF
 echo "📦 Installiere npm-Pakete ..."
 npm install --prefer-offline --no-audit --progress=false
 
+# 🧩 TypeScript sicherstellen
+if ! npx tsc --version >/dev/null 2>&1; then
+  echo "⚙️  Installiere fehlendes TypeScript ..."
+  npm install -D typescript @types/node @types/react @types/react-dom
+else
+  echo "✅ TypeScript bereits vorhanden"
+fi
+
+
+
 # 5️⃣ Next.js Build starten
 echo "🏗  Starte Next.js Build ..."
 npm run build
