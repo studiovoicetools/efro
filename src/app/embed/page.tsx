@@ -1,4 +1,6 @@
-﻿"use client";
+﻿'use client';
+
+"use client";
 
 export const dynamicParams = true;
 export const fetchCache = "force-no-store";
@@ -80,3 +82,4 @@ export default function EmbedPage() {
     </Suspense>
   );
 }
+

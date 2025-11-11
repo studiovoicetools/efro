@@ -4,16 +4,18 @@ services:
     env: node
     plan: starter
     branch: main
-    buildCommand: npm ci && npm run build
+
+    # 🧩 WICHTIG: Dein eigenes Build-Skript verwenden
+    buildCommand: bash render-build-fix.sh
     startCommand: npm run start
+
     envVars:
       - key: NODE_VERSION
         value: 20
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
 
-      # 🔐 Trage die folgenden Variablen im Render-Dashboard ein (NICHT hier in Klartext!).
-      # Diese Zeilen dienen nur als Dokumentation.
+      # 🔐 Empfohlene Environment Variablen – im Render Dashboard eintragen
       - key: SHOPIFY_STORE_DOMAIN
         sync: false
       - key: SHOPIFY_ADMIN_ACCESS_TOKEN

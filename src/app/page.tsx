@@ -1,4 +1,6 @@
-﻿// app/page.tsx
+﻿'use client';
+
+// app/page.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -346,4 +348,5 @@ export default function Home() {
     </MascotProvider>
   );
 }
+
 

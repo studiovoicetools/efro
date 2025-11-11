@@ -1,4 +1,6 @@
-﻿// src/app/avatar-embed/page.tsx
+﻿'use client';
+
+// src/app/avatar-embed/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -64,4 +66,5 @@ export default function AvatarEmbedPage() {
     </main>
   );
 }
+
 

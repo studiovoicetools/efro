@@ -1,4 +1,6 @@
-﻿"use client";
+﻿'use client';
+
+"use client";
 import React, { useState } from "react";
 
 export default function ImportPage() {
@@ -55,4 +57,5 @@ export default function ImportPage() {
     </div>
   );
 }
+
 

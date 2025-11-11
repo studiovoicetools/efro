@@ -8,8 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-	"prebuild": "powershell -ExecutionPolicy Bypass -Command \"& { ./check-client-hooks.ps1; ./check-supabase-ssr.ps1 }\""
-  },
+	"prebuild": "node prebuild.js"
+	},
   "dependencies": {
     "@auth/core": "^0.37.4",
     "@elevenlabs/react": "^0.5.0",
