@@ -30,7 +30,8 @@ else {
 
 # 3. Render Deployment
 Write-Host "`nStarte Render Deployment (render-build-fix.sh) ..." -ForegroundColor Yellow
-bash render-build-fix.sh
+powershell -ExecutionPolicy Bypass -File "./render-build-fix.ps1"
+
 
 Write-Host "`nBuild-Prozess abgeschlossen. Zum Beenden eine Taste druecken ..." -ForegroundColor Green
 Pause
