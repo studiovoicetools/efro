@@ -7,13 +7,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+	"prebuild": "powershell -ExecutionPolicy Bypass -Command \"& { ./check-client-hooks.ps1; ./check-supabase-ssr.ps1 }\""
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
     "@elevenlabs/react": "^0.5.0",
     "@mascotbot-sdk/react": "file:./mascotbot-sdk-react-0.1.6.tgz",
     "@rive-app/react-webgl2": "^4.24.0",
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.45.4",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.7",

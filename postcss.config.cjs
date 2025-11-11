@@ -1,7 +1,7 @@
-﻿// postcss.config.cjs – kompatibel mit Tailwind 3 + Next 14
+﻿// postcss.config.cjs – Fixed for Next.js 14 + Tailwind 3.4.18
 module.exports = {
-  plugins: [
-    require('tailwindcss'),
-    require('autoprefixer'),
-  ],
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
 };
