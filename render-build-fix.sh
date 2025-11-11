@@ -15,7 +15,7 @@ else
   echo "⚠️ WARNUNG: mascotbot-sdk-react-0.1.6.tgz fehlt!"
 fi
 
-# 2️⃣ Tailwind-Version prüfen
+# 2️⃣ Tailwind-Version prüfen und ggf. fixen
 echo "🧠 Prüfe Tailwind-Version ..."
 TAILWIND_VERSION=$(npm list tailwindcss | grep "tailwindcss@" | awk -F'@' '{print $2}' | tail -n1)
 echo "📦 Aktuelle Tailwind-Version: ${TAILWIND_VERSION}"
@@ -29,7 +29,7 @@ else
   echo "✅ Tailwind v3 ist aktiv"
 fi
 
-# 3️⃣ PostCSS-Konfiguration sicherstellen
+# 3️⃣ PostCSS-Konfiguration absichern
 echo "🧩 Erstelle sichere postcss.config.cjs ..."
 cat > postcss.config.cjs << 'EOF'
 // postcss.config.cjs – auto-fixed for Tailwind v3
@@ -41,22 +41,24 @@ module.exports = {
 };
 EOF
 
-# 4️⃣ NPM-Pakete installieren
+# 4️⃣ DevDependencies erzwingen
+echo "⚙️  Setze NODE_ENV=development, damit DevDependencies installiert werden ..."
+export NODE_ENV=development
+
+# 5️⃣ NPM-Abhängigkeiten installieren
 echo "📦 Installiere npm-Pakete ..."
 npm install --prefer-offline --no-audit --progress=false
 
-# 🧩 TypeScript sicherstellen
-if ! npx tsc --version >/dev/null 2>&1; then
-  echo "⚙️  Installiere fehlendes TypeScript ..."
-  npm install -D typescript @types/node @types/react @types/react-dom
+# 6️⃣ TypeScript sicherstellen
+if [ ! -f "./node_modules/.bin/tsc" ]; then
+  echo "🧠 Erzwinge TypeScript-Installation ..."
+  npm install --save-dev typescript @types/node @types/react @types/react-dom
 else
-  echo "✅ TypeScript bereits vorhanden"
+  echo "✅ TypeScript vorhanden"
 fi
 
-
-
-# 5️⃣ Next.js Build starten
-echo "🏗  Starte Next.js Build ..."
+# 7️⃣ Next.js Build starten
+echo "🏗️  Starte Next.js Build ..."
 npm run build
 
 echo "✅ Build erfolgreich abgeschlossen!"
