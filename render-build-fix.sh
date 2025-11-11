@@ -1,76 +1,52 @@
 #!/usr/bin/env bash
 set -e
 
-
-# 🧠 Starte Pre-Flight-Check (Node-Script)
-if [ -f "./render-check.mjs" ]; then
-  echo "🔍 Führe render-check.mjs aus ..."
-  node ./render-check.mjs
-else
-  echo "⚠️  render-check.mjs nicht gefunden – überspringe Vorprüfung"
-fi
-
-
-
-
-echo "🚀 EFRO Render Build Fix gestartet ..."
+echo "🚀 EFRO Auto-Fix gestartet ..."
 echo "📦 Node Version: $(node -v)"
 echo "📦 NPM Version: $(npm -v)"
 echo "----------------------------"
 
-# 1️⃣ mascotbot-SDK prüfen und kopieren
+# 1️⃣ SDK prüfen
 if [ -f "./mascotbot-sdk-react-0.1.6.tgz" ]; then
-  echo "✅ mascotbot-sdk-react-0.1.6.tgz gefunden – kopiere nach ./src/ ..."
+  echo "✅ mascotbot-sdk-react-0.1.6.tgz gefunden – kopiere nach ./src/"
   mkdir -p ./src
-  cp -f ./mascotbot-sdk-react-0.1.6.tgz ./src/
+  cp ./mascotbot-sdk-react-0.1.6.tgz ./src/
 else
-  echo "⚠️  WARNUNG: mascotbot-sdk-react-0.1.6.tgz nicht gefunden!"
+  echo "⚠️ WARNUNG: mascotbot-sdk-react-0.1.6.tgz fehlt!"
 fi
 
-# 2️⃣ PostCSS-Konfiguration automatisch reparieren
-echo "🧠 Überprüfe PostCSS-Konfiguration ..."
-if [ -f "postcss.config.mjs" ] || [ -f "postcss.config.js" ]; then
-  echo "⚙️  Entferne alte PostCSS-Konfigurationsdateien (.mjs / .js)"
-  rm -f postcss.config.mjs postcss.config.js
+# 2️⃣ Tailwind-Version prüfen
+echo "🧠 Prüfe Tailwind-Version ..."
+TAILWIND_VERSION=$(npm list tailwindcss | grep "tailwindcss@" | awk -F'@' '{print $2}' | tail -n1)
+echo "📦 Aktuelle Tailwind-Version: ${TAILWIND_VERSION}"
+
+if [[ "$TAILWIND_VERSION" == 4* ]]; then
+  echo "🚨 Tailwind v4 erkannt – führe Downgrade auf v3.4.18 durch ..."
+  npm uninstall -D @tailwindcss/postcss || true
+  npm uninstall -D tailwindcss || true
+  npm install -D tailwindcss@3.4.18 postcss@8.4.41 autoprefixer@10.4.20
+else
+  echo "✅ Tailwind v3 ist aktiv"
 fi
 
-if [ ! -f "postcss.config.cjs" ]; then
-  echo "🧩 Erstelle neue postcss.config.cjs ..."
-  cat <<EOF > postcss.config.cjs
-// postcss.config.cjs (automatisch erzeugt)
+# 3️⃣ PostCSS-Konfiguration sicherstellen
+echo "🧩 Erstelle sichere postcss.config.cjs ..."
+cat > postcss.config.cjs << 'EOF'
+// postcss.config.cjs – auto-fixed for Tailwind v3
 module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
+  plugins: [
+    require('tailwindcss'),
+    require('autoprefixer'),
+  ],
 };
 EOF
-else
-  echo "✅ postcss.config.cjs bereits vorhanden"
-fi
 
-# 3️⃣ CSS-Abhängigkeiten prüfen (Tailwind, PostCSS, Autoprefixer)
-echo "🧩 Prüfe CSS-Build-Abhängigkeiten ..."
-for pkg in tailwindcss postcss autoprefixer; do
-  if ! npm list "$pkg" >/dev/null 2>&1; then
-    echo "🔧 Installiere $pkg ..."
-    npm install -D "$pkg"
-  else
-    echo "✅ $pkg vorhanden"
-  fi
-done
-
-# 4️⃣ Node Modules & Cache optimieren
-echo "🧹 Bereinige NPM Cache (optional) ..."
-npm cache verify --force >/dev/null 2>&1 || true
-
-# 5️⃣ Dependencies installieren
+# 4️⃣ NPM-Pakete installieren
 echo "📦 Installiere npm-Pakete ..."
 npm install --prefer-offline --no-audit --progress=false
 
-# 6️⃣ Build starten
+# 5️⃣ Next.js Build starten
 echo "🏗  Starte Next.js Build ..."
 npm run build
 
-# 7️⃣ Erfolgsmeldung
 echo "✅ Build erfolgreich abgeschlossen!"
