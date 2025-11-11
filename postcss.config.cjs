@@ -1,4 +1,4 @@
-﻿// postcss.config.cjs – Fixed for Next.js 14 + Tailwind 3.4.18
+// postcss.config.cjs – kompatibel mit Next.js 14 + Tailwind v3
 module.exports = {
   plugins: {
     tailwindcss: {},
