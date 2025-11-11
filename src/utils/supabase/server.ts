@@ -4,22 +4,30 @@ import { cookies } from "next/headers";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+/**
+ * Erstellt eine serverseitige Supabase-Instanz mit stabiler Cookie-Verwaltung.
+ * Kompatibel mit @supabase/ssr ≥ 0.0.10 und Next.js 14.
+ */
 export const createClient = (cookieStore: ReturnType<typeof cookies>) => {
   return createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll();
+      get(name: string) {
+        return cookieStore.get(name)?.value;
       },
-      setAll(cookiesToSet) {
+      set(name: string, value: string, options?: CookieOptions) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
+          cookieStore.set(name, value, options);
         } catch {
-          // Ignorieren, wenn Server Component
+          // Ignorieren, falls Server Component-Kontext
+        }
+      },
+      remove(name: string, options?: CookieOptions) {
+        try {
+          cookieStore.set(name, "", { ...options, maxAge: 0 });
+        } catch {
+          // Ignorieren, falls Server Component-Kontext
         }
       },
     },
   });
 };
-
