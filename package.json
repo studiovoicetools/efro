@@ -1,12 +1,17 @@
 {
-  "name": "aiva-elevenlabs-avatar",
+  "name": "efro",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.11.0 <21"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000}",
+    "render-build": "npm ci && npm run build",
+    "render-start": "npm run start",
     "lint": "next lint",
     "prebuild": "node prebuild.js"
   },
@@ -17,27 +22,24 @@
     "@rive-app/react-webgl2": "^4.24.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.45.4",
-    "autoprefixer": "^10.4.20",
+    "autoprefixer": "10.4.20",
     "axios": "^1.7.7",
     "csv-parse": "^5.5.6",
     "dotenv": "^16.4.5",
     "framer-motion": "^11.3.30",
     "next": "14.2.3",
     "openai": "^4.58.1",
-    "postcss": "^8.4.41",
+    "postcss": "8.4.41",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "tailwindcss": "^3.4.18",
-    "typescript": "^5.6.3",
-    "@types/node": "^20.12.12",
-    "@types/react": "^18.3.10",
-    "@types/react-dom": "^18.3.0"
+    "tailwindcss": "3.4.18"
   },
   "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.3"
-  },
-  "engines": {
-    "node": "20.x"
+    "eslint-config-next": "^14.2.3",
+    "typescript": "^5.6.3"
   }
 }
