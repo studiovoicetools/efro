@@ -1,5 +1,5 @@
 # ============================================
-# EFRO AutoPush + AutoBuild + AutoDeploy (UTF-8 Safe)
+# EFRO AutoPush + AutoBuild + AutoDeploy (Final Version)
 # ============================================
 
 Write-Host "=== EFRO AutoPush & AutoDeploy gestartet ===" -ForegroundColor Cyan
@@ -11,10 +11,10 @@ Write-Host "Git Pull --Rebase (synchronisiere lokale Aenderungen) ..." -Foregrou
 git pull --rebase
 Write-Host ""
 
-# 2. Anderungen prufen
+# 2. Aenderungen pruefen
 $gitStatus = git status --porcelain
 if ($gitStatus) {
-    Write-Host "Aenderungen erkannt  committe & pushe ..." -ForegroundColor Cyan
+    Write-Host "Aenderungen erkannt - committe & pushe ..." -ForegroundColor Cyan
     git add .
     $commitMessage = "EFRO AutoPush ($timestamp) - Full AutoDeploy Fix"
     git commit -m "$commitMessage"
@@ -22,19 +22,38 @@ if ($gitStatus) {
     Write-Host "Push erfolgreich abgeschlossen." -ForegroundColor Green
 }
 else {
-    Write-Host "Keine Aenderungen  ueberspringe Git-Push." -ForegroundColor Green
+    Write-Host "Keine Aenderungen - ueberspringe Git-Push." -ForegroundColor Green
 }
 
-# 3. Abhangigkeiten prufen
+# 3. Abhaengigkeiten pruefen
 Write-Host "`nPruefe Projektabhaengigkeiten ..." -ForegroundColor Yellow
 if (!(Test-Path "./node_modules")) {
-    Write-Host "node_modules fehlt  installiere Pakete ..."
+    Write-Host "node_modules fehlt - installiere Pakete ..."
     npm install
 } else {
     Write-Host "Abhaengigkeiten vorhanden."
 }
 
-# 4. Tailwind prufen
+# 4. Sicherheitsfix
+Write-Host "`nFuehre npm audit fix --force aus (Sicherheitsbereinigung) ..." -ForegroundColor Yellow
+try {
+    npm audit fix --force
+    Write-Host "Sicherheitsfix abgeschlossen." -ForegroundColor Green
+} catch {
+    Write-Host "Warnung: npm audit fix konnte nicht ausgefuehrt werden." -ForegroundColor Yellow
+}
+
+
+# 4.1 Autoprefixer-Fallback fuer Render
+if (-not (Test-Path "./node_modules/autoprefixer")) {
+    Write-Host "Autoprefixer fehlt - installiere erneut (Render-Fix) ..." -ForegroundColor Yellow
+    npm install autoprefixer@10.4.20
+}
+
+
+
+
+# 5. Tailwind pruefen
 $tailwind = (npm list tailwindcss 2>$null | Select-String "tailwindcss@" | ForEach-Object { ($_ -split "@")[-1] }) -join ""
 if (-not $tailwind -or $tailwind.StartsWith("4")) {
     Write-Host "Installiere Tailwind v3.4.18 + PostCSS + Autoprefixer ..." -ForegroundColor Yellow
@@ -43,7 +62,7 @@ if (-not $tailwind -or $tailwind.StartsWith("4")) {
     Write-Host "Tailwind-Version $tailwind aktiv." -ForegroundColor Green
 }
 
-# 5. PostCSS sichern
+# 6. PostCSS sichern
 @"
 module.exports = {
   plugins: {
@@ -52,16 +71,17 @@ module.exports = {
   },
 };
 "@ | Set-Content -Path "./postcss.config.cjs" -Encoding UTF8
+Write-Host "postcss.config.cjs aktualisiert." -ForegroundColor Green
 
-# 6. TypeScript prufen
+# 7. TypeScript pruefen
 if (!(Test-Path "./node_modules/.bin/tsc")) {
-    Write-Host "TypeScript fehlt  installiere ..." -ForegroundColor Yellow
+    Write-Host "TypeScript fehlt - installiere ..." -ForegroundColor Yellow
     npm install typescript @types/node @types/react @types/react-dom
 } else {
     Write-Host "TypeScript vorhanden." -ForegroundColor Green
 }
 
-# 7. Supabase SSR prufen
+# 8. Supabase SSR pruefen
 if (!(npm list @supabase/ssr 2>$null)) {
     Write-Host "Installiere fehlendes Supabase SSR ..." -ForegroundColor Yellow
     npm install @supabase/ssr
@@ -69,7 +89,7 @@ if (!(npm list @supabase/ssr 2>$null)) {
     Write-Host "Supabase SSR erkannt." -ForegroundColor Green
 }
 
-# 8. Optionaler lokaler Build
+# 9. Lokaler Build-Test
 Write-Host "`nStarte lokalen Next.js Build-Test ..." -ForegroundColor Cyan
 try {
     npm run build
@@ -78,7 +98,7 @@ try {
     Write-Host "Lokaler Build uebersprungen oder fehlgeschlagen." -ForegroundColor Yellow
 }
 
-# 9. Render Webhook
+# 10. Render Webhook Trigger
 Write-Host "`nStarte Render Deployment ..." -ForegroundColor Cyan
 $webhookPath = "render-webhook.txt"
 if (Test-Path $webhookPath) {
