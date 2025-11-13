@@ -104,10 +104,17 @@ function ChatInterface({
 
       <div className="flex-1 p-3 overflow-y-auto text-sm">
         {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} mb-2`}>
+          <div
+            key={m.id}
+            className={`flex ${
+              m.sender === "user" ? "justify-end" : "justify-start"
+            } mb-2`}
+          >
             <div
               className={`max-w-[75%] px-3 py-2 rounded-2xl ${
-                m.sender === "user" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-800"
+                m.sender === "user"
+                  ? "bg-orange-500 text-white"
+                  : "bg-gray-100 text-gray-800"
               }`}
             >
               {m.text}
@@ -173,11 +180,7 @@ function ChatInterface({
    AVATAR LOGIC
 =========================================================== */
 
-function ElevenLabsAvatar({
-  dynamicVariables,
-}: {
-  dynamicVariables?: Record<string, any>;
-}) {
+function ElevenLabsAvatar() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
@@ -277,15 +280,18 @@ function ElevenLabsAvatar({
         <div className="opacity-60 mt-2">Last: {lastCommand}</div>
       </div>
 
-      {/* Avatar Box */}
+      {/* Avatar Box + Chat */}
       <div className="fixed bottom-4 right-4 flex flex-col items-end">
-        <ChatInterface onSendMessage={handleUserText} products={products} isOpen={isChatOpen} />
+        <ChatInterface
+          onSendMessage={handleUserText}
+          products={products}
+          isOpen={isChatOpen}
+        />
 
-
-          <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
-  <MascotRive className="w-full h-full" />
-</div>
-
+        <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
+          {/* Wichtig: MascotRive ohne Props, wie in README */}
+          <MascotRive />
+        </div>
 
         <div className="flex gap-3">
           <button
