@@ -11,9 +11,9 @@ import {
   useMascotElevenlabs,
 } from "@mascotbot-sdk/react";
 
-/* ===========================================================
+/* -----------------------------------------------------------
    TYPES
-=========================================================== */
+----------------------------------------------------------- */
 interface Message {
   id: string;
   text: string;
@@ -34,9 +34,9 @@ interface Product {
   category: string;
 }
 
-/* ===========================================================
-   GLOBAL SPEAK FUNCTION
-=========================================================== */
+/* -----------------------------------------------------------
+   GLOBAL SPEAK HANDLER
+----------------------------------------------------------- */
 const globalConversation: { current: any } = { current: null };
 
 async function speak(text: string) {
@@ -46,9 +46,9 @@ async function speak(text: string) {
   }
 }
 
-/* ===========================================================
-   CHAT INTERFACE
-=========================================================== */
+/* -----------------------------------------------------------
+   CHAT UI
+----------------------------------------------------------- */
 function ChatInterface({
   onSendMessage,
   products,
@@ -121,7 +121,6 @@ function ChatInterface({
             </div>
           </div>
         ))}
-
         <div ref={endRef} />
 
         {products.length > 0 && (
@@ -177,17 +176,18 @@ function ChatInterface({
   );
 }
 
-/* ===========================================================
-   AVATAR LOGIC (Realtime WebSocket)
-=========================================================== */
+/* -----------------------------------------------------------
+   AVATAR LOGIC (NEW SDK)
+----------------------------------------------------------- */
 function ElevenLabsAvatar() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [listening, setListening] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [listening, setListening] = useState(false);
   const [lastCommand, setLastCommand] = useState("");
 
+  /* Conversation API (NEW VERSION) */
   const conversation = useConversation({
     onConnect: () => {
       setConnectionStatus("connected");
@@ -196,23 +196,24 @@ function ElevenLabsAvatar() {
     onDisconnect: () => setConnectionStatus("disconnected"),
   });
 
+  /* Lipsync */
   const { isIntercepting } = useMascotElevenlabs({
     conversation,
     gesture: true,
   });
 
-  /* Shopify Products */
+  /* Products */
   async function loadProducts(category: string) {
     try {
       const res = await fetch("/api/shopify-products?category=" + category);
       const data = await res.json();
       if (data.success) setProducts(data.products);
-    } catch {
-      console.log("Product fetch error");
+    } catch (e) {
+      console.log("Product fetch error:", e);
     }
   }
 
-  /* Product Explanation */
+  /* Explain logic */
   async function explain(handle: string, question: string) {
     const res = await fetch("/api/explain-product", {
       method: "POST",
@@ -224,7 +225,7 @@ function ElevenLabsAvatar() {
     if (data.ok) await speak(data.answer);
   }
 
-  /* Handle Input */
+  /* Handle text */
   const handleUserText = useCallback(
     async (text: string) => {
       const t = text.toLowerCase();
@@ -256,7 +257,7 @@ function ElevenLabsAvatar() {
     [products]
   );
 
-  /* Start Voice Session — MODUS A */
+  /* Start Session — NEW SDK */
   async function startConversation() {
     setIsConnecting(true);
 
@@ -267,20 +268,17 @@ function ElevenLabsAvatar() {
       connectionType: "websocket",
     });
 
-    // Audio Input öffnen — jetzt korrekt:
-    conversation.client.send({
-      type: "input_stream_open",
-    });
+    await conversation.sendText("Hallo! Wie kann ich dir helfen?");
 
-    setIsConnecting(false);
     setListening(true);
     setConnectionStatus("connected");
+    setIsConnecting(false);
   }
 
   return (
     <>
       {/* Debug Panel */}
-      <div className="fixed top-4 left-4 bg-black/80 text-white p-4 rounded-xl text-sm font-mono">
+      <div className="fixed top-4 left-4 bg-black/70 text-white p-4 rounded-xl text-sm font-mono">
         <div>Status: {connectionStatus}</div>
         <div>Listening: {listening ? "yes" : "no"}</div>
         <div>Chat: {isChatOpen ? "open" : "closed"}</div>
@@ -297,12 +295,10 @@ function ElevenLabsAvatar() {
           isOpen={isChatOpen}
         />
 
-        {/* Avatar */}
-        <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
+        <div className="w-80 h-80 bg-white border border-orange-300 shadow-xl rounded-2xl overflow-hidden mb-4">
           <MascotRive />
         </div>
 
-        {/* Buttons */}
         <div className="flex gap-3">
           <button
             onClick={() => setIsChatOpen(!isChatOpen)}
@@ -324,17 +320,15 @@ function ElevenLabsAvatar() {
   );
 }
 
-/* ===========================================================
+/* -----------------------------------------------------------
    WRAPPER
-=========================================================== */
+----------------------------------------------------------- */
 export default function Home() {
-  const mascotUrl = "/mascot-v2.riv";
-
   return (
     <MascotProvider>
       <main className="w-full h-screen">
         <MascotClient
-          src={mascotUrl}
+          src="/mascot-v2.riv"
           artboard="Character"
           inputs={["is_speaking", "gesture"]}
           layout={{ fit: Fit.Contain, alignment: Alignment.BottomRight }}
