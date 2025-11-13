@@ -2,40 +2,53 @@
 
 export async function POST() {
   try {
-    const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY;
-    if (!ELEVEN_KEY) {
-      return NextResponse.json({ error: "Missing ELEVENLABS_API_KEY" }, { status: 500 });
+    const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+
+    if (!ELEVEN_API_KEY) {
+      console.error("❌ ELEVENLABS_API_KEY fehlt!");
+      return NextResponse.json(
+        { error: "Missing ElevenLabs key" },
+        { status: 500 }
+      );
     }
 
-    const url = "https://api.elevenlabs.io/v1/convai/conversation/get_signed_url";
+    // WICHTIG:
+    // Das Realtime-Endpoint für @elevenlabs/react 0.5.0 ist:
+    //   GET https://api.elevenlabs.io/v1/realtime/signed_url
+    // also: wir SELBST (Next-API) bleiben POST,
+    // aber Richtung ElevenLabs machen wir einen GET.
 
-    const response = await fetch(url, {
-      method: "POST",
+    const url = "https://api.elevenlabs.io/v1/realtime/signed_url";
+
+    const res = await fetch(url, {
+      method: "GET",
       headers: {
-        "xi-api-key": ELEVEN_KEY,
-        "Content-Type": "application/json",
+        "xi-api-key": ELEVEN_API_KEY,
       },
-      body: JSON.stringify({
-        agent_id: "agent",            // Pflicht
-        connection_type: "websocket", // Pflicht
-      }),
     });
 
-    const data = await response.json();
+    const data = await res.json();
 
-    if (!response.ok) {
-      console.error("ElevenLabs Fehler:", data);
-      return NextResponse.json({ error: "ElevenLabs rejected", details: data }, { status: 500 });
+    if (!res.ok) {
+      console.error("❌ ElevenLabs Fehler:", data);
+      return NextResponse.json(
+        { error: "ElevenLabs rejected request", details: data },
+        { status: 500 }
+      );
     }
 
     if (!data?.signed_url) {
-      console.error("SIGNED_URL fehlte:", data);
-      return NextResponse.json({ error: "Missing signed_url", details: data }, { status: 500 });
+      console.error("❌ KEIN signed_url:", data);
+      return NextResponse.json(
+        { error: "signed_url missing", details: data },
+        { status: 500 }
+      );
     }
 
+    // Frontend erwartet exakt dieses Feld:
     return NextResponse.json({ signedUrl: data.signed_url });
-  } catch (err) {
-    console.error("SERVER CRASH:", err);
+  } catch (error) {
+    console.error("❌ SERVER ERROR:", error);
     return NextResponse.json({ error: "Server crashed" }, { status: 500 });
   }
 }
