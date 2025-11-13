@@ -2,52 +2,40 @@
 
 export async function POST() {
   try {
-    const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
-
-    if (!ELEVEN_API_KEY) {
-      console.error("❌ ELEVENLABS_API_KEY fehlt");
-      return NextResponse.json(
-        { error: "Missing ElevenLabs key" },
-        { status: 500 }
-      );
+    const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY;
+    if (!ELEVEN_KEY) {
+      return NextResponse.json({ error: "Missing ELEVENLABS_API_KEY" }, { status: 500 });
     }
 
-    // 🔥 Das ist die richtige URL für @elevenlabs/react 0.5.0
     const url = "https://api.elevenlabs.io/v1/convai/conversation/get_signed_url";
 
-    const res = await fetch(url, {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
-        "xi-api-key": ELEVEN_API_KEY,
+        "xi-api-key": ELEVEN_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // keine agent_id, keine Sessions
-        // das war die funktionierende Version
+        agent_id: "agent",            // Pflicht
+        connection_type: "websocket", // Pflicht
       }),
     });
 
-    const data = await res.json();
+    const data = await response.json();
 
-    if (!res.ok) {
-      console.error("❌ ElevenLabs Fehler:", data);
-      return NextResponse.json(
-        { error: "ElevenLabs rejected request", details: data },
-        { status: 500 }
-      );
+    if (!response.ok) {
+      console.error("ElevenLabs Fehler:", data);
+      return NextResponse.json({ error: "ElevenLabs rejected", details: data }, { status: 500 });
     }
 
     if (!data?.signed_url) {
-      console.error("❌ signed_url fehlt:", data);
-      return NextResponse.json(
-        { error: "signed_url missing", details: data },
-        { status: 500 }
-      );
+      console.error("SIGNED_URL fehlte:", data);
+      return NextResponse.json({ error: "Missing signed_url", details: data }, { status: 500 });
     }
 
     return NextResponse.json({ signedUrl: data.signed_url });
   } catch (err) {
-    console.error("❌ SERVER ERROR:", err);
+    console.error("SERVER CRASH:", err);
     return NextResponse.json({ error: "Server crashed" }, { status: 500 });
   }
 }
