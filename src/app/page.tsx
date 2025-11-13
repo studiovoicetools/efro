@@ -281,9 +281,11 @@ function ElevenLabsAvatar({
       <div className="fixed bottom-4 right-4 flex flex-col items-end">
         <ChatInterface onSendMessage={handleUserText} products={products} isOpen={isChatOpen} />
 
-        <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
-          <MascotRive autoplay className="w-full h-full" />
-        </div>
+
+          <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
+  <MascotRive className="w-full h-full" />
+</div>
+
 
         <div className="flex gap-3">
           <button
