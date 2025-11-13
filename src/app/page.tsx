@@ -11,9 +11,7 @@ import {
   useMascotElevenlabs,
 } from "@mascotbot-sdk/react";
 
-/* -----------------------------------------------------------
-   TYPES
------------------------------------------------------------ */
+/* ---------------- Types ---------------- */
 interface Message {
   id: string;
   text: string;
@@ -34,21 +32,10 @@ interface Product {
   category: string;
 }
 
-/* -----------------------------------------------------------
-   GLOBAL SPEAK HANDLER
------------------------------------------------------------ */
-const globalConversation: { current: any } = { current: null };
+/* ===========================================================
+   CHAT UI (Text-Only, kein direkter ElevenLabs-Call)
+=========================================================== */
 
-async function speak(text: string) {
-  const c = globalConversation.current;
-  if (c && typeof c.sendText === "function") {
-    await c.sendText(text);
-  }
-}
-
-/* -----------------------------------------------------------
-   CHAT UI
------------------------------------------------------------ */
 function ChatInterface({
   onSendMessage,
   products,
@@ -62,12 +49,13 @@ function ChatInterface({
   const [inputText, setInputText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Initiale Begruessung nur einmal
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([
         {
           id: "1",
-          text: "Hallo, ich bin EFRO. Sage: Zeig mir Hoodies oder Zeig mir T-Shirts.",
+          text: "Hallo, ich bin EFRO. Sage z.B.: Zeig mir Hoodies oder Zeig mir T-Shirts.",
           sender: "assistant",
           timestamp: new Date(),
         },
@@ -98,8 +86,8 @@ function ChatInterface({
 
   return (
     <div className="w-80 h-96 flex flex-col bg-white rounded-2xl border border-orange-300 shadow-lg mb-4">
-      <div className="p-3 border-b bg-orange-50 rounded-t-2xl font-semibold text-gray-800">
-        Chat Verkaufsassistent
+      <div className="p-3 border-b border-orange-200 bg-orange-50 rounded-t-2xl font-semibold text-gray-800">
+        EFRO Verkaufsassistent
       </div>
 
       <div className="flex-1 p-3 overflow-y-auto text-sm">
@@ -121,8 +109,8 @@ function ChatInterface({
             </div>
           </div>
         ))}
-        <div ref={endRef} />
 
+        {/* Produkt-Teaser */}
         {products.length > 0 && (
           <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-xl">
             <div className="text-green-700 font-medium mb-2">
@@ -135,6 +123,7 @@ function ChatInterface({
                   key={p.id}
                   href={p.url}
                   target="_blank"
+                  rel="noreferrer"
                   className="flex gap-2 p-2 bg-white rounded-lg border border-green-200"
                 >
                   <img
@@ -148,9 +137,11 @@ function ChatInterface({
             </div>
           </div>
         )}
+
+        <div ref={endRef} />
       </div>
 
-      <div className="p-2 border-t flex gap-2">
+      <div className="p-2 border-t border-orange-200 flex gap-2">
         <textarea
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
@@ -176,69 +167,100 @@ function ChatInterface({
   );
 }
 
-/* -----------------------------------------------------------
-   AVATAR LOGIC (NEW SDK)
------------------------------------------------------------ */
+/* ===========================================================
+   AVATAR LOGIC (Voice ueber ElevenLabs + Mascot)
+=========================================================== */
+
 function ElevenLabsAvatar() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [isConnecting, setIsConnecting] = useState(false);
+
+  const [connectionStatus, setConnectionStatus] = useState<
+    "disconnected" | "connecting" | "connected" | "error"
+  >("disconnected");
   const [listening, setListening] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [lastCommand, setLastCommand] = useState("");
 
-  /* Conversation API (NEW VERSION) */
+  // ElevenLabs Conversation (offizielle API, ohne send/sendText)
   const conversation = useConversation({
     onConnect: () => {
       setConnectionStatus("connected");
-      globalConversation.current = conversation;
     },
-    onDisconnect: () => setConnectionStatus("disconnected"),
+    onDisconnect: () => {
+      setConnectionStatus("disconnected");
+      setListening(false);
+    },
+    onError: (error) => {
+      console.error("ElevenLabs error:", error);
+      setConnectionStatus("error");
+      setListening(false);
+    },
   });
 
-  /* Lipsync */
+  // Natuerliche Lip-Sync-Konfiguration aus README
+  const [lipSyncConfig] = useState({
+    minVisemeInterval: 40,
+    mergeWindow: 60,
+    keyVisemePreference: 0.6,
+    preserveSilence: true,
+    similarityThreshold: 0.4,
+    preserveCriticalVisemes: true,
+    criticalVisemeMinDuration: 80,
+  });
+
   const { isIntercepting } = useMascotElevenlabs({
     conversation,
+    naturalLipSync: true,
+    naturalLipSyncConfig: lipSyncConfig,
     gesture: true,
   });
 
-  /* Products */
+  /* -------- Shopify Produkte laden -------- */
+
   async function loadProducts(category: string) {
     try {
       const res = await fetch("/api/shopify-products?category=" + category);
       const data = await res.json();
-      if (data.success) setProducts(data.products);
-    } catch (e) {
-      console.log("Product fetch error:", e);
+      if (data.success) {
+        setProducts(data.products);
+      } else {
+        console.warn("Shopify API error:", data);
+      }
+    } catch (err) {
+      console.error("Product fetch error", err);
     }
   }
 
-  /* Explain logic */
+  // Produkt-Erklaerung bleibt vorerst nur Backend-Call (kein TTS)
   async function explain(handle: string, question: string) {
-    const res = await fetch("/api/explain-product", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ handle, question }),
-    });
-
-    const data = await res.json();
-    if (data.ok) await speak(data.answer);
+    try {
+      const res = await fetch("/api/explain-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handle, question }),
+      });
+      const data = await res.json();
+      console.log("Explain response:", data);
+      // Optional: spaeter als Chat-Antwort anzeigen
+    } catch (err) {
+      console.error("Explain error", err);
+    }
   }
 
-  /* Handle text */
+  /* -------- Text-Eingaben aus dem Chat verarbeiten -------- */
+
   const handleUserText = useCallback(
     async (text: string) => {
       const t = text.toLowerCase();
       setLastCommand(t);
 
       if (t.includes("hoodie")) {
-        await speak("Ich suche Hoodies.");
         await loadProducts("hoodie");
         return;
       }
 
       if (t.includes("shirt")) {
-        await speak("Ich zeige dir T-Shirts.");
         await loadProducts("shirt");
         return;
       }
@@ -247,72 +269,130 @@ function ElevenLabsAvatar() {
         if (products[0]) {
           await explain(products[0].handle, t);
         } else {
-          await speak("Bitte zuerst ein Produkt anzeigen lassen.");
+          console.log("Bitte zuerst ein Produkt anzeigen lassen.");
         }
         return;
       }
 
-      await speak("Sag zum Beispiel: Zeig mir Hoodies.");
+      // Default-Hinweis
+      console.log("Nutze Beispiel: Zeig mir Hoodies.");
     },
     [products]
   );
 
-  /* Start Session — NEW SDK */
-  async function startConversation() {
+  /* -------- Voice-Session starten/stoppen (laut README-Logik) -------- */
+
+  const startConversation = useCallback(async () => {
     setIsConnecting(true);
+    setConnectionStatus("connecting");
+    try {
+      // Mikro-Rechte holen
+      await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Signed URL vom Backend holen (siehe README: /api/get-signed-url)
+      const resp = await fetch("/api/get-signed-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dynamicVariables: {
+            customer_name: "EFRO Demo",
+          },
+        }),
+      });
 
-    await conversation.startSession({
-      agentId: process.env.NEXT_PUBLIC_AGENT_ID || "default-agent",
-      connectionType: "websocket",
-    });
+      if (!resp.ok) {
+        console.error("get-signed-url failed:", resp.status);
+        setConnectionStatus("error");
+        setIsConnecting(false);
+        return;
+      }
 
-    await conversation.sendText("Hallo! Wie kann ich dir helfen?");
+      const data = await resp.json();
+      const signedUrl = data?.signedUrl;
+      if (!signedUrl) {
+        console.error("No signedUrl returned from /api/get-signed-url");
+        setConnectionStatus("error");
+        setIsConnecting(false);
+        return;
+      }
 
-    setListening(true);
-    setConnectionStatus("connected");
-    setIsConnecting(false);
-  }
+      // ElevenLabs Session starten (offizielle Methode)
+      await conversation.startSession({
+        signedUrl,
+      });
+
+      setListening(true);
+      setConnectionStatus("connected");
+    } catch (err) {
+      console.error("Start conversation error:", err);
+      setConnectionStatus("error");
+      setListening(false);
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [conversation]);
+
+  const stopConversation = useCallback(async () => {
+    try {
+      await conversation.endSession();
+    } catch (err) {
+      console.error("End session error:", err);
+    }
+    setListening(false);
+    setConnectionStatus("disconnected");
+  }, [conversation]);
+
+  const toggleConversation = useCallback(() => {
+    if (listening) {
+      stopConversation();
+    } else {
+      startConversation();
+    }
+  }, [listening, startConversation, stopConversation]);
 
   return (
     <>
-      {/* Debug Panel */}
-      <div className="fixed top-4 left-4 bg-black/70 text-white p-4 rounded-xl text-sm font-mono">
+      {/* Debug Info oben links */}
+      <div className="fixed top-4 left-4 bg-black/80 text-white p-4 rounded-2xl text-sm font-mono z-50">
         <div>Status: {connectionStatus}</div>
         <div>Listening: {listening ? "yes" : "no"}</div>
         <div>Chat: {isChatOpen ? "open" : "closed"}</div>
         <div>Products: {products.length}</div>
         <div>LipSync: {isIntercepting ? "yes" : "no"}</div>
-        <div className="opacity-70 mt-2">Last: {lastCommand}</div>
+        <div className="opacity-60 mt-2">Last: {lastCommand}</div>
       </div>
 
-      {/* Avatar + Chat */}
-      <div className="fixed bottom-4 right-4 flex flex-col items-end">
+      {/* Avatar Box + Chat unten rechts */}
+      <div className="fixed bottom-4 right-4 flex flex-col items-end z-40">
         <ChatInterface
           onSendMessage={handleUserText}
           products={products}
           isOpen={isChatOpen}
         />
 
-        <div className="w-80 h-80 bg-white border border-orange-300 shadow-xl rounded-2xl overflow-hidden mb-4">
+        <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
+          {/* Wichtig: MascotRive ohne Props, wie in der Demo vorgesehen */}
           <MascotRive />
         </div>
 
         <div className="flex gap-3">
           <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
+            onClick={() => setIsChatOpen((prev) => !prev)}
             className="h-12 px-4 rounded-lg border shadow bg-white"
           >
             {isChatOpen ? "Chat schliessen" : "Chat oeffnen"}
           </button>
 
           <button
-            onClick={startConversation}
+            onClick={toggleConversation}
             disabled={isConnecting}
             className="h-12 px-6 rounded-lg text-white shadow bg-orange-500"
           >
-            {isConnecting ? "Verbinde..." : "Mit EFRO sprechen"}
+            {isConnecting
+              ? "Verbinde..."
+              : listening
+              ? "Mit EFRO auflegen"
+              : "Mit EFRO sprechen"}
           </button>
         </div>
       </div>
@@ -320,15 +400,19 @@ function ElevenLabsAvatar() {
   );
 }
 
-/* -----------------------------------------------------------
+/* ===========================================================
    WRAPPER
------------------------------------------------------------ */
+=========================================================== */
+
 export default function Home() {
+  // Rive-File, wie in README beschrieben
+  const mascotUrl = "/mascot-v2.riv";
+
   return (
     <MascotProvider>
       <main className="w-full h-screen">
         <MascotClient
-          src="/mascot-v2.riv"
+          src={mascotUrl}
           artboard="Character"
           inputs={["is_speaking", "gesture"]}
           layout={{ fit: Fit.Contain, alignment: Alignment.BottomRight }}
