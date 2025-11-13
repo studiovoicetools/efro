@@ -1,21 +1,10 @@
-﻿export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+﻿import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 
-// src/app/api/health/route.ts
-import { NextResponse } from "next/server";
-
-
-/**
- * ?? Health Check Endpoint
- * Wird von Render oder externen Monitoren aufgerufen,
- * um die Betriebsfähigkeit der App zu prüfen.
- */
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    status: "? EFRO service healthy",
-    timestamp: new Date().toISOString(),
+    status: "EFRO service healthy",
+    timestamp: new Date().toISOString()
   });
 }
-
-

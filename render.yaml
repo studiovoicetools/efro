@@ -5,28 +5,44 @@ services:
     region: frankfurt
     plan: starter
     branch: main
-    buildCommand: npm run render-build
-    startCommand: npm run render-start
+
+    buildCommand: |
+      npm ci --include=dev
+      npm run build
+
+    startCommand: npm start
+
     healthCheckPath: /api/health
+
     autoDeploy: true
+
     envVars:
       - key: NODE_ENV
         value: production
+
       - key: NODE_VERSION
         value: 20.19.5
-      - key: NODE_OPTIONS
-        value: "--max_old_space_size=2048"
+
       - key: NEXT_PUBLIC_BASE_URL
         value: "https://efro-prod.onrender.com"
+
+      - key: NODE_OPTIONS
+        value: "--max_old_space_size=2048"
+
       - key: SHOPIFY_STORE_DOMAIN
         sync: false
+
       - key: SHOPIFY_STOREFRONT_ACCESS_TOKEN
         sync: false
+
       - key: SHOPIFY_ADMIN_ACCESS_TOKEN
         sync: false
+
       - key: SUPABASE_URL
         sync: false
+
       - key: SUPABASE_ANON_KEY
         sync: false
+
       - key: ELEVENLABS_API_KEY
         sync: false
