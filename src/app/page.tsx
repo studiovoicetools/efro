@@ -67,7 +67,7 @@ function ChatInterface({
       setMessages([
         {
           id: "1",
-          text: "Hallo, ich bin Charlie. Sage: Zeig mir Hoodies oder Zeig mir T-Shirts.",
+          text: "Hallo, ich bin EFRO. Sage: Zeig mir Hoodies oder Zeig mir T-Shirts.",
           sender: "assistant",
           timestamp: new Date(),
         },
@@ -81,7 +81,6 @@ function ChatInterface({
 
   const send = () => {
     if (!inputText.trim()) return;
-
     const msg: Message = {
       id: Date.now().toString(),
       text: inputText,
@@ -99,7 +98,7 @@ function ChatInterface({
   return (
     <div className="w-80 h-96 flex flex-col bg-white rounded-2xl border border-orange-300 shadow-lg mb-4">
       <div className="p-3 border-b border-orange-200 bg-orange-50 rounded-t-2xl font-semibold text-gray-800">
-        Chat Verkaufsassistent
+        EFRO Verkaufs-Chat
       </div>
 
       <div className="flex-1 p-3 overflow-y-auto text-sm">
@@ -126,7 +125,7 @@ function ChatInterface({
         {products.length > 0 && (
           <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-xl">
             <div className="text-green-700 font-medium mb-2">
-              Gefundene Produkte ({products.length})
+              Produkte gefunden ({products.length})
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -210,9 +209,7 @@ function ElevenLabsAvatar() {
       const res = await fetch("/api/shopify-products?category=" + category);
       const data = await res.json();
       if (data.success) setProducts(data.products);
-    } catch {
-      console.log("Product fetch error");
-    }
+    } catch {}
   }
 
   /* Explain Product */
@@ -259,12 +256,28 @@ function ElevenLabsAvatar() {
     [products]
   );
 
+  /* ===========================================================
+     CORRECT ElevenLabs Session Start
+  ============================================================ */
   async function startConversation() {
-    setIsConnecting(true);
-    await navigator.mediaDevices.getUserMedia({ audio: true });
-    setIsConnecting(false);
-    setListening(true);
-    setConnectionStatus("connected");
+    try {
+      setIsConnecting(true);
+
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      await conversation.startSession();
+
+      await conversation.send({ type: "input_stream_open" });
+
+      setListening(true);
+      setConnectionStatus("connected");
+      globalConversation.current = conversation;
+    } catch (err) {
+      console.error("startConversation ERROR:", err);
+      setConnectionStatus("error");
+    } finally {
+      setIsConnecting(false);
+    }
   }
 
   return (
@@ -289,7 +302,6 @@ function ElevenLabsAvatar() {
         />
 
         <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
-          {/* Wichtig: MascotRive ohne Props, wie in README */}
           <MascotRive />
         </div>
 
@@ -306,7 +318,7 @@ function ElevenLabsAvatar() {
             disabled={isConnecting}
             className="h-12 px-6 rounded-lg text-white shadow bg-orange-500"
           >
-            {isConnecting ? "Verbinde..." : "Mit Charlie sprechen"}
+            {isConnecting ? "Verbinde..." : "Mit EFRO sprechen"}
           </button>
         </div>
       </div>
