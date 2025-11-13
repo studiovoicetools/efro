@@ -81,6 +81,7 @@ function ChatInterface({
 
   const send = () => {
     if (!inputText.trim()) return;
+
     const msg: Message = {
       id: Date.now().toString(),
       text: inputText,
@@ -257,7 +258,7 @@ function ElevenLabsAvatar() {
   );
 
   /* ===========================================================
-     CORRECT ElevenLabs Session Start
+     FIXED ElevenLabs START SESSION
   ============================================================ */
   async function startConversation() {
     try {
@@ -265,12 +266,14 @@ function ElevenLabsAvatar() {
 
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      await conversation.startSession();
+      // ✨ KORREKTER MODUS: REALTIME START
+      await conversation.startRealtime();
 
       await conversation.send({ type: "input_stream_open" });
 
       setListening(true);
       setConnectionStatus("connected");
+
       globalConversation.current = conversation;
     } catch (err) {
       console.error("startConversation ERROR:", err);
