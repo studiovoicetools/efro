@@ -2,45 +2,52 @@
 
 export async function POST(request: Request) {
   try {
-    const { dynamicVariables } = await request.json();
-
     const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+
     if (!ELEVEN_API_KEY) {
       console.error("❌ ELEVENLABS_API_KEY fehlt!");
-      return NextResponse.json({ error: "API key missing" }, { status: 500 });
-    }
-
-    // Signed URL Anfrage an ElevenLabs
-    const response = await fetch(
-      "https://api.elevenlabs.io/v1/convai/agent/signed-url",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "xi-api-key": ELEVEN_API_KEY,
-        },
-        body: JSON.stringify({
-          agent_id: "default",   // bei dir meistens "default"
-          dynamic_variables: dynamicVariables || {},
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!data?.signed_url) {
-      console.error("❌ ElevenLabs gab KEIN signed_url zurück:", data);
       return NextResponse.json(
-        { error: "Signed URL missing", details: data },
+        { error: "Missing ElevenLabs key" },
         { status: 500 }
       );
     }
 
-    // Wichtig: gleiche Schreibweise wie im Frontend erwartet!
-    return NextResponse.json({ signedUrl: data.signed_url }, { status: 200 });
+    // Korrekte URL für @elevenlabs/react 0.5.0
+    const url = "https://api.elevenlabs.io/v1/realtime/signed_url";
 
-  } catch (err) {
-    console.error("❌ SERVER ERROR in /get-signed-url:", err);
-    return NextResponse.json({ error: "Server failed" }, { status: 500 });
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "xi-api-key": ELEVEN_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        // dieser agent_id Wert ist bei Realtime optional
+        agent_id: "default",
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("❌ ElevenLabs Fehler:", data);
+      return NextResponse.json(
+        { error: "ElevenLabs rejected request", details: data },
+        { status: 500 }
+      );
+    }
+
+    if (!data?.signed_url) {
+      console.error("❌ KEIN signed_url:", data);
+      return NextResponse.json(
+        { error: "signed_url missing", details: data },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ signedUrl: data.signed_url });
+  } catch (error) {
+    console.error("❌ SERVER ERROR:", error);
+    return NextResponse.json({ error: "Server crashed" }, { status: 500 });
   }
 }
