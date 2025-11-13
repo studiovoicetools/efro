@@ -11,7 +11,10 @@ import {
   useMascotElevenlabs,
 } from "@mascotbot-sdk/react";
 
-/* ---------------- Types ---------------- */
+/* --------------------------------------------------------
+   TYPES
+-------------------------------------------------------- */
+
 interface Message {
   id: string;
   text: string;
@@ -32,9 +35,9 @@ interface Product {
   category: string;
 }
 
-/* ===========================================================
-   GLOBAL SPEAK SESSION
-=========================================================== */
+/* --------------------------------------------------------
+   GLOBAL SPEAKER
+-------------------------------------------------------- */
 
 const globalConversation: { current: any } = { current: null };
 
@@ -45,9 +48,9 @@ async function speak(text: string) {
   }
 }
 
-/* ===========================================================
+/* --------------------------------------------------------
    CHAT UI
-=========================================================== */
+-------------------------------------------------------- */
 
 function ChatInterface({
   onSendMessage,
@@ -59,9 +62,10 @@ function ChatInterface({
   isOpen: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState("");
+  const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Initial message
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([
@@ -75,43 +79,42 @@ function ChatInterface({
     }
   }, [isOpen, messages.length]);
 
+  // Auto-scroll
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const send = () => {
-    if (!inputText.trim()) return;
+    if (!input.trim()) return;
 
     const msg: Message = {
       id: Date.now().toString(),
-      text: inputText,
+      text: input,
       sender: "user",
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, msg]);
-    onSendMessage(inputText);
-    setInputText("");
+    setMessages((p) => [...p, msg]);
+    onSendMessage(msg.text);
+    setInput("");
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="w-80 h-96 flex flex-col bg-white rounded-2xl border border-orange-300 shadow-lg mb-4">
-      <div className="p-3 border-b border-orange-200 bg-orange-50 rounded-t-2xl font-semibold text-gray-800">
-        EFRO Verkaufs-Chat
+    <div className="w-80 h-96 flex flex-col bg-white border border-orange-300 rounded-2xl shadow-xl mb-4">
+      <div className="p-3 bg-orange-50 border-b border-orange-200 font-semibold rounded-t-2xl">
+        Chat – Verkaufsassistent EFRO
       </div>
 
       <div className="flex-1 p-3 overflow-y-auto text-sm">
         {messages.map((m) => (
           <div
             key={m.id}
-            className={`flex ${
-              m.sender === "user" ? "justify-end" : "justify-start"
-            } mb-2`}
+            className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} mb-2`}
           >
             <div
-              className={`max-w-[75%] px-3 py-2 rounded-2xl ${
+              className={`px-3 py-2 max-w-[75%] rounded-2xl ${
                 m.sender === "user"
                   ? "bg-orange-500 text-white"
                   : "bg-gray-100 text-gray-800"
@@ -121,12 +124,13 @@ function ChatInterface({
             </div>
           </div>
         ))}
+
         <div ref={endRef} />
 
         {products.length > 0 && (
-          <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-xl">
+          <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-2">
             <div className="text-green-700 font-medium mb-2">
-              Produkte gefunden ({products.length})
+              Gefundene Produkte: {products.length}
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -135,7 +139,7 @@ function ChatInterface({
                   key={p.id}
                   href={p.url}
                   target="_blank"
-                  className="flex gap-2 p-2 bg-white rounded-lg border border-green-200"
+                  className="flex gap-2 bg-white border border-green-200 rounded-lg p-2"
                 >
                   <img
                     src={p.imageUrl || "/placeholder-product.jpg"}
@@ -152,21 +156,21 @@ function ChatInterface({
 
       <div className="p-2 border-t border-orange-200 flex gap-2">
         <textarea
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
+          className="flex-1 border border-orange-300 rounded-xl px-3 py-2 text-sm resize-none"
+          placeholder="Schreibe hier…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               send();
             }
           }}
-          placeholder="Schreibe hier..."
-          className="flex-1 px-3 py-2 text-sm border border-orange-300 rounded-xl resize-none"
         />
 
         <button
           onClick={send}
-          disabled={!inputText.trim()}
+          disabled={!input.trim()}
           className="px-3 bg-orange-500 text-white rounded-xl disabled:opacity-40"
         >
           Senden
@@ -176,27 +180,30 @@ function ChatInterface({
   );
 }
 
-/* ===========================================================
-   AVATAR LOGIC
-=========================================================== */
+/* --------------------------------------------------------
+   AVATAR + VOICE LOGIK
+-------------------------------------------------------- */
 
 function ElevenLabsAvatar() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [isMuted, setIsMuted] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [listening, setListening] = useState(false);
   const [lastCommand, setLastCommand] = useState("");
 
-  /* Voice session */
+  /* ---- Conversation Instance ---- */
   const conversation = useConversation({
     micMuted: isMuted,
     onConnect: () => {
       setConnectionStatus("connected");
       globalConversation.current = conversation;
     },
-    onDisconnect: () => setConnectionStatus("disconnected"),
+    onDisconnect: () => {
+      setConnectionStatus("disconnected");
+      listening && setListening(false);
+    },
   });
 
   const { isIntercepting } = useMascotElevenlabs({
@@ -204,16 +211,18 @@ function ElevenLabsAvatar() {
     gesture: true,
   });
 
-  /* Load Shopify Products */
+  /* ---- Shopify API ---- */
   async function loadProducts(category: string) {
     try {
       const res = await fetch("/api/shopify-products?category=" + category);
       const data = await res.json();
       if (data.success) setProducts(data.products);
-    } catch {}
+    } catch (e) {
+      console.warn("Fehler beim Laden der Produkte");
+    }
   }
 
-  /* Explain Product */
+  /* ---- Explain Product ---- */
   async function explain(handle: string, question: string) {
     const res = await fetch("/api/explain-product", {
       method: "POST",
@@ -225,14 +234,14 @@ function ElevenLabsAvatar() {
     if (data.ok) await speak(data.answer);
   }
 
-  /* Handle User Input */
+  /* ---- Text-Eingaben ---- */
   const handleUserText = useCallback(
     async (text: string) => {
       const t = text.toLowerCase();
       setLastCommand(t);
 
       if (t.includes("hoodie")) {
-        await speak("Ich suche Hoodies.");
+        await speak("Ich suche Hoodies für dich.");
         await loadProducts("hoodie");
         return;
       }
@@ -244,11 +253,11 @@ function ElevenLabsAvatar() {
       }
 
       if (t.includes("was kostet")) {
-        if (products[0]) {
-          await explain(products[0].handle, t);
-        } else {
+        if (!products[0]) {
           await speak("Bitte zuerst ein Produkt anzeigen lassen.");
+          return;
         }
+        await explain(products[0].handle, t);
         return;
       }
 
@@ -257,47 +266,55 @@ function ElevenLabsAvatar() {
     [products]
   );
 
-  /* ===========================================================
-     FIXED ElevenLabs START SESSION
-  ============================================================ */
+  /* --------------------------------------------------------
+     🎤 START VOICE SESSION  — 100% SDK-KOMPATIBEL
+  -------------------------------------------------------- */
   async function startConversation() {
     try {
       setIsConnecting(true);
 
+      // Mikrofon aktivieren
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // ✨ KORREKTER MODUS: REALTIME START
-      await conversation.startRealtime();
+      // Session starten (DEINE SDK verlangt startSession)
+      await conversation.startSession({
+        agentId: "default",        // MUSS existieren
+        connectionType: "websocket",
+      });
 
+      // Audio Input öffnen
       await conversation.send({ type: "input_stream_open" });
 
       setListening(true);
       setConnectionStatus("connected");
-
       globalConversation.current = conversation;
-    } catch (err) {
-      console.error("startConversation ERROR:", err);
+    } catch (e) {
+      console.error("startConversation ERROR:", e);
       setConnectionStatus("error");
     } finally {
       setIsConnecting(false);
     }
   }
 
+  /* --------------------------------------------------------
+     UI RENDER
+  -------------------------------------------------------- */
+
   return (
     <>
-      {/* Debug info */}
-      <div className="fixed top-4 left-4 bg-black/80 text-white p-4 rounded-2xl text-sm font-mono">
+      {/* Debug Panel (wie gewünscht oben links) */}
+      <div className="fixed top-4 left-4 bg-black/85 text-white p-4 rounded-2xl text-sm font-mono z-50 min-w-64">
         <div>Status: {connectionStatus}</div>
         <div>Listening: {listening ? "yes" : "no"}</div>
         <div>Chat: {isChatOpen ? "open" : "closed"}</div>
         <div>Products: {products.length}</div>
         <div>LipSync: {isIntercepting ? "yes" : "no"}</div>
         <div>Mic: {isMuted ? "muted" : "open"}</div>
-        <div className="opacity-60 mt-2">Last: {lastCommand}</div>
+        <div className="opacity-60 mt-1">Last: {lastCommand}</div>
       </div>
 
-      {/* Avatar Box + Chat */}
-      <div className="fixed bottom-4 right-4 flex flex-col items-end">
+      {/* Avatar + Chat */}
+      <div className="fixed bottom-4 right-4 flex flex-col items-end z-40">
         <ChatInterface
           onSendMessage={handleUserText}
           products={products}
@@ -305,6 +322,7 @@ function ElevenLabsAvatar() {
         />
 
         <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
+          {/* WICHTIG → MascotRive OHNE props */}
           <MascotRive />
         </div>
 
@@ -313,7 +331,7 @@ function ElevenLabsAvatar() {
             onClick={() => setIsChatOpen(!isChatOpen)}
             className="h-12 px-4 rounded-lg border shadow bg-white"
           >
-            {isChatOpen ? "Chat schliessen" : "Chat oeffnen"}
+            {isChatOpen ? "Chat schließen" : "Chat öffnen"}
           </button>
 
           <button
@@ -321,7 +339,7 @@ function ElevenLabsAvatar() {
             disabled={isConnecting}
             className="h-12 px-6 rounded-lg text-white shadow bg-orange-500"
           >
-            {isConnecting ? "Verbinde..." : "Mit EFRO sprechen"}
+            {isConnecting ? "Verbinde…" : "Mit EFRO sprechen"}
           </button>
         </div>
       </div>
@@ -329,9 +347,9 @@ function ElevenLabsAvatar() {
   );
 }
 
-/* ===========================================================
-   WRAPPER
-=========================================================== */
+/* --------------------------------------------------------
+   PAGE WRAPPER
+-------------------------------------------------------- */
 
 export default function Home() {
   const mascotUrl = "/mascot-v2.riv";
@@ -343,7 +361,10 @@ export default function Home() {
           src={mascotUrl}
           artboard="Character"
           inputs={["is_speaking", "gesture"]}
-          layout={{ fit: Fit.Contain, alignment: Alignment.BottomRight }}
+          layout={{
+            fit: Fit.Contain,
+            alignment: Alignment.BottomRight,
+          }}
         >
           <ElevenLabsAvatar />
         </MascotClient>
