@@ -1,19 +1,19 @@
 ﻿import { NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
 
     if (!ELEVEN_API_KEY) {
-      console.error("❌ ELEVENLABS_API_KEY fehlt!");
+      console.error("❌ ELEVENLABS_API_KEY fehlt");
       return NextResponse.json(
         { error: "Missing ElevenLabs key" },
         { status: 500 }
       );
     }
 
-    // Korrekte URL für @elevenlabs/react 0.5.0
-    const url = "https://api.elevenlabs.io/v1/realtime/signed_url";
+    // 🔥 Das ist die richtige URL für @elevenlabs/react 0.5.0
+    const url = "https://api.elevenlabs.io/v1/convai/conversation/get_signed_url";
 
     const res = await fetch(url, {
       method: "POST",
@@ -22,8 +22,8 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // dieser agent_id Wert ist bei Realtime optional
-        agent_id: "default",
+        // keine agent_id, keine Sessions
+        // das war die funktionierende Version
       }),
     });
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     if (!data?.signed_url) {
-      console.error("❌ KEIN signed_url:", data);
+      console.error("❌ signed_url fehlt:", data);
       return NextResponse.json(
         { error: "signed_url missing", details: data },
         { status: 500 }
@@ -46,8 +46,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ signedUrl: data.signed_url });
-  } catch (error) {
-    console.error("❌ SERVER ERROR:", error);
+  } catch (err) {
+    console.error("❌ SERVER ERROR:", err);
     return NextResponse.json({ error: "Server crashed" }, { status: 500 });
   }
 }
