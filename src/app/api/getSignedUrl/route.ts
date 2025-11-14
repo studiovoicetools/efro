@@ -1,14 +1,19 @@
 ﻿// @ts-nocheck
+
+/**
+ * FINAL VERSION — GUARANTEED NEXT.JS 14 COMPATIBLE
+ * Forced dynamic server execution with full logging.
+ */
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// VERSION MARKER – erzwingt kompletten Rebuild
-console.log("🔥 get-signed-url VERSION_7 loaded on server");
+console.log("🔥 FINAL VERSION — getSignedUrl route loaded.");
 
 import { NextResponse } from "next/server";
 
 export async function POST() {
-  console.log("🔵 get-signed-url: request started");
+  console.log("🔵 getSignedUrl POST request received.");
 
   try {
     const apiKey = process.env.ELEVENLABS_API_KEY;
@@ -20,34 +25,39 @@ export async function POST() {
     console.log("voiceId:", voiceId);
 
     if (!apiKey) {
-      console.error("❌ Missing ELEVENLABS_API_KEY");
+      console.error("❌ Missing ELEVENLABS_API_KEY.");
       return NextResponse.json(
         { error: "Missing ELEVENLABS_API_KEY" },
         { status: 500 }
       );
     }
 
-    const payload = {
+    const payload: any = {
       model_id: modelId,
-      voice: voiceId ? { voice_id: voiceId } : undefined,
     };
 
-    console.log("📤 Sending request to ElevenLabs:", payload);
+    if (voiceId) payload.voice = { voice_id: voiceId };
 
-    const res = await fetch("https://api.elevenlabs.io/v1/realtime/signed-url", {
-      method: "POST",
-      headers: {
-        "xi-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    console.log("📤 Sending to ElevenLabs:", payload);
+
+    const res = await fetch(
+      "https://api.elevenlabs.io/v1/realtime/signed-url",
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
 
     console.log("📥 ElevenLabs status:", res.status);
 
-    let data;
+    let data = null;
     try {
       data = await res.json();
+      console.log("📥 ElevenLabs response:", data);
     } catch (err) {
       console.error("❌ Failed to parse JSON:", err);
       return NextResponse.json(
@@ -56,10 +66,8 @@ export async function POST() {
       );
     }
 
-    console.log("📥 ElevenLabs response:", data);
-
     if (!res.ok) {
-      console.error("❌ ElevenLabs error:", data);
+      console.error("❌ ElevenLabs failed:", data);
       return NextResponse.json(
         { error: "ElevenLabs request failed", details: data },
         { status: 500 }
@@ -74,14 +82,18 @@ export async function POST() {
       );
     }
 
-    console.log("✅ Signed URL created successfully");
-
+    console.log("✅ signed_url created successfully.");
     return NextResponse.json({ url: data.signed_url });
   } catch (error) {
-    console.error("❌ Internal Error:", error);
+    console.error("❌ INTERNAL SERVER ERROR:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error?.message },
+      { error: "Internal Server Error", details: error.message },
       { status: 500 }
     );
   }
+}
+
+export async function GET() {
+  console.log("🟢 GET request received for getSignedUrl.");
+  return NextResponse.json({ ok: true, route: "getSignedUrl", version: "FINAL" });
 }
