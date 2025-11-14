@@ -1,4 +1,11 @@
-﻿import { NextResponse } from "next/server";
+﻿// @ts-nocheck
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+// VERSION MARKER – erzwingt kompletten Rebuild
+console.log("🔥 get-signed-url VERSION_7 loaded on server");
+
+import { NextResponse } from "next/server";
 
 export async function POST() {
   console.log("🔵 get-signed-url: request started");
@@ -20,13 +27,10 @@ export async function POST() {
       );
     }
 
-    const payload: any = {
+    const payload = {
       model_id: modelId,
+      voice: voiceId ? { voice_id: voiceId } : undefined,
     };
-
-    if (voiceId) {
-      payload.voice = { voice_id: voiceId };
-    }
 
     console.log("📤 Sending request to ElevenLabs:", payload);
 
@@ -41,17 +45,23 @@ export async function POST() {
 
     console.log("📥 ElevenLabs status:", res.status);
 
-    const data = await res.json().catch((err) => {
+    let data;
+    try {
+      data = await res.json();
+    } catch (err) {
       console.error("❌ Failed to parse JSON:", err);
-      return null;
-    });
+      return NextResponse.json(
+        { error: "Failed to parse ElevenLabs response" },
+        { status: 500 }
+      );
+    }
 
     console.log("📥 ElevenLabs response:", data);
 
     if (!res.ok) {
       console.error("❌ ElevenLabs error:", data);
       return NextResponse.json(
-        { error: "ElevenLabs failed", details: data },
+        { error: "ElevenLabs request failed", details: data },
         { status: 500 }
       );
     }
@@ -65,11 +75,12 @@ export async function POST() {
     }
 
     console.log("✅ Signed URL created successfully");
+
     return NextResponse.json({ url: data.signed_url });
-  } catch (error: any) {
-    console.error("❌ Internal Error:", error.message);
+  } catch (error) {
+    console.error("❌ Internal Error:", error);
     return NextResponse.json(
-      { error: "Internal Error", details: error.message },
+      { error: "Internal Server Error", details: error?.message },
       { status: 500 }
     );
   }
