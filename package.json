@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
-    "prebuild": "node prebuild.js"
+    "prebuild": "node prebuild.cjs"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
