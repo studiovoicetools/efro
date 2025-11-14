@@ -1,17 +1,13 @@
 {
-  "name": "efro",
+  "name": "aiva-elevenlabs-avatar",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=20.11.0 <21"
-  },
+  "engines": { "node": "20.x" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
-    "render-build": "npm ci && npm run build",
-    "render-start": "npm run start",
     "lint": "next lint",
     "prebuild": "node prebuild.js"
   },
@@ -26,9 +22,7 @@
     "axios": "^1.7.7",
     "csv-parse": "^5.5.6",
     "dotenv": "^16.4.5",
-    "framer-motion": "^11.18.2",
-    "livekit-client": "^2.15.15",
-    "motion": "^12.23.24",
+    "framer-motion": "^11.3.30",
     "next": "14.2.3",
     "openai": "^4.58.1",
     "postcss": "8.4.41",
@@ -42,6 +36,6 @@
     "@types/react-dom": "^18.3.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.6.3"
   }
 }

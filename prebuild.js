@@ -1,21 +1,21 @@
-/* prebuild.js: prüft CSS-Toolchain für Render */
-import fs from "fs";
+// prebuild.js
+const fs = require("fs");
 
-function writeIfChanged(path, content) {
-  if (!fs.existsSync(path) || fs.readFileSync(path, "utf8") !== content) {
-    fs.writeFileSync(path, content, "utf8");
+function writeIfDifferent(file, content) {
+  if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== content) {
+    fs.writeFileSync(file, content, "utf8");
   }
 }
 
-const postcssCfg = `// postcss.config.cjs
+const postcss = `
+// postcss.config.cjs
 module.exports = {
   plugins: {
     tailwindcss: {},
     autoprefixer: {},
   },
 };
-`;
+`.trim() + "\n";
 
-writeIfChanged("./postcss.config.cjs", postcssCfg);
-
-console.log("✅ Prebuild: postcss.config.cjs überprüft.");
+writeIfDifferent("./postcss.config.cjs", postcss);
+console.log("Prebuild OK – postcss.config.cjs verifiziert.");

@@ -5,50 +5,44 @@ export async function POST() {
     const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
 
     if (!ELEVEN_API_KEY) {
-      console.error("❌ ELEVENLABS_API_KEY fehlt!");
       return NextResponse.json(
-        { error: "Missing ElevenLabs key" },
+        { error: "Missing ELEVENLABS_API_KEY" },
         { status: 500 }
       );
     }
 
-    // WICHTIG:
-    // Das Realtime-Endpoint für @elevenlabs/react 0.5.0 ist:
-    //   GET https://api.elevenlabs.io/v1/realtime/signed_url
-    // also: wir SELBST (Next-API) bleiben POST,
-    // aber Richtung ElevenLabs machen wir einen GET.
-
-    const url = "https://api.elevenlabs.io/v1/realtime/signed_url";
-
-    const res = await fetch(url, {
-      method: "GET",
+    const res = await fetch("https://api.elevenlabs.io/v1/realtime/sessions", {
+      method: "POST",
       headers: {
         "xi-api-key": ELEVEN_API_KEY,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        // Default realtime options – can be empty
+        model_id: "eleven_multilingual_v2"
+      }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      console.error("❌ ElevenLabs Fehler:", data);
+      console.error("❌ ElevenLabs API error:", data);
       return NextResponse.json(
-        { error: "ElevenLabs rejected request", details: data },
+        { error: "Failed to create session", details: data },
         { status: 500 }
       );
     }
 
-    if (!data?.signed_url) {
-      console.error("❌ KEIN signed_url:", data);
+    if (!data?.ws_url) {
       return NextResponse.json(
-        { error: "signed_url missing", details: data },
+        { error: "Missing ws_url in response", details: data },
         { status: 500 }
       );
     }
 
-    // Frontend erwartet exakt dieses Feld:
-    return NextResponse.json({ signedUrl: data.signed_url });
-  } catch (error) {
-    console.error("❌ SERVER ERROR:", error);
+    return NextResponse.json({ signedUrl: data.ws_url });
+  } catch (err) {
+    console.error("❌ SERVER ERROR:", err);
     return NextResponse.json({ error: "Server crashed" }, { status: 500 });
   }
 }

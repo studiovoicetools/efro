@@ -1,10 +1,5 @@
 ﻿import { NextResponse } from "next/server";
-export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    status: "EFRO service healthy",
-    timestamp: new Date().toISOString()
-  });
+  return NextResponse.json({ ok: true, ts: Date.now() }, { status: 200 });
 }
