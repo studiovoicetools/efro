@@ -1,48 +1,76 @@
 ﻿import { NextResponse } from "next/server";
 
 export async function POST() {
-  try {
-    const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+  console.log("🔵 get-signed-url: request started");
 
-    if (!ELEVEN_API_KEY) {
+  try {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const modelId = process.env.ELEVENLABS_MODEL_ID ?? "eleven_multilingual_v2";
+    const voiceId = process.env.ELEVENLABS_VOICE_ID;
+
+    console.log("apiKey:", apiKey ? "LOADED" : "MISSING");
+    console.log("modelId:", modelId);
+    console.log("voiceId:", voiceId);
+
+    if (!apiKey) {
+      console.error("❌ Missing ELEVENLABS_API_KEY");
       return NextResponse.json(
         { error: "Missing ELEVENLABS_API_KEY" },
         { status: 500 }
       );
     }
 
-    const res = await fetch("https://api.elevenlabs.io/v1/realtime/sessions", {
+    const payload: any = {
+      model_id: modelId,
+    };
+
+    if (voiceId) {
+      payload.voice = { voice_id: voiceId };
+    }
+
+    console.log("📤 Sending request to ElevenLabs:", payload);
+
+    const res = await fetch("https://api.elevenlabs.io/v1/realtime/signed-url", {
       method: "POST",
       headers: {
-        "xi-api-key": ELEVEN_API_KEY,
+        "xi-api-key": apiKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        // Default realtime options – can be empty
-        model_id: "eleven_multilingual_v2"
-      }),
+      body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
+    console.log("📥 ElevenLabs status:", res.status);
+
+    const data = await res.json().catch((err) => {
+      console.error("❌ Failed to parse JSON:", err);
+      return null;
+    });
+
+    console.log("📥 ElevenLabs response:", data);
 
     if (!res.ok) {
-      console.error("❌ ElevenLabs API error:", data);
+      console.error("❌ ElevenLabs error:", data);
       return NextResponse.json(
-        { error: "Failed to create session", details: data },
+        { error: "ElevenLabs failed", details: data },
         { status: 500 }
       );
     }
 
-    if (!data?.ws_url) {
+    if (!data?.signed_url) {
+      console.error("❌ No signed_url returned:", data);
       return NextResponse.json(
-        { error: "Missing ws_url in response", details: data },
+        { error: "Missing signed_url", details: data },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ signedUrl: data.ws_url });
-  } catch (err) {
-    console.error("❌ SERVER ERROR:", err);
-    return NextResponse.json({ error: "Server crashed" }, { status: 500 });
+    console.log("✅ Signed URL created successfully");
+    return NextResponse.json({ url: data.signed_url });
+  } catch (error: any) {
+    console.error("❌ Internal Error:", error.message);
+    return NextResponse.json(
+      { error: "Internal Error", details: error.message },
+      { status: 500 }
+    );
   }
 }
