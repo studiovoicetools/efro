@@ -46,9 +46,11 @@ export async function GET() {
     const data = await res.json();
     return NextResponse.json({ ok: true, data }, { status: 200 });
   } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: e.message || "Unknown error" },
-      { status: 500 }
-    );
-  }
+  const err = e instanceof Error ? e.message : String(e);
+  return NextResponse.json(
+    { ok: false, error: err },
+    { status: 500 }
+  );
+}
+
 }
