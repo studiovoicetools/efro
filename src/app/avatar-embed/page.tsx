@@ -136,12 +136,11 @@ function AvatarEmbedPage() {
               }}
             >
               <MascotRive
-                src="/mascot-v2.riv"
-                fit={Fit.CONTAIN}
-                alignment={Alignment.CENTER}
-                style={{ width: "100%", height: "100%" }}
-                stateMachines={["State Machine 1"]}
-              />
+  riveUrl="/mascot-v2.riv"
+  fit={Fit.CONTAIN}
+  alignment={Alignment.CENTER}
+  stateMachines={["State Machine 1"]}
+/>
             </div>
 
             {/* Controls */}
