@@ -1,97 +1,79 @@
-﻿// src/app/avatar-embed/page.tsx
-"use client";
+﻿"use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Alignment,
   Fit,
+  MascotClient,
   MascotProvider,
-  MascotRive,
+  useMascotElevenlabs,
 } from "@mascotbot-sdk/react";
 
-function AvatarEmbedPage() {
-  const [status, setStatus] = useState<"idle" | "connecting" | "ready" | "error">(
-    "idle"
-  );
+import { useConversation } from "@elevenlabs/react";
+
+export default function AvatarEmbedPage() {
+  const [status, setStatus] = useState<"idle" | "connecting" | "ready">("idle");
   const [error, setError] = useState<string | null>(null);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
 
-  useEffect(() => {
-    console.log("EFRO Avatar iframe loaded");
-    return () => {
-      // cleanup
-      if (pcRef.current) {
-        pcRef.current.close();
-        pcRef.current = null;
-      }
-    };
-  }, []);
+  // ---- 1) ElevenLabs Realtime Conversation ----
+  const conversation = useConversation({
+    onConnect() {
+      setStatus("ready");
+      console.log("🎉 ElevenLabs connected");
+    },
+    onDisconnect() {
+      setStatus("idle");
+    },
+    onError(err) {
+      console.error("ElevenLabs error", err);
+      setError(String(err));
+      setStatus("idle");
+    },
+  });
 
-  async function startConversation() {
+  // ---- 2) MascotBot LipSync Integration ----
+  useMascotElevenlabs({
+    conversation,
+    gesture: true,
+    naturalLipSync: true,
+  });
+
+  // ---- 3) Start Realtime ----
+  const startConversation = useCallback(async () => {
     try {
-      setError(null);
       setStatus("connecting");
+      setError(null);
 
-      // 1) PeerConnection anlegen
-      const pc = new RTCPeerConnection();
-      pcRef.current = pc;
+      // Mikrofon-Berechtigung
+      await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // 2) Audio Output
-      const audio = new Audio();
-      audio.autoplay = true;
-      pc.ontrack = (event) => {
-        if (event.streams[0]) {
-          audio.srcObject = event.streams[0];
-        }
-      };
-
-      // 3) Mikrofon holen
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-      // 4) Offer erzeugen
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // 5) Offer an dein Backend schicken
-      const res = await fetch("/api/convai/offer", {
+      // Signierte URL vom Backend holen
+      const res = await fetch("/api/get-signed-url", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ sdp: offer.sdp }),
+        headers: { "Content-Type": "application/json" },
       });
 
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Backend error: ${res.status} - ${txt}`);
-      }
+      if (!res.ok) throw new Error("Could not fetch signed URL");
 
-      const answerSDP = await res.text();
-      const answer: RTCSessionDescriptionInit = {
-        type: "answer",
-        sdp: answerSDP,
-      };
+      const { signedUrl } = await res.json();
 
-      await pc.setRemoteDescription(answer);
-
-      console.log("EFRO Avatar connected via ElevenLabs Convai");
-      setStatus("ready");
+      // Startet die Echtzeit-Sprachsession
+      await conversation.startSession({ signedUrl });
     } catch (err: any) {
-      console.error("startConversation error", err);
-      setError(err?.message || "Unknown error");
-      setStatus("error");
+      console.error("Start error", err);
+      setError(err.message);
+      setStatus("idle");
     }
-  }
+  }, [conversation]);
 
   return (
-    <html lang="en">
+    <html>
       <body
         style={{
           margin: 0,
           padding: 0,
-          fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
           background: "transparent",
+          overflow: "hidden",
         }}
       >
         <MascotProvider>
@@ -100,109 +82,70 @@ function AvatarEmbedPage() {
               position: "fixed",
               bottom: 16,
               right: 16,
-              width: 320,
-              maxWidth: "90vw",
+              width: 300,
               height: 420,
-              maxHeight: "80vh",
               borderRadius: 16,
-              boxShadow: "0 16px 40px rgba(0,0,0,0.25)",
-              background: "white",
+              background: "#ffffff",
+              boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
+              overflow: "hidden",
               display: "flex",
               flexDirection: "column",
-              overflow: "hidden",
             }}
           >
             {/* Header */}
             <div
               style={{
-                padding: "12px 16px",
+                padding: 12,
                 borderBottom: "1px solid #eee",
                 fontWeight: 600,
-                fontSize: 16,
               }}
             >
-              EFRO Avatar
-              <span style={{ fontWeight: 400, fontSize: 13, marginLeft: 4 }}>
-                (Preview)
-              </span>
+              EFRO Avatar (Beta)
             </div>
 
-            {/* Avatar Area */}
-            <div
-              style={{
-                flex: 1,
-                background: "linear-gradient(135deg, #0f172a, #1e293b)",
-                position: "relative",
-              }}
-            >
-              <MascotRive
-  riveUrl="/mascot-v2.riv"
-  fit={Fit.CONTAIN}
-  alignment={Alignment.CENTER}
-  stateMachines={["State Machine 1"]}
-/>
+            {/* Avatar Rendering */}
+            <div style={{ flex: 1, background: "#0f172a" }}>
+              <MascotClient
+                src="/mascot-v2.riv"
+                artboard="Character"
+                inputs={["is_speaking", "gesture"]}
+                layout={{
+                  fit: Fit.Contain,
+                  alignment: Alignment.Center,
+                }}
+              />
             </div>
 
             {/* Controls */}
-            <div
-              style={{
-                padding: 12,
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                fontSize: 13,
-              }}
-            >
-              <button
-                onClick={startConversation}
-                disabled={status === "connecting" || status === "ready"}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 999,
-                  border: "none",
-                  cursor:
-                    status === "connecting" || status === "ready"
-                      ? "default"
-                      : "pointer",
-                  background:
-                    status === "ready"
-                      ? "#16a34a"
-                      : "linear-gradient(135deg, #6366f1, #22d3ee)",
-                  color: "white",
-                  fontWeight: 600,
-                  fontSize: 14,
-                  textAlign: "center",
-                }}
-              >
-                {status === "idle" && "Talk with EFRO"}
-                {status === "connecting" && "Connecting..."}
-                {status === "ready" && "Listening..."}
-                {status === "error" && "Retry"}
-              </button>
-
-              <div style={{ color: "#6b7280" }}>
-                {status === "idle" && "Click to allow microphone and start."}
-                {status === "connecting" &&
-                  "Setting up secure audio connection..."}
-                {status === "ready" && "You can speak now."}
-                {status === "error" &&
-                  "There was a problem. Please check mic permission and try again."}
-              </div>
-
-              <div style={{ color: "#9ca3af", fontSize: 11 }}>
-                Voice handled by ElevenLabs. Audio only starts after your
-                explicit click (DSGVO friendly).
-              </div>
-
-              {error && (
-                <div
+            <div style={{ padding: 12 }}>
+              {status === "idle" && (
+                <button
+                  onClick={startConversation}
                   style={{
-                    marginTop: 4,
-                    color: "#b91c1c",
-                    fontSize: 11,
-                    whiteSpace: "pre-wrap",
+                    width: "100%",
+                    padding: "10px 0",
+                    background: "#6366f1",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 15,
+                    cursor: "pointer",
                   }}
                 >
+                  Talk to EFRO
+                </button>
+              )}
+
+              {status === "connecting" && (
+                <div style={{ color: "#555" }}>Connecting…</div>
+              )}
+
+              {status === "ready" && (
+                <div style={{ color: "#22c55e" }}>Listening…</div>
+              )}
+
+              {error && (
+                <div style={{ marginTop: 8, color: "red", fontSize: 12 }}>
                   {error}
                 </div>
               )}
@@ -213,5 +156,3 @@ function AvatarEmbedPage() {
     </html>
   );
 }
-
-export default AvatarEmbedPage;
