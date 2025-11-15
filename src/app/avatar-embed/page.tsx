@@ -1,7 +1,5 @@
 ﻿"use client";
 
-export const prerender = false;   // 🚨 verhindert SSR-Fehler sicher
-
 import { useCallback, useState } from "react";
 import {
   Alignment,
@@ -16,7 +14,6 @@ export default function AvatarEmbedPage() {
   const [status, setStatus] = useState<"idle" | "connecting" | "ready">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  // ---- 1) ElevenLabs conversation ----
   const conversation = useConversation({
     onConnect() {
       setStatus("ready");
@@ -32,14 +29,12 @@ export default function AvatarEmbedPage() {
     },
   });
 
-  // ---- 2) Mascot lip sync ----
   useMascotElevenlabs({
     conversation,
     gesture: true,
     naturalLipSync: true,
   });
 
-  // ---- 3) Start voice session ----
   const startConversation = useCallback(async () => {
     try {
       setStatus("connecting");
@@ -73,8 +68,8 @@ export default function AvatarEmbedPage() {
         width: 300,
         height: 420,
         borderRadius: 16,
-        boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-        background: "#fff",
+        background: "#ffffff",
+        boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -82,7 +77,6 @@ export default function AvatarEmbedPage() {
       }}
     >
       <MascotProvider>
-        {/* HEADER */}
         <div
           style={{
             padding: 12,
@@ -90,10 +84,9 @@ export default function AvatarEmbedPage() {
             fontWeight: 600,
           }}
         >
-          EFRO Avatar
+          EFRO Avatar (Beta)
         </div>
 
-        {/* MASCOT */}
         <div style={{ flex: 1, background: "#0f172a" }}>
           <MascotClient
             src="/mascot-v2.riv"
@@ -106,19 +99,18 @@ export default function AvatarEmbedPage() {
           />
         </div>
 
-        {/* CONTROLS */}
         <div style={{ padding: 12 }}>
           {status === "idle" && (
             <button
               onClick={startConversation}
               style={{
                 width: "100%",
-                padding: 12,
+                padding: "10px 0",
                 background: "#6366f1",
+                color: "#fff",
                 border: "none",
                 borderRadius: 8,
-                color: "#fff",
-                fontSize: 16,
+                fontSize: 15,
                 cursor: "pointer",
               }}
             >
@@ -127,7 +119,7 @@ export default function AvatarEmbedPage() {
           )}
 
           {status === "connecting" && (
-            <div style={{ color: "#888" }}>Connecting…</div>
+            <div style={{ color: "#666" }}>Connecting…</div>
           )}
 
           {status === "ready" && (
