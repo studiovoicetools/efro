@@ -1,204 +1,42 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
 import {
+  MascotProvider,
+  MascotClient,
+  MascotRive,
   Alignment,
   Fit,
-  MascotClient,
-  MascotProvider,
-  MascotRive,
   useMascotElevenlabs,
 } from "@mascotbot-sdk/react";
 
-/* ---------------- Types ---------------- */
-interface Message {
-  id: string;
-  text: string;
-  sender: "user" | "assistant";
-  timestamp: Date;
+import EFROChatWindow from "@/components/EFROChatWindow";
+
+interface ElevenLabsAvatarProps {
+  dynamicVariables?: Record<string, string | number | boolean>;
 }
 
-interface Product {
-  id: string;
-  title: string;
-  handle: string;
-  imageUrl: string | null;
-  imageAlt: string | null;
-  price: string;
-  compareAtPrice: string | null;
-  url: string;
-  available: boolean;
-  category: string;
-}
-
-/* ===========================================================
-   CHAT UI (Text-Only, kein direkter ElevenLabs-Call)
-=========================================================== */
-
-function ChatInterface({
-  onSendMessage,
-  products,
-  isOpen,
-}: {
-  onSendMessage: (message: string) => void;
-  products: Product[];
-  isOpen: boolean;
-}) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState("");
-  const endRef = useRef<HTMLDivElement>(null);
-
-  // Initiale Begruessung nur einmal
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      setMessages([
-        {
-          id: "1",
-          text: "Hallo, ich bin EFRO. Sage z.B.: Zeig mir Hoodies oder Zeig mir T-Shirts.",
-          sender: "assistant",
-          timestamp: new Date(),
-        },
-      ]);
-    }
-  }, [isOpen, messages.length]);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const send = () => {
-    if (!inputText.trim()) return;
-
-    const msg: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      sender: "user",
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, msg]);
-    onSendMessage(inputText);
-    setInputText("");
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="w-80 h-96 flex flex-col bg-white rounded-2xl border border-orange-300 shadow-lg mb-4">
-      <div className="p-3 border-b border-orange-200 bg-orange-50 rounded-t-2xl font-semibold text-gray-800">
-        EFRO Verkaufsassistent
-      </div>
-
-      <div className="flex-1 p-3 overflow-y-auto text-sm">
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`flex ${
-              m.sender === "user" ? "justify-end" : "justify-start"
-            } mb-2`}
-          >
-            <div
-              className={`max-w-[75%] px-3 py-2 rounded-2xl ${
-                m.sender === "user"
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              {m.text}
-            </div>
-          </div>
-        ))}
-
-        {/* Produkt-Teaser */}
-        {products.length > 0 && (
-          <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-xl">
-            <div className="text-green-700 font-medium mb-2">
-              Gefundene Produkte ({products.length})
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {products.slice(0, 2).map((p) => (
-                <a
-                  key={p.id}
-                  href={p.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex gap-2 p-2 bg-white rounded-lg border border-green-200"
-                >
-                  <img
-                    src={p.imageUrl || "/placeholder-product.jpg"}
-                    alt={p.title}
-                    className="w-8 h-8 rounded object-cover"
-                  />
-                  <div className="text-xs">{p.title}</div>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div ref={endRef} />
-      </div>
-
-      <div className="p-2 border-t border-orange-200 flex gap-2">
-        <textarea
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          placeholder="Schreibe hier..."
-          className="flex-1 px-3 py-2 text-sm border border-orange-300 rounded-xl resize-none"
-        />
-
-        <button
-          onClick={send}
-          disabled={!inputText.trim()}
-          className="px-3 bg-orange-500 text-white rounded-xl disabled:opacity-40"
-        >
-          Senden
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ===========================================================
-   AVATAR LOGIC (Voice ueber ElevenLabs + Mascot)
-=========================================================== */
-
-function ElevenLabsAvatar() {
-  const [products, setProducts] = useState<Product[]>([]);
+function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
+  /* ===========================================================
+      STATES
+  ============================================================ */
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const [connectionStatus, setConnectionStatus] = useState<
-    "disconnected" | "connecting" | "connected" | "error"
-  >("disconnected");
-  const [listening, setListening] = useState(false);
+  const [chatMessages, setChatMessages] = useState<
+    { id: string; text: string; sender: "user" | "efro" }[]
+  >([]);
+
   const [isConnecting, setIsConnecting] = useState(false);
-  const [lastCommand, setLastCommand] = useState("");
+  const [isMuted, setIsMuted] = useState(false);
+  const [cachedUrl, setCachedUrl] = useState<string | null>(null);
 
-  // ElevenLabs Conversation (offizielle API, ohne send/sendText)
-  const conversation = useConversation({
-    onConnect: () => {
-      setConnectionStatus("connected");
-    },
-    onDisconnect: () => {
-      setConnectionStatus("disconnected");
-      setListening(false);
-    },
-    onError: (error) => {
-      console.error("ElevenLabs error:", error);
-      setConnectionStatus("error");
-      setListening(false);
-    },
-  });
+  const urlRefreshInterval = useRef<NodeJS.Timeout | null>(null);
+  const connectionStartTime = useRef<number | null>(null);
+  const [debugStatus, setDebugStatus] = useState("idle");
 
-  // Natuerliche Lip-Sync-Konfiguration aus README
+  /* LipSync */
+  const [naturalLipSyncEnabled] = useState(true);
   const [lipSyncConfig] = useState({
     minVisemeInterval: 40,
     mergeWindow: 60,
@@ -209,190 +47,284 @@ function ElevenLabsAvatar() {
     criticalVisemeMinDuration: 80,
   });
 
-  const { isIntercepting } = useMascotElevenlabs({
-    conversation,
-    naturalLipSync: true,
-    naturalLipSyncConfig: lipSyncConfig,
-    gesture: true,
+  /* ===========================================================
+      ELEVENLABS CONVERSATION
+  ============================================================ */
+
+  const conversation = useConversation({
+    micMuted: isMuted,
+
+    onConnect: () => {
+      console.log("ElevenLabs Connected");
+      setIsConnecting(false);
+      setDebugStatus("connected");
+
+      if (connectionStartTime.current) {
+        console.log("Connected in:", Date.now() - connectionStartTime.current);
+        connectionStartTime.current = null;
+      }
+    },
+
+    onDisconnect: () => {
+      console.log("ElevenLabs Disconnected");
+      setDebugStatus("disconnected");
+    },
+
+    onError: (error: any) => {
+      console.error("ElevenLabs Error:", error);
+      setDebugStatus("error");
+    },
+
+    /* ===========================================================
+        INCOMING MESSAGES (VOICE + EFRO)
+    ============================================================ */
+    onMessage: (msg: any) => {
+      console.log("RAW-IN:", msg);
+
+      const text =
+        msg?.text ||
+        msg?.message ||
+        msg?.responseText ||
+        msg?.output_text ||
+        msg?.formattedText ||
+        msg?.transcript ||
+        null;
+
+      if (!text) {
+        console.log("Keine Text-Nachricht:", msg);
+        return;
+      }
+
+      /* ===========================================================
+         USER VOICE → orange
+         Exakte Erkennung:
+         ElevenLabs sendet immer:
+            type: "input_transcription" oder "input_transcript"
+      ============================================================ */
+      if (
+        msg.type === "input_transcript" ||
+        msg.type === "input_transcription"
+      ) {
+        console.log("🎤 USER (Voice):", text);
+
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            text,
+            sender: "user",
+          },
+        ]);
+
+        return; // wichtig!
+      }
+
+      /* ===========================================================
+         EFRO → grau
+         (Assistant output immer type: "output_text" oder role: "assistant")
+      ============================================================ */
+      if (
+        msg.role === "assistant" ||
+        msg.type === "output_text" ||
+        msg.type === "response_output" ||
+        msg.output_audio ||
+        msg.audio_output
+      ) {
+        console.log("🤖 EFRO:", text);
+
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            text,
+            sender: "efro",
+          },
+        ]);
+
+        return;
+      }
+
+      /* ===========================================================
+         Fallback → wenn wir es nicht eindeutig zuordnen können
+      ============================================================ */
+      console.log("Fallback → EFRO:", text);
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          text,
+          sender: "efro",
+        },
+      ]);
+    },
   });
 
-  /* -------- Shopify Produkte laden -------- */
+  /* ===========================================================
+      LIPSYNC HOOK
+  ============================================================ */
 
-  async function loadProducts(category: string) {
+  useMascotElevenlabs({
+    conversation,
+    gesture: true,
+    naturalLipSync: naturalLipSyncEnabled,
+    naturalLipSyncConfig: lipSyncConfig,
+  });
+
+  /* ===========================================================
+      SIGNED URL
+  ============================================================ */
+
+  const getSignedUrl = async (): Promise<string> => {
+    const response = await fetch(`/api/get-signed-url`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dynamicVariables: dynamicVariables || {} }),
+    });
+
+    const data = await response.json();
+    return data.signedUrl;
+  };
+
+  const fetchAndCacheUrl = useCallback(async () => {
     try {
-      const res = await fetch("/api/shopify-products?category=" + category);
-      const data = await res.json();
-      if (data.success) {
-        setProducts(data.products);
-      } else {
-        console.warn("Shopify API error:", data);
-      }
-    } catch (err) {
-      console.error("Product fetch error", err);
+      const url = await getSignedUrl();
+      setCachedUrl(url);
+    } catch (error) {
+      console.error("Failed signed URL:", error);
+      setCachedUrl(null);
     }
-  }
+  }, [dynamicVariables]);
 
-  // Produkt-Erklaerung bleibt vorerst nur Backend-Call (kein TTS)
-  async function explain(handle: string, question: string) {
-    try {
-      const res = await fetch("/api/explain-product", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle, question }),
-      });
-      const data = await res.json();
-      console.log("Explain response:", data);
-      // Optional: spaeter als Chat-Antwort anzeigen
-    } catch (err) {
-      console.error("Explain error", err);
-    }
-  }
+  useEffect(() => {
+    fetchAndCacheUrl();
+    urlRefreshInterval.current = setInterval(fetchAndCacheUrl, 9 * 60 * 1000);
 
-  /* -------- Text-Eingaben aus dem Chat verarbeiten -------- */
+    return () => {
+      if (urlRefreshInterval.current) clearInterval(urlRefreshInterval.current);
+    };
+  }, [fetchAndCacheUrl]);
 
-  const handleUserText = useCallback(
-    async (text: string) => {
-      const t = text.toLowerCase();
-      setLastCommand(t);
-
-      if (t.includes("hoodie")) {
-        await loadProducts("hoodie");
-        return;
-      }
-
-      if (t.includes("shirt")) {
-        await loadProducts("shirt");
-        return;
-      }
-
-      if (t.includes("was kostet")) {
-        if (products[0]) {
-          await explain(products[0].handle, t);
-        } else {
-          console.log("Bitte zuerst ein Produkt anzeigen lassen.");
-        }
-        return;
-      }
-
-      // Default-Hinweis
-      console.log("Nutze Beispiel: Zeig mir Hoodies.");
-    },
-    [products]
-  );
-
-  /* -------- Voice-Session starten/stoppen (laut README-Logik) -------- */
+  /* ===========================================================
+      SESSION CONTROL
+  ============================================================ */
 
   const startConversation = useCallback(async () => {
-    setIsConnecting(true);
-    setConnectionStatus("connecting");
     try {
-      // Mikro-Rechte holen
+      setIsConnecting(true);
+      setDebugStatus("connecting");
+      connectionStartTime.current = Date.now();
+
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Signed URL vom Backend holen (siehe README: /api/get-signed-url)
-      const resp = await fetch("/api/get-signed-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dynamicVariables: {
-            customer_name: "EFRO Demo",
-          },
-        }),
-      });
+      const signedUrl = cachedUrl || (await getSignedUrl());
 
-      if (!resp.ok) {
-        console.error("get-signed-url failed:", resp.status);
-        setConnectionStatus("error");
-        setIsConnecting(false);
-        return;
-      }
-
-      const data = await resp.json();
-      const signedUrl = data?.signedUrl;
-      if (!signedUrl) {
-        console.error("No signedUrl returned from /api/get-signed-url");
-        setConnectionStatus("error");
-        setIsConnecting(false);
-        return;
-      }
-
-      // ElevenLabs Session starten (offizielle Methode)
       await conversation.startSession({
         signedUrl,
+        dynamicVariables,
       });
 
-      setListening(true);
-      setConnectionStatus("connected");
-    } catch (err) {
-      console.error("Start conversation error:", err);
-      setConnectionStatus("error");
-      setListening(false);
-    } finally {
+      setDebugStatus("connected");
+    } catch (error) {
+      console.error("Start error:", error);
       setIsConnecting(false);
+      setDebugStatus("error");
     }
-  }, [conversation]);
+  }, [conversation, cachedUrl, dynamicVariables]);
 
   const stopConversation = useCallback(async () => {
-    try {
-      await conversation.endSession();
-    } catch (err) {
-      console.error("End session error:", err);
-    }
-    setListening(false);
-    setConnectionStatus("disconnected");
+    await conversation.endSession();
+    setDebugStatus("disconnected");
   }, [conversation]);
 
-  const toggleConversation = useCallback(() => {
-    if (listening) {
-      stopConversation();
-    } else {
-      startConversation();
+  const toggleMute = useCallback(() => {
+    setIsMuted((v) => !v);
+  }, []);
+
+  /* ===========================================================
+      CHAT SEND
+  ============================================================ */
+
+  const handleChatSend = async (text: string) => {
+    try {
+      if (conversation.sendUserMessage) {
+        await conversation.sendUserMessage(text);
+      }
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          text,
+          sender: "user",
+        },
+      ]);
+    } catch (err) {
+      console.error("Chat send error:", err);
     }
-  }, [listening, startConversation, stopConversation]);
+  };
+
+  /* ===========================================================
+      RENDER
+  ============================================================ */
 
   return (
     <>
-      {/* Debug Info oben links */}
-      <div className="fixed top-4 left-4 bg-black/80 text-white p-4 rounded-2xl text-sm font-mono z-50">
-        <div>Status: {connectionStatus}</div>
-        <div>Listening: {listening ? "yes" : "no"}</div>
-        <div>Chat: {isChatOpen ? "open" : "closed"}</div>
-        <div>Products: {products.length}</div>
-        <div>LipSync: {isIntercepting ? "yes" : "no"}</div>
-        <div className="opacity-60 mt-2">Last: {lastCommand}</div>
+      {/* DEBUG BOX */}
+      <div className="fixed top-4 left-4 bg-black/80 text-white p-4 rounded-xl text-sm z-50">
+        <div>Status: {debugStatus}</div>
+        <div>Mic muted: {isMuted ? "yes" : "no"}</div>
+        <div>Connecting: {isConnecting ? "yes" : "no"}</div>
       </div>
 
-      {/* Avatar Box + Chat unten rechts */}
-      <div className="fixed bottom-4 right-4 flex flex-col items-end z-40">
-        <ChatInterface
-          onSendMessage={handleUserText}
-          products={products}
+      {/* CHAT WINDOW */}
+      {isChatOpen && (
+        <EFROChatWindow
           isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          onSend={handleChatSend}
+          messages={chatMessages}
         />
+      )}
 
-        <div className="w-80 h-80 bg-white border border-orange-300 shadow-2xl rounded-2xl overflow-hidden mb-4">
-          {/* Wichtig: MascotRive ohne Props, wie in der Demo vorgesehen */}
+      {/* AVATAR + BUTTONS */}
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
+        <div className="w-80 h-80 pointer-events-none">
           <MascotRive />
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={() => setIsChatOpen((prev) => !prev)}
-            className="h-12 px-4 rounded-lg border shadow bg-white"
-          >
-            {isChatOpen ? "Chat schliessen" : "Chat oeffnen"}
-          </button>
+          {conversation.status === "connected" ? (
+            <>
+              <button
+                onClick={stopConversation}
+                className="h-12 px-5 bg-red-500 text-white rounded-lg shadow"
+              >
+                Mit EFRO auflegen
+              </button>
+
+              <button
+                onClick={toggleMute}
+                className="h-12 px-5 bg-white text-gray-800 border rounded-lg shadow"
+              >
+                {isMuted ? "Mikro an" : "Mikro aus"}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={startConversation}
+              disabled={isConnecting}
+              className="h-12 px-6 bg-orange-500 text-white rounded-lg shadow disabled:opacity-50"
+            >
+              {isConnecting ? "Verbinde…" : "Mit EFRO sprechen"}
+            </button>
+          )}
 
           <button
-            onClick={toggleConversation}
-            disabled={isConnecting}
-            className="h-12 px-6 rounded-lg text-white shadow bg-orange-500"
+            onClick={() => setIsChatOpen(true)}
+            className="h-12 px-5 bg-white text-gray-800 border rounded-lg shadow"
           >
-            {isConnecting
-              ? "Verbinde..."
-              : listening
-              ? "Mit EFRO auflegen"
-              : "Mit EFRO sprechen"}
+            Chat öffnen
           </button>
         </div>
       </div>
@@ -401,23 +333,41 @@ function ElevenLabsAvatar() {
 }
 
 /* ===========================================================
-   WRAPPER
+   HOME WRAPPER (mit Shopify shop Param)
 =========================================================== */
 
-export default function Home() {
-  // Rive-File, wie in README beschrieben
-  const mascotUrl = "/mascot-v2.riv";
+type HomeProps = {
+  searchParams?: {
+    shop?: string;
+  };
+};
+
+export default function Home({ searchParams }: HomeProps) {
+  const mascotUrl = "/retroBot.riv";
+
+  // fuer Shopify: ?shop=domain kommt von der Theme Extension
+  const shopDomain = searchParams?.shop ?? "local-dev";
+
+  const dynamicVariables = {
+    name: "EFRO",
+    language: "de",
+    userName: "Evren",
+    shopDomain,
+  };
 
   return (
     <MascotProvider>
-      <main className="w-full h-screen">
+      <main className="w-full h-screen bg-[#FFF8F0]">
         <MascotClient
           src={mascotUrl}
           artboard="Character"
           inputs={["is_speaking", "gesture"]}
-          layout={{ fit: Fit.Contain, alignment: Alignment.BottomRight }}
+          layout={{
+            fit: Fit.Contain,
+            alignment: Alignment.BottomRight,
+          }}
         >
-          <ElevenLabsAvatar />
+          <ElevenLabsAvatar dynamicVariables={dynamicVariables} />
         </MascotClient>
       </main>
     </MascotProvider>

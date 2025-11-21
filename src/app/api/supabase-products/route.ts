@@ -1,48 +1,27 @@
-﻿export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-
 export async function GET() {
-  console.log("?? Supabase Products API aufgerufen");
-
   try {
-    // Supabase Client initialisieren
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Produkte abrufen
-    let { data: products, error } = await supabase
+    const { data, error } = await supabase
       .from("products")
-      .select("*")
-      .limit(50);
+      .select("*");
 
-    if (error) {
-      console.error("? Supabase-Fehler:", error);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
-    }
+    if (error) throw error;
 
-    console.log(`? ${products?.length || 0} Produkte gefunden.`);
     return NextResponse.json({
       success: true,
-      products: products || [],
-      total: products?.length || 0,
+      count: data.length,
+      products: data
     });
   } catch (err: any) {
-    console.error("? API-Fehler:", err.message);
     return NextResponse.json(
       { success: false, error: err.message },
       { status: 500 }
     );
   }
 }
-
-
-

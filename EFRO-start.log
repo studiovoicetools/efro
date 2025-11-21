@@ -1,0 +1,243 @@
+[2025-11-21 01:27:12] [INFO] EFRO Starter gestartet.
+[2025-11-21 01:27:13] [INFO] Verwende PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 01:27:13] [INFO] Verwende npm:        C:\ProgramData\nodejs\npm.cmd
+[2025-11-21 01:27:13] [INFO] Verwende shopify:    C:\ProgramData\nodejs\shopify.cmd
+[2025-11-21 01:27:13] [INFO] Verwende ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 01:27:13] [ERROR] ngrok.exe nicht gefunden unter C:\ngrok\ngrok.exe
+[2025-11-21 01:30:41] [INFO] EFRO Starter gestartet.
+[2025-11-21 01:30:44] [INFO] Verwende PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 01:30:44] [INFO] Verwende npm:        C:\ProgramData\nodejs\npm.cmd
+[2025-11-21 01:30:44] [INFO] Verwende shopify:    C:\ProgramData\nodejs\shopify.cmd
+[2025-11-21 01:30:44] [INFO] Verwende ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 01:30:44] [ERROR] ngrok.exe nicht gefunden unter C:\ngrok\ngrok.exe
+[2025-11-21 01:38:40] [INFO] EFRO Starter gestartet.
+[2025-11-21 01:38:40] [INFO] Verwende PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 01:38:40] [INFO] Verwende npm:        C:\ProgramData\nodejs\npm.cmd
+[2025-11-21 01:38:41] [INFO] Verwende shopify:    C:\ProgramData\nodejs\shopify.cmd
+[2025-11-21 01:38:41] [INFO] Verwende ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 01:38:41] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 01:38:41] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 01:38:44] [INFO] Node Version erfolgreich gesetzt auf 22.12.0.
+[2025-11-21 01:38:44] [INFO] Starte Next.js Dev Server (npm run dev) ...
+[2025-11-21 01:38:44] [INFO] Next.js Dev Server gestartet (separates Fenster).
+[2025-11-21 01:38:54] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 01:38:55] [INFO] ngrok gestartet.
+[2025-11-21 01:39:00] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 01:39:01] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 01:39:01] [INFO] Starte Shopify App Dev mit Tunnel-URL ...
+[2025-11-21 01:39:01] [INFO] Shopify App Dev gestartet.
+[2025-11-21 01:39:01] [INFO] EFRO Starter fertig. Alles laeuft (sofern keine ERROR Logs oben).
+[2025-11-21 01:54:14] === EFRO Starter gestartet ===
+[2025-11-21 01:54:14] [INFO] PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 01:54:14] [INFO] npm gefunden unter: C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 01:54:14] [INFO] Shopify CLI gefunden unter: C:\ProgramData\nvm\v22.12.0\shopify.cmd
+[2025-11-21 01:54:14] [INFO] ngrok gefunden unter: C:\ngrok\ngrok.exe
+[2025-11-21 01:54:14] [INFO] Projektordner: D:\efro
+[2025-11-21 01:54:14] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 01:54:17] [INFO] Node Version gesetzt.
+[2025-11-21 01:54:17] [INFO] Starte Next.js Dev Server...
+[2025-11-21 01:54:17] [INFO] Next.js Prozess gestartet.
+[2025-11-21 01:54:25] [INFO] Starte ngrok (http 3000)...
+[2025-11-21 01:54:30] [INFO] ngrok URL: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 01:54:30] [INFO] Starte Shopify App Dev...
+[2025-11-21 01:54:30] [INFO] Shopify Dev gestartet.
+[2025-11-21 01:54:30] === EFRO vollständig gestartet ===
+[2025-11-21 01:54:30] Next.js: http://localhost:3000
+[2025-11-21 01:54:30] ngrok Dashboard: http://127.0.0.1:4040
+[2025-11-21 01:54:30] Tunnel: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 17:28:57] [INFO] EFRO Starter gestartet.
+[2025-11-21 17:29:00] [INFO] Gefundenes npm: C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 17:29:00] [INFO] PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 17:29:00] [INFO] npm:        C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 17:29:01] [INFO] Shopify:    C:\ProgramData\nvm\v22.12.0\shopify.cmd
+[2025-11-21 17:29:01] [INFO] ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 17:29:01] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 17:29:01] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 17:29:05] [INFO] Node Version gesetzt: v22.12.0
+[2025-11-21 17:29:05] [INFO] Starte Next.js Dev Server ...
+[2025-11-21 17:29:05] [INFO] Next.js gestartet.
+[2025-11-21 17:29:15] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 17:29:21] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 17:29:21] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 17:29:21] [INFO] Starte Shopify App Dev ...
+[2025-11-21 17:29:22] [INFO] Shopify wurde gestartet.
+[2025-11-21 17:35:08] [INFO] EFRO Starter gestartet.
+[2025-11-21 17:35:09] [INFO] PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 17:35:09] [INFO] npm:        C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 17:35:09] [INFO] Shopify:    C:\ProgramData\nvm\v22.12.0\shopify.cmd
+[2025-11-21 17:35:09] [INFO] ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 17:35:09] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 17:35:09] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 17:35:12] [INFO] Node Version gesetzt: v22.12.0
+[2025-11-21 17:35:12] [INFO] Starte Next.js Dev Server ...
+[2025-11-21 17:35:12] [INFO] Next.js gestartet.
+[2025-11-21 17:35:22] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 17:35:28] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 17:35:28] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 17:35:28] [INFO] Tunnel ohne Port erkannt → korrigiert zu: 
+[2025-11-21 17:35:28] [INFO] Finale Shopify-Tunnel-URL: 
+[2025-11-21 17:35:28] [INFO] Starte Shopify App Dev ...
+[2025-11-21 17:35:28] [INFO] Shopify gestartet.
+[2025-11-21 17:38:10] [INFO] EFRO Starter gestartet.
+[2025-11-21 17:38:10] [INFO] PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 17:38:10] [INFO] npm:        C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 17:38:10] [INFO] Shopify:    C:\ProgramData\nvm\v22.12.0\shopify.cmd
+[2025-11-21 17:38:10] [INFO] ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 17:38:10] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 17:38:10] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 17:38:15] [INFO] Node Version gesetzt: v22.12.0
+[2025-11-21 17:38:15] [INFO] Starte Next.js Dev Server ...
+[2025-11-21 17:38:15] [INFO] Next.js gestartet.
+[2025-11-21 17:38:25] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 17:38:30] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 17:38:30] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 17:38:31] [INFO] Tunnel ohne Port erkannt → korrigiert zu: 
+[2025-11-21 17:38:31] [INFO] Finale Shopify-Tunnel-URL: 
+[2025-11-21 17:38:31] [INFO] Starte Shopify App Dev ...
+[2025-11-21 17:38:31] [INFO] Shopify gestartet.
+[2025-11-21 17:47:47] [INFO] EFRO Starter gestartet.
+[2025-11-21 17:47:50] [INFO] PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 17:47:50] [INFO] npm:        C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 17:47:50] [INFO] Shopify:    C:\ProgramData\nvm\v22.12.0\shopify.cmd
+[2025-11-21 17:47:50] [INFO] ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 17:47:50] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 17:47:50] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 17:47:53] [INFO] Node Version gesetzt: v22.12.0
+[2025-11-21 17:47:53] [INFO] Starte Next.js Dev Server ...
+[2025-11-21 17:47:53] [INFO] Next.js gestartet.
+[2025-11-21 17:48:03] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 17:48:09] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 17:48:09] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 17:48:09] [INFO] Tunnel ohne Port erkannt → korrigiert zu: 
+[2025-11-21 17:48:09] [INFO] Finale Shopify-Tunnel-URL: 
+[2025-11-21 17:48:09] [INFO] Starte Shopify App Dev ...
+[2025-11-21 17:48:09] [INFO] Shopify gestartet.
+[2025-11-21 21:46:42] [INFO] EFRO Starter gestartet.
+[2025-11-21 21:46:42] [INFO] PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 21:46:42] [INFO] npm:        C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 21:46:42] [INFO] Shopify:    C:\ProgramData\nvm\v22.12.0\shopify.cmd
+[2025-11-21 21:46:42] [INFO] ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 21:46:42] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 21:46:42] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 21:46:46] [INFO] Node Version gesetzt: v22.12.0
+[2025-11-21 21:46:46] [INFO] Starte Next.js Dev Server ...
+[2025-11-21 21:46:46] [INFO] Next.js gestartet.
+[2025-11-21 21:46:56] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 21:47:01] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 21:47:01] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 21:47:01] [INFO] Tunnel ohne Port erkannt → korrigiert zu: 
+[2025-11-21 21:47:01] [INFO] Finale Shopify-Tunnel-URL: 
+[2025-11-21 21:47:01] [INFO] Starte Shopify App Dev ...
+[2025-11-21 21:47:01] [INFO] Shopify gestartet.
+[2025-11-21 21:53:23] [INFO] EFRO Starter gestartet.
+[2025-11-21 21:53:23] [INFO] PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 21:53:24] [INFO] npm:        C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 21:53:24] [INFO] Shopify:    C:\ProgramData\nvm\v22.12.0\shopify.cmd
+[2025-11-21 21:53:24] [INFO] ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 21:53:24] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 21:53:24] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 21:53:27] [INFO] Node Version gesetzt: v22.12.0
+[2025-11-21 21:53:28] [INFO] Starte Next.js Dev Server ...
+[2025-11-21 21:53:28] [INFO] Next.js gestartet.
+[2025-11-21 21:53:38] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 21:53:43] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 21:53:43] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 21:53:43] [INFO] Tunnel ohne Port erkannt → korrigiert zu: 
+[2025-11-21 21:53:43] [INFO] Finale Shopify-Tunnel-URL: 
+[2025-11-21 21:53:43] [INFO] Starte Shopify App Dev ...
+[2025-11-21 21:53:43] [INFO] Shopify gestartet.
+[2025-11-21 22:46:14] [INFO] EFRO Starter gestartet.
+[2025-11-21 22:46:14] [INFO] PowerShell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+[2025-11-21 22:46:14] [INFO] npm:        C:\ProgramData\nvm\v22.12.0\npm.cmd
+[2025-11-21 22:46:14] [INFO] Shopify:    C:\ProgramData\nvm\v22.12.0\shopify.cmd
+[2025-11-21 22:46:14] [INFO] ngrok:      C:\ngrok\ngrok.exe
+[2025-11-21 22:46:14] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 22:46:14] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 22:46:15] [INFO] Node Version gesetzt: 
+[2025-11-21 22:46:15] [INFO] Starte Next.js Dev Server ...
+[2025-11-21 22:46:15] [INFO] Next.js gestartet.
+[2025-11-21 22:46:25] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 22:46:30] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 22:46:30] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 22:46:30] [INFO] Tunnel ohne Port → korrigiert zu: 
+[2025-11-21 22:46:30] [INFO] Finale Shopify-Tunnel-URL: 
+[2025-11-21 22:46:30] [INFO] Starte Shopify App Dev ...
+[2025-11-21 22:46:30] [INFO] Shopify gestartet.
+[2025-11-21 22:58:36] [INFO] EFRO Starter gestartet.
+[2025-11-21 22:58:36] [INFO] PowerShell: 
+[2025-11-21 22:58:36] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 22:58:36] [INFO] ngrok: C:\ngrok\ngrok.exe
+[2025-11-21 22:58:36] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 22:58:36] [ERROR] nvm use 22.12.0 fehlgeschlagen. Bitte NVM/Node pruefen.
+[2025-11-21 22:58:46] [INFO] EFRO Starter gestartet.
+[2025-11-21 22:58:46] [INFO] PowerShell: 
+[2025-11-21 22:58:46] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 22:58:46] [INFO] ngrok: C:\ngrok\ngrok.exe
+[2025-11-21 22:58:46] [INFO] Setze Node Version 22.12.0 ...
+[2025-11-21 22:58:46] [ERROR] nvm use 22.12.0 fehlgeschlagen. Bitte NVM/Node pruefen.
+[2025-11-21 23:01:18] [INFO] EFRO Starter gestartet.
+[2025-11-21 23:01:18] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 23:01:18] [INFO] ngrok: C:\ngrok\ngrok.exe
+[2025-11-21 23:01:18] [WARN] nvm wurde nicht gefunden. Verwende vorhandene Node-Version.
+[2025-11-21 23:01:18] [ERROR] Node wurde nicht gefunden. Bitte Node.js Installation pruefen.
+[2025-11-21 23:01:36] [INFO] EFRO Starter gestartet.
+[2025-11-21 23:01:36] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 23:01:36] [INFO] ngrok: C:\ngrok\ngrok.exe
+[2025-11-21 23:01:36] [WARN] nvm wurde nicht gefunden. Verwende vorhandene Node-Version.
+[2025-11-21 23:01:36] [ERROR] Node wurde nicht gefunden. Bitte Node.js Installation pruefen.
+[2025-11-21 23:06:10] [INFO] EFRO Starter gestartet.
+[2025-11-21 23:06:13] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 23:06:13] [INFO] ngrok: C:\ngrok\ngrok.exe
+[2025-11-21 23:06:13] [WARN] nvm wurde nicht gefunden. Verwende vorhandene Node-Version.
+[2025-11-21 23:06:13] [INFO] Node Version aktiv: v22.18.0
+[2025-11-21 23:06:13] [INFO] npm ueber PATH gefunden: C:\Program Files\nodejs\npm.ps1
+[2025-11-21 23:06:13] [ERROR] Shopify CLI nicht gefunden.
+[2025-11-21 23:06:13] [ERROR] Bitte ausfuehren (in einer PowerShell):
+[2025-11-21 23:06:13] [ERROR]   npm install -g @shopify/cli@latest
+[2025-11-21 23:07:42] [INFO] EFRO Starter gestartet.
+[2025-11-21 23:07:44] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 23:07:44] [INFO] ngrok: C:\ngrok\ngrok.exe
+[2025-11-21 23:07:44] [WARN] nvm wurde nicht gefunden. Verwende vorhandene Node-Version.
+[2025-11-21 23:07:44] [INFO] Node Version aktiv: v22.18.0
+[2025-11-21 23:07:44] [INFO] npm ueber PATH gefunden: C:\Program Files\nodejs\npm.ps1
+[2025-11-21 23:07:45] [INFO] Shopify CLI ueber PATH gefunden: C:\Users\MEZE AYDIN\AppData\Roaming\npm\shopify.ps1
+[2025-11-21 23:07:45] [INFO] npm:     C:\Program Files\nodejs\npm.ps1
+[2025-11-21 23:07:45] [INFO] Shopify: C:\Users\MEZE AYDIN\AppData\Roaming\npm\shopify.ps1
+[2025-11-21 23:07:45] [INFO] Starte Next.js Dev Server (npm run dev) ...
+[2025-11-21 23:07:45] [INFO] Next.js Dev Server gestartet.
+[2025-11-21 23:07:55] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 23:08:00] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 23:08:00] [INFO] ngrok URL gefunden: https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 23:08:00] [INFO] Starte 'shopify app dev' mit Tunnel-URL ...
+[2025-11-21 23:08:00] [INFO] Shopify App Dev gestartet.
+[2025-11-21 23:10:11] [INFO] EFRO Starter gestartet.
+[2025-11-21 23:10:11] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 23:10:11] [INFO] ngrok: C:\ngrok\ngrok.exe
+[2025-11-21 23:10:11] [WARN] nvm wurde nicht gefunden. Verwende vorhandene Node-Version.
+[2025-11-21 23:10:11] [INFO] Node Version aktiv: v22.18.0
+[2025-11-21 23:10:11] [INFO] npm ueber PATH gefunden: C:\Program Files\nodejs\npm.ps1
+[2025-11-21 23:10:11] [INFO] Shopify CLI ueber PATH gefunden: C:\Users\MEZE AYDIN\AppData\Roaming\npm\shopify.ps1
+[2025-11-21 23:10:11] [INFO] npm:     C:\Program Files\nodejs\npm.ps1
+[2025-11-21 23:10:11] [INFO] Shopify: C:\Users\MEZE AYDIN\AppData\Roaming\npm\shopify.ps1
+[2025-11-21 23:10:11] [INFO] Starte Next.js Dev Server (npm run dev) ...
+[2025-11-21 23:10:11] [INFO] Next.js Dev Server gestartet.
+[2025-11-21 23:10:21] [INFO] Starte ngrok Tunnel (http 3000) ...
+[2025-11-21 23:10:26] [INFO] Lese ngrok Public URL ueber http://127.0.0.1:4040/api/tunnels ...
+[2025-11-21 23:10:27] [INFO] ngrok URL gefunden (roh): https://charlize-fungicidal-finickingly.ngrok-free.dev
+[2025-11-21 23:10:27] [INFO] Shopify Tunnel-URL (mit Port): 
+[2025-11-21 23:10:27] [INFO] Starte 'shopify app dev' mit Tunnel-URL ...
+[2025-11-21 23:10:27] [INFO] Shopify App Dev gestartet.
+[2025-11-21 23:20:41] [INFO] EFRO Starter gestartet.
+[2025-11-21 23:20:41] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 23:20:41] [INFO] Shopify CLI gefunden: C:\Users\MEZE AYDIN\AppData\Roaming\npm\shopify.ps1
+[2025-11-21 23:20:41] [INFO] Node Version aktiv: v22.18.0
+[2025-11-21 23:20:42] [INFO] Shopify CLI Version: @shopify/cli/3.87.4 win32-x64 node-v22.18.0
+[2025-11-21 23:20:42] [INFO] Starte 'shopify app dev --use-localhost' ...
+[2025-11-21 23:20:42] [INFO] Shopify App Dev (localhost) gestartet.
+[2025-11-21 23:59:46] [INFO] EFRO Starter gestartet.
+[2025-11-21 23:59:49] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-21 23:59:49] [INFO] Shopify CLI gefunden: C:\Users\MEZE AYDIN\AppData\Roaming\npm\shopify.ps1
+[2025-11-21 23:59:49] [INFO] Node Version aktiv: v22.18.0
+[2025-11-21 23:59:50] [INFO] Shopify CLI Version: @shopify/cli/3.87.4 win32-x64 node-v22.18.0
+[2025-11-21 23:59:51] [INFO] Starte 'shopify app dev --use-localhost' ...
+[2025-11-21 23:59:51] [INFO] Shopify App Dev (localhost) gestartet.

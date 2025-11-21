@@ -1,0 +1,12 @@
+<script src="{{ 'efro-avatar.js' | asset_url }}" defer></script>
+
+<script>
+window.EFRO_CONFIG = {
+   endpoint: "https://DEINE-DOMAIN.com", 
+   shop: "{{ shop.domain }}",
+   pageType: "{{ request.page_type }}",
+   productId: {{ product.id | default: 0 }},
+   productTitle: "{{ product.title | escape }}",
+   productHandle: "{{ product.handle }}",
+};
+</script>

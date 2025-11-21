@@ -2,13 +2,11 @@ client_id = "391aeeccf003c4d8f67d87fb3d8ef6f4"
 name = "EFRO Integration"
 handle = "efro-integration"
 
-# Lokal: Shopify CLI Proxy mit --use-localhost
+# Wichtig: https + Port vom --use-localhost Proxy
 application_url = "https://localhost:3458"
 embedded = true
 
 [access_scopes]
-# Du kannst hier die lange Liste aus der anderen Datei uebernehmen, wenn du willst.
-# Fuer jetzt reichen diese:
 scopes = "read_products,write_products,read_orders,write_orders,read_script_tags,write_script_tags,read_customers,write_customers"
 
 [auth]
