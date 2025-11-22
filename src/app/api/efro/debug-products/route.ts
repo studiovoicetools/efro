@@ -56,50 +56,67 @@ function mapShopifyToEfro(sp: ShopifyProduct): EfroProduct {
   };
 }
 
-// WICHTIG: Diese Route ist bewusst dynamisch (weil wir request.url benutzen)
+// diese Route ist bewusst dynamisch
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const baseUrl = `${url.protocol}//${url.host}`;
+  const debug: any = {
+    ok: false,
+    source: "debug-products",
+    step: "start",
+  };
 
   try {
-    // Wir rufen unsere eigene Shopify-Route auf (die du eben getestet hast)
+    // Basis-URL bestimmen
+    const url = new URL(request.url);
+    debug.step = "parsed-url";
+    const baseUrl = `${url.protocol}//${url.host}`;
+    debug.baseUrl = baseUrl;
+
+    // Shopify Produkte holen
     const res = await fetch(`${baseUrl}/api/shopify-products`, {
       cache: "no-store",
     });
+    debug.step = "fetched-shopify";
+    debug.shopifyStatus = res.status;
 
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status} from /api/shopify-products`);
+      debug.error = `HTTP ${res.status} from /api/shopify-products`;
+      debug.products = mockCatalog;
+      debug.productsSource = "mockCatalog (fallback: bad HTTP status)";
+      debug.ok = true;
+      return NextResponse.json(debug);
     }
 
     const data = await res.json();
+    debug.step = "parsed-json";
+
     const rawProducts: ShopifyProduct[] = Array.isArray(data.products)
       ? data.products
       : [];
+    debug.rawCount = rawProducts.length;
 
     if (rawProducts.length === 0) {
-      return NextResponse.json({
-        products: mockCatalog,
-        source:
-          "mockCatalog (fallback: /api/shopify-products returned 0 products)",
-      });
+      debug.products = mockCatalog;
+      debug.productsSource =
+        "mockCatalog (fallback: /api/shopify-products returned 0 products)";
+      debug.ok = true;
+      return NextResponse.json(debug);
     }
 
     const products: EfroProduct[] = rawProducts.map(mapShopifyToEfro);
 
-    return NextResponse.json({
-      products,
-      source: "shopify-products (mapped to EfroProduct)",
-      rawCount: rawProducts.length,
-    });
+    debug.products = products;
+    debug.productsSource = "shopify-products (mapped to EfroProduct)";
+    debug.ok = true;
+    return NextResponse.json(debug);
   } catch (err: any) {
-    console.error("[api/efro/debug-products] error", err);
-    return NextResponse.json({
-      products: mockCatalog,
-      source:
-        "mockCatalog (fallback: error talking to /api/shopify-products)",
-      error: err?.message ?? String(err),
-    });
+    debug.step = "catch";
+    debug.error = err?.message ?? String(err);
+    debug.products = mockCatalog;
+    debug.productsSource =
+      "mockCatalog (fallback: error in debug-products handler)";
+    debug.ok = false;
+    return NextResponse.json(debug);
   }
 }

@@ -1,197 +1,54 @@
-// src/app/avatar-seller/page.tsx
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
-import {
-  MascotProvider,
-  MascotClient,
-  MascotRive,
-  Alignment,
-  Fit,
-} from "@mascotbot-sdk/react";
+import type { EfroProduct } from "@/lib/products/mockCatalog";
+import { mockCatalog } from "@/lib/products/mockCatalog";
+import EFROProductCards from "@/components/EFROProductCards";
 
-// HIER: nur diese 5 Imports von @/... auf relative Pfade umgestellt
-import EFROChatWindow from "../../components/EFROChatWindow";
-import {
-  ShoppingIntent,
-  EfroProduct,
-  mockCatalog,
-} from "../../lib/products/mockCatalog";
-import EFROProductCards from "../../components/EFROProductCards";
-import { buildShopifyAdminProductUrl } from "../../lib/products/shopifyLinks";
-import { runSellerBrain } from "../../lib/sales/sellerBrain";
-
-type ChatMessage = {
-  id: string;
-  text: string;
-  sender: "user" | "efro";
-};
-
-function SellerAvatarWithBrain({
-  allProducts,
-  shopDomain,
-  productsSource,
-}: {
-  allProducts: EfroProduct[];
-  shopDomain: string;
-  productsSource: string;
-}) {
-  const [isChatOpen, setIsChatOpen] = useState(true);
-  const [currentIntent, setCurrentIntent] =
-    useState<ShoppingIntent>("quick_buy");
-
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      sender: "efro",
-      text:
-        "Hey, ich bin EFRO, dein Verkaufsavatar. Schreib mir zum Beispiel: " +
-        "'Ich will etwas guenstiges' oder 'Zeig mir ein Premium Produkt', " +
-        "und ich mache dir passende Vorschlaege aus deinem Produktkatalog.",
-    },
-  ]);
-
-  const [lastRecommended, setLastRecommended] = useState<EfroProduct[]>([]);
-
-  const handleChatSend = (userText: string) => {
-    const idUser = "u-" + Date.now().toString();
-    const idEfro = "e-" + (Date.now() + 1).toString();
-
-    // User Nachricht
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: idUser,
-        sender: "user",
-        text: userText,
-      },
-    ]);
-
-    // SellerBrain
-    const brainResult = runSellerBrain(userText, currentIntent, allProducts);
-
-    setCurrentIntent(brainResult.intent);
-    setLastRecommended(brainResult.recommended);
-
-    // EFRO Antwort
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: idEfro,
-        sender: "efro",
-        text: brainResult.replyText,
-      },
-    ]);
-  };
-
-  const handleCardClick = (product: EfroProduct) => {
-    const url = buildShopifyAdminProductUrl(String(product.id), shopDomain);
-    if (!url) {
-      console.warn("[avatar-seller] could not build admin URL", product);
-      alert(
-        `Keine gueltige Admin-URL fuer dieses Produkt ableitbar.\nID: ${product.id}`
-      );
-      return;
-    }
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
-  return (
-    <>
-      {/* DEBUG-BOX: Product source + Intent */}
-      <div className="fixed top-4 left-4 z-40 bg-white/80 border rounded-lg px-3 py-2 text-xs text-gray-700 shadow">
-        <div>
-          Product source:{" "}
-          <span className="font-semibold">{productsSource}</span>
-        </div>
-        <div className="mt-1">
-          Aktueller Intent:{" "}
-          <span className="font-semibold uppercase">
-            {currentIntent}
-          </span>
-        </div>
-      </div>
-
-      {/* Karten links unten */}
-      <div className="fixed bottom-4 left-4 z-30 w-[360px] max-w-[80vw]">
-        <EFROProductCards
-          products={lastRecommended}
-          title="EFRO empfiehlt gerade (klickbar -> Admin Produktseite)"
-          onProductClick={handleCardClick}
-        />
-      </div>
-
-      {isChatOpen && (
-        <EFROChatWindow
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          onSend={handleChatSend}
-          messages={messages}
-        />
-      )}
-
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
-        <div className="w-80 h-80 pointer-events-none">
-          <MascotRive />
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => setIsChatOpen((open) => !open)}
-            className="h-12 px-5 bg-white text-gray-800 border rounded-lg shadow"
-          >
-            {isChatOpen ? "Chat schliessen" : "Chat oeffnen"}
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
+const EFRO_DEV_SHOP = "local-dev";
 
 export default function AvatarSellerPage() {
-  const mascotUrl = "/retroBot.riv";
-
-  const [allProducts, setAllProducts] = useState<EfroProduct[]>(mockCatalog);
-  const [productsSource, setProductsSource] = useState<string>(
-    "mockCatalog (initial)"
-  );
-
-  // Dev-Store Domain
-  const devShopDomain = "avatarsalespro-dev.myshopify.com";
+  const [efroProducts, setEfroProducts] = useState<EfroProduct[]>(mockCatalog);
+  const [status, setStatus] = useState<string>("loading...");
+  const [productsSource, setProductsSource] = useState<string>("mockCatalog (initial)");
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadProducts = async () => {
+    async function loadEfroProducts() {
       try {
-        const res = await fetch(
-          "/api/efro/debug-products?shop=local-dev",
-          { cache: "no-store" }
-        );
+        const res = await fetch(`/api/efro/debug-products?shop=${EFRO_DEV_SHOP}`, {
+          cache: "no-store",
+        });
+
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
+
         const data = await res.json();
+
         if (cancelled) return;
 
-        if (Array.isArray(data.products)) {
-          setAllProducts(data.products);
-        }
-        if (typeof data.source === "string") {
-          setProductsSource(data.source);
+        if (Array.isArray(data.products) && data.products.length > 0) {
+          setEfroProducts(data.products);
+          setStatus("ok");
+          setProductsSource(data.productsSource ?? data.source ?? "efro/debug-products");
         } else {
-          setProductsSource("getEfroProductsForShop (no explicit source)");
+          setEfroProducts(mockCatalog);
+          setStatus("fallback: empty EFRO list");
+          setProductsSource("mockCatalog (fallback)");
         }
       } catch (err) {
-        console.error("[avatar-seller] failed to load products from API:", err);
+        console.error("[avatar-seller] failed to load EFRO products", err);
         if (!cancelled) {
-          setProductsSource("mockCatalog (fallback, API failed)");
-          setAllProducts(mockCatalog);
+          setEfroProducts(mockCatalog);
+          setStatus("fallback: error loading EFRO products");
+          setProductsSource("mockCatalog (error)");
         }
       }
-    };
+    }
 
-    loadProducts();
+    loadEfroProducts();
 
     return () => {
       cancelled = true;
@@ -199,24 +56,85 @@ export default function AvatarSellerPage() {
   }, []);
 
   return (
-    <MascotProvider>
-      <main className="w-full h-screen bg-[#FFF8F0]">
-        <MascotClient
-          src={mascotUrl}
-          artboard="Character"
-          inputs={["is_speaking", "gesture"]}
-          layout={{
-            fit: Fit.Contain,
-            alignment: Alignment.BottomRight,
+    <main
+      style={{
+        padding: "1.5rem 2rem",
+        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+        display: "grid",
+        gridTemplateColumns: "3fr minmax(320px, 1.2fr)",
+        gap: "1.5rem",
+        alignItems: "flex-start",
+      }}
+    >
+      <section>
+        <h1 style={{ marginTop: 0 }}>Avatar Seller – EFRO Products</h1>
+        <p style={{ margin: "0.25rem 0", fontSize: "0.9rem", color: "#4b5563" }}>
+          Status: <strong>{status}</strong>
+        </p>
+        <p style={{ margin: "0.1rem 0 0.5rem", fontSize: "0.85rem", color: "#6b7280" }}>
+          Source: <strong>{productsSource}</strong>
+        </p>
+        <p style={{ margin: "0.1rem 0 1rem", fontSize: "0.85rem", color: "#6b7280" }}>
+          Total products: <strong>{efroProducts.length}</strong>
+        </p>
+
+        <EFROProductCards products={efroProducts} />
+      </section>
+
+      <aside
+        style={{
+          position: "sticky",
+          top: "1.5rem",
+          alignSelf: "flex-start",
+          borderRadius: "12px",
+          border: "1px solid #e5e7eb",
+          background: "#f9fafb",
+          padding: "1rem",
+          boxShadow: "0 10px 30px rgba(15,23,42,0.08)",
+          height: "min(720px, 80vh)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <h2
+          style={{
+            fontSize: "1rem",
+            margin: "0 0 0.75rem",
+            color: "#111827",
           }}
         >
-          <SellerAvatarWithBrain
-            allProducts={allProducts}
-            shopDomain={devShopDomain}
-            productsSource={productsSource}
+          EFRO Avatar (live)
+        </h2>
+        <p
+          style={{
+            fontSize: "0.85rem",
+            margin: "0 0 0.75rem",
+            color: "#4b5563",
+          }}
+        >
+          Dies ist derselbe Avatar wie auf <code>/avatar</code>. Sprich mit ihm, waehrend du
+          links die Produkte siehst.
+        </p>
+        <div
+          style={{
+            flex: 1,
+            borderRadius: "10px",
+            overflow: "hidden",
+            border: "1px solid #e5e7eb",
+            background: "white",
+          }}
+        >
+          <iframe
+            src="/avatar"
+            title="EFRO Avatar"
+            style={{
+              width: "100%",
+              height: "100%",
+              border: "none",
+            }}
           />
-        </MascotClient>
-      </main>
-    </MascotProvider>
+        </div>
+      </aside>
+    </main>
   );
 }
