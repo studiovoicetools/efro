@@ -1,221 +1,193 @@
 ﻿// src/lib/sales/sellerBrain.ts
 
-import {
-  EfroProduct,
-  ShoppingIntent,
-} from "@/lib/products/mockCatalog";
-import {
-  getRecommendationsForIntent,
-  getRecommendationsForIntentFromList,
-} from "../products/recommendationEngine";
+import { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
 
-import { buildSalesMessage } from "./salesCopy";
-import { getRelatedProducts } from "../products/relatedProducts";
-
+/**
+ * Ergebnisstruktur des Seller-Gehirns
+ */
 export type SellerBrainResult = {
   intent: ShoppingIntent;
-  replyText: string;
   recommended: EfroProduct[];
+  replyText: string;
 };
 
 /**
- * Harte Normalisierung fuer Intent-Erkennung:
- * - Kleinbuchstaben
- * - Tuerkische Buchstaben auf ASCII mappen
- * - Umlaute und Akzente vereinfachen
+ * Nutzertext normalisieren
  */
-function normalizeForIntent(text: string): string {
-  let t = text.toLowerCase();
-
-  // Tuerkische Buchstaben & Umlaute explizit mappen
-  const replacements: Array<[RegExp, string]> = [
-    // Tuerkisch / Deutsch
-    [/[Ã¶Å‘Ã²Ã³Ã´Ãµ]/g, "o"],
-    [/[Ã¼ÃºÃ¹Ã»]/g, "u"],
-    [/[Ã¤Ã¢Ã¡Ã ]/g, "a"],
-    [/[Ã©Ã¨ÃªÃ«]/g, "e"],
-    [/[Ä±]/g, "i"],      // tuerkisches Ä± -> i
-    [/[ÅŸÅ¡]/g, "s"],     // s-Varianten
-    [/[ÄŸ]/g, "g"],
-    [/[Ã§]/g, "c"],
-    [/[ÃŸ]/g, "ss"],
-
-    // Sicherheitshalber auch Grossbuchstaben (falls toLowerCase mal zickt)
-    [/[Ã–ÅÃ’Ã“Ã”Ã•]/g, "o"],
-    [/[ÃœÃšÃ™Ã›]/g, "u"],
-    [/[Ã„Ã‚ÃÃ€]/g, "a"],
-    [/[Ã‰ÃˆÃŠÃ‹]/g, "e"],
-    [/[Ä°I]/g, "i"],
-    [/[ÅÅ ]/g, "s"],
-    [/[Ä]/g, "g"],
-    [/[Ã‡]/g, "c"],
-  ];
-
-  for (const [pattern, repl] of replacements) {
-    t = t.replace(pattern, repl);
-  }
-
-  // Generische Unicode-Diacritics entfernen (z. B. ungewÃ¶hnliche Akzente)
-  try {
-    t = t.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
-  } catch {
-    // falls normalize in der Runtime nicht verfuegbar ist, einfach ignorieren
-  }
-
-  // Mehrfach-Leerzeichen auf eins reduzieren
-  t = t.replace(/\s+/g, " ").trim();
-
-  return t;
+function normalize(text: string): string {
+  return text.toLowerCase();
 }
 
 /**
- * Intent-Erkennung aus freiem Text.
- * Wird an allen Stellen zentral verwendet (Dev-Chat, Avatar-Seller, spaeter Voice).
+ * Hilfsfunktionen fuer Intent-Detection
  */
-export function detectIntentFromText(
-  text: string,
-  fallback: ShoppingIntent
-): ShoppingIntent {
-  const t = normalizeForIntent(text);
+function detectIntentFromText(text: string, currentIntent: ShoppingIntent): ShoppingIntent {
+  const t = normalize(text);
 
-  // DEBUG optional:
-  // console.log("[SellerBrain] RAW:", text, "NORMALIZED:", t);
+  const premiumWords = ["premium", "beste", "hochwertig", "qualitaet", "qualitat", "luxus", "teuer"];
+  const bargainWords = ["billig", "guenstig", "günstig", "discount", "spar", "rabatt", "deal", "bargain"];
+  const giftWords = ["geschenk", "gift", "praesent", "praes", "present"];
+  const bundleWords = ["bundle", "set", "paket", "combo"];
+  const exploreWords = ["zeig mir was", "inspiration", "zeige mir", "was hast du", "was gibt es"];
 
-  // 1) Spezifische Intents zuerst (premium, gift, bundle),
-  //    dann bargain/explore, am Ende fallback.
-
-  // PREMIUM / LUXUS / TEUER
-  if (
-    t.includes("premium") ||
-    t.includes("luxus") ||
-    t.includes("luxusprodukt") ||
-    t.includes("luxurio") || // luxuriÃ¶s, luxurius etc.
-    t.includes("high end") ||
-    t.includes("high-end") ||
-    t.includes("teuerste") ||
-    t.includes("teures") ||
-    t.includes("beste qualitaet") ||
-    t.includes("en iyi") ||     // TR: "am besten"
-    t.includes("en pahali")     // TR: "am teuersten"
-  ) {
+  if (premiumWords.some((w) => t.includes(w))) {
     return "premium";
   }
-
-  // GIFT / GESCHENK / HEDIYE
-  if (
-    t.includes("gift") ||
-    t.includes("geschenk") ||
-    t.includes("present") ||
-    t.includes("gutschein") ||
-    t.includes("hediye")      // TR: Geschenk
-  ) {
-    return "gift";
-  }
-
-  // BUNDLE / SET / PAKET
-  if (
-    t.includes("bundle") ||
-    t.includes(" set") ||
-    t.startsWith("set ") ||
-    t.includes("paket") ||
-    t.includes("pack") ||
-    t.includes("paketi")      // TR: Paket
-  ) {
-    return "bundle";
-  }
-
-  // BARGAIN / GUENSTIG / UCUZ / FIYAT
-  if (
-    t.includes("cheap") ||
-    t.includes("guenstig") ||
-    t.includes("gunstig") ||
-    t.includes("preiswert") ||
-    t.includes("billig") ||
-    t.includes("preis ") ||
-    t.includes("preis-") ||
-    t.includes("price") ||
-    t.includes("ucuz") ||       // TR: billig
-    t.includes("fiyat") ||      // TR: Preis
-    t.includes("indirim")       // TR: Rabatt
-  ) {
+  if (bargainWords.some((w) => t.includes(w))) {
     return "bargain";
   }
-
-  // EXPLORE / IDEEN / INSPIRATION
-  if (
-    t.includes("idee") ||
-    t.includes("ideen") ||
-    t.includes("inspir") ||
-    t.includes("vorschlag") ||
-    t.includes("vorschlaege") ||
-    t.includes("ilham") ||      // TR: Inspiration
-    t.includes("fikir")         // TR: Idee
-  ) {
+  if (giftWords.some((w) => t.includes(w))) {
+    return "gift";
+  }
+  if (bundleWords.some((w) => t.includes(w))) {
+    return "bundle";
+  }
+  if (exploreWords.some((w) => t.includes(w))) {
     return "explore";
   }
 
-  // 2) Wenn nichts passt: alten Intent behalten
-  return fallback;
+  // Wenn nichts erkannt wird: alten Intent behalten,
+  // ansonsten auf quick_buy zurueckfallen.
+  return currentIntent || "quick_buy";
 }
 
 /**
- * Zentrale Verkaufslogik:
- * - nimmt User-Text + vorherigen Intent + Produktliste
- * - erkennt neuen Intent
- * - waehlt passende Produkte (Empfehlung + Cross-Sell)
- * - baut eine fertige EFRO-Antwort als Text
- * - gibt Intent + Text + empfohlene Produkte zurueck
- *
- * --> Kann von Dev-Chat, Avatar-Seller, Voice-Routen wiederverwendet werden.
+ * Produkte nach Snowboard, Preis etc. filtern
  */
-export function runSellerBrain(
-  userText: string,
-  prevIntent: ShoppingIntent,
+function filterProducts(
+  text: string,
+  intent: ShoppingIntent,
   allProducts: EfroProduct[]
-): SellerBrainResult {
-  const intent = detectIntentFromText(userText, prevIntent);
+): EfroProduct[] {
+  const t = normalize(text);
 
-  // 1) Empfehlungen fuer diesen Intent
-  const recommended = getRecommendationsForIntentFromList(
-    intent,
-    allProducts,
-    3
-  );
+  let candidates = [...allProducts];
 
-  // 2) Sales-Text auf Basis der empfohlenen Produkte
-  const msg = buildSalesMessage(intent, recommended);
+  // 1) Keyword-Filter: Snowboard
+  const snowboardWords = ["snowboard", "board", "snow"];
+  const wantsSnowboard = snowboardWords.some((w) => t.includes(w));
 
-  const parts: string[] = [];
-  parts.push(msg.intro);
-  parts.push("");
-
-  for (const line of msg.productLines) {
-    parts.push("â€¢ " + line);
+  if (wantsSnowboard) {
+    candidates = candidates.filter((p) => {
+      const title = normalize(p.title);
+      const desc = normalize(p.description || "");
+      const tags = (p.tags || []).map((tag) => normalize(tag));
+      return (
+        title.includes("snowboard") ||
+        desc.includes("snowboard") ||
+        tags.includes("snowboard")
+      );
+    });
   }
 
-  // 3) Cross-Sell basierend auf Hauptprodukt
-  if (recommended.length > 0) {
-    const main = recommended[0];
-    const related = getRelatedProducts(main, allProducts, 2);
-    if (related.length > 0) {
-      parts.push("");
-      parts.push(
-        `Wenn du besonders zu "${main.title}" tendierst, passen diese Produkte sehr gut dazu:`
-      );
-      for (const r of related) {
-        parts.push(`â†’ ${r.title} (${r.price.toFixed(2)} â‚¬)`);
+  // 2) Intent-basierte Preisfilter
+  if (intent === "premium") {
+    // Premium: hoehere Preise bevorzugen
+    candidates = candidates.filter((p) => p.price >= 600);
+    candidates.sort((a, b) => b.price - a.price);
+  } else if (intent === "bargain") {
+    // Bargain: guenstigere Produkte bevorzugen
+    candidates = candidates.filter((p) => p.price <= 400);
+    candidates.sort((a, b) => a.price - b.price);
+  } else if (intent === "gift") {
+    // Geschenk: mittlerer Preisbereich
+    candidates = candidates.filter((p) => p.price >= 300 && p.price <= 700);
+    candidates.sort((a, b) => a.price - b.price);
+  } else if (intent === "bundle") {
+    // Bundle: Produkte mit Tags wie "bundle" oder "set"
+    candidates = candidates.filter((p) => {
+      const tags = (p.tags || []).map((tag) => normalize(tag));
+      return tags.includes("bundle") || tags.includes("set");
+    });
+  } else if (intent === "explore") {
+    // Explore: alles zulassen, aber ein bisschen durchmischen
+    candidates.sort((a, b) => a.title.localeCompare(b.title));
+  } else {
+    // quick_buy / default: nach Relevanz -> Preis mittlerer Bereich
+    candidates.sort((a, b) => a.price - b.price);
+  }
+
+  // Fallback, falls nach Filtern nichts mehr uebrig ist
+  if (candidates.length === 0) {
+    candidates = [...allProducts];
+    // Snowboard-Wunsch nochmal versuchen, aber ohne harte Preisfilter
+    if (wantsSnowboard) {
+      candidates = candidates.filter((p) => {
+        const title = normalize(p.title);
+        const desc = normalize(p.description || "");
+        const tags = (p.tags || []).map((tag) => normalize(tag));
+        return (
+          title.includes("snowboard") ||
+          desc.includes("snowboard") ||
+          tags.includes("snowboard")
+        );
+      });
+      if (candidates.length === 0) {
+        candidates = [...allProducts];
       }
     }
   }
 
-  parts.push("");
-  parts.push(msg.closing);
+  // Maximal 3–4 Vorschlaege zurueckgeben
+  return candidates.slice(0, 4);
+}
 
-  const replyText = parts.join("\n");
+/**
+ * Reply-Text fuer EFRO bauen
+ */
+function buildReplyText(
+  text: string,
+  intent: ShoppingIntent,
+  recommended: EfroProduct[]
+): string {
+  if (recommended.length === 0) {
+    return (
+      "Ich habe gerade keine passenden Produkte gefunden. " +
+      "Pruefe bitte deinen Katalog oder frag mich noch einmal etwas genauer, z.B.: 'Zeig mir ein Snowboard unter 500 Euro'."
+    );
+  }
+
+  const introByIntent: Record<ShoppingIntent, string> = {
+    quick_buy:
+      "Alles klar, ich habe dir ein paar Produkte rausgesucht, die du schnell kaufen kannst:",
+    bargain:
+      "Du suchst etwas guenstiges – hier sind passende Sparangebote aus deinem Katalog:",
+    premium:
+      "Du willst Premium-Qualitaet – das sind deine Top-Produkte mit hoher Qualitaet:",
+    gift:
+      "Du suchst ein Geschenk – diese Produkte eignen sich gut als Praesent:",
+    bundle:
+      "Du willst ein Bundle oder Set – diese Produkte lassen sich gut kombinieren:",
+    explore:
+      "Lass uns ein bisschen stoebern – hier sind ein paar Inspirationen aus deinem Shop:",
+  };
+
+  const intro = introByIntent[intent] ?? introByIntent.quick_buy;
+
+  const lines = recommended.map(
+    (p, idx) =>
+      `${idx + 1}. ${p.title} – ${p.price.toFixed(2)} €` +
+      (p.tags && p.tags.length > 0 ? ` (Tags: ${p.tags.join(", ")})` : "")
+  );
+
+  return [intro, "", ...lines].join("\n");
+}
+
+/**
+ * Hauptfunktion, die vom Chat/Avatar aufgerufen wird
+ */
+export function runSellerBrain(
+  userText: string,
+  currentIntent: ShoppingIntent,
+  allProducts: EfroProduct[]
+): SellerBrainResult {
+  const nextIntent = detectIntentFromText(userText, currentIntent);
+  const recommended = filterProducts(userText, nextIntent, allProducts);
+  const replyText = buildReplyText(userText, nextIntent, recommended);
 
   return {
-    intent,
-    replyText,
+    intent: nextIntent,
     recommended,
+    replyText,
   };
 }
