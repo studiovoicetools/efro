@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseClient } from "@/lib/getSupabaseClient";
+import { getSupabaseClient } from "../../../lib/getSupabaseClient";
 
 
 export async function POST(req: NextRequest) {

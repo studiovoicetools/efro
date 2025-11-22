@@ -1,4 +1,4 @@
-// src/lib/sales/sellerBrain.ts
+﻿// src/lib/sales/sellerBrain.ts
 
 import {
   EfroProduct,
@@ -9,8 +9,8 @@ import {
   getRecommendationsForIntentFromList,
 } from "../products/recommendationEngine";
 
-import { buildSalesMessage } from "@/lib/sales/salesCopy";
-import { getRelatedProducts } from "@/lib/products/relatedProducts";
+import { buildSalesMessage } from "./salesCopy";
+import { getRelatedProducts } from "../products/relatedProducts";
 
 export type SellerBrainResult = {
   intent: ShoppingIntent;
@@ -30,32 +30,32 @@ function normalizeForIntent(text: string): string {
   // Tuerkische Buchstaben & Umlaute explizit mappen
   const replacements: Array<[RegExp, string]> = [
     // Tuerkisch / Deutsch
-    [/[öőòóôõ]/g, "o"],
-    [/[üúùû]/g, "u"],
-    [/[äâáà]/g, "a"],
-    [/[éèêë]/g, "e"],
-    [/[ı]/g, "i"],      // tuerkisches ı -> i
-    [/[şš]/g, "s"],     // s-Varianten
-    [/[ğ]/g, "g"],
-    [/[ç]/g, "c"],
-    [/[ß]/g, "ss"],
+    [/[Ã¶Å‘Ã²Ã³Ã´Ãµ]/g, "o"],
+    [/[Ã¼ÃºÃ¹Ã»]/g, "u"],
+    [/[Ã¤Ã¢Ã¡Ã ]/g, "a"],
+    [/[Ã©Ã¨ÃªÃ«]/g, "e"],
+    [/[Ä±]/g, "i"],      // tuerkisches Ä± -> i
+    [/[ÅŸÅ¡]/g, "s"],     // s-Varianten
+    [/[ÄŸ]/g, "g"],
+    [/[Ã§]/g, "c"],
+    [/[ÃŸ]/g, "ss"],
 
     // Sicherheitshalber auch Grossbuchstaben (falls toLowerCase mal zickt)
-    [/[ÖŐÒÓÔÕ]/g, "o"],
-    [/[ÜÚÙÛ]/g, "u"],
-    [/[ÄÂÁÀ]/g, "a"],
-    [/[ÉÈÊË]/g, "e"],
-    [/[İI]/g, "i"],
-    [/[ŞŠ]/g, "s"],
-    [/[Ğ]/g, "g"],
-    [/[Ç]/g, "c"],
+    [/[Ã–ÅÃ’Ã“Ã”Ã•]/g, "o"],
+    [/[ÃœÃšÃ™Ã›]/g, "u"],
+    [/[Ã„Ã‚ÃÃ€]/g, "a"],
+    [/[Ã‰ÃˆÃŠÃ‹]/g, "e"],
+    [/[Ä°I]/g, "i"],
+    [/[ÅÅ ]/g, "s"],
+    [/[Ä]/g, "g"],
+    [/[Ã‡]/g, "c"],
   ];
 
   for (const [pattern, repl] of replacements) {
     t = t.replace(pattern, repl);
   }
 
-  // Generische Unicode-Diacritics entfernen (z. B. ungewöhnliche Akzente)
+  // Generische Unicode-Diacritics entfernen (z. B. ungewÃ¶hnliche Akzente)
   try {
     t = t.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
   } catch {
@@ -89,7 +89,7 @@ export function detectIntentFromText(
     t.includes("premium") ||
     t.includes("luxus") ||
     t.includes("luxusprodukt") ||
-    t.includes("luxurio") || // luxuriös, luxurius etc.
+    t.includes("luxurio") || // luxuriÃ¶s, luxurius etc.
     t.includes("high end") ||
     t.includes("high-end") ||
     t.includes("teuerste") ||
@@ -190,7 +190,7 @@ export function runSellerBrain(
   parts.push("");
 
   for (const line of msg.productLines) {
-    parts.push("• " + line);
+    parts.push("â€¢ " + line);
   }
 
   // 3) Cross-Sell basierend auf Hauptprodukt
@@ -203,7 +203,7 @@ export function runSellerBrain(
         `Wenn du besonders zu "${main.title}" tendierst, passen diese Produkte sehr gut dazu:`
       );
       for (const r of related) {
-        parts.push(`→ ${r.title} (${r.price.toFixed(2)} €)`);
+        parts.push(`â†’ ${r.title} (${r.price.toFixed(2)} â‚¬)`);
       }
     }
   }
