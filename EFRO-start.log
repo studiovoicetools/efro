@@ -241,3 +241,10 @@
 [2025-11-21 23:59:50] [INFO] Shopify CLI Version: @shopify/cli/3.87.4 win32-x64 node-v22.18.0
 [2025-11-21 23:59:51] [INFO] Starte 'shopify app dev --use-localhost' ...
 [2025-11-21 23:59:51] [INFO] Shopify App Dev (localhost) gestartet.
+[2025-11-22 10:56:23] [INFO] EFRO Starter gestartet.
+[2025-11-22 10:56:23] [INFO] Arbeitsordner gesetzt auf: D:\efro
+[2025-11-22 10:56:23] [INFO] Shopify CLI gefunden: C:\Users\MEZE AYDIN\AppData\Roaming\npm\shopify.ps1
+[2025-11-22 10:56:23] [INFO] Node Version aktiv: v22.18.0
+[2025-11-22 10:56:27] [INFO] Shopify CLI Version: @shopify/cli/3.87.4 win32-x64 node-v22.18.0
+[2025-11-22 10:56:27] [INFO] Starte 'shopify app dev --use-localhost' ...
+[2025-11-22 10:56:27] [INFO] Shopify App Dev (localhost) gestartet.

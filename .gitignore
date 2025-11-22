@@ -51,3 +51,18 @@ mascotbot-sdk-react-*.tgz
 # Backup / Utility Scripts
 syncfix.sh
 syncfix.cmd
+
+
+# Logs
+*.log
+pnpm-debug.log*
+
+# Build / Coverage
+dist/
+coverage/
+
+
+# IDE / Editor
+.vscode/
+.idea/
+
