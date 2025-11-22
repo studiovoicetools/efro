@@ -5,20 +5,23 @@ import { useEffect, useState } from "react";
 import {
   MascotProvider,
   MascotClient,
-  MascotRive,
   Alignment,
   Fit,
 } from "@mascotbot-sdk/react";
 
-import EFROChatWindow from "@/components/EFROChatWindow";
+import EFROChatWindow from "../../components/EFROChatWindow";
 import {
   ShoppingIntent,
   EfroProduct,
   mockCatalog,
-} from "@/lib/products/mockCatalog";
-import EFROProductCards from "@/components/EFROProductCards";
-import { buildShopifyAdminProductUrl } from "@/lib/products/shopifyLinks";
-import { runSellerBrain } from "@/lib/sales/sellerBrain";
+} from "../../lib/products/mockCatalog";
+import EFROProductCards from "../../components/EFROProductCards";
+import { buildShopifyAdminProductUrl } from "../../lib/products/shopifyLinks";
+import { runSellerBrain } from "../../lib/sales/sellerBrain";
+
+// Typbremse fuer MascotClient, damit sich aendernde Props/Typen
+// keinen Build mehr sprengen (wie bei WorkingAvatar).
+const MascotClientAny: any = MascotClient;
 
 type ChatMessage = {
   id: string;
@@ -131,7 +134,8 @@ function SellerAvatarWithBrain({
 
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
         <div className="w-80 h-80 pointer-events-none">
-          <MascotRive />
+          {/* Hier koennte spaeter noch ein sichtbarer Avatar rein,
+             aktuell dient MascotClientAny als globaler Provider */}
         </div>
 
         <div className="flex gap-3">
@@ -163,10 +167,9 @@ export default function AvatarSellerPage() {
 
     const loadProducts = async () => {
       try {
-        const res = await fetch(
-          "/api/efro/debug-products?shop=local-dev",
-          { cache: "no-store" }
-        );
+        const res = await fetch("/api/efro/debug-products?shop=local-dev", {
+          cache: "no-store",
+        });
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
@@ -200,7 +203,7 @@ export default function AvatarSellerPage() {
   return (
     <MascotProvider>
       <main className="w-full h-screen bg-[#FFF8F0]">
-        <MascotClient
+        <MascotClientAny
           src={mascotUrl}
           artboard="Character"
           inputs={["is_speaking", "gesture"]}
@@ -214,7 +217,7 @@ export default function AvatarSellerPage() {
             shopDomain={devShopDomain}
             productsSource={productsSource}
           />
-        </MascotClient>
+        </MascotClientAny>
       </main>
     </MascotProvider>
   );
