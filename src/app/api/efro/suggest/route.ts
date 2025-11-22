@@ -5,7 +5,7 @@ import type {
   ShoppingIntent,
   EfroProduct,
 } from "@/lib/products/mockCatalog";
-import { runSellerBrain } from "@/lib/sales/sellerBrain";
+import { runSellerBrain } from "../../../../lib/sales/sellerBrain";
 
 type SuggestResponse = {
   shop: string;

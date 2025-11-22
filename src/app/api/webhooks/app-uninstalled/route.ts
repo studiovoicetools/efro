@@ -1,23 +1,21 @@
-﻿export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
-import { getSupabaseClient } from "@/lib/getSupabaseClient";
 
+/**
+ * Stub fuer den Shopify "app/uninstalled" Webhook.
+ * Supabase ist noch nicht angebunden, daher machen wir hier nur Logging
+ * und geben eine erfolgreiche Antwort zurueck.
+ */
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { shop } = body;
-    const supabase = getSupabaseClient();
+export async function POST(request: Request) {
+  const bodyText = await request.text();
+  console.log("[webhooks/app-uninstalled] Stub received payload:", bodyText);
 
-    await supabase.from("shops").update({ active: false }).eq("shop", shop);
-
-    return NextResponse.json({ success: true });
-  } catch (err: any) {
-    console.error("? Webhook Fehler:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+  return NextResponse.json(
+    {
+      ok: false,
+      message:
+        "Supabase ist noch nicht konfiguriert. app-uninstalled Webhook laeuft im Stub-Modus.",
+    },
+    { status: 200 }
+  );
 }
-
-

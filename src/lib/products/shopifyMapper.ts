@@ -1,6 +1,6 @@
 // src/lib/products/shopifyMapper.ts
 
-import { getSupabaseClient } from "@/lib/getSupabaseClient";
+import { getSupabaseClient } from "../getSupabaseClient";
 import type { EfroProduct } from "./mockCatalog";
 import { mockCatalog } from "./mockCatalog";
 import { enrichProducts } from "./enrichProducts";

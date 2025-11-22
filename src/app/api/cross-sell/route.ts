@@ -1,28 +1,30 @@
-﻿export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+import { NextResponse } from "next/server";
 
-import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseClient } from "../../../lib/getSupabaseClient";
+/**
+ * Placeholder cross-sell API.
+ * TODO: Spaeter mit echtem Supabase / Cross-Sell-Backend ersetzen.
+ */
 
-
-export async function POST(req: NextRequest) {
-  try {
-    const { sku } = await req.json();
-    const supabase = getSupabaseClient();
-
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .ilike("cross_sell_skus", `%${sku}%`)
-      .limit(5);
-
-    if (error) throw error;
-
-    return NextResponse.json({ success: true, related: data });
-  } catch (err: any) {
-    console.error("? Cross-sell Fehler:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+export async function GET(request: Request) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        "Cross-sell Backend ist noch nicht konfiguriert. Bitte Supabase anbinden und src/app/api/cross-sell/route.ts implementieren.",
+      items: [],
+    },
+    { status: 501 }
+  );
 }
 
-
+export async function POST(request: Request) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        "Cross-sell Backend ist noch nicht konfiguriert. Bitte Supabase anbinden und src/app/api/cross-sell/route.ts implementieren.",
+      items: [],
+    },
+    { status: 501 }
+  );
+}

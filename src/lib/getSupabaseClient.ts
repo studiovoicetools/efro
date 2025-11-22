@@ -1,16 +1,15 @@
-﻿// src/lib/getSupabaseClient.ts
-import { createClient } from "@supabase/supabase-js";
+/**
+ * Minimaler Stub fuer Supabase Client, damit Next Build auf Render laeuft.
+ * TODO: Spaeter durch echte Supabase Implementierung ersetzen.
+ */
 
-export function getSupabaseClient() {
-  const supabaseUrl =
-    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+export type SupabaseClientLike = any;
 
-  if (!supabaseUrl || !supabaseKey) {
-    console.error("âŒ Supabase-Umgebungsvariablen fehlen!");
-    throw new Error("Supabase environment variables missing");
+let cachedClient: SupabaseClientLike | null = null;
+
+export function getSupabaseClient(): SupabaseClientLike {
+  if (!cachedClient) {
+    throw new Error("getSupabaseClient() wurde aufgerufen, aber Supabase ist noch nicht konfiguriert. Bitte src/lib/getSupabaseClient.ts implementieren.");
   }
-
-  return createClient(supabaseUrl, supabaseKey);
+  return cachedClient;
 }

@@ -1,31 +1,20 @@
-﻿export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+import { NextResponse } from "next/server";
 
-import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseClient } from "../../../../lib/getSupabaseClient";
+/**
+ * Placeholder implementation for checkout URL endpoint.
+ * TODO: Wire up Supabase carts table and real checkout URL logic.
+ *
+ * Aktuell NICHT mit Supabase verbunden, damit der Build auf Render
+ * ohne echte Datenbank-Konfiguration funktioniert.
+ */
 
-
-export async function POST(req: NextRequest) {
-  try {
-    const { cartId } = await req.json();
-    const supabase = getSupabaseClient();
-
-    const { data, error } = await supabase
-      .from("carts")
-      .select("checkout_url")
-      .eq("id", cartId)
-      .single();
-
-    if (error) throw error;
-
-    if (!data?.checkout_url)
-      return NextResponse.json({ error: "Kein Checkout-Link gefunden" }, { status: 404 });
-
-    return NextResponse.json({ success: true, url: data.checkout_url });
-  } catch (err: any) {
-    console.error("? Checkout URL Fehler:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+export async function POST(request: Request) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        "Checkout URL backend is not yet konfiguriert. Bitte Supabase einrichten und src/app/api/checkout/url/route.ts implementieren.",
+    },
+    { status: 501 }
+  );
 }
-
-
