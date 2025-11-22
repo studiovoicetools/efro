@@ -13,13 +13,13 @@ function scoreProductForIntent(intent: ShoppingIntent, p: EfroProduct): number {
 
   let score = 0;
 
+  // sichere Defaults fuer Rating und Popularitaet
+  const rating = typeof p.rating === "number" ? p.rating : 0;
+  const popularity = typeof p.popularityScore === "number" ? p.popularityScore : 0;
+
   // Basis: ein bisschen Punkte fuer Rating und Popularitaet
-  if (typeof p.rating === "number") {
-    score += p.rating * 2; // max 10 Punkte
-  }
-  if (typeof p.popularityScore === "number") {
-    score += p.popularityScore / 10; // 0..10
-  }
+  score += rating * 2;          // max ca. 10 Punkte
+  score += popularity / 10;     // 0..10
 
   switch (intent) {
     case "bargain": {
@@ -67,16 +67,16 @@ function scoreProductForIntent(intent: ShoppingIntent, p: EfroProduct): number {
     case "explore": {
       // Entdecken: wir pushen Produkte mit guten Ratings / Popularitaet
       // (Basis oben macht das schon, hier nur kleiner Bonus)
-      if (p.rating >= 4.5) score += 5;
-      if (p.popularityScore >= 80) score += 5;
+      if (rating >= 4.5) score += 5;
+      if (popularity >= 80) score += 5;
       break;
     }
 
     case "quick_buy":
     default: {
       // Schneller Kauf: einfach die "besten" Produkte
-      if (p.rating >= 4.5) score += 10;
-      if (p.popularityScore >= 80) score += 10;
+      if (rating >= 4.5) score += 10;
+      if (popularity >= 80) score += 10;
       break;
     }
   }

@@ -9,6 +9,11 @@ interface EFROAvatarProps {
   dynamicVariables?: Record<string, any>;
 }
 
+// Erweitertes Mascot-Resultat: erlaubt isSpeaking optional
+type MascotWithSpeaking = ReturnType<typeof useMascotElevenlabs> & {
+  isSpeaking?: boolean;
+};
+
 export default function EFROAvatar({
   onSpeakingChange,
   dynamicVariables = {},
@@ -30,20 +35,21 @@ export default function EFROAvatar({
     },
   });
 
-  const { isIntercepting, isSpeaking } = useMascotElevenlabs({
+  // Mascot-Lipsync: Options als any casten, damit neue Felder nicht zu TS-Fehlern fuehren
+  const mascot = useMascotElevenlabs({
     conversation,
     naturalLipSync: true,
     naturalLipSyncConfig: {
-      minVisemeInterval: 40,
-      mergeWindow: 60,
-      keyVisemePreference: 0.6,
-      preserveSilence: true,
-      similarityThreshold: 0.4,
-      preserveCriticalVisemes: true,
-      criticalVisemeMinDuration: 80,
+      // hier spaeter fein-tuning moeglich (smoothing, thresholds usw.)
+      // z.B.:
+      // smoothingFactor: 0.6,
+      // minAmplitude: 0.02,
+      // maxAmplitude: 0.6,
     },
-    gesture: true,
-  });
+  } as any);
+
+  const { isIntercepting } = mascot;
+  const isSpeaking = (mascot as MascotWithSpeaking).isSpeaking ?? false;
 
   useEffect(() => {
     onSpeakingChange?.(isSpeaking);
@@ -94,6 +100,8 @@ export default function EFROAvatar({
         return;
       }
 
+      // Elevenlabs Session: Config bewusst als any casten,
+      // damit optionale Felder nicht vom Typ geblockt werden
       await conversation.startSession({
         signedUrl,
         dynamicVariables: {
@@ -102,8 +110,7 @@ export default function EFROAvatar({
           products: demo.products || [],
           product_details: demo.product_details || [],
         },
-        enableTalkingAnimations: true,
-      });
+      } as any);
 
       setDebugStatus("connected");
     } catch (err) {
