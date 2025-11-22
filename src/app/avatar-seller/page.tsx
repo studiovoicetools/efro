@@ -10,15 +10,16 @@ import {
   Fit,
 } from "@mascotbot-sdk/react";
 
-import EFROChatWindow from "@/components/EFROChatWindow";
+// HIER: nur diese 5 Imports von @/... auf relative Pfade umgestellt
+import EFROChatWindow from "../../components/EFROChatWindow";
 import {
   ShoppingIntent,
   EfroProduct,
   mockCatalog,
-} from "@/lib/products/mockCatalog";
-import EFROProductCards from "@/components/EFROProductCards";
-import { buildShopifyAdminProductUrl } from "@/lib/products/shopifyLinks";
-import { runSellerBrain } from "@/lib/sales/sellerBrain";
+} from "../../lib/products/mockCatalog";
+import EFROProductCards from "../../components/EFROProductCards";
+import { buildShopifyAdminProductUrl } from "../../lib/products/shopifyLinks";
+import { runSellerBrain } from "../../lib/sales/sellerBrain";
 
 type ChatMessage = {
   id: string;
