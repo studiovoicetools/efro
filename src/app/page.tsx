@@ -11,7 +11,8 @@ import {
   useMascotElevenlabs,
 } from "@mascotbot-sdk/react";
 
-import EFROChatWindow from "@/components/EFROChatWindow";
+import EFROChatWindow from "../components/EFROChatWindow";
+
 
 interface ElevenLabsAvatarProps {
   dynamicVariables?: Record<string, string | number | boolean>;

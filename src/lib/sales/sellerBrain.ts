@@ -4,7 +4,11 @@ import {
   EfroProduct,
   ShoppingIntent,
 } from "@/lib/products/mockCatalog";
-import { getRecommendationsForIntentFromList } from "@/lib/products/recommendationEngine";
+import {
+  getRecommendationsForIntent,
+  getRecommendationsForIntentFromList,
+} from "../products/recommendationEngine";
+
 import { buildSalesMessage } from "@/lib/sales/salesCopy";
 import { getRelatedProducts } from "@/lib/products/relatedProducts";
 

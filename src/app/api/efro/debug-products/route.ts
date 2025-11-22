@@ -1,4 +1,7 @@
+
 // src/app/api/efro/debug-products/route.ts
+export const dynamic = "force-dynamic";
+
 
 import { NextRequest, NextResponse } from "next/server";
 import { getEfroProductsForShop } from "@/lib/products/shopifyMapper";
