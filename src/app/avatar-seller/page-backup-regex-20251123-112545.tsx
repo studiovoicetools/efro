@@ -176,30 +176,6 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
       SIGNED URL
   ============================================================ */
 
-  const loadSellerProducts = async (shopDomain: string) => {
-    try {
-      const url =
-        "/api/efro/debug-products?shop=" +
-        encodeURIComponent(shopDomain || "local-dev");
-
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.error("EFRO debug-products error:", await res.text());
-        return { products: [], product_details: [] };
-      }
-
-      const data = await res.json();
-      const products = data.products || [];
-      return {
-        products,
-        product_details: products,
-      };
-    } catch (err) {
-      console.error("EFRO debug-products error:", err);
-      return { products: [], product_details: [] };
-    }
-  };
-
   const getSignedUrl = async (): Promise<string> => {
     const response = await fetch(`/api/get-signed-url-seller`, {
       method: "POST",
@@ -398,7 +374,5 @@ export default function Home({ searchParams }: HomeProps) {
     </MascotProvider>
   );
 }
-
-
 
 

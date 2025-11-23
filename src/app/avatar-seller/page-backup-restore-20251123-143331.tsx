@@ -242,11 +242,24 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
 
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
+      const shopDomain =
+        (dynamicVariables?.["shopDomain"] as string) ?? "local-dev";
+
+      const { products = [], product_details = [] } = await loadSellerProducts(
+        shopDomain
+      );
+
+      const mergedDynamicVariables = {
+        ...(dynamicVariables || {}),
+        products,
+        product_details,
+      };
+
       const signedUrl = cachedUrl || (await getSignedUrl());
 
       await conversation.startSession({
         signedUrl,
-        dynamicVariables,
+        dynamicVariables: mergedDynamicVariables,
       });
 
       setDebugStatus("connected");
@@ -398,7 +411,6 @@ export default function Home({ searchParams }: HomeProps) {
     </MascotProvider>
   );
 }
-
 
 
 
