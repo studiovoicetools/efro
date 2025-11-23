@@ -12,7 +12,6 @@ import {
 } from "@mascotbot-sdk/react";
 
 import EFROChatWindow from "../../components/EFROChatWindow";
-import SellerProductPanel from "../../components/SellerProductPanel";
 
 
 interface ElevenLabsAvatarProps {
@@ -381,30 +380,24 @@ export default function Home({ searchParams }: HomeProps) {
     shopDomain,
   };
 
-    return (
+  return (
     <MascotProvider>
-      <main className="w-full h-screen bg-[#FFF8F0] flex">
-        <section className="flex-1 overflow-y-auto p-6">
-          <SellerProductPanel shopDomain={shopDomain} />
-        </section>
-
-        <section className="w-[420px] flex items-center justify-center">
-          <MascotClient
-            src={mascotUrl}
-            artboard="Character"
-            inputs={["is_speaking", "gesture"]}
-            layout={{
-              fit: Fit.Contain,
-              alignment: Alignment.BottomRight,
-            }}
-          >
-            <ElevenLabsAvatar dynamicVariables={dynamicVariables} />
-          </MascotClient>
-        </section>
+      <main className="w-full h-screen bg-[#FFF8F0]">
+        <MascotClient
+          src={mascotUrl}
+          artboard="Character"
+          inputs={["is_speaking", "gesture"]}
+          layout={{
+            fit: Fit.Contain,
+            alignment: Alignment.BottomRight,
+          }}
+        >
+          <ElevenLabsAvatar dynamicVariables={dynamicVariables} />
+        </MascotClient>
       </main>
     </MascotProvider>
-  );}
-
+  );
+}
 
 
 
