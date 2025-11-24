@@ -12,8 +12,107 @@ import {
 } from "@mascotbot-sdk/react";
 
 import EFROChatWindow from "../../components/EFROChatWindow";
-import SellerProductPanel from "../../components/SellerProductPanel";
+import EFROProductCards from "../../components/EFROProductCards";
 
+import {
+  ShoppingIntent,
+  EfroProduct,
+} from "../../lib/products/mockCatalog";
+import { buildShopifyAdminProductUrl } from "../../lib/products/shopifyLinks";
+import { runSellerBrain } from "../../lib/sales/sellerBrain";
+
+
+function normalizeTextForSearch(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const GENERIC_INTENT_WORDS = [
+  "premium",
+  "beste",
+  "hochwertig",
+  "qualitaet",
+  "qualitat",
+  "luxus",
+  "teuer",
+  "billig",
+  "guenstig",
+  "günstig",
+  "discount",
+  "spar",
+  "rabatt",
+  "deal",
+  "bargain",
+  "geschenk",
+  "gift",
+  "praesent",
+  "praes",
+  "present",
+  "bundle",
+  "set",
+  "paket",
+  "combo",
+  "zeig",
+  "zeige",
+  "zeigst",
+  "mir",
+  "was",
+  "hast",
+  "habe",
+  "du",
+  "gibt",
+  "es",
+  "inspiration",
+  "suche",
+  "suchen",
+  "ich",
+  "brauche",
+  "bitte",
+  "danke",
+  "dankeschoen",
+  "dankeschön",
+];
+
+function hasProductKeywordInCatalog(
+  userText: string,
+  products: EfroProduct[]
+): boolean {
+  const normText = normalizeTextForSearch(userText);
+  if (!normText) return false;
+
+  const words = normText
+    .split(" ")
+    .filter(
+      (w) =>
+        w.length >= 3 &&
+        !GENERIC_INTENT_WORDS.includes(w)
+    );
+
+  if (words.length === 0) return false;
+
+  for (const p of products) {
+    const blob = normalizeTextForSearch(
+      [
+        p.title,
+        p.description || "",
+        p.category || "",
+        ...(p.tags || []),
+      ].join(" ")
+    );
+
+    if (!blob) continue;
+
+    const match = words.some((w) => blob.includes(w));
+    if (match) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 interface ElevenLabsAvatarProps {
   dynamicVariables?: Record<string, string | number | boolean>;
@@ -23,6 +122,11 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
   /* ===========================================================
       STATES
   ============================================================ */
+  const [allProducts, setAllProducts] = useState<EfroProduct[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<EfroProduct[]>([]);
+  const [currentIntent, setCurrentIntent] = useState<ShoppingIntent>("quick_buy");
+  const [productsSource, setProductsSource] = useState<string>("loading...");
+
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<
@@ -48,6 +152,129 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
     preserveCriticalVisemes: true,
     criticalVisemeMinDuration: 80,
   });
+
+  /* ===========================================================
+      PRODUCT LOADING
+  ============================================================ */
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const sellerShopDomain = String(dynamicVariables?.shopDomain ?? "local-dev");
+
+    const loadProducts = async () => {
+      try {
+        const res = await fetch(`/api/efro/debug-products?shop=${encodeURIComponent(sellerShopDomain)}`, {
+          cache: "no-store",
+        });
+
+        if (cancelled) return;
+
+        let products: EfroProduct[] = [];
+        let source: string = "unknown";
+
+        if (res.ok) {
+          const data = await res.json();
+          
+          if (Array.isArray(data.products) && data.products.length > 0) {
+            products = data.products;
+            source = typeof data.productsSource === "string" 
+              ? data.productsSource 
+              : (typeof data.source === "string" ? data.source : "debug-products (no explicit source)");
+          } else {
+            console.error("[EFRO] Keine Produkte von Shopify erhalten: data.products ist kein Array oder leer", {
+              hasProducts: !!data.products,
+              isArray: Array.isArray(data.products),
+              length: data.products?.length,
+            });
+          }
+        } else {
+          console.error("[EFRO] Keine Produkte von Shopify erhalten: HTTP", res.status, res.statusText);
+        }
+
+        if (cancelled) return;
+
+        // Debug-Log vor setAllProducts
+        console.log("[EFRO AllProducts]", {
+          count: products.length,
+          titles: products.map((p) => p.title).slice(0, 10),
+          source: source,
+        });
+
+        setAllProducts(products);
+        setProductsSource(source);
+      } catch (err) {
+        console.error("[EFRO] Keine Produkte von Shopify erhalten:", err);
+        if (!cancelled) {
+          const products: EfroProduct[] = [];
+          console.log("[EFRO AllProducts]", {
+            count: products.length,
+            titles: [],
+            source: "error (API failed)",
+          });
+          setAllProducts(products);
+          setProductsSource("error (API failed)");
+        }
+      }
+    };
+
+    loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dynamicVariables?.shopDomain]);
+
+  /* ===========================================================
+      SELLER BRAIN INTEGRATION
+  ============================================================ */
+
+  const createRecommendations = useCallback(
+    (userText: string) => {
+      // Optionales Logging: pruefen, ob der Text ein Produkt-Keyword enthaelt
+      const hasKeywordInCatalog = hasProductKeywordInCatalog(userText, allProducts);
+
+      // WICHTIG: SellerBrain bekommt IMMER den kompletten Katalog,
+      // nicht mehr nur die bisherigen Empfehlungen.
+      const brainResult = runSellerBrain(userText, currentIntent, allProducts);
+
+      console.log("[EFRO SellerBrain]", {
+        userText,
+        intent: brainResult.intent,
+        recCount: brainResult.recommended?.length ?? 0,
+        usedSourceCount: allProducts.length,
+        hasKeywordInCatalog,
+      });
+
+      setCurrentIntent(brainResult.intent);
+
+      let list = brainResult.recommended ?? [];
+
+      if (!Array.isArray(list) || list.length === 0) {
+        // Fallback: 3–4 guenstige Produkte aus dem gesamten Katalog,
+        // damit EFRO IMMER etwas zeigt.
+        const sorted = [...allProducts].sort(
+          (a, b) => (a.price ?? 0) - (b.price ?? 0)
+        );
+        list = sorted.slice(0, 4);
+      }
+
+      setRecommendedProducts(list);
+
+      // EFRO-Antwort aus SellerBrain als Chat-Nachricht hinzufuegen
+      if (brainResult.replyText && brainResult.replyText.trim().length > 0) {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            text: brainResult.replyText,
+            sender: "efro",
+          },
+        ]);
+      }
+    },
+    [currentIntent, allProducts, setChatMessages]
+  );
 
   /* ===========================================================
       ELEVENLABS CONVERSATION
@@ -97,17 +324,32 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
         return;
       }
 
+      const isUserMessage =
+        msg.type === "input_transcript" ||
+        msg.type === "input_transcription" ||
+        msg.source === "user" ||
+        msg.role === "user";
+
+      const isAssistantMessage =
+        msg.role === "assistant" ||
+        msg.type === "output_text" ||
+        msg.type === "response_output" ||
+        !!msg.output_audio ||
+        !!msg.audio_output ||
+        msg.source === "assistant" ||
+        msg.source === "ai";
+
       /* ===========================================================
          USER VOICE → orange
          Exakte Erkennung:
          ElevenLabs sendet immer:
             type: "input_transcription" oder "input_transcript"
       ============================================================ */
-      if (
-        msg.type === "input_transcript" ||
-        msg.type === "input_transcription"
-      ) {
-        console.log("🎤 USER (Voice):", text);
+      if (isUserMessage) {
+        console.log("USER (Voice or Text):", text);
+
+        // Zusaetzlich: SellerBrain fuer Produktempfehlungen
+        createRecommendations(text);
 
         setChatMessages((prev) => [
           ...prev,
@@ -125,40 +367,22 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
          EFRO → grau
          (Assistant output immer type: "output_text" oder role: "assistant")
       ============================================================ */
-      if (
-        msg.role === "assistant" ||
-        msg.type === "output_text" ||
-        msg.type === "response_output" ||
-        msg.output_audio ||
-        msg.audio_output
-      ) {
-        console.log("🤖 EFRO:", text);
-
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            text,
-            sender: "efro",
-          },
-        ]);
-
+      if (isAssistantMessage) {
+        console.log("[ElevenLabs AI ignored]", { message: text });
+        // ElevenLabs-AI-Texte (source: "ai") werden explizit ignoriert
+        // und NICHT als EFRO-Antwort im Chat angezeigt.
+        // EFROs sichtbare Antworten kommen ausschließlich aus SellerBrain (brainResult.replyText).
         return;
       }
 
       /* ===========================================================
          Fallback → wenn wir es nicht eindeutig zuordnen können
       ============================================================ */
-      console.log("Fallback → EFRO:", text);
-
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          text,
-          sender: "efro",
-        },
-      ]);
+      // Fallback nur wenn weder User noch Assistant erkannt
+      if (!isUserMessage && !isAssistantMessage) {
+        console.log("[ElevenLabs unknown message type ignored]", { message: text });
+        // Fallback-Text wird NICHT mehr im Chat angezeigt
+      }
     },
   });
 
@@ -232,6 +456,21 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
   }, [fetchAndCacheUrl]);
 
   /* ===========================================================
+      PRODUCT CLICK HANDLER
+  ============================================================ */
+
+  const handleProductClick = useCallback((product: EfroProduct) => {
+    const sellerShopDomain = String(dynamicVariables?.shopDomain ?? "local-dev");
+    const url = buildShopifyAdminProductUrl(String(product.id), sellerShopDomain);
+    if (!url) {
+      console.warn("[avatar-seller] could not build admin URL", product);
+      alert(`Keine gueltige Admin-URL fuer dieses Produkt ableitbar.\nID: ${product.id}`);
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [dynamicVariables?.shopDomain]);
+
+  /* ===========================================================
       SESSION CONTROL
   ============================================================ */
 
@@ -271,7 +510,7 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
       CHAT SEND
   ============================================================ */
 
-  const handleChatSend = async (text: string) => {
+  const handleChatSend = useCallback(async (text: string) => {
     try {
       if (conversation.sendUserMessage) {
         await conversation.sendUserMessage(text);
@@ -285,10 +524,12 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
           sender: "user",
         },
       ]);
+      // Zusaetzlich: SellerBrain fuer Produktempfehlungen
+      createRecommendations(text);
     } catch (err) {
       console.error("Chat send error:", err);
     }
-  };
+  }, [conversation, createRecommendations]);
 
   /* ===========================================================
       RENDER
@@ -301,6 +542,8 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
         <div>Status: {debugStatus}</div>
         <div>Mic muted: {isMuted ? "yes" : "no"}</div>
         <div>Connecting: {isConnecting ? "yes" : "no"}</div>
+        <div>Intent: {currentIntent}</div>
+        <div>Recommended: {recommendedProducts.length}</div>
       </div>
 
       {/* CHAT WINDOW */}
@@ -311,6 +554,18 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
           onSend={handleChatSend}
           messages={chatMessages}
         />
+      )}
+
+      {/* PRODUCT CARDS (unten links) */}
+      {recommendedProducts.length > 0 && (
+        <div className="fixed bottom-4 left-4 z-30 w-[320px] max-w-[80vw]">
+          <EFROProductCards
+            products={recommendedProducts}
+            title="EFRO empfiehlt dir gerade:"
+            variant="compact"
+            onProductClick={handleProductClick}
+          />
+        </div>
       )}
 
       {/* AVATAR + BUTTONS */}
@@ -383,12 +638,8 @@ export default function Home({ searchParams }: HomeProps) {
 
     return (
     <MascotProvider>
-      <main className="w-full h-screen bg-[#FFF8F0] flex">
-        <section className="flex-1 overflow-y-auto p-6">
-          <SellerProductPanel shopDomain={shopDomain} />
-        </section>
-
-        <section className="w-[420px] flex items-center justify-center">
+      <main className="w-full h-screen bg-[#FFF8F0]">
+        <section className="w-full h-full flex items-center justify-center">
           <MascotClient
             src={mascotUrl}
             artboard="Character"
