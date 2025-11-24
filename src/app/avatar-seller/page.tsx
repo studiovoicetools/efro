@@ -238,27 +238,36 @@ function ElevenLabsAvatar({ dynamicVariables }: ElevenLabsAvatarProps) {
       // nicht mehr nur die bisherigen Empfehlungen.
       const brainResult = runSellerBrain(userText, currentIntent, allProducts);
 
-      console.log("[EFRO SellerBrain]", {
-        userText,
-        intent: brainResult.intent,
-        recCount: brainResult.recommended?.length ?? 0,
-        usedSourceCount: allProducts.length,
-        hasKeywordInCatalog,
-      });
+      const recommended = brainResult.recommended ?? [];
 
       setCurrentIntent(brainResult.intent);
 
-      let list = brainResult.recommended ?? [];
+      let list: EfroProduct[] = [];
+      let usedFallback = false;
 
-      if (!Array.isArray(list) || list.length === 0) {
-        // Fallback: 3–4 guenstige Produkte aus dem gesamten Katalog,
-        // damit EFRO IMMER etwas zeigt.
+      if (recommended.length > 0) {
+        list = recommended;
+      } else {
+        // Fallback: 3–4 günstige Produkte aus dem gesamten Katalog
         const sorted = [...allProducts].sort(
           (a, b) => (a.price ?? 0) - (b.price ?? 0)
         );
         list = sorted.slice(0, 4);
+        usedFallback = true;
       }
 
+      console.log("[EFRO SellerBrain]", {
+        userText,
+        intent: brainResult.intent,
+        recCount: recommended.length,
+        usedSourceCount: allProducts.length,
+        hasKeywordInCatalog: recommended.length > 0,
+        usedFallback,
+        shownTitles: list.map((p) => p.title),
+      });
+
+      // Chat-Nachricht aus brainResult.replyText soll unverändert bleiben
+      // (also NICHT von usedFallback abhängig machen – das regelt SellerBrain selbst).
       setRecommendedProducts(list);
 
       // EFRO-Antwort aus SellerBrain als Chat-Nachricht hinzufuegen

@@ -52,7 +52,8 @@ function detectIntentFromText(text: string, currentIntent: ShoppingIntent): Shop
 }
 
 /**
- * Produkte nach Snowboard, Preis etc. filtern
+ * Produkte nach Keywords, Snowboard, Preis etc. filtern
+ * – NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
  */
 function filterProducts(
   text: string,
@@ -63,9 +64,12 @@ function filterProducts(
 
   const t = normalize(text);
 
+  // Start: immer mit allen Produkten arbeiten
   let candidates = [...allProducts];
 
+  // --------------------------------------------------
   // 1) Sonderfall: Snowboard
+  // --------------------------------------------------
   const snowboardWords = ["snowboard", "board", "snow"];
   const wantsSnowboard = snowboardWords.some((w) => t.includes(w));
 
@@ -74,6 +78,7 @@ function filterProducts(
       const title = normalize(p.title);
       const desc = normalize(p.description || "");
       const tags = (p.tags || []).map((tag) => normalize(tag));
+
       return (
         title.includes("snowboard") ||
         desc.includes("snowboard") ||
@@ -82,58 +87,96 @@ function filterProducts(
     });
   }
 
-  // 2) Generische Keyword-Suche (nur wenn nicht Snowboard)
+  // --------------------------------------------------
+  // 2) Keyword-Erkennung (Produktnamen etc.)
+  //    → Bei echten Produktwörtern RETURNEN wir hier.
+  //    → Wenn KEINE Matches: KEIN return [], sondern Intent-Fallback.
+  // --------------------------------------------------
+  const intentWords = [
+    // Meta-/Preis-/Intent-Wörter
+    "premium",
+    "beste",
+    "hochwertig",
+    "qualitaet",
+    "qualitat",
+    "luxus",
+    "teuer",
+    "teure",
+    "teuren",
+    "teuerste",
+    "teuersten",
+    "billig",
+    "guenstig",
+    "günstig",
+    "günstige",
+    "günstigsten",
+    "günstigste",
+    "discount",
+    "spar",
+    "rabatt",
+    "preis",
+    "preise",
+    "preiswert",
+    "preiswerte",
+    "deal",
+    "bargain",
+
+    "geschenk",
+    "gift",
+    "praesent",
+    "praes",
+    "present",
+    "bundle",
+    "set",
+    "paket",
+    "combo",
+
+    // generische Produktwörter
+    "produkte",
+    "produkt",
+    "artikel",
+    "artikeln",
+    "ware",
+    "waren",
+    "sachen",
+    "dinge",
+    "items",
+    "item",
+    "premium-produkte",
+    "premium-produkt",
+    "premiumprodukte",
+    "premiumprodukt",
+    "luxusprodukt",
+    "luxusprodukte",
+    "teuerster",
+
+    // Füllwörter
+    "zeig",
+    "zeige",
+    "zeigst",
+    "mir",
+    "was",
+    "hast",
+    "habe",
+    "du",
+    "gibt",
+    "es",
+    "inspiration",
+    "suche",
+    "suchen",
+    "ich",
+    "brauche",
+    "bitte",
+    "danke",
+    "dankeschoen",
+    "dankeschön",
+    "meine",
+    "deine",
+  ];
+
   let words: string[] = [];
-  let anyKeywordMatch = false;
 
   if (!wantsSnowboard) {
-    const intentWords = [
-      "premium",
-      "beste",
-      "hochwertig",
-      "qualitaet",
-      "qualitat",
-      "luxus",
-      "teuer",
-      "billig",
-      "guenstig",
-      "günstig",
-      "discount",
-      "spar",
-      "rabatt",
-      "deal",
-      "bargain",
-      "geschenk",
-      "gift",
-      "praesent",
-      "praes",
-      "present",
-      // "set" ist bewusst NICHT hier, damit Napfset, Starter-Set usw.
-      // als Produkt-Keywords erkannt werden koennen
-      "bundle",
-      "paket",
-      "combo",
-      "zeig",
-      "zeige",
-      "zeigst",
-      "mir",
-      "was",
-      "hast",
-      "habe",
-      "du",
-      "gibt",
-      "es",
-      "inspiration",
-      "suche",
-      "suchen",
-      "ich",
-      "brauche",
-      "bitte",
-      "danke",
-      "dankeschoen",
-      "dankeschön",
-    ];
-
     words = t
       .split(/[^a-z0-9äöüß]+/i)
       .map((w) => w.trim().toLowerCase())
@@ -141,8 +184,8 @@ function filterProducts(
 
     console.log("[EFRO Filter WORDS]", { text, words });
 
-    // Wenn konkrete Suchwoerter vorhanden sind, danach filtern
     if (words.length > 0) {
+      // Konkrete Begriffe wie duschgel, napfset, federstab …
       const keywordMatches = candidates.filter((p) => {
         const title = normalize(p.title);
         const desc = normalize(p.description || "");
@@ -159,25 +202,9 @@ function filterProducts(
             tagsText.includes(word)
         );
 
-        // Flag setzen, sobald ein Produkt in keywordMatches landet
-        if (matches) {
-          anyKeywordMatch = true;
-        }
-
         return matches;
       });
 
-      // Direkt nach der Schleife: Wenn words vorhanden, aber keine Matches
-      if (words.length > 0 && !anyKeywordMatch) {
-        console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
-          text,
-          intent,
-          words,
-        });
-        return [];
-      }
-
-      // Wenn Keyword-Matches gefunden wurden, diese verwenden
       if (keywordMatches.length > 0) {
         console.log("[EFRO Filter KEYWORD_MATCHES]", {
           text,
@@ -185,7 +212,6 @@ function filterProducts(
           matchedTitles: keywordMatches.map((p) => p.title),
         });
 
-        // Schritt 1: starke Matches = Keyword steht im TITEL oder in TAGS
         const strongMatches = keywordMatches.filter((p) => {
           const title = normalize(p.title);
           const tagsText = (p.tags || [])
@@ -202,53 +228,10 @@ function filterProducts(
           strongTitles: strongMatches.map((p) => p.title),
         });
 
-        // Schritt 2: Wenn starke Matches (Titel/Tags) existieren, NUR diese verwenden
-        if (strongMatches.length > 0) {
-          // Nur starke Matches verwenden, nach Relevanz sortieren
-          const sorted = [...strongMatches];
+        const base = strongMatches.length > 0 ? strongMatches : keywordMatches;
+        const sorted = [...base];
 
-          sorted.sort((a, b) => {
-            const aTitle = normalize(a.title);
-            const aTagsText = (a.tags || [])
-              .map((tag) => normalize(tag))
-              .join(" ");
-            const aBlob = `${aTitle} ${aTagsText}`;
-
-            const bTitle = normalize(b.title);
-            const bTagsText = (b.tags || [])
-              .map((tag) => normalize(tag))
-              .join(" ");
-            const bBlob = `${bTitle} ${bTagsText}`;
-
-            let aScore = 0;
-            let bScore = 0;
-
-            words.forEach((word) => {
-              if (aTitle.includes(word)) aScore += 3;
-              else if (aTagsText.includes(word)) aScore += 2;
-              else if (aBlob.includes(word)) aScore += 1;
-
-              if (bTitle.includes(word)) bScore += 3;
-              else if (bTagsText.includes(word)) bScore += 2;
-              else if (bBlob.includes(word)) bScore += 1;
-            });
-
-            return bScore - aScore;
-          });
-
-          console.log("[EFRO Filter RESULT]", {
-            text,
-            intent,
-            resultTitles: sorted.slice(0, 3).map((p) => p.title),
-          });
-
-          return sorted.slice(0, 3);
-        }
-
-        // Schritt 3: Falls keine starken Matches, nach Relevanz sortieren (Titel-Match > Rest)
-        const baseMatches = keywordMatches;
-        const sorted = [...baseMatches];
-
+        // Relevanz sortieren
         sorted.sort((a, b) => {
           const aTitle = normalize(a.title);
           const aDesc = normalize(a.description || "");
@@ -280,88 +263,88 @@ function filterProducts(
           return bScore - aScore;
         });
 
-        // Wichtig:
-        // - Wenn keine starken Matches (Titel/Tags), verwenden wir alle Keyword-Matches
-        // - Maximal 3 Stueck (z.B. 3 verschiedene Duschgele)
         console.log("[EFRO Filter RESULT]", {
           text,
           intent,
           resultTitles: sorted.slice(0, 3).map((p) => p.title),
         });
 
+        // Bei echten Keywords hier hart returnen:
         return sorted.slice(0, 3);
-      }
-    }
-  }
-
-  // 3) Intent-basierte Preisfilter (nur wenn keine Keyword-Matches gegriffen haben)
-  // WICHTIG: Nur ausfuehren, wenn words.length === 0 (keine Keywords vorhanden)
-  if (words.length === 0) {
-    console.log("[EFRO Filter FALLBACK_INTENT]", {
-      text,
-      intent,
-      candidateTitles: candidates.map((p) => p.title),
-    });
-
-    if (intent === "premium") {
-      candidates = candidates.filter((p) => p.price >= 600);
-      candidates.sort((a, b) => b.price - a.price);
-    } else if (intent === "bargain") {
-      candidates = candidates.filter((p) => p.price <= 400);
-      candidates.sort((a, b) => a.price - b.price);
-    } else if (intent === "gift") {
-      candidates = candidates.filter((p) => p.price >= 300 && p.price <= 700);
-      candidates.sort((a, b) => a.price - b.price);
-    } else if (intent === "bundle") {
-      candidates = candidates.filter((p) => {
-        const tags = (p.tags || []).map((tag) => normalize(tag));
-        return tags.includes("bundle") || tags.includes("set");
-      });
-    } else if (intent === "explore") {
-      candidates.sort((a, b) => a.title.localeCompare(b.title));
-    } else {
-      candidates.sort((a, b) => a.price - b.price);
-    }
-
-    // Fallback, falls nach Filtern nichts mehr uebrig ist
-    if (candidates.length === 0) {
-      candidates = [...allProducts];
-      if (wantsSnowboard) {
-        candidates = candidates.filter((p) => {
-          const title = normalize(p.title);
-          const desc = normalize(p.description || "");
-          const tags = (p.tags || []).map((tag) => normalize(tag));
-          return (
-            title.includes("snowboard") ||
-            desc.includes("snowboard") ||
-            tags.includes("snowboard")
-          );
+      } else {
+        // Keine Keyword-Treffer → nicht abbrechen, später Intent-Fallback
+        console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
+          text,
+          intent,
+          words,
         });
-        if (candidates.length === 0) {
-          candidates = [...allProducts];
-        }
       }
     }
-
-    console.log("[EFRO Filter RESULT]", {
-      text,
-      intent,
-      resultTitles: candidates.slice(0, 4).map((p) => p.title),
-    });
-
-    // Maximal 3–4 Vorschlaege zurueckgeben
-    return candidates.slice(0, 4);
   }
 
-  // Falls words.length > 0, aber keine Matches gefunden wurden (sollte bereits oben abgefangen sein)
-  // Dieser Fall sollte eigentlich nicht erreicht werden, aber als Sicherheit:
+  // --------------------------------------------------
+  // 3) Intent-basierter Fallback (Preis / Bundle / Gift / Explore)
+  //    Dieser Block wird IMMER ausgeführt, wenn oben nicht
+  //    bereits über Keyword-Matching returned wurde.
+  // --------------------------------------------------
+  console.log("[EFRO Filter FALLBACK_INTENT]", {
+    text,
+    intent,
+    candidateTitles: candidates.map((p) => p.title),
+  });
+
+  if (intent === "premium") {
+    candidates = candidates.filter((p) => p.price >= 600);
+    candidates.sort((a, b) => b.price - a.price);
+  } else if (intent === "bargain") {
+    candidates = candidates.filter((p) => p.price > 0 && p.price <= 400);
+    candidates.sort((a, b) => a.price - b.price);
+  } else if (intent === "gift") {
+    candidates = candidates.filter((p) => p.price >= 300 && p.price <= 700);
+    candidates.sort((a, b) => a.price - b.price);
+  } else if (intent === "bundle") {
+    candidates = candidates.filter((p) => {
+      const tags = (p.tags || []).map((tag) => normalize(tag));
+      return tags.includes("bundle") || tags.includes("set");
+    });
+  } else if (intent === "explore") {
+    candidates.sort((a, b) => a.title.localeCompare(b.title));
+  } else {
+    // quick_buy / default
+    candidates.sort((a, b) => a.price - b.price);
+  }
+
+  // Fallback: Wenn nach Filtern nichts mehr übrig ist, nicht leer zurückgeben
+  if (candidates.length === 0) {
+    candidates = [...allProducts];
+
+    if (wantsSnowboard) {
+      candidates = candidates.filter((p) => {
+        const title = normalize(p.title);
+        const desc = normalize(p.description || "");
+        const tags = (p.tags || []).map((tag) => normalize(tag));
+
+        return (
+          title.includes("snowboard") ||
+          desc.includes("snowboard") ||
+          tags.includes("snowboard")
+        );
+      });
+
+      if (candidates.length === 0) {
+        candidates = [...allProducts];
+      }
+    }
+  }
+
   console.log("[EFRO Filter RESULT]", {
     text,
     intent,
-    resultTitles: [],
+    resultTitles: candidates.slice(0, 4).map((p) => p.title),
   });
 
-  return [];
+  // Maximal 3–4 Vorschläge
+  return candidates.slice(0, 4);
 }
 
 /**
@@ -374,25 +357,28 @@ function buildReplyText(
 ): string {
   const count = recommended.length;
 
+  // 0 Treffer
   if (count === 0) {
     return (
-      "Entschuldigung, ich habe aktuell keine passenden Produkte im Katalog gefunden. " +
-      "Bitte versuche es mit einer anderen Suchanfrage oder kontaktiere den Support."
+      "Ich habe in den aktuellen Shop-Daten leider kein Produkt gefunden, das genau zu deiner Anfrage passt. " +
+      "Wenn du mir deinen Wunsch etwas anders beschreibst, probiere ich es gerne noch einmal."
     );
   }
 
-  // Anpassung basierend auf Anzahl der Treffer
-  let intro: string;
+  // 1 Treffer
   if (count === 1) {
-    intro = "Ich habe das passende Produkt für dich gefunden:";
-  } else {
-    intro = `Ich habe ${count} passende Produkte für dich gefunden:`;
+    const product = recommended[0];
+    const price = product.price ? product.price.toFixed(2) : "0.00";
+    return (
+      `Ich habe das passende Produkt für dich gefunden: ${product.title} für ${price} €. ` +
+      "Unten siehst du alle Details."
+    );
   }
 
+  // Mehrere Treffer
+  const intro = `Ich habe ${count} passende Produkte für dich gefunden:`;
   const lines = recommended.map(
-    (p, idx) =>
-      `${idx + 1}. ${p.title} – ${p.price.toFixed(2)} €` +
-      (p.tags && p.tags.length > 0 ? ` (Tags: ${p.tags.join(", ")})` : "")
+    (p, idx) => `${idx + 1}. ${p.title} – ${p.price.toFixed(2)} €`
   );
 
   return [intro, "", ...lines].join("\n");
