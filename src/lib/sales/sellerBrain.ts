@@ -12,6 +12,11 @@ export type SellerBrainResult = {
 };
 
 /**
+ * Optional: Tarif-Plan (Starter / Pro / Enterprise / ...)
+ */
+export type EfroPlan = "starter" | "pro" | "enterprise" | string;
+
+/**
  * Nutzertext normalisieren
  */
 function normalize(text: string): string {
@@ -173,15 +178,31 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
 }
 
 /**
+ * Max. Anzahl Empfehlungen je Plan
+ * (Starter = weniger Karten, Enterprise = mehr Karten)
+ */
+function getMaxRecommendationsForPlan(plan?: EfroPlan): number {
+  const p = (plan ?? "").toLowerCase();
+
+  if (p === "starter") return 4;      // schlank, übersichtlich
+  if (p === "pro") return 8;          // mehr Auswahl
+  if (p === "enterprise") return 12;  // volle Power
+
+  // Fallback / unbekannter Plan
+  return 4;
+}
+
+/**
  * Produkte nach Keywords, Kategorie und Preis filtern
  * – NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
  */
 function filterProducts(
   text: string,
   intent: ShoppingIntent,
-  allProducts: EfroProduct[]
+  allProducts: EfroProduct[],
+  maxRecommendations: number
 ): EfroProduct[] {
-  console.log("[EFRO Filter ENTER]", { text, intent });
+  console.log("[EFRO Filter ENTER]", { text, intent, maxRecommendations });
 
   const t = normalize(text);
 
@@ -488,7 +509,11 @@ function filterProducts(
   if (intent === "premium") {
     // teuerste zuerst
     candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
-  } else if (intent === "bargain" || intent === "gift" || intent === "quick_buy") {
+  } else if (
+    intent === "bargain" ||
+    intent === "gift" ||
+    intent === "quick_buy"
+  ) {
     // günstigste zuerst
     candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
   } else if (intent === "explore") {
@@ -503,15 +528,18 @@ function filterProducts(
   console.log("[EFRO Filter RESULT]", {
     text,
     intent,
-    resultTitles: candidates.slice(0, 4).map((p) => p.title),
+    maxRecommendations,
+    resultTitles: candidates.slice(0, maxRecommendations).map((p) => p.title),
   });
 
-  // Maximal 3–4 Vorschläge
-  return candidates.slice(0, 4);
+  // Anzahl der Vorschläge hängt jetzt vom Plan ab
+  return candidates.slice(0, maxRecommendations);
 }
 
 /**
  * Reply-Text fuer EFRO bauen
+ * - Nutzt Budget-Infos ("über 100 Euro", "bis 30 Euro", ...)
+ * - Klingt wie ein Profi-Verkäufer, nicht wie ein Callcenter-Bot
  */
 function buildReplyText(
   text: string,
@@ -524,27 +552,133 @@ function buildReplyText(
   if (count === 0) {
     return (
       "Ich habe in den aktuellen Shop-Daten leider kein Produkt gefunden, das genau zu deiner Anfrage passt. " +
-      "Wenn du mir deinen Wunsch etwas anders beschreibst, probiere ich es gerne noch einmal."
+      "Wenn du mir deinen Wunsch ein bisschen anders beschreibst – zum Beispiel Kategorie oder Budget – probiere ich es gerne direkt noch einmal."
     );
   }
 
-  // 1 Treffer
+  // Hilfsfunktion zum Preisformat
+  const formatPrice = (p: EfroProduct) =>
+    p.price != null ? `${p.price.toFixed(2)} €` : "–";
+
+  const first = recommended[0];
+
+  // Budget aus dem User-Text erkennen
+  const { minPrice, maxPrice } = extractUserPriceRange(text);
+  const hasBudget = minPrice !== null || maxPrice !== null;
+
+  // Budget-Text für die Antwort bauen
+  let budgetText = "";
+  if (hasBudget) {
+    if (minPrice !== null && maxPrice === null) {
+      budgetText = `ab etwa ${minPrice} €`;
+    } else if (maxPrice !== null && minPrice === null) {
+      budgetText = `bis etwa ${maxPrice} €`;
+    } else if (minPrice !== null && maxPrice !== null) {
+      budgetText = `zwischen ${minPrice} € und ${maxPrice} €`;
+    }
+  }
+
+  // Wenn ein Budget genannt wurde → Fokus: Budget-orientierter Pitch
+  if (hasBudget) {
+    if (count === 1) {
+      return (
+        `Ich habe ein Produkt gefunden, das gut zu deinem Budget ${budgetText} passt:\n\n` +
+        `• ${first.title} – ${formatPrice(first)}\n\n` +
+        "Wenn du möchtest, kann ich dir noch eine Alternative im ähnlichen Preisbereich zeigen oder wir passen das Budget noch einmal an."
+      );
+    }
+
+    // Mehrere Treffer bei Budget-Anfrage
+    const intro =
+      `Ich habe mehrere Produkte passend zu deinem Budget ${budgetText} gefunden.\n` +
+      `Ein sehr gutes Match ist:\n\n` +
+      `• ${first.title} – ${formatPrice(first)}\n\n` +
+      "Zusätzlich habe ich dir unten noch weitere passende Produkte eingeblendet:";
+
+    const lines = recommended.map(
+      (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
+    );
+
+    const closing =
+      "\n\nMöchtest du, dass ich dir noch ein oder zwei Alternativen im ähnlichen Preisbereich zeige – oder passt eines dieser Produkte für dich?";
+
+    return [intro, "", ...lines, closing].join("\n");
+  }
+
+  // Kein explizites Budget → Intent-spezifischer Verkaufsstil
+  if (intent === "premium") {
+    if (count === 1) {
+      return (
+        `Ich habe ein hochwertiges Premium-Produkt für dich gefunden:\n\n` +
+        `• ${first.title} – ${formatPrice(first)}\n\n` +
+        "Das ist eine sehr gute Wahl, wenn dir Qualität wichtiger ist als der letzte Euro im Preis. " +
+        "Wenn du möchtest, kann ich dir noch eine etwas günstigere Alternative mit gutem Preis-Leistungs-Verhältnis zeigen."
+      );
+    }
+
+    const intro =
+      "Ich habe dir eine Auswahl an hochwertigen Premium-Produkten zusammengestellt. " +
+      "Ein besonders starkes Match ist:";
+
+    const lines = recommended.map(
+      (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
+    );
+
+    const closing =
+      "\n\nSchau dir die Vorschläge in Ruhe an. Wenn du lieber nach einer bestimmten Marke oder Kategorie filtern möchtest, sag mir einfach kurz Bescheid.";
+
+    return [
+      intro,
+      "",
+      `• ${first.title} – ${formatPrice(first)}`,
+      "",
+      ...lines,
+      closing,
+    ].join("\n");
+  }
+
+  if (intent === "bargain") {
+    const intro =
+      "Ich habe dir besonders preiswerte Produkte mit gutem Preis-Leistungs-Verhältnis herausgesucht.";
+    const lines = recommended.map(
+      (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
+    );
+    const closing =
+      "\n\nWenn du mir dein maximales Budget nennst, kann ich dir die wirklich günstigsten Optionen zeigen – ohne auf die Qualität zu verzichten.";
+
+    return [intro, "", ...lines, closing].join("\n");
+  }
+
+  if (intent === "gift") {
+    const intro =
+      "Ich habe dir ein paar passende Geschenkideen zusammengestellt, die gut ankommen dürften:";
+    const lines = recommended.map(
+      (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
+    );
+    const closing =
+      "\n\nSag mir gerne, für wen das Geschenk ist (z. B. Freundin, Kollege, Eltern) – dann kann ich noch gezielter empfehlen.";
+
+    return [intro, "", ...lines, closing].join("\n");
+  }
+
+  // Standard-Fall (explore / quick_buy / bundle / sonstiges)
   if (count === 1) {
-    const product = recommended[0];
-    const price = product.price ? product.price.toFixed(2) : "0.00";
     return (
-      `Ich habe das passende Produkt für dich gefunden: ${product.title} für ${price} €. ` +
-      "Unten siehst du alle Details."
+      `Ich habe ein passendes Produkt für dich gefunden:\n\n` +
+      `• ${first.title} – ${formatPrice(first)}\n\n` +
+      "Unten siehst du alle Details. Wenn dir etwas daran nicht ganz passt, sag mir einfach, worauf du besonders Wert legst (z. B. Preis, Marke oder Kategorie)."
     );
   }
 
-  // Mehrere Treffer
-  const intro = `Ich habe ${count} passende Produkte für dich gefunden:`;
+  const intro =
+    "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet:";
   const lines = recommended.map(
-    (p, idx) => `${idx + 1}. ${p.title} – ${p.price.toFixed(2)} €`
+    (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
   );
+  const closing =
+    "\n\nWenn du möchtest, helfe ich dir jetzt beim Eingrenzen – zum Beispiel nach Preisbereich, Kategorie oder Einsatzzweck.";
 
-  return [intro, "", ...lines].join("\n");
+  return [intro, "", ...lines, closing].join("\n");
 }
 
 /**
@@ -553,11 +687,44 @@ function buildReplyText(
 export function runSellerBrain(
   userText: string,
   currentIntent: ShoppingIntent,
-  allProducts: EfroProduct[]
+  allProducts: EfroProduct[],
+  plan?: EfroPlan
 ): SellerBrainResult {
-  const nextIntent = detectIntentFromText(userText, currentIntent);
-  const recommended = filterProducts(userText, nextIntent, allProducts);
-  const replyText = buildReplyText(userText, nextIntent, recommended);
+  const raw = userText ?? "";
+  const cleaned = raw.trim();
+
+  // 🧹 Schutz: Wenn der "Text" nur aus Punkten/Leerzeichen/etc. besteht
+  // (z. B. "...", "", "??") → NICHTS tun, keine neuen Empfehlungen.
+  const hasLettersOrDigits = /[a-z0-9äöüß]/i.test(cleaned);
+  if (!hasLettersOrDigits) {
+    console.log("[EFRO SellerBrain] Noise input ignored", { userText: raw });
+    return {
+      // Intent beibehalten, keine neuen Empfehlungen
+      intent: currentIntent || "quick_buy",
+      recommended: [],
+      replyText: "",
+    };
+  }
+
+  const maxRecommendations = getMaxRecommendationsForPlan(plan);
+
+  // Ab hier nur noch für echten Text mit Buchstaben/Zahlen
+  const nextIntent = detectIntentFromText(cleaned, currentIntent);
+  const recommended = filterProducts(
+    cleaned,
+    nextIntent,
+    allProducts,
+    maxRecommendations
+  );
+  const replyText = buildReplyText(cleaned, nextIntent, recommended);
+
+  console.log("[EFRO SellerBrain]", {
+    userText: cleaned,
+    intent: nextIntent,
+    plan,
+    maxRecommendations,
+    recCount: recommended.length,
+  });
 
   return {
     intent: nextIntent,

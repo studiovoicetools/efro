@@ -1,100 +1,112 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿// src/app/api/get-signed-url-seller/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { getShopMeta } from "@/lib/shops/meta";
+import { touchShopLastSeen } from "@/lib/shops/db";
+
+/**
+ * Holt eine signed URL von ElevenLabs über das Mascot Bot Proxy-API.
+ * Wird vom Avatar-Seller-Frontend aufgerufen.
+ */
+async function createSignedUrlFromElevenLabs(
+  dynamicVariables: any
+): Promise<string> {
+  const response = await fetch("https://api.mascot.bot/v1/get-signed-url", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.MASCOT_BOT_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      config: {
+        provider: "elevenlabs",
+        provider_config: {
+          agent_id: process.env.ELEVENLABS_AGENT_ID,
+          api_key: process.env.ELEVENLABS_API_KEY,
+          ...(dynamicVariables && { dynamic_variables: dynamicVariables }),
+        },
+      },
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(
+      "[get-signed-url-seller] Failed to get signed URL:",
+      errorText
+    );
+    throw new Error("Failed to get signed URL from Mascot Bot");
+  }
+
+  const data = await response.json();
+
+  if (!data?.signed_url) {
+    console.error(
+      "[get-signed-url-seller] Response without signed_url field:",
+      data
+    );
+    throw new Error("Mascot Bot did not return a signed_url");
+  }
+
+  return data.signed_url;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json().catch(() => ({}))) as {
-      dynamicVariables?: Record<string, any>;
-    };
+    console.log("[get-signed-url-seller] ENTER POST handler");
 
-    const dynamicFromBody = body?.dynamicVariables || {};
-    const shopDomain =
-      (dynamicFromBody?.shopDomain as string) || "local-dev";
+    const body = await request.json().catch(() => ({}));
+    const incomingDynamic = body?.dynamicVariables ?? {};
 
-    let dynamicVariables: Record<string, any> = { ...dynamicFromBody };
+    // Shop-Domain bestimmen (vom Client oder Fallback auf local-dev)
+    const fallbackShop =
+      incomingDynamic.shopDomain ?? body?.shopDomain ?? "local-dev";
 
-    // Produkte aus EFRO-Pipeline holen und fuer ElevenLabs aufbereiten
-    try {
-      const origin = new URL(request.url).origin;
-      const url = `${origin}/api/efro/debug-products?shop=${encodeURIComponent(
-        shopDomain
-      )}`;
+    // Shop-Metadaten aus DB (oder Fallback) holen
+    const meta = await getShopMeta(fallbackShop);
 
-      const res = await fetch(url, { cache: "no-store" });
-
-      if (!res.ok) {
-        const txt = await res.text();
-        console.error(
-          "Seller get-signed-url: debug-products failed",
-          res.status,
-          txt
-        );
-      } else {
-        const data = await res.json();
-        const products = (data.products || []) as any[];
-
-        const productsForAgent = products.map((p) => ({
-          id: p.id,
-          title: p.title,
-          price: p.price,
-          image_url: p.imageUrl ?? p.image_url ?? null,
-          url: p.productUrl ?? p.url ?? null,
-          category: p.category ?? null,
-        }));
-
-        const productDetailsForAgent = products.map((p) => ({
-          id: p.id,
-          title: p.title,
-          description: p.description ?? "",
-          price: p.price,
-          availability: "in_stock",
-          image_url: p.imageUrl ?? p.image_url ?? null,
-          category: p.category ?? null,
-          url: p.productUrl ?? p.url ?? null,
-        }));
-
-        dynamicVariables = {
-          ...dynamicVariables,
-          products: productsForAgent,
-          product_details: productDetailsForAgent,
-        };
-      }
-    } catch (err) {
-      console.error("Seller get-signed-url: product enrichment error", err);
-    }
-
-    // Signierte URL ueber MascotBot holen
-    const response = await fetch("https://api.mascot.bot/v1/get-signed-url", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.MASCOT_BOT_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        config: {
-          provider: "elevenlabs",
-          provider_config: {
-            agent_id: process.env.ELEVENLABS_AGENT_ID_SELLER,
-            api_key: process.env.ELEVENLABS_API_KEY,
-            dynamic_variables: dynamicVariables,
-          },
-        },
-      }),
-      cache: "no-store",
+    // Last-Seen-Tracking (Fire & Forget)
+    touchShopLastSeen(meta.shopDomain).catch((err) => {
+      console.error("[get-signed-url-seller] touchShopLastSeen error", err);
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Failed to get signed URL (seller):", errorText);
-      return NextResponse.json(
-        { error: "Failed to get signed URL" },
-        { status: 500 }
-      );
-    }
+    console.log("[get-signed-url-seller] Shop Meta", {
+      fallbackShop,
+      meta,
+    });
 
-    const data = await response.json();
-    return NextResponse.json({ signedUrl: data.signed_url });
+    // Finale dynamicVariables zusammenbauen:
+    // - was vom Client kommt
+    // - plus Shop-Info aus DB
+    const finalDynamicVariables = {
+      ...incomingDynamic,
+      language: meta.language ?? incomingDynamic.language ?? "de",
+      shopDomain: fallbackShop,
+      shopInfo: {
+        brandName: meta.brandName,
+        mainCategory: meta.mainCategory,
+        targetAudience: meta.targetAudience,
+        priceLevel: meta.priceLevel,
+        country: meta.country,
+        currency: meta.currency,
+        toneOfVoice: meta.toneOfVoice,
+        plan: meta.plan,
+      },
+    };
+
+    console.log("[get-signed-url-seller] Final dynamic variables", {
+      fallbackShop,
+      finalDynamicVariables,
+    });
+
+    const signedUrl = await createSignedUrlFromElevenLabs(
+      finalDynamicVariables
+    );
+
+    return NextResponse.json({ signedUrl });
   } catch (error) {
-    console.error("Error fetching signed URL (seller):", error);
+    console.error("[get-signed-url-seller] Error fetching signed URL:", error);
     return NextResponse.json(
       { error: "Failed to generate signed URL" },
       { status: 500 }
@@ -102,5 +114,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Force dynamic to prevent caching issues
+// wichtig, damit Next das nicht cached
 export const dynamic = "force-dynamic";
