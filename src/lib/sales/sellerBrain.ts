@@ -21,14 +21,42 @@ function normalize(text: string): string {
 /**
  * Hilfsfunktionen fuer Intent-Detection
  */
-function detectIntentFromText(text: string, currentIntent: ShoppingIntent): ShoppingIntent {
+function detectIntentFromText(
+  text: string,
+  currentIntent: ShoppingIntent
+): ShoppingIntent {
   const t = normalize(text);
 
-  const premiumWords = ["premium", "beste", "hochwertig", "qualitaet", "qualitat", "luxus", "teuer"];
-  const bargainWords = ["billig", "guenstig", "günstig", "discount", "spar", "rabatt", "deal", "bargain"];
+  const premiumWords = [
+    "premium",
+    "beste",
+    "hochwertig",
+    "qualitaet",
+    "qualitat",
+    "luxus",
+    "teuer",
+  ];
+  const bargainWords = [
+    "billig",
+    "guenstig",
+    "günstig",
+    "discount",
+    "spar",
+    "rabatt",
+    "deal",
+    "bargain",
+    "günstigste",
+    "günstigsten",
+  ];
   const giftWords = ["geschenk", "gift", "praesent", "praes", "present"];
   const bundleWords = ["bundle", "set", "paket", "combo"];
-  const exploreWords = ["zeig mir was", "inspiration", "zeige mir", "was hast du", "was gibt es"];
+  const exploreWords = [
+    "zeig mir was",
+    "inspiration",
+    "zeige mir",
+    "was hast du",
+    "was gibt es",
+  ];
 
   if (premiumWords.some((w) => t.includes(w))) {
     return "premium";
@@ -52,7 +80,100 @@ function detectIntentFromText(text: string, currentIntent: ShoppingIntent): Shop
 }
 
 /**
- * Produkte nach Keywords, Snowboard, Preis etc. filtern
+ * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
+ * Beispiele:
+ *  - "unter 50 euro"   -> maxPrice = 50
+ *  - "bis 30 €"        -> maxPrice = 30
+ *  - "über 100 euro"   -> minPrice = 100
+ *  - "mindestens 200€" -> minPrice = 200
+ */
+function extractUserPriceRange(
+  text: string
+): { minPrice: number | null; maxPrice: number | null } {
+  const t = normalize(text);
+
+  let minPrice: number | null = null;
+  let maxPrice: number | null = null;
+
+  // Erste Zahl mit "euro", "eur" oder "€" suchen
+  const priceMatch = t.match(/(\d+)\s*(euro|eur|€)/);
+  if (!priceMatch) {
+    return { minPrice, maxPrice };
+  }
+
+  const value = parseInt(priceMatch[1], 10);
+  if (Number.isNaN(value)) {
+    return { minPrice, maxPrice };
+  }
+
+  // Text vor der Zahl anschauen, um "unter", "bis", "über", "mindestens" etc. zu finden
+  const prefix = t.slice(0, priceMatch.index ?? 0);
+
+  const hasUnder =
+    /unter|bis|höchstens|hoechstens|maximal|weniger als/.test(prefix);
+  const hasOver = /über|ueber|mindestens|ab|mehr als/.test(prefix);
+
+  if (hasUnder && !hasOver) {
+    maxPrice = value;
+  } else if (hasOver && !hasUnder) {
+    minPrice = value;
+  } else {
+    // Falls weder noch eindeutig ist: nur maxPrice setzen,
+    // z.B. "Geschenk 50 Euro" -> wir interpretieren das als Budget-Obergrenze
+    maxPrice = value;
+  }
+
+  return { minPrice, maxPrice };
+}
+
+/**
+ * Produkt-Scoring fuer Keywords
+ */
+function scoreProductForWords(product: EfroProduct, words: string[]): number {
+  if (words.length === 0) return 0;
+
+  const title = normalize(product.title);
+  const desc = normalize(product.description || "");
+  const category = normalize(product.category || "");
+  const tagsText = (product.tags || []).map((tag) => normalize(tag)).join(" ");
+  const blob = `${title} ${desc} ${category} ${tagsText}`;
+
+  let score = 0;
+
+  for (const word of words) {
+    if (!word) continue;
+
+    const core =
+      word.length >= 8
+        ? word.slice(0, 7)
+        : word.length >= 6
+        ? word.slice(0, 6)
+        : word.length >= 4
+        ? word.slice(0, 4)
+        : word;
+
+    // Exakte Treffer – stärker gewichten
+    if (title.includes(word)) {
+      score += 5;
+    } else if (tagsText.includes(word)) {
+      score += 4;
+    } else if (category.includes(word)) {
+      score += 3;
+    } else if (desc.includes(word)) {
+      score += 2;
+    }
+
+    // Fuzzy-Treffer
+    if (core.length >= 3 && blob.includes(core)) {
+      score += 1;
+    }
+  }
+
+  return score;
+}
+
+/**
+ * Produkte nach Keywords, Kategorie und Preis filtern
  * – NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
  */
 function filterProducts(
@@ -64,34 +185,73 @@ function filterProducts(
 
   const t = normalize(text);
 
-  // Start: immer mit allen Produkten arbeiten
+  if (allProducts.length === 0) {
+    console.log("[EFRO Filter RESULT]", {
+      text,
+      intent,
+      resultTitles: [],
+    });
+    return [];
+  }
+
+  // 0) Preisbereich erkennen
+  const { minPrice: userMinPrice, maxPrice: userMaxPrice } =
+    extractUserPriceRange(text);
+  console.log("[EFRO Filter PRICE]", { text, userMinPrice, userMaxPrice });
+
   let candidates = [...allProducts];
 
-  // --------------------------------------------------
-  // 1) Sonderfall: Snowboard
-  // --------------------------------------------------
-  const snowboardWords = ["snowboard", "board", "snow"];
-  const wantsSnowboard = snowboardWords.some((w) => t.includes(w));
+  /**
+   * 1) Kategorie-Erkennung (Haushalt, Haustier, Kosmetik, Deko, ...)
+   */
+  const allCategories = Array.from(
+    new Set(
+      allProducts
+        .map((p) => normalize(p.category || ""))
+        .filter((c) => c.length >= 3)
+    )
+  );
 
-  if (wantsSnowboard) {
-    candidates = candidates.filter((p) => {
-      const title = normalize(p.title);
-      const desc = normalize(p.description || "");
-      const tags = (p.tags || []).map((tag) => normalize(tag));
+  const categoryHintsInText: string[] = [];
+  const matchedCategories: string[] = [];
 
-      return (
-        title.includes("snowboard") ||
-        desc.includes("snowboard") ||
-        tags.includes("snowboard")
-      );
+  // Variante A: "kategorie haushalt"
+  const catRegex = /kategorie\s+([a-zäöüß]+)/;
+  const catMatch = t.match(catRegex);
+  if (catMatch && catMatch[1]) {
+    const catWord = catMatch[1];
+    categoryHintsInText.push(catWord);
+    allCategories.forEach((cat) => {
+      if (cat.includes(catWord)) {
+        matchedCategories.push(cat);
+      }
+    });
+  } else {
+    // Variante B: Text enthält direkt den Kategorienamen
+    allCategories.forEach((cat) => {
+      if (cat && t.includes(cat)) {
+        matchedCategories.push(cat);
+        categoryHintsInText.push(cat);
+      }
     });
   }
 
-  // --------------------------------------------------
-  // 2) Keyword-Erkennung (Produktnamen etc.)
-  //    → Bei echten Produktwörtern RETURNEN wir hier.
-  //    → Wenn KEINE Matches: KEIN return [], sondern Intent-Fallback.
-  // --------------------------------------------------
+  if (matchedCategories.length > 0) {
+    candidates = candidates.filter((p) =>
+      matchedCategories.includes(normalize(p.category || ""))
+    );
+  }
+
+  console.log("[EFRO Filter CATEGORY]", {
+    text,
+    matchedCategories,
+    categoryHintsInText,
+    candidateCountAfterCategory: candidates.length,
+  });
+
+  /**
+   * 2) Generische Keyword-Suche
+   */
   const intentWords = [
     // Meta-/Preis-/Intent-Wörter
     "premium",
@@ -151,7 +311,21 @@ function filterProducts(
     "luxusprodukte",
     "teuerster",
 
-    // Füllwörter / Höflichkeit
+    // Preis-Wörter (sollen NICHT als Keyword übrig bleiben)
+    "unter",
+    "ueber",
+    "über",
+    "bis",
+    "maximal",
+    "mindestens",
+    "höchstens",
+    "hoechstens",
+    "weniger",
+    "mehr",
+    "euro",
+    "eur",
+
+    // Füllwörter / einfache Stopwörter (verkürzt)
     "zeig",
     "zeige",
     "zeigst",
@@ -173,364 +347,156 @@ function filterProducts(
     "dankeschön",
     "meine",
     "deine",
-
-    // Allgemeine deutsche Stopwörter (zusätzlich)
-    "aber",
-    "alle",
-    "allem",
-    "allen",
-    "aller",
-    "alles",
-    "als",
-    "also",
-    "am",
-    "an",
-    "andere",
-    "anderen",
-    "anderer",
-    "anderes",
-    "auch",
-    "auf",
-    "aus",
-    "bei",
-    "beim",
-    "bin",
-    "bist",
-    "bis",
-    "bisher",
-    "da",
-    "dadurch",
-    "daher",
-    "danach",
-    "dann",
-    "darum",
-    "das",
-    "dass",
-    "dein",
-    "deine",
-    "dem",
-    "den",
-    "denn",
-    "der",
-    "des",
-    "deshalb",
-    "die",
-    "dies",
-    "diese",
-    "diesem",
-    "diesen",
-    "dieser",
-    "dieses",
-    "doch",
-    "dort",
-    "durch",
-    "ein",
-    "eine",
-    "einem",
-    "einen",
-    "einer",
-    "eines",
-    "einige",
-    "einigen",
-    "einmal",
-    "erst",
-    "erste",
-    "ersten",
-    "erster",
-    "es",
-    "etwas",
-    "euch",
-    "euer",
-    "eure",
-    "für",
-    "gegen",
-    "gewesen",
-    "hab",
-    "haben",
-    "hat",
-    "hatte",
-    "hatten",
-    "hier",
-    "hin",
-    "hinter",
-    "hoch",
-    "hoffentlich",
-    "ihm",
-    "ihn",
-    "ihnen",
-    "ihr",
-    "ihre",
-    "ihrem",
-    "ihren",
-    "im",
-    "immer",
-    "in",
-    "ins",
-    "ist",
-    "jede",
-    "jedem",
-    "jeden",
-    "jeder",
-    "jedes",
-    "jemand",
-    "jetzt",
-    "kann",
-    "kein",
-    "keine",
-    "keinem",
-    "keinen",
-    "keiner",
-    "keines",
-    "können",
-    "könnte",
-    "machen",
-    "man",
-    "manche",
-    "manchen",
-    "mancher",
-    "manches",
-    "mehr",
-    "mein",
-    "meine",
-    "mit",
-    "mich",
-    "mir",
-    "muss",
-    "musst",
-    "müssen",
-    "nach",
-    "nachdem",
-    "neben",
-    "nein",
-    "nicht",
-    "nichts",
-    "noch",
-    "nun",
-    "nur",
-    "ob",
-    "oder",
-    "ohne",
-    "sehr",
-    "sein",
-    "seine",
-    "seinem",
-    "seinen",
-    "seit",
-    "seitdem",
-    "selbst",
-    "sich",
-    "sie",
-    "sind",
-    "so",
-    "sogar",
-    "soll",
-    "sollen",
-    "sollte",
-    "sondern",
-    "sonst",
-    "später",
-    "über",
-    "um",
     "und",
-    "uns",
-    "unser",
-    "unsere",
-    "unter",
-    "viel",
-    "vom",
-    "von",
-    "vor",
-    "wann",
-    "war",
-    "waren",
-    "warst",
-    "warum",
-    "weg",
-    "weil",
-    "weiter",
-    "welche",
-    "welchem",
-    "welchen",
-    "welcher",
-    "welches",
-    "wenn",
-    "wer",
-    "werde",
-    "werden",
-    "wie",
-    "wieder",
-    "wir",
-    "wird",
-    "wurde",
-    "würde",
-    "während",
-    "zu",
-    "zum",
-    "zur",
-    "zwischen",
+    "oder",
+    "die",
+    "der",
+    "das",
+    "den",
   ];
 
+  let words: string[] = t
+    .split(/[^a-z0-9äöüß]+/i)
+    .map((w) => w.trim().toLowerCase())
+    .filter((w) => w.length >= 3 && !intentWords.includes(w));
 
-  let words: string[] = [];
+  // GANZ WICHTIG:
+  // Reine Zahlen wie "100" NICHT als Keywords benutzen,
+  // sonst matchen wir "100-teilig" statt den Preisbereich zu nutzen.
+  words = words.filter((w) => !/^\d+$/.test(w));
 
-  if (!wantsSnowboard) {
-    words = t
-      .split(/[^a-z0-9äöüß]+/i)
-      .map((w) => w.trim().toLowerCase())
-      .filter((w) => w.length >= 3 && !intentWords.includes(w));
+  console.log("[EFRO Filter WORDS]", {
+    text,
+    words,
+    categoryHintsInText,
+  });
 
-    console.log("[EFRO Filter WORDS]", { text, words });
+  const hasBudget = userMinPrice !== null || userMaxPrice !== null;
 
-    if (words.length > 0) {
-      // Konkrete Begriffe wie duschgel, napfset, federstab …
-      const keywordMatches = candidates.filter((p) => {
-        const title = normalize(p.title);
-        const desc = normalize(p.description || "");
-        const category = normalize(p.category || "");
-        const tagsText = (p.tags || [])
-          .map((tag) => normalize(tag))
-          .join(" ");
+  // 2a) Keyword-Scoring nur dann, wenn wirklich sinnvolle Wörter da sind
+  if (words.length > 0) {
+    const scored = candidates
+      .map((p) => ({
+        product: p,
+        score: scoreProductForWords(p, words),
+      }))
+      .filter((entry) => entry.score > 0);
 
-        const matches = words.some(
-          (word) =>
-            title.includes(word) ||
-            desc.includes(word) ||
-            category.includes(word) ||
-            tagsText.includes(word)
-        );
+    if (scored.length > 0) {
+      scored.sort((a, b) => b.score - a.score);
+      candidates = scored.map((e) => e.product);
 
-        return matches;
-      });
-
-      if (keywordMatches.length > 0) {
-        console.log("[EFRO Filter KEYWORD_MATCHES]", {
-          text,
-          words,
-          matchedTitles: keywordMatches.map((p) => p.title),
-        });
-
-        const strongMatches = keywordMatches.filter((p) => {
-          const title = normalize(p.title);
-          const tagsText = (p.tags || [])
-            .map((tag) => normalize(tag))
-            .join(" ");
-          return words.some(
-            (word) => title.includes(word) || tagsText.includes(word)
-          );
-        });
-
-        console.log("[EFRO Filter STRONG_MATCHES]", {
-          text,
-          words,
-          strongTitles: strongMatches.map((p) => p.title),
-        });
-
-        const base = strongMatches.length > 0 ? strongMatches : keywordMatches;
-        const sorted = [...base];
-
-        // Relevanz sortieren
-        sorted.sort((a, b) => {
-          const aTitle = normalize(a.title);
-          const aDesc = normalize(a.description || "");
-          const aCategory = normalize(a.category || "");
-          const aTagsText = (a.tags || [])
-            .map((tag) => normalize(tag))
-            .join(" ");
-          const aBlob = `${aTitle} ${aDesc} ${aCategory} ${aTagsText}`;
-
-          const bTitle = normalize(b.title);
-          const bDesc = normalize(b.description || "");
-          const bCategory = normalize(b.category || "");
-          const bTagsText = (b.tags || [])
-            .map((tag) => normalize(tag))
-            .join(" ");
-          const bBlob = `${bTitle} ${bDesc} ${bCategory} ${bTagsText}`;
-
-          let aScore = 0;
-          let bScore = 0;
-
-          words.forEach((word) => {
-            if (aTitle.includes(word)) aScore += 3;
-            else if (aBlob.includes(word)) aScore += 1;
-
-            if (bTitle.includes(word)) bScore += 3;
-            else if (bBlob.includes(word)) bScore += 1;
-          });
-
-          return bScore - aScore;
-        });
-
-        console.log("[EFRO Filter RESULT]", {
-          text,
-          intent,
-          resultTitles: sorted.slice(0, 3).map((p) => p.title),
-        });
-
-        // Bei echten Keywords hier hart returnen:
-        return sorted.slice(0, 3);
-      } else {
-        // Keine Keyword-Treffer → nicht abbrechen, später Intent-Fallback
-        console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
-          text,
-          intent,
-          words,
-        });
+      // Long Tail einkürzen, aber nicht zu hart
+      if (candidates.length > 20) {
+        candidates = candidates.slice(0, 20);
       }
+
+      console.log("[EFRO Filter KEYWORD_MATCHES]", {
+        text,
+        words,
+        matchedTitles: candidates.map((p) => p.title),
+      });
+    } else {
+      console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
+        text,
+        intent,
+        words,
+      });
+      // -> candidates bleiben wie sie sind (nur Kategorie-Filter)
     }
   }
 
-  // --------------------------------------------------
-  // 3) Intent-basierter Fallback (Preis / Bundle / Gift / Explore)
-  //    Dieser Block wird IMMER ausgeführt, wenn oben nicht
-  //    bereits über Keyword-Matching returned wurde.
-  // --------------------------------------------------
+  /**
+   * 3) Intent-/Preis-Logik
+   */
+  let minPrice: number | null = null;
+  let maxPrice: number | null = null;
+
+  if (userMinPrice !== null || userMaxPrice !== null) {
+    // User-Budget hat immer Vorrang
+    minPrice = userMinPrice;
+    maxPrice = userMaxPrice;
+  } else {
+    // Standardbereiche pro Intent (wie vorher)
+    if (intent === "premium") {
+      minPrice = 600;
+    } else if (intent === "bargain") {
+      maxPrice = 400;
+    } else if (intent === "gift") {
+      minPrice = 300;
+      maxPrice = 700;
+    }
+  }
+
+  // Preisfilter anwenden, falls gesetzt
+  if (minPrice !== null || maxPrice !== null) {
+    candidates = candidates.filter((p) => {
+      const price = p.price ?? 0;
+      if (minPrice !== null && price < minPrice) return false;
+      if (maxPrice !== null && price > maxPrice) return false;
+      return true;
+    });
+  }
+
   console.log("[EFRO Filter FALLBACK_INTENT]", {
     text,
     intent,
     candidateTitles: candidates.map((p) => p.title),
+    minPrice,
+    maxPrice,
+    userMinPrice,
+    userMaxPrice,
   });
 
-  if (intent === "premium") {
-    candidates = candidates.filter((p) => p.price >= 600);
-    candidates.sort((a, b) => b.price - a.price);
-  } else if (intent === "bargain") {
-    candidates = candidates.filter((p) => p.price > 0 && p.price <= 400);
-    candidates.sort((a, b) => a.price - b.price);
-  } else if (intent === "gift") {
-    candidates = candidates.filter((p) => p.price >= 300 && p.price <= 700);
-    candidates.sort((a, b) => a.price - b.price);
-  } else if (intent === "bundle") {
-    candidates = candidates.filter((p) => {
-      const tags = (p.tags || []).map((tag) => normalize(tag));
-      return tags.includes("bundle") || tags.includes("set");
-    });
-  } else if (intent === "explore") {
-    candidates.sort((a, b) => a.title.localeCompare(b.title));
-  } else {
-    // quick_buy / default
-    candidates.sort((a, b) => a.price - b.price);
-  }
-
-  // Fallback: Wenn nach Filtern nichts mehr übrig ist, nicht leer zurückgeben
+  /**
+   * 4) Fallback, wenn durch Filter alles weggefallen ist
+   *    -> nie [] zurückgeben, solange allProducts nicht leer ist.
+   */
   if (candidates.length === 0) {
+    // Basis: kompletter Katalog
     candidates = [...allProducts];
 
-    if (wantsSnowboard) {
-      candidates = candidates.filter((p) => {
-        const title = normalize(p.title);
-        const desc = normalize(p.description || "");
-        const tags = (p.tags || []).map((tag) => normalize(tag));
+    // Kategorie-Fallback: Kategorie beibehalten, Budget lockern
+    if (matchedCategories.length > 0) {
+      const byCat = candidates.filter((p) =>
+        matchedCategories.includes(normalize(p.category || ""))
+      );
+      if (byCat.length > 0) {
+        candidates = byCat;
+      }
+    }
 
-        return (
-          title.includes("snowboard") ||
-          desc.includes("snowboard") ||
-          tags.includes("snowboard")
-        );
+    // Wenn der User ein Budget genannt hat, versuchen wir es "weich":
+    if (userMinPrice !== null || userMaxPrice !== null) {
+      let tmp = candidates.filter((p) => {
+        const price = p.price ?? 0;
+        if (userMinPrice !== null && price < userMinPrice) return false;
+        if (userMaxPrice !== null && price > userMaxPrice) return false;
+        return true;
       });
 
-      if (candidates.length === 0) {
-        candidates = [...allProducts];
+      // Wenn selbst das nichts bringt: Budget komplett ignorieren
+      if (tmp.length > 0) {
+        candidates = tmp;
       }
+    }
+  }
+
+  /**
+   * 5) Sortierung abhängig vom Intent
+   */
+  if (intent === "premium") {
+    // teuerste zuerst
+    candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+  } else if (intent === "bargain" || intent === "gift" || intent === "quick_buy") {
+    // günstigste zuerst
+    candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  } else if (intent === "explore") {
+    // Explore: wenn Budget gesetzt -> nach Preis, sonst alphabetisch
+    if (hasBudget) {
+      candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    } else {
+      candidates.sort((a, b) => a.title.localeCompare(b.title));
     }
   }
 
