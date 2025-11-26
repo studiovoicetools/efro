@@ -13,8 +13,58 @@ import {
 
 import EFROChatWindow from "@/components/EFROChatWindow";
 import { EfroProductPanel } from "@/components/EfroProductPanel";
-import { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
+import {
+  EfroProduct,
+  ShoppingIntent,
+  mockCatalog,
+} from "@/lib/products/mockCatalog";
 import { runSellerBrain, SellerBrainResult } from "@/lib/sales/sellerBrain";
+
+/* ===========================================================
+   SHOPIFY → EFRO MAPPING
+=========================================================== */
+
+type ShopifyProduct = {
+  id: number | string;
+  title: string;
+  body_html?: string;
+  product_type?: string;
+  tags?: string; // Komma-getrennt
+  variants?: { price?: string }[];
+  image?: { src?: string };
+};
+
+// HTML grob entfernen
+function stripHtml(html?: string): string {
+  if (!html) return "";
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function mapShopifyToEfro(list: ShopifyProduct[]): EfroProduct[] {
+  return (list || []).map((p, index) => {
+    const priceNumber = p.variants?.[0]?.price
+      ? Number(p.variants[0].price)
+      : NaN;
+
+    const safePrice = Number.isFinite(priceNumber) ? priceNumber : 0;
+
+    const tagsArray =
+      p.tags
+        ?.split(",")
+        .map((t) => t.trim())
+        .filter(Boolean) ?? [];
+
+    return {
+      id: String(p.id ?? `shopify-${index}`),
+      title: p.title || "Unbenanntes Produkt",
+      description: stripHtml(p.body_html),
+      price: safePrice, // Pflichtfeld
+      imageUrl: p.image?.src || "/images/mock/gift-card-50.jpg", // Fallback-Bild
+      tags: tagsArray,
+      category: p.product_type || "misc",
+    };
+  });
+}
 
 /* ===========================================================
    AVATAR COMPONENT
@@ -518,7 +568,7 @@ export default function Home({ searchParams }: HomeProps) {
       KATALOG-DEBUG-FUNKTION
   ============================================================ */
 
-  const debugCatalogOverview = (products: EfroProduct[]) => {
+  const debugCatalogOverview = useCallback((products: EfroProduct[]) => {
     const categories = Array.from(
       new Set(
         products
@@ -538,48 +588,66 @@ export default function Home({ searchParams }: HomeProps) {
         tags: (p as any).tags,
       })),
     });
-  };
+  }, []);
 
   /* ===========================================================
-      PRODUKTE LADEN
+      PRODUKTE LADEN (Shopify → EfroProduct, Fallback mockCatalog)
   ============================================================ */
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch(`/api/efro/debug-products`, {
+      // 1) Primär: Shopify-Admin-Route
+      const res = await fetch(`/api/shopify-products`, {
         cache: "no-store",
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        console.error("[EFRO AllProducts] HTTP error from debug-products", {
-          status: res.status,
-          body: text,
-        });
-        return;
+        const text = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}: ${text}`);
       }
 
       const data = await res.json();
 
-      const products: EfroProduct[] = Array.isArray(data)
-        ? (data as EfroProduct[])
-        : Array.isArray(data.products)
-        ? (data.products as EfroProduct[])
+      const shopifyProducts: ShopifyProduct[] = Array.isArray(data?.products)
+        ? data.products
+        : Array.isArray(data)
+        ? data
         : [];
+
+      if (!shopifyProducts.length) {
+        throw new Error("Keine Shopify-Produkte im Response");
+      }
+
+      const products = mapShopifyToEfro(shopifyProducts);
 
       const titles = products.slice(0, 10).map((p) => p.title);
       console.log("[EFRO AllProducts]", {
         count: products.length,
         titles,
-        source: data.productsSource ?? "debug-products",
+        source: "shopify-admin",
       });
 
       setAllProducts(products);
       debugCatalogOverview(products);
     } catch (err) {
-      console.error("[EFRO AllProducts] Fetch error", err);
+      console.error(
+        "[EFRO AllProducts] Shopify-Route fehlgeschlagen, Fallback auf mockCatalog",
+        err
+      );
+
+      const products = mockCatalog;
+      const titles = products.slice(0, 10).map((p) => p.title);
+
+      console.log("[EFRO AllProducts]", {
+        count: products.length,
+        titles,
+        source: "mockCatalog (fallback from avatar-seller)",
+      });
+
+      setAllProducts(products);
+      debugCatalogOverview(products);
     }
-  }, []);
+  }, [debugCatalogOverview]);
 
   useEffect(() => {
     fetchProducts();
@@ -872,10 +940,9 @@ export default function Home({ searchParams }: HomeProps) {
         const formattedPrice = formatPrice(primary.price);
         const name = primary.title || "dieses Produkt";
 
-        sendDirectAiReply(
-          `Das ${name} kostet aktuell ${formattedPrice}.`,
-          { speak: true }
-        );
+        sendDirectAiReply(`Das ${name} kostet aktuell ${formattedPrice}.`, {
+          speak: true,
+        });
         return;
       }
 
