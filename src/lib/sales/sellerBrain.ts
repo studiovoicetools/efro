@@ -14,12 +14,18 @@ export type SellerBrainResult = {
 type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
 
 /**
+ * Nutzertext normalisieren
+ */
+function normalize(text: string): string {
+  return text.toLowerCase();
+}
+
+/**
  * Erkennt, ob der Nutzer eher eine Erklärung will
  * (Inhaltsstoffe / Material / Anwendung / Pflege).
  */
-function detectExplanationMode(text: string): "ingredients" | "usage" | "washing" | null {
+function detectExplanationMode(text: string): ExplanationMode | null {
   const t = normalize(text || "");
-
   if (!t) return null;
 
   // Zutaten / Inhaltsstoffe
@@ -32,6 +38,17 @@ function detectExplanationMode(text: string): "ingredients" | "usage" | "washing
     return "ingredients";
   }
 
+  // Material / Stoff / aus welchem Material
+  if (
+    t.includes("material") ||
+    t.includes("stoff") ||
+    t.includes("welches material") ||
+    t.includes("woraus ist") ||
+    t.includes("aus welchem stoff")
+  ) {
+    return "materials";
+  }
+
   // Anwendung / benutzen
   if (
     t.includes("wie verwende ich") ||
@@ -42,15 +59,27 @@ function detectExplanationMode(text: string): "ingredients" | "usage" | "washing
     return "usage";
   }
 
-  // Waschen / Pflege
+  // Pflege / waschen
   if (
     t.includes("wie kann ich das waschen") ||
     t.includes("wie kann ich das reinigen") ||
     t.includes("wie wasche ich das") ||
     t.includes("waschhinweis") ||
-    t.includes("pflegehinweis")
+    t.includes("pflegehinweis") ||
+    t.includes("pflege") ||
+    t.includes("waschen")
   ) {
     return "washing";
+  }
+
+  // Allgemeine Pflege-Fragen (ohne explizites "waschen")
+  if (
+    t.includes("wie pflege ich") ||
+    t.includes("pflegeanleitung") ||
+    t.includes("pflege tipps") ||
+    t.includes("pflegetipps")
+  ) {
+    return "care";
   }
 
   return null;
@@ -103,13 +132,6 @@ function isProductRelated(text: string): boolean {
   ];
 
   return productHints.some((w) => t.includes(w));
-}
-
-/**
- * Nutzertext normalisieren
- */
-function normalize(text: string): string {
-  return text.toLowerCase();
 }
 
 /**
@@ -550,11 +572,11 @@ function filterProducts(
     maxPrice = userMaxPrice;
   } else {
     // Standardbereiche pro Intent (wie vorher)
-  if (intent === "premium") {
+    if (intent === "premium") {
       minPrice = 600;
-  } else if (intent === "bargain") {
+    } else if (intent === "bargain") {
       maxPrice = 400;
-  } else if (intent === "gift") {
+    } else if (intent === "gift") {
       minPrice = 300;
       maxPrice = 700;
     }
@@ -600,7 +622,7 @@ function filterProducts(
 
     // Wenn der User ein Budget genannt hat, versuchen wir es "weich":
     if (userMinPrice !== null || userMaxPrice !== null) {
-      let tmp = candidates.filter((p) => {
+      const tmp = candidates.filter((p) => {
         const price = p.price ?? 0;
         if (userMinPrice !== null && price < userMinPrice) return false;
         if (userMaxPrice !== null && price > userMaxPrice) return false;
@@ -818,7 +840,7 @@ function buildReplyText(
    */
   if (hasBudget) {
     if (count === 1) {
-    return (
+      return (
         `Ich habe ein Produkt gefunden, das gut zu deinem Budget ${budgetText} passt:\n\n` +
         `• ${first.title} – ${formatPrice(first)}\n\n` +
         "Wenn du möchtest, kann ich dir noch eine Alternative im ähnlichen Preisbereich zeigen."
@@ -858,21 +880,14 @@ function buildReplyText(
       "Ich habe dir eine Auswahl an hochwertigen Premium-Produkten zusammengestellt. " +
       "Ein besonders starkes Match ist:";
 
-  const lines = recommended.map(
+    const lines = recommended.map(
       (p, idx) => `${idx + 1}. ${p.title}`
     );
 
     const closing =
       '\n\nWenn du lieber in einem bestimmten Preisbereich bleiben möchtest, sag mir einfach dein Budget (z. B. "unter 500 Euro").';
 
-    return [
-      intro,
-      "",
-      `• ${first.title}`,
-      "",
-      ...lines,
-      closing,
-    ].join("\n");
+    return [intro, "", `• ${first.title}`, "", ...lines, closing].join("\n");
   }
 
   /**
@@ -941,16 +956,16 @@ export function runSellerBrain(
   const cleaned = raw.trim();
 
   const nextIntent = detectIntentFromText(cleaned, currentIntent);
-  
+
   // Einfache Plan-Logik: starter = 2, pro = 4, enterprise = 6, default = 4
   const getMaxRecommendationsForPlan = (p?: string): number => {
-    const normalized = (p ?? "").toLowerCase();
-    if (normalized === "starter") return 2;
-    if (normalized === "pro") return 4;
-    if (normalized === "enterprise") return 6;
+    const normalizedPlan = (p ?? "").toLowerCase();
+    if (normalizedPlan === "starter") return 2;
+    if (normalizedPlan === "pro") return 4;
+    if (normalizedPlan === "enterprise") return 6;
     return 4; // default
   };
-  
+
   const maxRecommendations = getMaxRecommendationsForPlan(plan);
 
   // explanationMode EINMAL zentral am Anfang berechnen
@@ -969,11 +984,12 @@ export function runSellerBrain(
       ? previousRecommended.slice(0, maxRecommendations)
       : [];
 
-    const replyText = recommended.length > 0
-      ? buildReplyText(cleaned, nextIntent, recommended)
-      : "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
-        "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
-        "dann kann ich dir die Details dazu erklären.";
+    const replyText =
+      recommended.length > 0
+        ? buildReplyText(cleaned, nextIntent, recommended)
+        : "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
+          "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
+          "dann kann ich dir die Details dazu erklären.";
 
     console.log("[EFRO SellerBrain] Explanation mode – no new filtering", {
       text: cleaned,
@@ -1014,18 +1030,13 @@ export function runSellerBrain(
   }
 
   // Normale Such-/Kaufanfrage -> ganz normal filtern
-  let recommended = filterProducts(
-    cleaned,
-    nextIntent,
-    allProducts
-  ).slice(0, maxRecommendations);
+  let recommended = filterProducts(cleaned, nextIntent, allProducts).slice(
+    0,
+    maxRecommendations
+  );
 
   // Erklär-Fragen: wenn es vorherige Empfehlungen gibt, diese "locken"
   let reusedPreviousProducts = false;
-
-  // Cross-Sell / Upsell bei explanationMode deaktivieren
-  // (Aktuell gibt es keine explizite Cross-Sell-Logik in dieser Datei,
-  //  aber falls später hinzugefügt wird, sollte sie hier in einen if (!explanationMode) Block)
 
   // Off-Topic-Hardlimit: Nur über Produkte reden
   const normalized = normalize(cleaned || "");
@@ -1043,10 +1054,12 @@ export function runSellerBrain(
     "abo",
     "abonnement",
     "vertrag",
-    "versicherung"
+    "versicherung",
   ];
 
-  const isOffTopic = offTopicKeywords.some((word) => normalized.includes(word));
+  const isOffTopic = offTopicKeywords.some((word) =>
+    normalized.includes(word)
+  );
 
   let replyText: string;
 
