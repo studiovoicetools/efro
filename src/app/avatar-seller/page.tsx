@@ -448,30 +448,48 @@ export default function Home({ searchParams }: HomeProps) {
       PRODUKTE LADEN
   ============================================================ */
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `/api/shopify-products?shop=${encodeURIComponent(shopDomain)}`
-      );
-      const data = await res.json();
+// src/app/avatar-seller/page.tsx
 
-      const products: EfroProduct[] = Array.isArray(data)
-        ? data
-        : data.products ?? [];
+const fetchProducts = useCallback(async () => {
+  try {
+    // Wichtig: hier holen wir UNSERE gemappten EfroProducts,
+    // nicht mehr das rohe Shopify-JSON
+    const res = await fetch(`/api/efro/debug-products`, {
+      cache: "no-store",
+    });
 
-      const titles = products.slice(0, 10).map((p) => p.title);
-      console.log("[EFRO AllProducts]", {
-        count: products.length,
-        titles,
-        source: "shopify-products (mapped to EfroProduct)",
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[EFRO AllProducts] HTTP error from debug-products", {
+        status: res.status,
+        body: text,
       });
-
-      setAllProducts(products);
-      debugCatalogOverview(products);
-    } catch (err) {
-      console.error("[EFRO AllProducts] Fetch error", err);
+      return;
     }
-  }, [shopDomain]);
+
+    const data = await res.json();
+
+    // debug-products liefert ein Objekt mit { products: EfroProduct[], ... }
+    const products: EfroProduct[] = Array.isArray(data)
+      ? (data as EfroProduct[])
+      : Array.isArray(data.products)
+      ? (data.products as EfroProduct[])
+      : [];
+
+    const titles = products.slice(0, 10).map((p) => p.title);
+    console.log("[EFRO AllProducts]", {
+      count: products.length,
+      titles,
+      source: data.productsSource ?? "debug-products",
+    });
+
+    setAllProducts(products);
+    debugCatalogOverview(products);
+  } catch (err) {
+    console.error("[EFRO AllProducts] Fetch error", err);
+  }
+}, []); // shopDomain hier egal, debug-products holt selbst aus /api/shopify-products
+
 
   useEffect(() => {
     fetchProducts();
