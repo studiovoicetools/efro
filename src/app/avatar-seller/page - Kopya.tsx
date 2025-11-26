@@ -25,21 +25,11 @@ interface ElevenLabsAvatarProps {
 
   // Wird von Home übergeben – hier hängt SellerBrain dran
   createRecommendations?: (text: string) => void;
-  setChatMessages?: React.Dispatch<
-    React.SetStateAction<
-      { id: string; text: string; sender: "user" | "efro" }[]
-    >
-  >;
-
-  // Handler-Registrierung, damit Home EFRO sprechen lassen kann
-  registerSpeakHandler?: (fn: ((text: string) => void) | null) => void;
 }
 
 function ElevenLabsAvatar({
   dynamicVariables,
   createRecommendations,
-  setChatMessages: externalSetChatMessages,
-  registerSpeakHandler,
 }: ElevenLabsAvatarProps) {
   /* ===========================================================
       STATES
@@ -161,7 +151,8 @@ function ElevenLabsAvatar({
          USER VOICE → orange
       ============================================================ */
       if (isUserMessage) {
-        // Nur Rauschen (ohne Buchstaben/Ziffern) ignorieren
+        // 🔇 HARTE Bremse:
+        // wenn keine Buchstaben/Ziffern → nur Noise (z.B. "...", "??", "!!")
         if (!hasLettersOrDigits) {
           console.log("[USER noise ignored - no letters/digits]", {
             text: cleanText,
@@ -181,9 +172,7 @@ function ElevenLabsAvatar({
           );
         }
 
-        const targetSetChatMessages = externalSetChatMessages ?? setChatMessages;
-
-        targetSetChatMessages((prev) => [
+        setChatMessages((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
@@ -200,7 +189,8 @@ function ElevenLabsAvatar({
       ============================================================ */
       if (isAssistantMessage) {
         console.log("[ElevenLabs AI ignored]", { message: cleanText });
-        // keine Chat-Nachricht, keine Recommendations
+        // Wir zeigen diese Texte nicht im Chat und triggern auch
+        // KEINE neuen Produktempfehlungen.
         return;
       }
 
@@ -224,45 +214,6 @@ function ElevenLabsAvatar({
     naturalLipSync: naturalLipSyncEnabled,
     naturalLipSyncConfig: lipSyncConfig,
   });
-
-  /* ===========================================================
-      SPRECH-HANDLER FÜR HOME
-  ============================================================ */
-
-  const speakForApp = useCallback(
-    async (text: string) => {
-      // Einige ElevenLabs-Versionen haben sendUserMessage nicht
-      const fn = (conversation as any)?.sendUserMessage;
-      if (typeof fn !== "function") {
-        console.warn(
-          "[EFRO Speak] sendUserMessage ist nicht verfügbar, Text wird nicht gesprochen:",
-          text
-        );
-        return;
-      }
-
-      const phrase = `Bitte sprich genau folgenden Satz und füge nichts hinzu: "${text}"`;
-
-      console.log("[EFRO Speak] Sending to ElevenLabs:", phrase);
-
-      try {
-        const maybePromise = fn(phrase);
-        // Falls ein Promise zurückkommt, warten – ansonsten ignorieren
-        if (maybePromise && typeof (maybePromise as any).then === "function") {
-          await maybePromise;
-        }
-      } catch (err) {
-        console.error("[EFRO Speak] sendUserMessage error", err);
-      }
-    },
-    [conversation]
-  );
-
-  useEffect(() => {
-    if (!registerSpeakHandler) return;
-    registerSpeakHandler(speakForApp);
-    return () => registerSpeakHandler(null);
-  }, [registerSpeakHandler, speakForApp]);
 
   /* ===========================================================
       SIGNED URL
@@ -343,14 +294,11 @@ function ElevenLabsAvatar({
     if (!cleaned) return;
 
     try {
-      const fn = (conversation as any)?.sendUserMessage;
-      if (typeof fn === "function") {
-        const maybePromise = fn(cleaned);
-        if (maybePromise && typeof (maybePromise as any).then === "function") {
-          await maybePromise;
-        }
+      if (conversation.sendUserMessage) {
+        await conversation.sendUserMessage(cleaned);
       }
 
+      // Auch Text-Chat → SellerBrain
       if (typeof createRecommendations === "function") {
         createRecommendations(cleaned);
       }
@@ -459,11 +407,6 @@ export default function Home({ searchParams }: HomeProps) {
     shopDomain,
   };
 
-  // 🔹 Chat-Messages State (für Explanation-Guards)
-  const [chatMessages, setChatMessages] = useState<
-    { id: string; text: string; sender: "user" | "efro" }[]
-  >([]);
-
   // 🔹 Produkt- und SellerBrain-State
   const [allProducts, setAllProducts] = useState<EfroProduct[]>([]);
   const [sellerIntent, setSellerIntent] =
@@ -474,45 +417,10 @@ export default function Home({ searchParams }: HomeProps) {
   );
 
   // Komplettes SellerBrain-Result für Panel
-  const [sellerResult, setSellerResult] = useState<SellerBrainResult | null>(
-    null
-  );
-
-  // Letztes "normales" Produkt-Result für Kontext bei Erklärfragen
-  const [lastProductResult, setLastProductResult] =
-    useState<SellerBrainResult | null>(null);
-
-  // Letzte Empfehlungen für Erklärung/Preis
-  const [lastRecommendations, setLastRecommendations] = useState<EfroProduct[]>(
-    []
-  );
-  const [lastRecommendedProducts, setLastRecommendedProducts] = useState<
-    EfroProduct[]
-  >([]);
+  const [sellerResult, setSellerResult] = useState<SellerBrainResult | null>(null);
 
   // 🔹 Plan-State (starter / pro / enterprise)
   const [shopPlan, setShopPlan] = useState<string>("starter");
-
-  /* ===========================================================
-      SPRECH-HANDLER VON AVATAR
-  ============================================================ */
-
-  const speakHandlerRef = useRef<((text: string) => void) | null>(null);
-
-  function registerSpeakHandler(fn: ((text: string) => void) | null) {
-    speakHandlerRef.current = fn;
-  }
-
-  function speak(text: string) {
-    if (!speakHandlerRef.current) {
-      console.log(
-        "[EFRO Speak] Kein aktiver Handler – Text wird nur im Chat angezeigt:",
-        text
-      );
-      return;
-    }
-    speakHandlerRef.current(text);
-  }
 
   /* ===========================================================
       KATALOG-DEBUG-FUNKTION
@@ -544,42 +452,48 @@ export default function Home({ searchParams }: HomeProps) {
       PRODUKTE LADEN
   ============================================================ */
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/efro/debug-products`, {
-        cache: "no-store",
+// src/app/avatar-seller/page.tsx
+
+const fetchProducts = useCallback(async () => {
+  try {
+    // Wichtig: hier holen wir UNSERE gemappten EfroProducts,
+    // nicht mehr das rohe Shopify-JSON
+    const res = await fetch(`/api/efro/debug-products`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[EFRO AllProducts] HTTP error from debug-products", {
+        status: res.status,
+        body: text,
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("[EFRO AllProducts] HTTP error from debug-products", {
-          status: res.status,
-          body: text,
-        });
-        return;
-      }
-
-      const data = await res.json();
-
-      const products: EfroProduct[] = Array.isArray(data)
-        ? (data as EfroProduct[])
-        : Array.isArray(data.products)
-        ? (data.products as EfroProduct[])
-        : [];
-
-      const titles = products.slice(0, 10).map((p) => p.title);
-      console.log("[EFRO AllProducts]", {
-        count: products.length,
-        titles,
-        source: data.productsSource ?? "debug-products",
-      });
-
-      setAllProducts(products);
-      debugCatalogOverview(products);
-    } catch (err) {
-      console.error("[EFRO AllProducts] Fetch error", err);
+      return;
     }
-  }, []);
+
+    const data = await res.json();
+
+    // debug-products liefert ein Objekt mit { products: EfroProduct[], ... }
+    const products: EfroProduct[] = Array.isArray(data)
+      ? (data as EfroProduct[])
+      : Array.isArray(data.products)
+      ? (data.products as EfroProduct[])
+      : [];
+
+    const titles = products.slice(0, 10).map((p) => p.title);
+    console.log("[EFRO AllProducts]", {
+      count: products.length,
+      titles,
+      source: data.productsSource ?? "debug-products",
+    });
+
+    setAllProducts(products);
+    debugCatalogOverview(products);
+  } catch (err) {
+    console.error("[EFRO AllProducts] Fetch error", err);
+  }
+}, []); // shopDomain hier egal, debug-products holt selbst aus /api/shopify-products
+
 
   useEffect(() => {
     fetchProducts();
@@ -619,126 +533,6 @@ export default function Home({ searchParams }: HomeProps) {
   }, [fetchShopMeta]);
 
   /* ===========================================================
-      HILFSFUNKTIONEN FÜR FRAGETYPEN
-  ============================================================ */
-
-  function isPriceQuestion(text: string): boolean {
-    const t = text.toLowerCase();
-    return (
-      t.includes("preis") ||
-      t.includes("kosten") ||
-      t.includes("wie teuer") ||
-      t.includes("wie viel kostet") ||
-      t.includes("wieviel kostet") ||
-      t === "preis?" ||
-      t === "preis" ||
-      t.includes("how much") ||
-      t.includes("price")
-    );
-  }
-
-  function isIngredientsQuestion(text: string): boolean {
-    const t = text.toLowerCase();
-    return (
-      t.includes("inhaltsstoff") ||
-      t.includes("inhaltsstoffe") ||
-      t.includes("ingredients") ||
-      t.includes("inci")
-    );
-  }
-
-  function extractIngredientsSnippet(description: string): string {
-    const desc = description.trim();
-    if (!desc) return "";
-
-    const lower = desc.toLowerCase();
-    const indices = [
-      lower.indexOf("inhaltsstoffe"),
-      lower.indexOf("ingredients"),
-      lower.indexOf("inci"),
-    ].filter((i) => i >= 0);
-
-    const ingredientsIndex = indices.length ? Math.min(...indices) : -1;
-
-    if (ingredientsIndex === -1) {
-      return desc.length > 200 ? desc.slice(0, 200) + "…" : desc;
-    }
-
-    const snippet = desc.slice(ingredientsIndex, ingredientsIndex + 300);
-    return snippet.length < desc.length - ingredientsIndex
-      ? snippet + "…"
-      : snippet;
-  }
-
-  function formatPrice(price?: number | null): string {
-    if (price == null) return "Preis auf Anfrage";
-    return `${price.toFixed(2).replace(".", ",")} €`;
-  }
-
-  function detectExplanationType(
-    text: string
-  ): "ingredients" | "usage" | "washing" | "price" | null {
-    const t = text.toLowerCase();
-
-    if (
-      t.includes("inhaltsstoff") ||
-      t.includes("inhaltsstoffe") ||
-      t.includes("ingredient") ||
-      t.includes("ingredients") ||
-      t.includes("inci")
-    ) {
-      return "ingredients";
-    }
-
-    if (
-      t.includes("wie verwende ich") ||
-      t.includes("wie benutze ich") ||
-      t.includes("anwendung") ||
-      t.includes("apply") ||
-      t.includes("usage")
-    ) {
-      return "usage";
-    }
-
-    if (
-      t.includes("waschen") ||
-      t.includes("wasche") ||
-      t.includes("pflegehinweis") ||
-      t.includes("pflege") ||
-      t.includes("wash") ||
-      t.includes("washing")
-    ) {
-      return "washing";
-    }
-
-    if (isPriceQuestion(t)) {
-      return "price";
-    }
-
-    return null;
-  }
-
-  /* ===========================================================
-      DIREKTE ANTWORTEN (OHNE SELLERBRAIN)
-  ============================================================ */
-
-  function sendDirectAiReply(reply: string, options?: { speak?: boolean }) {
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        text: reply,
-        sender: "efro",
-      },
-    ]);
-    setSellerReplyText(reply);
-
-    if (options?.speak) {
-      speak(reply);
-    }
-  }
-
-  /* ===========================================================
       SELLERBRAIN-BRIDGE (wird vom Avatar aufgerufen)
   ============================================================ */
 
@@ -751,177 +545,34 @@ export default function Home({ searchParams }: HomeProps) {
         return;
       }
 
-      const cleanedText = userText.trim();
-      if (!cleanedText) return;
-
-      const explanation = detectExplanationType(cleanedText);
-
-      // Off-Topic-Check
-      const offTopicKeywords = [
-        "politik",
-        "wahl",
-        "cursor",
-        "freund",
-        "freunde",
-        "gefühle",
-        "lebenssituation",
-      ];
-      const isOffTopic = offTopicKeywords.some((keyword) =>
-        cleanedText.toLowerCase().includes(keyword)
-      );
-
-      if (isOffTopic) {
-        sendDirectAiReply(
-          "Ich bin hier, um dir bei Produkten aus dem Shop zu helfen. Frag mich einfach nach einem Produkt, z. B. 'Zeige mir Duschgel'.",
-          { speak: true }
-        );
-        console.log("[EFRO OffTopic] Redirecting to product questions", {
-          text: cleanedText,
-        });
-        return;
-      }
-
-      // ---------- Inhaltsstoffe ----------
-      if (explanation === "ingredients" || isIngredientsQuestion(cleanedText)) {
-        const fromLast =
-          lastRecommendedProducts[0] || lastRecommendations[0] || null;
-        const fromSeller = sellerRecommended[0] || null;
-        const primary = fromLast || fromSeller;
-        const contextFromRef = fromLast ? 1 : fromSeller ? 2 : 0;
-
-        console.log("[EFRO IngredientsExplanation]", {
-          text: cleanedText,
-          primaryTitle: primary?.title,
-          contextFromRef,
-        });
-
-        if (!primary) {
-          sendDirectAiReply(
-            "Zu diesem Produkt habe ich hier keine Inhaltsstoffe hinterlegt. Klicke im Shop auf das Produkt, dort findest du alle Details.",
-            { speak: true }
-          );
-          return;
-        }
-
-        const desc = (primary.description || "").trim();
-        const hasIngredients =
-          desc.toLowerCase().includes("inhaltsstoffe") ||
-          desc.toLowerCase().includes("ingredients") ||
-          desc.toLowerCase().includes("inci");
-
-        if (hasIngredients) {
-          const shortInfo = extractIngredientsSnippet(desc);
-          sendDirectAiReply(
-            `Zu diesem Produkt habe ich folgende Infos zu den Inhaltsstoffen: ${shortInfo}`,
-            { speak: true }
-          );
-        } else {
-          sendDirectAiReply(
-            "Zu diesem Produkt habe ich hier keine Inhaltsstoffe hinterlegt. Klicke im Shop auf das Produkt, dort findest du alle Details.",
-            { speak: true }
-          );
-        }
-        return;
-      }
-
-      // ---------- Anwendung / Waschen ----------
-      if (explanation === "usage" || explanation === "washing") {
-        let reply = "";
-
-        if (explanation === "usage") {
-          reply =
-            "Die genaue Anwendung hängt vom jeweiligen Produkt ab. Auf der Produktseite im Shop findest du alle wichtigen Anwendungshinweise.";
-        } else if (explanation === "washing") {
-          reply =
-            "Wasch- und Pflegehinweise findest du am besten direkt auf der Produktseite im Shop oder auf dem Pflegeetikett.";
-        }
-
-        sendDirectAiReply(reply, { speak: true });
-
-        console.log("[EFRO ExplanationGuard] Skipping sellerBrain", {
-          text: cleanedText,
-          explanation,
-        });
-
-        return;
-      }
-
-      // ---------- Preis ----------
-      if (explanation === "price" || isPriceQuestion(cleanedText)) {
-        const fromLast =
-          lastRecommendedProducts[0] || lastRecommendations[0] || null;
-        const fromSeller = sellerRecommended[0] || null;
-        const primary = fromLast || fromSeller;
-        const contextFromRef = fromLast ? 1 : fromSeller ? 2 : 0;
-
-        console.log("[EFRO PriceExplanation]", {
-          text: cleanedText,
-          primaryTitle: primary?.title,
-          primaryPrice: primary?.price,
-          contextFromRef,
-        });
-
-        if (!primary) {
-          sendDirectAiReply(
-            "Ich habe gerade kein konkretes Produkt im Fokus. Klicke auf eine Produktkarte, dort siehst du den exakten Preis.",
-            { speak: true }
-          );
-          return;
-        }
-
-        const formattedPrice = formatPrice(primary.price);
-        const name = primary.title || "dieses Produkt";
-
-        sendDirectAiReply(
-          `Das ${name} kostet aktuell ${formattedPrice}.`,
-          { speak: true }
-        );
-        return;
-      }
-
-      // ---------- Normale Produktanfrage → SellerBrain ----------
       const result: SellerBrainResult = runSellerBrain(
-        cleanedText,
+        userText,
         sellerIntent,
         allProducts,
-        shopPlan,
-        sellerRecommended
+        shopPlan // <- Plan geht in die Filter-Logik
       );
 
-      const recommendations = result.recommended ?? [];
-
       console.log("[EFRO SellerBrain]", {
-        userText: cleanedText,
+        userText,
         intent: result.intent,
         plan: shopPlan,
-        recCount: recommendations.length,
+        recCount: result.recommended.length,
         usedSourceCount: allProducts.length,
-        hasKeywordInCatalog: recommendations.length > 0,
+        hasKeywordInCatalog: result.recommended.length > 0,
       });
 
-      // letzte Empfehlungen merken
-      setLastRecommendedProducts(recommendations);
-      setLastRecommendations(recommendations);
-
+      // Komplettes Result für Panel speichern
       setSellerResult(result);
-      setLastProductResult(result);
 
       setSellerIntent(result.intent);
       setSellerReplyText(result.replyText);
-      setSellerRecommended(recommendations);
+      setSellerRecommended(result.recommended);
     },
-    [
-      allProducts,
-      sellerIntent,
-      shopPlan,
-      sellerRecommended,
-      lastRecommendedProducts,
-      lastRecommendations,
-    ]
+    [allProducts, sellerIntent, shopPlan]
   );
 
   /* ===========================================================
-      RENDER
+      UI: PRODUKT-EMPFEHLUNGEN (alte UI entfernt, neue Komponente)
   ============================================================ */
 
   return (
@@ -940,16 +591,14 @@ export default function Home({ searchParams }: HomeProps) {
           <ElevenLabsAvatar
             dynamicVariables={dynamicVariables}
             createRecommendations={createRecommendations}
-            setChatMessages={setChatMessages}
-            registerSpeakHandler={registerSpeakHandler}
           />
         </MascotClient>
 
-        {/* PRODUKT-PANEL */}
+        {/* PRODUKT-PANEL – neue Komponente */}
         <EfroProductPanel
-          visible={!!sellerResult && (sellerResult.recommended?.length ?? 0) > 0}
+          visible={!!sellerResult && sellerResult.recommended.length > 0}
           products={sellerResult?.recommended ?? []}
-          replyText={sellerResult?.replyText ?? sellerReplyText}
+          replyText={sellerResult?.replyText ?? ""}
         />
       </main>
     </MascotProvider>

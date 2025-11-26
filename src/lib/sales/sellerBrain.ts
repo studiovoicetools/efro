@@ -11,6 +11,100 @@ export type SellerBrainResult = {
   replyText: string;
 };
 
+type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
+
+/**
+ * Erkennt, ob der Nutzer eher eine Erklärung will
+ * (Inhaltsstoffe / Material / Anwendung / Pflege).
+ */
+function detectExplanationMode(text: string): "ingredients" | "usage" | "washing" | null {
+  const t = normalize(text || "");
+
+  if (!t) return null;
+
+  // Zutaten / Inhaltsstoffe
+  if (
+    t.includes("inhaltsstoff") ||
+    t.includes("inhaltsstoffe") ||
+    t.includes("zutaten") ||
+    t.includes("ingredients")
+  ) {
+    return "ingredients";
+  }
+
+  // Anwendung / benutzen
+  if (
+    t.includes("wie verwende ich") ||
+    t.includes("wie benutze ich") ||
+    t.includes("wie nutze ich") ||
+    t.includes("anwendung")
+  ) {
+    return "usage";
+  }
+
+  // Waschen / Pflege
+  if (
+    t.includes("wie kann ich das waschen") ||
+    t.includes("wie kann ich das reinigen") ||
+    t.includes("wie wasche ich das") ||
+    t.includes("waschhinweis") ||
+    t.includes("pflegehinweis")
+  ) {
+    return "washing";
+  }
+
+  return null;
+}
+
+/**
+ * Prüft, ob der Text produktbezogen ist
+ */
+function isProductRelated(text: string): boolean {
+  const t = normalize(text || "");
+
+  // Wörter, die auf typische Produkt-/Shopfragen hindeuten
+  const productHints = [
+    "duschgel",
+    "shampoo",
+    "gel",
+    "öl",
+    "seife",
+    "hund",
+    "katze",
+    "spielzeug",
+    "produkt",
+    "produkte",
+    "shop",
+    "kaufen",
+    "preis",
+    "kosten",
+    "angebot",
+    "rabatt",
+    "größe",
+    "groesse",
+    "farbe",
+    "variant",
+    "haushalt",
+    "kosmetik",
+    "tiere",
+    "haustier",
+    "zeig",
+    "zeige",
+    "suche",
+    "suchen",
+    "finde",
+    "finden",
+    "empfehl",
+    "vorschlag",
+    "was",
+    "welch",
+    "welche",
+    "welches",
+  ];
+
+  return productHints.some((w) => t.includes(w));
+}
+
 /**
  * Nutzertext normalisieren
  */
@@ -456,11 +550,11 @@ function filterProducts(
     maxPrice = userMaxPrice;
   } else {
     // Standardbereiche pro Intent (wie vorher)
-    if (intent === "premium") {
+  if (intent === "premium") {
       minPrice = 600;
-    } else if (intent === "bargain") {
+  } else if (intent === "bargain") {
       maxPrice = 400;
-    } else if (intent === "gift") {
+  } else if (intent === "gift") {
       minPrice = 300;
       maxPrice = 700;
     }
@@ -567,6 +661,25 @@ function filterProducts(
 }
 
 /**
+ * Extrahiert einen Ausschnitt aus der Produktbeschreibung
+ */
+function getDescriptionSnippet(
+  description?: string | null,
+  maxLength: number = 280
+): string | null {
+  if (!description) return null;
+
+  const clean = description.replace(/\s+/g, " ").trim();
+  if (!clean) return null;
+
+  if (clean.length <= maxLength) {
+    return clean;
+  }
+
+  return clean.slice(0, maxLength) + "…";
+}
+
+/**
  * Reply-Text für EFRO bauen
  */
 function buildReplyText(
@@ -576,31 +689,242 @@ function buildReplyText(
 ): string {
   const count = recommended.length;
 
-  // 0 Treffer
   if (count === 0) {
     return (
       "Ich habe in den aktuellen Shop-Daten leider kein Produkt gefunden, das genau zu deiner Anfrage passt. " +
-      "Wenn du mir deinen Wunsch etwas anders beschreibst, probiere ich es gerne noch einmal."
+      "Wenn du mir deinen Wunsch etwas anders beschreibst – zum Beispiel Kategorie oder Budget – probiere ich es gerne direkt noch einmal."
     );
   }
 
-  // 1 Treffer
-  if (count === 1) {
-    const product = recommended[0];
-    const price = product.price ? product.price.toFixed(2) : "0.00";
+  const formatPrice = (p: EfroProduct) =>
+    p.price != null ? `${p.price.toFixed(2)} €` : "–";
+
+  const first = recommended[0];
+
+  // Budget aus dem Text holen
+  const { minPrice, maxPrice } = extractUserPriceRange(text);
+  const hasBudget = minPrice !== null || maxPrice !== null;
+
+  // Prüfen, ob der User eine Erklärung will (Inhaltsstoffe etc.)
+  const explanationMode = detectExplanationMode(text);
+
+  const descSnippet = getDescriptionSnippet(first.description);
+  const hasDesc = !!descSnippet;
+
+  // Hilfs-Label für Budget
+  let budgetText = "";
+  if (hasBudget) {
+    if (minPrice !== null && maxPrice === null) {
+      budgetText = `ab etwa ${minPrice} €`;
+    } else if (maxPrice !== null && minPrice === null) {
+      budgetText = `bis etwa ${maxPrice} €`;
+    } else if (minPrice !== null && maxPrice !== null) {
+      budgetText = `zwischen ${minPrice} € und ${maxPrice} €`;
+    }
+  }
+
+  const categoryLabel =
+    first.category && first.category.trim().length > 0
+      ? first.category
+      : "dieses Produkts";
+  const priceLabel = formatPrice(first);
+
+  /**
+   * 0) Spezialfälle: User will EXPLIZIT Erklärungen
+   *    (Inhaltsstoffe, Material, Anwendung, Pflege).
+   */
+  if (explanationMode) {
+    if (explanationMode === "ingredients") {
+      if (hasDesc) {
+        return (
+          `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
+          "Die exakte Liste der Inhaltsstoffe wird direkt im Shop auf der Produktseite gepflegt – dort findest du alle Details, inklusive gesetzlich vorgeschriebener Angaben.\n\n" +
+          "In der aktuellen Produktbeschreibung steht unter anderem:\n" +
+          descSnippet +
+          "\n\n" +
+          "Wenn du Allergien oder sehr empfindliche Haut hast, schau bitte auf der Produktseite im Bereich 'Inhaltsstoffe' nach oder kontaktiere direkt den Händler, bevor du das Produkt verwendest."
+        );
+      } else {
+        return (
+          `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
+          "Die exakte Liste der Inhaltsstoffe wird direkt im Shop auf der Produktseite gepflegt – dort findest du alle Details, inklusive gesetzlich vorgeschriebener Angaben.\n\n" +
+          `Dieses Produkt gehört zur Kategorie "${categoryLabel}" und liegt preislich bei ${priceLabel}. ` +
+          "Wenn du Allergien oder sehr empfindliche Haut hast, schau bitte auf der Produktseite im Bereich 'Inhaltsstoffe' nach oder kontaktiere direkt den Händler, bevor du das Produkt verwendest."
+        );
+      }
+    }
+
+    if (explanationMode === "materials") {
+      if (hasDesc) {
+        return (
+          `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
+          "Die genaue Materialzusammensetzung (z. B. Baumwolle, Polyester, Mischgewebe) ist im Shop auf der Produktseite hinterlegt – dort findest du in der Regel einen Abschnitt wie 'Material' oder 'Produktdetails'.\n\n" +
+          "In der aktuellen Produktbeschreibung findest du unter anderem:\n" +
+          descSnippet +
+          "\n\n" +
+          "Für exakte Materialangaben und Prozentanteile nutze bitte die Produktseite."
+        );
+      } else {
+        return (
+          `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
+          "Die genaue Materialzusammensetzung (z. B. Baumwolle, Polyester, Mischgewebe) ist im Shop auf der Produktseite hinterlegt – dort findest du in der Regel einen Abschnitt wie 'Material' oder 'Produktdetails'.\n\n" +
+          `EFRO kann dir sagen: Es handelt sich um einen Artikel aus der Kategorie "${categoryLabel}" im Preisbereich ${priceLabel}. ` +
+          "Für exakte Materialangaben und Prozentanteile nutze bitte die Produktseite."
+        );
+      }
+    }
+
+    if (explanationMode === "usage") {
+      if (hasDesc) {
+        return (
+          `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
+          `Dieses Produkt gehört zur Kategorie "${categoryLabel}". Die konkrete Anwendung wird normalerweise auf der Produktverpackung und auf der Produktseite im Shop beschrieben.\n\n` +
+          "In der Produktbeschreibung steht zum Gebrauch unter anderem:\n" +
+          descSnippet +
+          "\n\n" +
+          "Weitere Details und Sicherheitshinweise findest du auf der Produktseite im Shop."
+        );
+      } else {
+        return (
+          `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
+          `Dieses Produkt gehört zur Kategorie "${categoryLabel}". Die konkrete Anwendung wird normalerweise auf der Produktverpackung und auf der Produktseite im Shop beschrieben.\n\n` +
+          "Schau dir am besten die Hinweise zur Anwendung und Sicherheit auf der Produktseite an – dort findest du meist eine Schritt-für-Schritt-Erklärung. Wenn du mir sagst, wofür du es genau einsetzen willst, kann ich dir zusätzlich einen Tipp geben, worauf du besonders achten solltest."
+        );
+      }
+    }
+
+    if (explanationMode === "care" || explanationMode === "washing") {
+      if (hasDesc) {
+        return (
+          `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
+          `Als Artikel aus der Kategorie "${categoryLabel}" gelten in der Regel die Pflegehinweise, die auf dem Etikett bzw. auf der Produktseite stehen. Dort findest du zum Beispiel Symbole zu Waschtemperatur, Trockner-Eignung oder Handwäsche.\n\n` +
+          "In der Produktbeschreibung sind Pflegehinweise erwähnt, z. B.:\n" +
+          descSnippet +
+          "\n\n" +
+          "Bitte richte dich bei der Pflege immer nach den offiziellen Angaben auf dem Produktlabel bzw. in der Produktbeschreibung im Shop."
+        );
+      } else {
+        return (
+          `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
+          `Als Artikel aus der Kategorie "${categoryLabel}" gelten in der Regel die Pflegehinweise, die auf dem Etikett bzw. auf der Produktseite stehen. Dort findest du zum Beispiel Symbole zu Waschtemperatur, Trockner-Eignung oder Handwäsche.\n\n` +
+          "Bitte richte dich bei der Pflege immer nach den offiziellen Angaben auf dem Produktlabel bzw. in der Produktbeschreibung im Shop."
+        );
+      }
+    }
+  }
+
+  /**
+   * 1) Fälle mit explizitem Budget im Text
+   */
+  if (hasBudget) {
+    if (count === 1) {
     return (
-      `Ich habe das passende Produkt für dich gefunden: ${product.title} für ${price} €. ` +
-      "Unten siehst du alle Details."
+        `Ich habe ein Produkt gefunden, das gut zu deinem Budget ${budgetText} passt:\n\n` +
+        `• ${first.title} – ${formatPrice(first)}\n\n` +
+        "Wenn du möchtest, kann ich dir noch eine Alternative im ähnlichen Preisbereich zeigen."
+      );
+    }
+
+    const intro =
+      `Ich habe mehrere Produkte passend zu deinem Budget ${budgetText} gefunden.\n` +
+      `Ein sehr gutes Match ist:\n\n` +
+      `• ${first.title} – ${formatPrice(first)}\n\n` +
+      "Zusätzlich habe ich dir unten noch weitere passende Produkte eingeblendet:";
+
+    const lines = recommended.map(
+      (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
+    );
+
+    const closing =
+      "\n\nWenn du dein Budget anpassen möchtest (zum Beispiel etwas höher oder niedriger), sag mir einfach kurz Bescheid.";
+
+    return [intro, "", ...lines, closing].join("\n");
+  }
+
+  /**
+   * 2) Premium-Intent ohne Budget
+   */
+  if (intent === "premium") {
+    if (count === 1) {
+      return (
+        "Ich habe ein hochwertiges Premium-Produkt für dich gefunden:\n\n" +
+        `• ${first.title}\n\n` +
+        "Das ist eine sehr gute Wahl, wenn dir Qualität wichtiger ist als der letzte Euro im Preis. " +
+        "Wenn du möchtest, kann ich dir noch eine etwas günstigere Alternative zeigen."
+      );
+    }
+
+    const intro =
+      "Ich habe dir eine Auswahl an hochwertigen Premium-Produkten zusammengestellt. " +
+      "Ein besonders starkes Match ist:";
+
+  const lines = recommended.map(
+      (p, idx) => `${idx + 1}. ${p.title}`
+    );
+
+    const closing =
+      '\n\nWenn du lieber in einem bestimmten Preisbereich bleiben möchtest, sag mir einfach dein Budget (z. B. "unter 500 Euro").';
+
+    return [
+      intro,
+      "",
+      `• ${first.title}`,
+      "",
+      ...lines,
+      closing,
+    ].join("\n");
+  }
+
+  /**
+   * 3) Bargain-Intent ohne Budget
+   */
+  if (intent === "bargain") {
+    const intro =
+      "Ich habe dir besonders preiswerte Produkte mit gutem Preis-Leistungs-Verhältnis herausgesucht:";
+    const lines = recommended.map(
+      (p, idx) => `${idx + 1}. ${p.title}`
+    );
+    const closing =
+      "\n\nWenn du mir dein maximales Budget nennst, kann ich noch genauer eingrenzen.";
+
+    return [intro, "", ...lines, closing].join("\n");
+  }
+
+  /**
+   * 4) Geschenk-Intent
+   */
+  if (intent === "gift") {
+    const intro =
+      "Ich habe dir ein paar passende Geschenkideen zusammengestellt:";
+    const lines = recommended.map(
+      (p, idx) => `${idx + 1}. ${p.title}`
+    );
+    const closing =
+      "\n\nSag mir gerne, für wen das Geschenk ist – dann kann ich noch gezielter empfehlen.";
+
+    return [intro, "", ...lines, closing].join("\n");
+  }
+
+  /**
+   * 5) Standard-Fälle (explore / quick_buy / bundle ...)
+   */
+  if (count === 1) {
+    return (
+      "Ich habe ein passendes Produkt für dich gefunden:\n\n" +
+      `• ${first.title}\n\n` +
+      "Unten siehst du alle Details. Wenn dir etwas daran nicht ganz passt, sag mir einfach, worauf du besonders Wert legst (z. B. Preis, Marke oder Kategorie)."
     );
   }
 
-  // Mehrere Treffer
-  const intro = `Ich habe ${count} passende Produkte für dich gefunden:`;
+  const intro =
+    "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet:";
   const lines = recommended.map(
-    (p, idx) => `${idx + 1}. ${p.title} – ${p.price.toFixed(2)} €`
+    (p, idx) => `${idx + 1}. ${p.title}`
   );
+  const closing =
+    "\n\nWenn du möchtest, helfe ich dir jetzt beim Eingrenzen – zum Beispiel nach Preisbereich, Kategorie oder Einsatzzweck.";
 
-  return [intro, "", ...lines].join("\n");
+  return [intro, "", ...lines, closing].join("\n");
 }
 
 /**
@@ -609,11 +933,145 @@ function buildReplyText(
 export function runSellerBrain(
   userText: string,
   currentIntent: ShoppingIntent,
-  allProducts: EfroProduct[]
+  allProducts: EfroProduct[],
+  plan?: string,
+  previousRecommended?: EfroProduct[]
 ): SellerBrainResult {
-  const nextIntent = detectIntentFromText(userText, currentIntent);
-  const recommended = filterProducts(userText, nextIntent, allProducts);
-  const replyText = buildReplyText(userText, nextIntent, recommended);
+  const raw = userText ?? "";
+  const cleaned = raw.trim();
+
+  const nextIntent = detectIntentFromText(cleaned, currentIntent);
+  
+  // Einfache Plan-Logik: starter = 2, pro = 4, enterprise = 6, default = 4
+  const getMaxRecommendationsForPlan = (p?: string): number => {
+    const normalized = (p ?? "").toLowerCase();
+    if (normalized === "starter") return 2;
+    if (normalized === "pro") return 4;
+    if (normalized === "enterprise") return 6;
+    return 4; // default
+  };
+  
+  const maxRecommendations = getMaxRecommendationsForPlan(plan);
+
+  // explanationMode EINMAL zentral am Anfang berechnen
+  const explanationMode = detectExplanationMode(cleaned);
+  console.log("[EFRO SellerBrain] explanationMode", {
+    text: cleaned,
+    explanationMode,
+    previousCount: previousRecommended ? previousRecommended.length : 0,
+  });
+
+  // 1) EXPLANATION-GUARD (Hard-Fix): VOR ALLEN Filtern
+  if (explanationMode) {
+    // Wenn wir bereits empfohlene Produkte haben, nutzen wir GENAU diese weiter.
+    // Wenn nicht, empfehlen wir GAR KEINE neuen Produkte.
+    const recommended = previousRecommended
+      ? previousRecommended.slice(0, maxRecommendations)
+      : [];
+
+    const replyText = recommended.length > 0
+      ? buildReplyText(cleaned, nextIntent, recommended)
+      : "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
+        "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
+        "dann kann ich dir die Details dazu erklären.";
+
+    console.log("[EFRO SellerBrain] Explanation mode – no new filtering", {
+      text: cleaned,
+      explanationMode,
+      previousCount: previousRecommended ? previousRecommended.length : 0,
+      usedCount: recommended.length,
+      maxRecommendations,
+    });
+
+    return {
+      intent: nextIntent,
+      recommended,
+      replyText,
+    };
+  }
+
+  // OFF-TOPIC-GUARD: VOR allen Filtern
+  if (!isProductRelated(cleaned)) {
+    // Off-topic: keine neuen Produkte auf Basis der Frage auswählen
+    const recommended = previousRecommended
+      ? previousRecommended.slice(0, maxRecommendations)
+      : [];
+
+    const offTopicReply =
+      "Ich bin hier, um dir bei der Produktsuche zu helfen. Stell mir bitte Fragen zu Produkten aus dem Shop.";
+
+    console.log("[EFRO SellerBrain] Off-topic detected, no new filtering", {
+      text: cleaned,
+      previousCount: previousRecommended ? previousRecommended.length : 0,
+      usedCount: recommended.length,
+    });
+
+    return {
+      intent: nextIntent,
+      recommended,
+      replyText: offTopicReply,
+    };
+  }
+
+  // Normale Such-/Kaufanfrage -> ganz normal filtern
+  let recommended = filterProducts(
+    cleaned,
+    nextIntent,
+    allProducts
+  ).slice(0, maxRecommendations);
+
+  // Erklär-Fragen: wenn es vorherige Empfehlungen gibt, diese "locken"
+  let reusedPreviousProducts = false;
+
+  // Cross-Sell / Upsell bei explanationMode deaktivieren
+  // (Aktuell gibt es keine explizite Cross-Sell-Logik in dieser Datei,
+  //  aber falls später hinzugefügt wird, sollte sie hier in einen if (!explanationMode) Block)
+
+  // Off-Topic-Hardlimit: Nur über Produkte reden
+  const normalized = normalize(cleaned || "");
+
+  const offTopicKeywords = [
+    "politik",
+    "wahl",
+    "regierung",
+    "krieg",
+    "nachrichten",
+    "cursor",
+    "token",
+    "ki",
+    "chatgpt",
+    "abo",
+    "abonnement",
+    "vertrag",
+    "versicherung"
+  ];
+
+  const isOffTopic = offTopicKeywords.some((word) => normalized.includes(word));
+
+  let replyText: string;
+
+  if (isOffTopic) {
+    recommended = []; // keine Produkte anzeigen
+
+    replyText =
+      "Ich bin EFRO und helfe dir nur bei Fragen zu Produkten aus diesem Shop. " +
+      "Frag mich z. B. nach Kategorien, Preisen, Größen, Materialien oder bestimmten Artikeln – " +
+      "dann zeige ich dir passende Produkte.";
+  } else {
+    replyText = buildReplyText(cleaned, nextIntent, recommended);
+  }
+
+  console.log("[EFRO SellerBrain]", {
+    userText: cleaned,
+    queryText: cleaned,
+    intent: nextIntent,
+    plan,
+    maxRecommendations,
+    recCount: recommended.length,
+    usedSourceCount: allProducts.length,
+    explanationMode: explanationMode ?? null,
+    reusedPreviousProducts,
+  });
 
   return {
     intent: nextIntent,
