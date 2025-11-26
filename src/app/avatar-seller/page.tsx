@@ -12,6 +12,7 @@ import {
 } from "@mascotbot-sdk/react";
 
 import EFROChatWindow from "@/components/EFROChatWindow";
+import { EfroProductPanel } from "@/components/EfroProductPanel";
 import { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
 import { runSellerBrain, SellerBrainResult } from "@/lib/sales/sellerBrain";
 
@@ -415,6 +416,9 @@ export default function Home({ searchParams }: HomeProps) {
     []
   );
 
+  // Komplettes SellerBrain-Result für Panel
+  const [sellerResult, setSellerResult] = useState<SellerBrainResult | null>(null);
+
   // 🔹 Plan-State (starter / pro / enterprise)
   const [shopPlan, setShopPlan] = useState<string>("starter");
 
@@ -557,6 +561,9 @@ const fetchProducts = useCallback(async () => {
         hasKeywordInCatalog: result.recommended.length > 0,
       });
 
+      // Komplettes Result für Panel speichern
+      setSellerResult(result);
+
       setSellerIntent(result.intent);
       setSellerReplyText(result.replyText);
       setSellerRecommended(result.recommended);
@@ -565,11 +572,8 @@ const fetchProducts = useCallback(async () => {
   );
 
   /* ===========================================================
-      UI: PRODUKT-EMPFEHLUNGEN UNTEN / LINKS
+      UI: PRODUKT-EMPFEHLUNGEN (alte UI entfernt, neue Komponente)
   ============================================================ */
-
-  const formatPrice = (p: EfroProduct) =>
-    p.price != null ? `${p.price.toFixed(2)} €` : "–";
 
   return (
     <MascotProvider>
@@ -590,68 +594,12 @@ const fetchProducts = useCallback(async () => {
           />
         </MascotClient>
 
-        {/* PRODUKT-PANEL – bleibt unabhängig vom Avatar */}
-        <div className="absolute left-4 bottom-4 right-96 max-w-xl z-30">
-          <div className="bg-white/90 backdrop-blur shadow-xl rounded-2xl p-4 border border-orange-100">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-gray-900">
-                EFROs Produktempfehlungen
-              </h2>
-              <span className="text-xs text-gray-500">
-                Intent: {sellerIntent} · Katalog: {allProducts.length} Produkte · Plan:{" "}
-                {shopPlan}
-              </span>
-            </div>
-
-            {sellerReplyText ? (
-              <p className="text-sm text-gray-800 whitespace-pre-line mb-3">
-                {sellerReplyText}
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500 mb-3">
-                Stelle EFRO einfach eine Frage wie:{" "}
-                <span className="italic">
-                  „Zeige mir Produkte über 100 Euro“, „Zeige mir Duschgel“, „Zeige mir
-                  Produkte in der Kategorie Haushalt“
-                </span>
-                . EFRO filtert dann live deinen Katalog (Plan-limitiert).
-              </p>
-            )}
-
-            {sellerRecommended.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {sellerRecommended.map((p) => (
-                  <div
-                    key={p.id ?? p.title}
-                    className="border border-gray-200 rounded-xl p-3 bg-white hover:shadow-md transition-shadow"
-                  >
-                    <div className="text-sm font-semibold text-gray-900 mb-1">
-                      {p.title}
-                    </div>
-                    <div className="text-sm text-orange-600 font-bold mb-1">
-                      {formatPrice(p)}
-                    </div>
-                    {p.category && (
-                      <div className="text-xs text-gray-500 mb-1">
-                        Kategorie: {p.category}
-                      </div>
-                    )}
-                    {p.description && (
-                      <div className="text-xs text-gray-600 line-clamp-3">
-                        {p.description}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-xs text-gray-500">
-                Noch keine konkreten Vorschläge. Sprich mit EFRO oder tippe in den
-                Chat – reine Platzhalter wie „...“ oder „??“ werden ignoriert.
-              </div>
-            )}
-          </div>
-        </div>
+        {/* PRODUKT-PANEL – neue Komponente */}
+        <EfroProductPanel
+          visible={!!sellerResult && sellerResult.recommended.length > 0}
+          products={sellerResult?.recommended ?? []}
+          replyText={sellerResult?.replyText ?? ""}
+        />
       </main>
     </MascotProvider>
   );
