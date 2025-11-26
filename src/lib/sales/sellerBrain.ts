@@ -38,17 +38,6 @@ function detectExplanationMode(text: string): ExplanationMode | null {
     return "ingredients";
   }
 
-  // Material / Stoff / aus welchem Material
-  if (
-    t.includes("material") ||
-    t.includes("stoff") ||
-    t.includes("welches material") ||
-    t.includes("woraus ist") ||
-    t.includes("aus welchem stoff")
-  ) {
-    return "materials";
-  }
-
   // Anwendung / benutzen
   if (
     t.includes("wie verwende ich") ||
@@ -59,28 +48,18 @@ function detectExplanationMode(text: string): ExplanationMode | null {
     return "usage";
   }
 
-  // Pflege / waschen
+  // Waschen / Pflege
   if (
     t.includes("wie kann ich das waschen") ||
     t.includes("wie kann ich das reinigen") ||
     t.includes("wie wasche ich das") ||
     t.includes("waschhinweis") ||
-    t.includes("pflegehinweis") ||
-    t.includes("pflege") ||
-    t.includes("waschen")
+    t.includes("pflegehinweis")
   ) {
     return "washing";
   }
 
-  // Allgemeine Pflege-Fragen (ohne explizites "waschen")
-  if (
-    t.includes("wie pflege ich") ||
-    t.includes("pflegeanleitung") ||
-    t.includes("pflege tipps") ||
-    t.includes("pflegetipps")
-  ) {
-    return "care";
-  }
+  // materials / care könnten später hier ergänzt werden
 
   return null;
 }
@@ -114,6 +93,7 @@ function isProductRelated(text: string): boolean {
     "farbe",
     "variant",
     "haushalt",
+    "haushaltswaren",
     "kosmetik",
     "tiere",
     "haustier",
@@ -190,20 +170,11 @@ function detectIntentFromText(
     return "explore";
   }
 
-  // Wenn nichts erkannt wird: alten Intent behalten,
-  // ansonsten auf quick_buy zurückfallen.
   return currentIntent || "quick_buy";
 }
 
 /**
  * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
- * Beispiele:
- *  - "unter 50 euro"         -> maxPrice = 50
- *  - "bis 30 €"              -> maxPrice = 30
- *  - "über 100 euro"         -> minPrice = 100
- *  - "mindestens 200€"       -> minPrice = 200
- *  - "zwischen 30 und 50 €"  -> min=30, max=50
- *  - "von 30 bis 50 €"       -> min=30, max=50
  */
 function extractUserPriceRange(
   text: string
@@ -250,7 +221,6 @@ function extractUserPriceRange(
     return { minPrice, maxPrice };
   }
 
-  // Text vor der Zahl anschauen, um "unter", "bis", "über", "mindestens" etc. zu finden
   const prefix = t.slice(0, priceMatch.index ?? 0);
 
   const hasUnder =
@@ -258,12 +228,10 @@ function extractUserPriceRange(
   const hasOver = /über|ueber|mindestens|ab|mehr als/.test(prefix);
 
   if (hasUnder && !hasOver) {
-    maxPrice = value; // z.B. "unter 50 Euro"
+    maxPrice = value;
   } else if (hasOver && !hasUnder) {
-    minPrice = value; // z.B. "über 100 Euro"
+    minPrice = value;
   } else {
-    // Falls weder noch eindeutig ist: nur maxPrice setzen,
-    // z.B. "Geschenk 50 Euro" -> wir interpretieren das als Budget-Obergrenze
     maxPrice = value;
   }
 
@@ -280,7 +248,7 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
   const desc = normalize(product.description || "");
   const category = normalize(product.category || "");
 
-  // Tags robust behandeln (Array oder String), damit es keine .map-Fehler gibt
+  // Tags robust behandeln (Array oder String)
   const rawTags: any = (product as any).tags;
   let tagsText = "";
   if (Array.isArray(rawTags)) {
@@ -296,15 +264,6 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
   for (const word of words) {
     if (!word) continue;
 
-    const core =
-      word.length >= 8
-        ? word.slice(0, 7)
-        : word.length >= 6
-        ? word.slice(0, 6)
-        : word.length >= 4
-        ? word.slice(0, 4)
-        : word;
-
     // Exakte Treffer – stärker gewichten
     if (title.includes(word)) {
       score += 5;
@@ -316,9 +275,16 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
       score += 2;
     }
 
-    // Fuzzy-Treffer
-    if (core.length >= 3 && blob.includes(core)) {
-      score += 1;
+    // NEU: robustes Fuzzy-Matching mit mehreren Präfixen (z. B. "dusch", "duschg")
+    if (word.length >= 4) {
+      const maxLen = Math.min(6, word.length);
+      for (let len = 4; len <= maxLen; len++) {
+        const prefix = word.slice(0, len);
+        if (blob.includes(prefix)) {
+          score += 1;
+          break;
+        }
+      }
     }
   }
 
@@ -347,7 +313,6 @@ function filterProducts(
     return [];
   }
 
-  // 0) Preisbereich erkennen (inkl. "zwischen 30 und 50 Euro")
   const { minPrice: userMinPrice, maxPrice: userMaxPrice } =
     extractUserPriceRange(text);
   console.log("[EFRO Filter PRICE]", { text, userMinPrice, userMaxPrice });
@@ -355,7 +320,7 @@ function filterProducts(
   let candidates = [...allProducts];
 
   /**
-   * 1) Kategorie-Erkennung (Haushalt, Haustier, Kosmetik, Deko, ...)
+   * 1) Kategorie-Erkennung
    */
   const allCategories = Array.from(
     new Set(
@@ -368,7 +333,6 @@ function filterProducts(
   const categoryHintsInText: string[] = [];
   const matchedCategories: string[] = [];
 
-  // Variante A: "kategorie haushalt"
   const catRegex = /kategorie\s+([a-zäöüß]+)/;
   const catMatch = t.match(catRegex);
   if (catMatch && catMatch[1]) {
@@ -380,7 +344,6 @@ function filterProducts(
       }
     });
   } else {
-    // Variante B: Text enthält direkt den Kategorienamen
     allCategories.forEach((cat) => {
       if (cat && t.includes(cat)) {
         matchedCategories.push(cat);
@@ -464,7 +427,7 @@ function filterProducts(
     "luxusprodukte",
     "teuerster",
 
-    // Preis-Wörter (sollen NICHT als Keyword übrig bleiben)
+    // Preis-Wörter
     "unter",
     "ueber",
     "über",
@@ -479,7 +442,7 @@ function filterProducts(
     "euro",
     "eur",
 
-    // Füllwörter / einfache Stopwörter (verkürzt)
+    // Füllwörter / Stopwörter
     "zeig",
     "zeige",
     "zeigst",
@@ -514,9 +477,7 @@ function filterProducts(
     .map((w) => w.trim().toLowerCase())
     .filter((w) => w.length >= 3 && !intentWords.includes(w));
 
-  // GANZ WICHTIG:
-  // Reine Zahlen wie "100" NICHT als Keywords benutzen,
-  // sonst matchen wir "100-teilig" statt den Preisbereich zu nutzen.
+  // reine Zahlen nicht als Keyword benutzen
   words = words.filter((w) => !/^\d+$/.test(w));
 
   console.log("[EFRO Filter WORDS]", {
@@ -527,7 +488,6 @@ function filterProducts(
 
   const hasBudget = userMinPrice !== null || userMaxPrice !== null;
 
-  // 2a) Keyword-Scoring nur dann, wenn wirklich sinnvolle Wörter da sind
   if (words.length > 0) {
     const scored = candidates
       .map((p) => ({
@@ -540,7 +500,6 @@ function filterProducts(
       scored.sort((a, b) => b.score - a.score);
       candidates = scored.map((e) => e.product);
 
-      // Long Tail einkürzen, aber nicht zu hart
       if (candidates.length > 20) {
         candidates = candidates.slice(0, 20);
       }
@@ -556,7 +515,6 @@ function filterProducts(
         intent,
         words,
       });
-      // -> candidates bleiben wie sie sind (nur Kategorie-Filter)
     }
   }
 
@@ -571,18 +529,12 @@ function filterProducts(
     minPrice = userMinPrice;
     maxPrice = userMaxPrice;
   } else {
-    // Standardbereiche pro Intent (wie vorher)
-    if (intent === "premium") {
-      minPrice = 600;
-    } else if (intent === "bargain") {
-      maxPrice = 400;
-    } else if (intent === "gift") {
-      minPrice = 300;
-      maxPrice = 700;
-    }
+    // NEU: keine harten Standard-Preisgrenzen mehr.
+    // Premium/Bargain/Gift steuern nur die Sortierung (siehe unten).
+    minPrice = null;
+    maxPrice = null;
   }
 
-  // Preisfilter anwenden, falls gesetzt
   if (minPrice !== null || maxPrice !== null) {
     candidates = candidates.filter((p) => {
       const price = p.price ?? 0;
@@ -604,13 +556,10 @@ function filterProducts(
 
   /**
    * 4) Fallback, wenn durch Filter alles weggefallen ist
-   *    -> nie [] zurückgeben, solange allProducts nicht leer ist.
    */
   if (candidates.length === 0) {
-    // Basis: kompletter Katalog
     candidates = [...allProducts];
 
-    // Kategorie-Fallback: Kategorie beibehalten, Budget lockern
     if (matchedCategories.length > 0) {
       const byCat = candidates.filter((p) =>
         matchedCategories.includes(normalize(p.category || ""))
@@ -620,16 +569,14 @@ function filterProducts(
       }
     }
 
-    // Wenn der User ein Budget genannt hat, versuchen wir es "weich":
     if (userMinPrice !== null || userMaxPrice !== null) {
-      const tmp = candidates.filter((p) => {
+      let tmp = candidates.filter((p) => {
         const price = p.price ?? 0;
         if (userMinPrice !== null && price < userMinPrice) return false;
         if (userMaxPrice !== null && price > userMaxPrice) return false;
         return true;
       });
 
-      // Wenn selbst das nichts bringt: Budget komplett ignorieren
       if (tmp.length > 0) {
         candidates = tmp;
       }
@@ -638,36 +585,28 @@ function filterProducts(
 
   /**
    * 5) Sortierung abhängig von Budget & Intent
-   *
-   * Logik:
-   *  - explizites Budget:
-   *      * nur minPrice (z.B. "über 100 €")  -> aufsteigend (günstigste über X zuerst)
-   *      * maxPrice oder min+max (unter / zwischen) -> absteigend (teuer nach günstig)
-   *  - kein Budget -> Intent-Logik wie vorher
    */
 
   if (hasBudget) {
     if (userMinPrice !== null && userMaxPrice === null) {
-      // Nur Untergrenze: "über 100 Euro" -> zeige die günstigsten über 100 zuerst
+      // nur Untergrenze: günstigste über X zuerst
       candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     } else {
-      // "unter X" oder "zwischen X und Y" -> teuer nach günstig
+      // unter / zwischen X: teuer nach günstig
       candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
     }
   } else {
-    // Kein explizites Budget -> Intent-Standardlogik
     if (intent === "premium") {
-      // teuerste zuerst
+      // Premium: teuerste zuerst
       candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
     } else if (
       intent === "bargain" ||
       intent === "gift" ||
       intent === "quick_buy"
     ) {
-      // günstigste zuerst
+      // Schnäppchen / Geschenk / Quick-Buy: günstigste zuerst
       candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     } else if (intent === "explore") {
-      // Explore: ohne Budget alphabetisch
       candidates.sort((a, b) => a.title.localeCompare(b.title));
     }
   }
@@ -678,12 +617,11 @@ function filterProducts(
     resultTitles: candidates.slice(0, 4).map((p) => p.title),
   });
 
-  // Maximal 3–4 Vorschläge – Plan-Limit macht page.tsx
   return candidates.slice(0, 4);
 }
 
 /**
- * Extrahiert einen Ausschnitt aus der Produktbeschreibung
+ * Ausschnitt aus der Produktbeschreibung
  */
 function getDescriptionSnippet(
   description?: string | null,
@@ -723,17 +661,14 @@ function buildReplyText(
 
   const first = recommended[0];
 
-  // Budget aus dem Text holen
   const { minPrice, maxPrice } = extractUserPriceRange(text);
   const hasBudget = minPrice !== null || maxPrice !== null;
 
-  // Prüfen, ob der User eine Erklärung will (Inhaltsstoffe etc.)
   const explanationMode = detectExplanationMode(text);
 
   const descSnippet = getDescriptionSnippet(first.description);
   const hasDesc = !!descSnippet;
 
-  // Hilfs-Label für Budget
   let budgetText = "";
   if (hasBudget) {
     if (minPrice !== null && maxPrice === null) {
@@ -751,10 +686,7 @@ function buildReplyText(
       : "dieses Produkts";
   const priceLabel = formatPrice(first);
 
-  /**
-   * 0) Spezialfälle: User will EXPLIZIT Erklärungen
-   *    (Inhaltsstoffe, Material, Anwendung, Pflege).
-   */
+  // 0) Spezialfälle: Erklär-Modus
   if (explanationMode) {
     if (explanationMode === "ingredients") {
       if (hasDesc) {
@@ -880,9 +812,7 @@ function buildReplyText(
       "Ich habe dir eine Auswahl an hochwertigen Premium-Produkten zusammengestellt. " +
       "Ein besonders starkes Match ist:";
 
-    const lines = recommended.map(
-      (p, idx) => `${idx + 1}. ${p.title}`
-    );
+    const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
 
     const closing =
       '\n\nWenn du lieber in einem bestimmten Preisbereich bleiben möchtest, sag mir einfach dein Budget (z. B. "unter 500 Euro").';
@@ -896,9 +826,7 @@ function buildReplyText(
   if (intent === "bargain") {
     const intro =
       "Ich habe dir besonders preiswerte Produkte mit gutem Preis-Leistungs-Verhältnis herausgesucht:";
-    const lines = recommended.map(
-      (p, idx) => `${idx + 1}. ${p.title}`
-    );
+    const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
     const closing =
       "\n\nWenn du mir dein maximales Budget nennst, kann ich noch genauer eingrenzen.";
 
@@ -911,9 +839,7 @@ function buildReplyText(
   if (intent === "gift") {
     const intro =
       "Ich habe dir ein paar passende Geschenkideen zusammengestellt:";
-    const lines = recommended.map(
-      (p, idx) => `${idx + 1}. ${p.title}`
-    );
+    const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
     const closing =
       "\n\nSag mir gerne, für wen das Geschenk ist – dann kann ich noch gezielter empfehlen.";
 
@@ -933,9 +859,7 @@ function buildReplyText(
 
   const intro =
     "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet:";
-  const lines = recommended.map(
-    (p, idx) => `${idx + 1}. ${p.title}`
-  );
+  const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
   const closing =
     "\n\nWenn du möchtest, helfe ich dir jetzt beim Eingrenzen – zum Beispiel nach Preisbereich, Kategorie oder Einsatzzweck.";
 
@@ -957,18 +881,17 @@ export function runSellerBrain(
 
   const nextIntent = detectIntentFromText(cleaned, currentIntent);
 
-  // Einfache Plan-Logik: starter = 2, pro = 4, enterprise = 6, default = 4
+  // Plan-Logik: starter = 2, pro = 4, enterprise = 6, default = 4
   const getMaxRecommendationsForPlan = (p?: string): number => {
-    const normalizedPlan = (p ?? "").toLowerCase();
-    if (normalizedPlan === "starter") return 2;
-    if (normalizedPlan === "pro") return 4;
-    if (normalizedPlan === "enterprise") return 6;
-    return 4; // default
+    const normalized = (p ?? "").toLowerCase();
+    if (normalized === "starter") return 2;
+    if (normalized === "pro") return 4;
+    if (normalized === "enterprise") return 6;
+    return 4;
   };
 
   const maxRecommendations = getMaxRecommendationsForPlan(plan);
 
-  // explanationMode EINMAL zentral am Anfang berechnen
   const explanationMode = detectExplanationMode(cleaned);
   console.log("[EFRO SellerBrain] explanationMode", {
     text: cleaned,
@@ -976,10 +899,8 @@ export function runSellerBrain(
     previousCount: previousRecommended ? previousRecommended.length : 0,
   });
 
-  // 1) EXPLANATION-GUARD (Hard-Fix): VOR ALLEN Filtern
+  // Erklärung zuerst, aber ohne neue Produktauswahl
   if (explanationMode) {
-    // Wenn wir bereits empfohlene Produkte haben, nutzen wir GENAU diese weiter.
-    // Wenn nicht, empfehlen wir GAR KEINE neuen Produkte.
     const recommended = previousRecommended
       ? previousRecommended.slice(0, maxRecommendations)
       : [];
@@ -1006,9 +927,8 @@ export function runSellerBrain(
     };
   }
 
-  // OFF-TOPIC-GUARD: VOR allen Filtern
+  // OFF-TOPIC-GUARD
   if (!isProductRelated(cleaned)) {
-    // Off-topic: keine neuen Produkte auf Basis der Frage auswählen
     const recommended = previousRecommended
       ? previousRecommended.slice(0, maxRecommendations)
       : [];
@@ -1029,16 +949,14 @@ export function runSellerBrain(
     };
   }
 
-  // Normale Such-/Kaufanfrage -> ganz normal filtern
+  // Normale Such-/Kaufanfrage -> filtern
   let recommended = filterProducts(cleaned, nextIntent, allProducts).slice(
     0,
     maxRecommendations
   );
 
-  // Erklär-Fragen: wenn es vorherige Empfehlungen gibt, diese "locken"
   let reusedPreviousProducts = false;
 
-  // Off-Topic-Hardlimit: Nur über Produkte reden
   const normalized = normalize(cleaned || "");
 
   const offTopicKeywords = [
@@ -1064,8 +982,7 @@ export function runSellerBrain(
   let replyText: string;
 
   if (isOffTopic) {
-    recommended = []; // keine Produkte anzeigen
-
+    recommended = [];
     replyText =
       "Ich bin EFRO und helfe dir nur bei Fragen zu Produkten aus diesem Shop. " +
       "Frag mich z. B. nach Kategorien, Preisen, Größen, Materialien oder bestimmten Artikeln – " +
