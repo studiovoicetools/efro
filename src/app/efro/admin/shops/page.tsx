@@ -16,6 +16,9 @@ type EfroShopRow = {
   currency: string | null;
   tone_of_voice: string | null;
   plan: string | null;
+  onboarding_status: string | null;
+  installed_at: string | null;
+  last_seen_at: string | null;
   created_at?: string;
 };
 
@@ -169,7 +172,7 @@ export default function EfroShopsAdminPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">
@@ -217,8 +220,8 @@ export default function EfroShopsAdminPage() {
           {/* Liste der Shops */}
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Vorhandene Shops</h2>
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 max-h-[480px] overflow-auto">
-              <table className="w-full text-sm">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 max-h-[520px] overflow-auto">
+              <table className="w-full text-xs">
                 <thead className="bg-slate-900 sticky top-0 z-10">
                   <tr>
                     <th className="text-left px-3 py-2 border-b border-slate-800">
@@ -230,6 +233,15 @@ export default function EfroShopsAdminPage() {
                     <th className="text-left px-3 py-2 border-b border-slate-800">
                       Plan
                     </th>
+                    <th className="text-left px-3 py-2 border-b border-slate-800">
+                      Status
+                    </th>
+                    <th className="text-left px-3 py-2 border-b border-slate-800 whitespace-nowrap">
+                      Installiert
+                    </th>
+                    <th className="text-left px-3 py-2 border-b border-slate-800 whitespace-nowrap">
+                      Zuletzt aktiv
+                    </th>
                     <th className="px-3 py-2 border-b border-slate-800" />
                   </tr>
                 </thead>
@@ -237,7 +249,7 @@ export default function EfroShopsAdminPage() {
                   {shops.length === 0 && (
                     <tr>
                       <td
-                        colSpan={4}
+                        colSpan={7}
                         className="px-3 py-4 text-center text-slate-500 text-sm"
                       >
                         Noch keine Shops angelegt.
@@ -254,14 +266,41 @@ export default function EfroShopsAdminPage() {
                           : "")
                       }
                     >
-                      <td className="px-3 py-2 font-mono text-xs">
+                      <td className="px-3 py-2 font-mono text-[11px]">
                         {shop.shop_domain}
                       </td>
                       <td className="px-3 py-2">
-                        {shop.brand_name || <span className="text-slate-500">–</span>}
+                        {shop.brand_name || (
+                          <span className="text-slate-500">–</span>
+                        )}
                       </td>
-                      <td className="px-3 py-2 text-xs">
-                        {shop.plan || <span className="text-slate-500">–</span>}
+                      <td className="px-3 py-2">
+                        {shop.plan ? (
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 border border-emerald-500/60 text-emerald-300 bg-emerald-500/10">
+                            {shop.plan}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">–</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        {shop.onboarding_status ? (
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 border border-sky-500/60 text-sky-300 bg-sky-500/10">
+                            {shop.onboarding_status}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">–</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-[11px] text-slate-300">
+                        {shop.installed_at
+                          ? new Date(shop.installed_at).toLocaleString()
+                          : "–"}
+                      </td>
+                      <td className="px-3 py-2 text-[11px] text-slate-300">
+                        {shop.last_seen_at
+                          ? new Date(shop.last_seen_at).toLocaleString()
+                          : "–"}
                       </td>
                       <td className="px-3 py-2 text-right">
                         <button
@@ -328,7 +367,9 @@ export default function EfroShopsAdminPage() {
                   type="text"
                   className="w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2 text-sm"
                   value={form.targetAudience}
-                  onChange={(e) => updateField("targetAudience", e.target.value)}
+                  onChange={(e) =>
+                    updateField("targetAudience", e.target.value)
+                  }
                 />
               </div>
 
@@ -390,7 +431,9 @@ export default function EfroShopsAdminPage() {
                   type="text"
                   className="w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2 text-sm"
                   value={form.toneOfVoice}
-                  onChange={(e) => updateField("toneOfVoice", e.target.value)}
+                  onChange={(e) =>
+                    updateField("toneOfVoice", e.target.value)
+                  }
                 />
               </div>
 

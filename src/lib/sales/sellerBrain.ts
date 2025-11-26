@@ -24,7 +24,126 @@ function normalize(text: string): string {
 }
 
 /**
- * Hilfsfunktionen fuer Intent-Detection
+ * Tokenizer für Matching (dynamische Kategorien & Keywords)
+ */
+function tokenize(text: string): string[] {
+  return normalize(text)
+    .split(/[^a-z0-9äöüß]+/i)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 3);
+}
+
+/**
+ * Tags robust in Text umwandeln (Array oder String oder Sonstiges)
+ */
+function extractTagsText(product: EfroProduct): string {
+  const raw: any = (product as any).tags;
+
+  if (!raw) return "";
+
+  // Array von Tags
+  if (Array.isArray(raw)) {
+    return raw
+      .map((t) => normalize(String(t)))
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  // Einzelner String: "Haushalt, Küche; Deko"
+  if (typeof raw === "string") {
+    return raw
+      .split(/[;,]/)
+      .map((t) => normalize(t.trim()))
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  // Fallback: irgendein Wert → einfach als String nehmen
+  return normalize(String(raw));
+}
+
+/**
+ * Kategorie-Erkennung:
+ * - arbeitet NUR mit den Kategorien, die im aktuellen Shop vorkommen
+ * - fuzzy Matching: "Haustiere" matcht "Haustierbedarf & Zubehör"
+ */
+function detectCategoriesFromText(
+  text: string,
+  allProducts: EfroProduct[]
+): { matchedCategories: string[]; hints: string[] } {
+  const userWords = tokenize(text);
+  if (userWords.length === 0) {
+    return { matchedCategories: [], hints: [] };
+  }
+
+  // Alle Kategorien im Shop einsammeln (normalisiert)
+  const categoryMap = new Map<string, string[]>(); // categoryText -> tokens
+  for (const p of allProducts) {
+    const catNorm = normalize(p.category || "");
+    if (!catNorm || catNorm.length < 3) continue;
+    if (!categoryMap.has(catNorm)) {
+      categoryMap.set(catNorm, tokenize(catNorm));
+    }
+  }
+
+  type CatScore = { category: string; score: number; hints: string[] };
+  const scores: CatScore[] = [];
+
+  for (const [cat, catWords] of categoryMap.entries()) {
+    let score = 0;
+    const localHints: string[] = [];
+
+    for (const uw of userWords) {
+      for (const cw of catWords) {
+        if (!cw || !uw) continue;
+
+        // exakter Token-Treffer
+        if (uw === cw) {
+          score += 3;
+          localHints.push(uw);
+        } else {
+          const u4 = uw.slice(0, 4);
+          const c4 = cw.slice(0, 4);
+
+          // "haustier" vs "haustiere" / "wellness" vs "wellnessprodukte"
+          if (u4.length >= 3 && (cw.startsWith(u4) || uw.startsWith(c4))) {
+            score += 2;
+            localHints.push(uw);
+          } else if (uw.length >= 4 && cw.includes(uw)) {
+            score += 1;
+            localHints.push(uw);
+          }
+        }
+      }
+    }
+
+    if (score > 0) {
+      scores.push({ category: cat, score, hints: Array.from(new Set(localHints)) });
+    }
+  }
+
+  if (scores.length === 0) {
+    return { matchedCategories: [], hints: [] };
+  }
+
+  // Beste Kategorien auswählen (alles, was in der Nähe des Top-Scores liegt)
+  scores.sort((a, b) => b.score - a.score);
+  const bestScore = scores[0].score;
+  // Mindestens 2 Punkte, sonst ignorieren wir das Matching
+  if (bestScore < 2) {
+    return { matchedCategories: [], hints: [] };
+  }
+  const threshold = Math.max(2, Math.floor(bestScore * 0.7));
+
+  const selected = scores.filter((s) => s.score >= threshold);
+  const matchedCategories = selected.map((s) => s.category);
+  const hints = Array.from(new Set(selected.flatMap((s) => s.hints)));
+
+  return { matchedCategories, hints };
+}
+
+/**
+ * Hilfsfunktionen für Intent-Detection
  */
 function detectIntentFromText(
   text: string,
@@ -36,6 +155,7 @@ function detectIntentFromText(
     "premium",
     "beste",
     "hochwertig",
+    "qualität",
     "qualitaet",
     "qualitat",
     "luxus",
@@ -43,8 +163,8 @@ function detectIntentFromText(
   ];
   const bargainWords = [
     "billig",
-    "guenstig",
     "günstig",
+    "guenstig",
     "discount",
     "spar",
     "rabatt",
@@ -53,12 +173,13 @@ function detectIntentFromText(
     "günstigste",
     "günstigsten",
   ];
-  const giftWords = ["geschenk", "gift", "praesent", "praes", "present"];
+  const giftWords = ["geschenk", "gift", "präsent", "praesent", "praes", "present"];
   const bundleWords = ["bundle", "set", "paket", "combo"];
   const exploreWords = [
     "zeig mir was",
-    "inspiration",
     "zeige mir",
+    "zeigst du mir",
+    "inspiration",
     "was hast du",
     "was gibt es",
   ];
@@ -80,17 +201,12 @@ function detectIntentFromText(
   }
 
   // Wenn nichts erkannt wird: alten Intent behalten,
-  // ansonsten auf quick_buy zurueckfallen.
+  // ansonsten auf quick_buy zurückfallen.
   return currentIntent || "quick_buy";
 }
 
 /**
  * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
- * Beispiele:
- *  - "unter 50 euro"   -> maxPrice = 50
- *  - "bis 30 €"        -> maxPrice = 30
- *  - "über 100 euro"   -> minPrice = 100
- *  - "mindestens 200€" -> minPrice = 200
  */
 function extractUserPriceRange(
   text: string
@@ -100,7 +216,6 @@ function extractUserPriceRange(
   let minPrice: number | null = null;
   let maxPrice: number | null = null;
 
-  // Erste Zahl mit "euro", "eur" oder "€" suchen
   const priceMatch = t.match(/(\d+)\s*(euro|eur|€)/);
   if (!priceMatch) {
     return { minPrice, maxPrice };
@@ -111,7 +226,6 @@ function extractUserPriceRange(
     return { minPrice, maxPrice };
   }
 
-  // Text vor der Zahl anschauen, um "unter", "bis", "über", "mindestens" etc. zu finden
   const prefix = t.slice(0, priceMatch.index ?? 0);
 
   const hasUnder =
@@ -123,8 +237,6 @@ function extractUserPriceRange(
   } else if (hasOver && !hasUnder) {
     minPrice = value;
   } else {
-    // Falls weder noch eindeutig ist: nur maxPrice setzen,
-    // z.B. "Geschenk 50 Euro" -> wir interpretieren das als Budget-Obergrenze
     maxPrice = value;
   }
 
@@ -132,7 +244,7 @@ function extractUserPriceRange(
 }
 
 /**
- * Produkt-Scoring fuer Keywords
+ * Produkt-Scoring für Keywords
  */
 function scoreProductForWords(product: EfroProduct, words: string[]): number {
   if (words.length === 0) return 0;
@@ -140,7 +252,7 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
   const title = normalize(product.title);
   const desc = normalize(product.description || "");
   const category = normalize(product.category || "");
-  const tagsText = (product.tags || []).map((tag) => normalize(tag)).join(" ");
+  const tagsText = extractTagsText(product);
   const blob = `${title} ${desc} ${category} ${tagsText}`;
 
   let score = 0;
@@ -179,22 +291,20 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
 
 /**
  * Max. Anzahl Empfehlungen je Plan
- * (Starter = weniger Karten, Enterprise = mehr Karten)
  */
 function getMaxRecommendationsForPlan(plan?: EfroPlan): number {
   const p = (plan ?? "").toLowerCase();
 
-  if (p === "starter") return 4;      // schlank, übersichtlich
-  if (p === "pro") return 8;          // mehr Auswahl
-  if (p === "enterprise") return 12;  // volle Power
+  if (p === "starter") return 4;
+  if (p === "pro") return 8;
+  if (p === "enterprise") return 12;
 
-  // Fallback / unbekannter Plan
   return 4;
 }
 
 /**
  * Produkte nach Keywords, Kategorie und Preis filtern
- * – NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
+ * – Ziel: nie [] zurückgeben, solange allProducts nicht leer ist.
  */
 function filterProducts(
   text: string,
@@ -223,48 +333,59 @@ function filterProducts(
   let candidates = [...allProducts];
 
   /**
-   * 1) Kategorie-Erkennung (Haushalt, Haustier, Kosmetik, Deko, ...)
+   * 1) Kategorie-Erkennung (explizite Kategorie + dynamisch aus Katalog)
    */
-  const allCategories = Array.from(
-    new Set(
-      allProducts
-        .map((p) => normalize(p.category || ""))
-        .filter((c) => c.length >= 3)
-    )
-  );
 
-  const categoryHintsInText: string[] = [];
-  const matchedCategories: string[] = [];
+  // 1a) Expliziter Kategoriename aus Formulierungen wie:
+  //     "Kategorie Haustiere", "Kategorie Haushalt", "category pets"
+  let explicitCategoryWord: string | null = null;
 
-  // Variante A: "kategorie haushalt"
-  const catRegex = /kategorie\s+([a-zäöüß]+)/;
-  const catMatch = t.match(catRegex);
-  if (catMatch && catMatch[1]) {
-    const catWord = catMatch[1];
-    categoryHintsInText.push(catWord);
-    allCategories.forEach((cat) => {
-      if (cat.includes(catWord)) {
-        matchedCategories.push(cat);
-      }
-    });
-  } else {
-    // Variante B: Text enthält direkt den Kategorienamen
-    allCategories.forEach((cat) => {
-      if (cat && t.includes(cat)) {
-        matchedCategories.push(cat);
-        categoryHintsInText.push(cat);
-      }
-    });
+  const catMatchDe = t.match(/kategorie\s+([a-z0-9äöüß]+)/);
+  const catMatchEn = t.match(/category\s+([a-z0-9äöüß]+)/);
+
+  if (catMatchDe?.[1]) {
+    explicitCategoryWord = catMatchDe[1];
+  } else if (catMatchEn?.[1]) {
+    explicitCategoryWord = catMatchEn[1];
   }
 
+  // 1b) Dynamische Kategorie-Erkennung:
+  //     - einmal mit dem ganzen Satz
+  //     - einmal nur mit dem expliziten Kategorie-Wort (falls vorhanden)
+  const catFromFull = detectCategoriesFromText(t, allProducts);
+  const catFromExplicit = explicitCategoryWord
+    ? detectCategoriesFromText(explicitCategoryWord, allProducts)
+    : { matchedCategories: [] as string[], hints: [] as string[] };
+
+  const matchedCategories = Array.from(
+    new Set([...catFromFull.matchedCategories, ...catFromExplicit.matchedCategories])
+  );
+  const categoryHintsInText = Array.from(
+    new Set([
+      ...(explicitCategoryWord ? [explicitCategoryWord] : []),
+      ...catFromFull.hints,
+      ...catFromExplicit.hints,
+    ])
+  );
+
   if (matchedCategories.length > 0) {
+    const before = candidates.length;
     candidates = candidates.filter((p) =>
       matchedCategories.includes(normalize(p.category || ""))
     );
+    console.log("[EFRO Filter CATEGORY_APPLIED]", {
+      text,
+      explicitCategoryWord,
+      matchedCategories,
+      from: before,
+      to: candidates.length,
+      exampleTitles: candidates.slice(0, 6).map((p) => p.title),
+    });
   }
 
   console.log("[EFRO Filter CATEGORY]", {
     text,
+    explicitCategoryWord,
     matchedCategories,
     categoryHintsInText,
     candidateCountAfterCategory: candidates.length,
@@ -278,6 +399,7 @@ function filterProducts(
     "premium",
     "beste",
     "hochwertig",
+    "qualität",
     "qualitaet",
     "qualitat",
     "luxus",
@@ -287,8 +409,8 @@ function filterProducts(
     "teuerste",
     "teuersten",
     "billig",
-    "guenstig",
     "günstig",
+    "guenstig",
     "günstige",
     "günstigsten",
     "günstigste",
@@ -305,6 +427,7 @@ function filterProducts(
     // Geschenk-/Bundle-Intents
     "geschenk",
     "gift",
+    "präsent",
     "praesent",
     "praes",
     "present",
@@ -313,7 +436,7 @@ function filterProducts(
     "paket",
     "combo",
 
-    // generische Produktwörter (keine echten Produkte)
+    // generische Produktwörter
     "produkte",
     "produkt",
     "artikel",
@@ -332,10 +455,10 @@ function filterProducts(
     "luxusprodukte",
     "teuerster",
 
-    // Preis-Wörter (sollen NICHT als Keyword übrig bleiben)
+    // Preis-Wörter
     "unter",
-    "ueber",
     "über",
+    "ueber",
     "bis",
     "maximal",
     "mindestens",
@@ -346,7 +469,7 @@ function filterProducts(
     "euro",
     "eur",
 
-    // Füllwörter / einfache Stopwörter (verkürzt)
+    // Füllwörter / Stopwörter
     "zeig",
     "zeige",
     "zeigst",
@@ -364,8 +487,8 @@ function filterProducts(
     "brauche",
     "bitte",
     "danke",
-    "dankeschoen",
     "dankeschön",
+    "dankeschoen",
     "meine",
     "deine",
     "und",
@@ -374,16 +497,13 @@ function filterProducts(
     "der",
     "das",
     "den",
+    "kategorie",
+    "category",
   ];
 
-  let words: string[] = t
-    .split(/[^a-z0-9äöüß]+/i)
-    .map((w) => w.trim().toLowerCase())
-    .filter((w) => w.length >= 3 && !intentWords.includes(w));
+  let words: string[] = tokenize(t).filter((w) => !intentWords.includes(w));
 
-  // GANZ WICHTIG:
-  // Reine Zahlen wie "100" NICHT als Keywords benutzen,
-  // sonst matchen wir "100-teilig" statt den Preisbereich zu nutzen.
+  // reine Zahlen wie "100" NICHT als Keywords benutzen
   words = words.filter((w) => !/^\d+$/.test(w));
 
   console.log("[EFRO Filter WORDS]", {
@@ -407,7 +527,6 @@ function filterProducts(
       scored.sort((a, b) => b.score - a.score);
       candidates = scored.map((e) => e.product);
 
-      // Long Tail einkürzen, aber nicht zu hart
       if (candidates.length > 20) {
         candidates = candidates.slice(0, 20);
       }
@@ -423,7 +542,6 @@ function filterProducts(
         intent,
         words,
       });
-      // -> candidates bleiben wie sie sind (nur Kategorie-Filter)
     }
   }
 
@@ -434,11 +552,9 @@ function filterProducts(
   let maxPrice: number | null = null;
 
   if (userMinPrice !== null || userMaxPrice !== null) {
-    // User-Budget hat immer Vorrang
     minPrice = userMinPrice;
     maxPrice = userMaxPrice;
   } else {
-    // Standardbereiche pro Intent (wie vorher)
     if (intent === "premium") {
       minPrice = 600;
     } else if (intent === "bargain") {
@@ -449,7 +565,6 @@ function filterProducts(
     }
   }
 
-  // Preisfilter anwenden, falls gesetzt
   if (minPrice !== null || maxPrice !== null) {
     candidates = candidates.filter((p) => {
       const price = p.price ?? 0;
@@ -471,13 +586,10 @@ function filterProducts(
 
   /**
    * 4) Fallback, wenn durch Filter alles weggefallen ist
-   *    -> nie [] zurückgeben, solange allProducts nicht leer ist.
    */
   if (candidates.length === 0) {
-    // Basis: kompletter Katalog
     candidates = [...allProducts];
 
-    // Kategorie-Fallback: Kategorie beibehalten, Budget lockern
     if (matchedCategories.length > 0) {
       const byCat = candidates.filter((p) =>
         matchedCategories.includes(normalize(p.category || ""))
@@ -487,7 +599,6 @@ function filterProducts(
       }
     }
 
-    // Wenn der User ein Budget genannt hat, versuchen wir es "weich":
     if (userMinPrice !== null || userMaxPrice !== null) {
       let tmp = candidates.filter((p) => {
         const price = p.price ?? 0;
@@ -496,7 +607,6 @@ function filterProducts(
         return true;
       });
 
-      // Wenn selbst das nichts bringt: Budget komplett ignorieren
       if (tmp.length > 0) {
         candidates = tmp;
       }
@@ -507,17 +617,14 @@ function filterProducts(
    * 5) Sortierung abhängig vom Intent
    */
   if (intent === "premium") {
-    // teuerste zuerst
     candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
   } else if (
     intent === "bargain" ||
     intent === "gift" ||
     intent === "quick_buy"
   ) {
-    // günstigste zuerst
     candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
   } else if (intent === "explore") {
-    // Explore: wenn Budget gesetzt -> nach Preis, sonst alphabetisch
     if (hasBudget) {
       candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     } else {
@@ -532,14 +639,11 @@ function filterProducts(
     resultTitles: candidates.slice(0, maxRecommendations).map((p) => p.title),
   });
 
-  // Anzahl der Vorschläge hängt jetzt vom Plan ab
   return candidates.slice(0, maxRecommendations);
 }
 
 /**
- * Reply-Text fuer EFRO bauen
- * - Nutzt Budget-Infos ("über 100 Euro", "bis 30 Euro", ...)
- * - Klingt wie ein Profi-Verkäufer, nicht wie ein Callcenter-Bot
+ * Reply-Text für EFRO bauen
  */
 function buildReplyText(
   text: string,
@@ -548,7 +652,6 @@ function buildReplyText(
 ): string {
   const count = recommended.length;
 
-  // 0 Treffer
   if (count === 0) {
     return (
       "Ich habe in den aktuellen Shop-Daten leider kein Produkt gefunden, das genau zu deiner Anfrage passt. " +
@@ -556,17 +659,14 @@ function buildReplyText(
     );
   }
 
-  // Hilfsfunktion zum Preisformat
   const formatPrice = (p: EfroProduct) =>
     p.price != null ? `${p.price.toFixed(2)} €` : "–";
 
   const first = recommended[0];
 
-  // Budget aus dem User-Text erkennen
   const { minPrice, maxPrice } = extractUserPriceRange(text);
   const hasBudget = minPrice !== null || maxPrice !== null;
 
-  // Budget-Text für die Antwort bauen
   let budgetText = "";
   if (hasBudget) {
     if (minPrice !== null && maxPrice === null) {
@@ -578,7 +678,6 @@ function buildReplyText(
     }
   }
 
-  // Wenn ein Budget genannt wurde → Fokus: Budget-orientierter Pitch
   if (hasBudget) {
     if (count === 1) {
       return (
@@ -588,7 +687,6 @@ function buildReplyText(
       );
     }
 
-    // Mehrere Treffer bei Budget-Anfrage
     const intro =
       `Ich habe mehrere Produkte passend zu deinem Budget ${budgetText} gefunden.\n` +
       `Ein sehr gutes Match ist:\n\n` +
@@ -605,7 +703,6 @@ function buildReplyText(
     return [intro, "", ...lines, closing].join("\n");
   }
 
-  // Kein explizites Budget → Intent-spezifischer Verkaufsstil
   if (intent === "premium") {
     if (count === 1) {
       return (
@@ -661,7 +758,6 @@ function buildReplyText(
     return [intro, "", ...lines, closing].join("\n");
   }
 
-  // Standard-Fall (explore / quick_buy / bundle / sonstiges)
   if (count === 1) {
     return (
       `Ich habe ein passendes Produkt für dich gefunden:\n\n` +
@@ -693,13 +789,11 @@ export function runSellerBrain(
   const raw = userText ?? "";
   const cleaned = raw.trim();
 
-  // 🧹 Schutz: Wenn der "Text" nur aus Punkten/Leerzeichen/etc. besteht
-  // (z. B. "...", "", "??") → NICHTS tun, keine neuen Empfehlungen.
+  // Schutz gegen reinen Noise („...“, „??“, nur Leerzeichen)
   const hasLettersOrDigits = /[a-z0-9äöüß]/i.test(cleaned);
   if (!hasLettersOrDigits) {
     console.log("[EFRO SellerBrain] Noise input ignored", { userText: raw });
     return {
-      // Intent beibehalten, keine neuen Empfehlungen
       intent: currentIntent || "quick_buy",
       recommended: [],
       replyText: "",
@@ -708,7 +802,6 @@ export function runSellerBrain(
 
   const maxRecommendations = getMaxRecommendationsForPlan(plan);
 
-  // Ab hier nur noch für echten Text mit Buchstaben/Zahlen
   const nextIntent = detectIntentFromText(cleaned, currentIntent);
   const recommended = filterProducts(
     cleaned,

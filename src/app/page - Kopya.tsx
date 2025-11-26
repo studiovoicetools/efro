@@ -12,8 +12,14 @@ import {
 } from "@mascotbot-sdk/react";
 
 import EFROChatWindow from "@/components/EFROChatWindow";
-import { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
-import { runSellerBrain, SellerBrainResult } from "@/lib/sales/sellerBrain";
+import {
+  EfroProduct,
+  ShoppingIntent,
+} from "@/lib/products/mockCatalog";
+import {
+  runSellerBrain,
+  SellerBrainResult,
+} from "@/lib/sales/sellerBrain";
 
 /* ===========================================================
    AVATAR COMPONENT
@@ -129,7 +135,7 @@ function ElevenLabsAvatar({
         msg.source === "assistant" ||
         msg.source === "ai";
 
-      // 🔇 ElevenLabs-Idle-Prompts ignorieren
+      // 🔇 ElevenLabs-Idle-Prompts ("Bist du noch da?" etc.) komplett ignorieren
       if (
         isAssistantMessage &&
         (normalized.includes("bist du noch da") ||
@@ -415,46 +421,19 @@ export default function Home({ searchParams }: HomeProps) {
     []
   );
 
-  // 🔹 Plan-State (starter / pro / enterprise)
-  const [shopPlan, setShopPlan] = useState<string>("starter");
-
-  /* ===========================================================
-      KATALOG-DEBUG-FUNKTION
-  ============================================================ */
-
-  const debugCatalogOverview = (products: EfroProduct[]) => {
-    const categories = Array.from(
-      new Set(
-        products
-          .map((p) => p.category)
-          .filter((c): c is string => !!c && c.trim().length > 0)
-      )
-    );
-
-    console.log("[EFRO Catalog Debug] Übersicht", {
-      totalProducts: products.length,
-      categories,
-      sample: products.slice(0, 20).map((p) => ({
-        id: p.id,
-        title: p.title,
-        price: p.price,
-        category: p.category,
-        tags: (p as any).tags,
-      })),
-    });
-  };
-
   /* ===========================================================
       PRODUKTE LADEN
   ============================================================ */
 
   const fetchProducts = useCallback(async () => {
     try {
+      // Passe den Endpoint ggf. an deine API an
       const res = await fetch(
         `/api/shopify-products?shop=${encodeURIComponent(shopDomain)}`
       );
       const data = await res.json();
 
+      // Viele Backends schicken { products: [...] }
       const products: EfroProduct[] = Array.isArray(data)
         ? data
         : data.products ?? [];
@@ -467,7 +446,6 @@ export default function Home({ searchParams }: HomeProps) {
       });
 
       setAllProducts(products);
-      debugCatalogOverview(products);
     } catch (err) {
       console.error("[EFRO AllProducts] Fetch error", err);
     }
@@ -476,39 +454,6 @@ export default function Home({ searchParams }: HomeProps) {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-
-  /* ===========================================================
-      SHOP-META / PLAN LADEN
-  ============================================================ */
-
-  const fetchShopMeta = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `/api/efro/shop-meta?shop=${encodeURIComponent(shopDomain)}`,
-        { cache: "no-store" }
-      );
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text);
-      }
-      const data = await res.json();
-      const plan = data?.meta?.plan || "starter";
-      const normalizedPlan = String(plan).toLowerCase();
-      setShopPlan(normalizedPlan);
-      console.log("[EFRO ShopMeta]", {
-        shopDomain,
-        plan: normalizedPlan,
-        meta: data.meta,
-      });
-    } catch (err) {
-      console.error("[EFRO ShopMeta] Fetch error", err);
-      setShopPlan("starter");
-    }
-  }, [shopDomain]);
-
-  useEffect(() => {
-    fetchShopMeta();
-  }, [fetchShopMeta]);
 
   /* ===========================================================
       SELLERBRAIN-BRIDGE (wird vom Avatar aufgerufen)
@@ -526,14 +471,12 @@ export default function Home({ searchParams }: HomeProps) {
       const result: SellerBrainResult = runSellerBrain(
         userText,
         sellerIntent,
-        allProducts,
-        shopPlan // <- Plan geht in die Filter-Logik
+        allProducts
       );
 
       console.log("[EFRO SellerBrain]", {
         userText,
         intent: result.intent,
-        plan: shopPlan,
         recCount: result.recommended.length,
         usedSourceCount: allProducts.length,
         hasKeywordInCatalog: result.recommended.length > 0,
@@ -543,7 +486,7 @@ export default function Home({ searchParams }: HomeProps) {
       setSellerReplyText(result.replyText);
       setSellerRecommended(result.recommended);
     },
-    [allProducts, sellerIntent, shopPlan]
+    [allProducts, sellerIntent]
   );
 
   /* ===========================================================
@@ -580,8 +523,7 @@ export default function Home({ searchParams }: HomeProps) {
                 EFROs Produktempfehlungen
               </h2>
               <span className="text-xs text-gray-500">
-                Intent: {sellerIntent} · Katalog: {allProducts.length} Produkte · Plan:{" "}
-                {shopPlan}
+                Intent: {sellerIntent} · Katalog: {allProducts.length} Produkte
               </span>
             </div>
 
@@ -591,12 +533,14 @@ export default function Home({ searchParams }: HomeProps) {
               </p>
             ) : (
               <p className="text-sm text-gray-500 mb-3">
-                Stelle EFRO einfach eine Frage wie:{" "}
+                Stelle EFRO einfach eine Frage wie:
+                {" "}
                 <span className="italic">
-                  „Zeige mir Produkte über 100 Euro“, „Zeige mir Duschgel“, „Zeige mir
-                  Produkte in der Kategorie Haushalt“
+                  „Zeige mir Produkte über 100 Euro“,
+                  „Zeige mir Duschgel“,
+                  „Zeige mir Produkte in der Kategorie Haushalt“
                 </span>
-                . EFRO filtert dann live deinen Katalog (Plan-limitiert).
+                . EFRO filtert dann live deinen Katalog.
               </p>
             )}
 
@@ -628,8 +572,8 @@ export default function Home({ searchParams }: HomeProps) {
               </div>
             ) : (
               <div className="text-xs text-gray-500">
-                Noch keine konkreten Vorschläge. Sprich mit EFRO oder tippe in den
-                Chat – reine Platzhalter wie „...“ oder „??“ werden ignoriert.
+                Noch keine konkreten Vorschläge. Sprich mit EFRO oder tippe in den Chat –
+                reine Platzhalter wie „...“ oder „??“ werden ignoriert.
               </div>
             )}
           </div>
