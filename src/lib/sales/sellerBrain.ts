@@ -14,10 +14,22 @@ export type SellerBrainResult = {
 type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
 
 /**
- * Nutzertext normalisieren
+ * Zentrale Text-Normalisierung (vereinheitlicht)
+ * – Umlaute bleiben erhalten, damit Stopwords wie "für", "größer" etc. sauber matchen.
+ */
+function normalizeText(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Nutzertext normalisieren (Legacy-Kompatibilität)
  */
 function normalize(text: string): string {
-  return text.toLowerCase();
+  return normalizeText(text);
 }
 
 /**
@@ -109,6 +121,18 @@ function isProductRelated(text: string): boolean {
     "welch",
     "welche",
     "welches",
+
+    // NEU: Haut-/Haar-Attribute, damit Fragen wie
+    // "Ist es für trockene Haut?" nicht mehr als Off-Topic gelten
+    "haut",
+    "haare",
+    "trockene",
+    "trocken",
+    "empfindliche",
+    "empfindlich",
+    "sensible",
+    "sensibel",
+    "pflege",
   ];
 
   return productHints.some((w) => t.includes(w));
@@ -236,6 +260,119 @@ function extractUserPriceRange(
   }
 
   return { minPrice, maxPrice };
+}
+
+/**
+ * Query in Produktkern und Attribute aufteilen
+ */
+type ParsedQuery = {
+  coreTerms: string[]; // eigentliche Produktbegriffe (duschgel, hoodie, tuch, reiniger …)
+  attributeTerms: string[]; // alles, was wie Bedingung wirkt (trockene, haut, herren, vegan, xxl …)
+};
+
+function parseQueryForAttributes(text: string): ParsedQuery {
+  const normalized = normalizeText(text);
+
+  const stopwords = [
+    "für",
+    "mit",
+    "und",
+    "oder",
+    "in",
+    "auf",
+    "zum",
+    "zur",
+    "der",
+    "die",
+    "das",
+    "den",
+    "dem",
+    "ein",
+    "eine",
+    "einen",
+    "einem",
+    "einer",
+    "eines",
+  ];
+
+  // 2-Wort-Phrasen erkennen
+  const attributePhrases = [
+    "trockene haut",
+    "empfindliche haut",
+    "sensible haut",
+    "trockene haare",
+    "für herren",
+    "für damen",
+    "für kinder",
+    "für männer",
+    "für frauen",
+    "für bad",
+    "für küche",
+    "für wohnung",
+    "für haustiere",
+    "für hunde",
+    "für katzen",
+  ];
+
+  const foundPhrases: string[] = [];
+  let remainingText = normalized;
+
+  // Phrasen extrahieren
+  for (const phrase of attributePhrases) {
+    if (remainingText.includes(phrase)) {
+      foundPhrases.push(phrase);
+      // Phrase aus Text entfernen, um Doppelzählung zu vermeiden
+      remainingText = remainingText.replace(phrase, " ");
+    }
+  }
+
+  // Einzelwörter aus dem verbleibenden Text
+  const remainingTokens = remainingText
+    .split(" ")
+    .filter((t) => t.length >= 3 && !stopwords.includes(t));
+
+  // Attribute-Terms: Phrasen + einzelne Wörter, die typischerweise Attribute sind
+  const attributeKeywords = [
+    "trockene",
+    "empfindliche",
+    "sensible",
+    "herren",
+    "damen",
+    "kinder",
+    "männer",
+    "frauen",
+    "vegan",
+    "bio",
+    "organic",
+    "xxl",
+    "xl",
+    "l",
+    "m",
+    "s",
+    "haut",
+    "haare",
+    "bad",
+    "küche",
+    "wohnung",
+  ];
+
+  const attributeTerms: string[] = [...foundPhrases];
+  const coreTerms: string[] = [];
+
+  for (const token of remainingTokens) {
+    if (
+      attributeKeywords.includes(token) ||
+      foundPhrases.some((p) => p.includes(token))
+    ) {
+      if (!attributeTerms.includes(token)) {
+        attributeTerms.push(token);
+      }
+    } else {
+      coreTerms.push(token);
+    }
+  }
+
+  return { coreTerms, attributeTerms };
 }
 
 /**
@@ -488,16 +625,73 @@ function filterProducts(
 
   const hasBudget = userMinPrice !== null || userMaxPrice !== null;
 
-  if (words.length > 0) {
-    const scored = candidates
-      .map((p) => ({
-        product: p,
-        score: scoreProductForWords(p, words),
-      }))
-      .filter((entry) => entry.score > 0);
+  // Query in Core- und Attribute-Terms aufteilen
+  const parsed = parseQueryForAttributes(text);
+  const { coreTerms, attributeTerms } = parsed;
+
+  if (words.length > 0 || coreTerms.length > 0 || attributeTerms.length > 0) {
+    // Für jedes Produkt einen searchText erstellen
+    const candidatesWithScores = candidates.map((p) => {
+      const searchText = normalizeText(
+        [
+          p.title,
+          p.description || "",
+          p.category || "",
+          Array.isArray((p as any).tags)
+            ? (p as any).tags.join(" ")
+            : typeof (p as any).tags === "string"
+            ? (p as any).tags
+            : "",
+        ].join(" ")
+      );
+
+      // Core-Match: Mindestens 1 coreTerm muss vorkommen (oder keine coreTerms vorhanden)
+      const hasCoreMatch =
+        coreTerms.length === 0 ||
+        coreTerms.some((term) => searchText.includes(term));
+
+      if (!hasCoreMatch && coreTerms.length > 0) {
+        return { product: p, score: 0, attributeScore: 0 };
+      }
+
+      // Keyword-Score (bestehende Logik)
+      const keywordScore = scoreProductForWords(p, words);
+
+      // Attribute-Score: Zähle, wie viele attributeTerms vorkommen
+      let attributeScore = 0;
+      for (const attr of attributeTerms) {
+        if (searchText.includes(attr)) {
+          attributeScore += 1;
+        }
+      }
+
+      // Gesamt-Score: Keyword-Score + Attribute-Bonus
+      const totalScore = keywordScore + attributeScore * 2;
+
+      return { product: p, score: totalScore, attributeScore };
+    });
+
+    // Filtere Kandidaten mit Score > 0
+    const scored = candidatesWithScores.filter((entry) => entry.score > 0);
 
     if (scored.length > 0) {
-      scored.sort((a, b) => b.score - a.score);
+      // Sortiere nach: attributeScore (absteigend), dann totalScore, dann Preis
+      scored.sort((a, b) => {
+        if (b.attributeScore !== a.attributeScore) {
+          return b.attributeScore - a.attributeScore;
+        }
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        // Preis-Sortierung je nach Intent
+        if (intent === "premium") {
+          return (b.product.price ?? 0) - (a.product.price ?? 0);
+        } else if (intent === "bargain") {
+          return (a.product.price ?? 0) - (b.product.price ?? 0);
+        }
+        return 0;
+      });
+
       candidates = scored.map((e) => e.product);
 
       if (candidates.length > 20) {
@@ -507,13 +701,17 @@ function filterProducts(
       console.log("[EFRO Filter KEYWORD_MATCHES]", {
         text,
         words,
-        matchedTitles: candidates.map((p) => p.title),
+        coreTerms,
+        attributeTerms,
+        matchedTitles: candidates.slice(0, 10).map((p) => p.title),
       });
     } else {
       console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
         text,
         intent,
         words,
+        coreTerms,
+        attributeTerms,
       });
     }
   }
@@ -666,6 +864,10 @@ function buildReplyText(
 
   const explanationMode = detectExplanationMode(text);
 
+  // Attribute-Terms aus Query extrahieren
+  const parsed = parseQueryForAttributes(text);
+  const { attributeTerms } = parsed;
+
   const descSnippet = getDescriptionSnippet(first.description);
   const hasDesc = !!descSnippet;
 
@@ -708,7 +910,7 @@ function buildReplyText(
       }
     }
 
-    if (explanationMode === "materials") {
+        if (explanationMode === "materials") {
       if (hasDesc) {
         return (
           `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
@@ -727,6 +929,7 @@ function buildReplyText(
         );
       }
     }
+
 
     if (explanationMode === "usage") {
       if (hasDesc) {
@@ -799,18 +1002,28 @@ function buildReplyText(
    * 2) Premium-Intent ohne Budget
    */
   if (intent === "premium") {
+    let attributeHint = "";
+    if (attributeTerms.length > 0) {
+      attributeHint =
+        ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
+    }
+    const qualityHint =
+      " Ich habe Produkte ausgewählt, bei denen Qualität im Vordergrund steht.";
+
     if (count === 1) {
       return (
         "Ich habe ein hochwertiges Premium-Produkt für dich gefunden:\n\n" +
         `• ${first.title}\n\n` +
-        "Das ist eine sehr gute Wahl, wenn dir Qualität wichtiger ist als der letzte Euro im Preis. " +
+        (attributeHint || qualityHint) +
+        " Das ist eine sehr gute Wahl, wenn dir Qualität wichtiger ist als der letzte Euro im Preis. " +
         "Wenn du möchtest, kann ich dir noch eine etwas günstigere Alternative zeigen."
       );
     }
 
     const intro =
-      "Ich habe dir eine Auswahl an hochwertigen Premium-Produkten zusammengestellt. " +
-      "Ein besonders starkes Match ist:";
+      "Ich habe dir eine Auswahl an hochwertigen Premium-Produkten zusammengestellt." +
+      (attributeHint || qualityHint) +
+      " Ein besonders starkes Match ist:";
 
     const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
 
@@ -824,8 +1037,16 @@ function buildReplyText(
    * 3) Bargain-Intent ohne Budget
    */
   if (intent === "bargain") {
+    let attributeHint = "";
+    if (attributeTerms.length > 0) {
+      attributeHint = ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
+    }
+    const priceHint =
+      " Ich habe auf ein gutes Preis-Leistungs-Verhältnis geachtet.";
+
     const intro =
-      "Ich habe dir besonders preiswerte Produkte mit gutem Preis-Leistungs-Verhältnis herausgesucht:";
+      "Ich habe dir besonders preiswerte Produkte herausgesucht." +
+      (attributeHint || priceHint);
     const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
     const closing =
       "\n\nWenn du mir dein maximales Budget nennst, kann ich noch genauer eingrenzen.";
@@ -850,15 +1071,25 @@ function buildReplyText(
    * 5) Standard-Fälle (explore / quick_buy / bundle ...)
    */
   if (count === 1) {
+    let attributeHint = "";
+    if (attributeTerms.length > 0) {
+      attributeHint = ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
+    }
     return (
       "Ich habe ein passendes Produkt für dich gefunden:\n\n" +
-      `• ${first.title}\n\n` +
+      `• ${first.title}${attributeHint}\n\n` +
       "Unten siehst du alle Details. Wenn dir etwas daran nicht ganz passt, sag mir einfach, worauf du besonders Wert legst (z. B. Preis, Marke oder Kategorie)."
     );
   }
 
+  let attributeHint = "";
+  if (attributeTerms.length > 0) {
+    attributeHint = ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
+  }
+
   const intro =
-    "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet:";
+    "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet:" +
+    attributeHint;
   const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
   const closing =
     "\n\nWenn du möchtest, helfe ich dir jetzt beim Eingrenzen – zum Beispiel nach Preisbereich, Kategorie oder Einsatzzweck.";
