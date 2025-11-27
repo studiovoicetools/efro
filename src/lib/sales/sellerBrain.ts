@@ -14,6 +14,30 @@ export type SellerBrainResult = {
 type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
 
 /**
+ * Attribut-Map pro Produkt
+ * z. B. { skin_type: ["dry", "sensitive"], audience: ["men"], room: ["bathroom"] }
+ */
+type ProductAttributeMap = Record<string, string[]>;
+
+/**
+ * Vokabular-Eintrag für ein Attribut auf Shop-Ebene
+ */
+type ShopAttributeVocabulary = {
+  key: string;           // z. B. "skin_type", "audience", "room", "pet", "family"
+  values: string[];      // z. B. ["dry", "sensitive", "oily"]
+  examples: string[];    // Produkt-Titel-Beispiele (max. 3)
+  usageCount: number;    // Anzahl Produkte, die dieses Attribut verwenden
+};
+
+/**
+ * Vollständiger Attribut-Index für den Shop
+ */
+type AttributeIndex = {
+  perProduct: Record<string, ProductAttributeMap>;  // Key = product.id
+  vocabulary: ShopAttributeVocabulary[];
+};
+
+/**
  * Zentrale Text-Normalisierung (vereinheitlicht)
  * – Umlaute bleiben erhalten, damit Stopwords wie "für", "größer" etc. sauber matchen.
  */
@@ -24,6 +48,18 @@ function normalizeText(input: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/**
+ * Kategorien, die typischerweise für menschliche Haut-/Kosmetik-Produkte verwendet werden
+ */
+const HUMAN_SKIN_CATEGORIES = [
+  "kosmetik",
+  "beauty",
+  "pflege",
+  "haut",
+  "gesicht",
+  "body",
+];
 
 /**
  * Nutzertext normalisieren (Legacy-Kompatibilität)
@@ -82,6 +118,74 @@ function detectExplanationMode(text: string): ExplanationMode | null {
 function isProductRelated(text: string): boolean {
   const t = normalize(text || "");
 
+  // Kern-Produkt-Keywords: Wenn eines davon vorkommt, ist es immer produktbezogen
+  const coreProductKeywords = [
+    "shampoo",
+    "duschgel",
+    "reiniger",
+    "spray",
+    "lotion",
+    "creme",
+    "cream",
+    "seife",
+    "soap",
+    "tücher",
+    "tuecher",
+    "tuch",
+    "wipes",
+
+    // Reinigungs-/Verschmutzungsbegriffe
+    "schmutz",
+    "verschmutz",
+    "verschmutzungen",
+    "fleck",
+    "flecken",
+    "kalk",
+    "reinigen",
+    "reinigung",
+    "entfernen",
+
+    // Anti-Aging / reife Haut – explizit als Produktkontext
+    "anti-aging",
+    "anti aging",
+    "antiaging",
+    "anti age",
+  ];
+
+  // Sofort true, wenn ein Kern-Produkt-Keyword gefunden wird
+  if (coreProductKeywords.some((w) => t.includes(w))) {
+    console.log("[EFRO ProductRelated]", {
+      text,
+      isProductRelated: true,
+      reason: "coreProductKeyword",
+    });
+    return true;
+  }
+
+  // Kontext-Keywords: "für die Küche", "fürs Bad", etc.
+  const contextKeywords = [
+    "für die küche",
+    "fürs bad",
+    "fürs badezimmer",
+    "fürs schlafzimmer",
+    "für hunde",
+    "für katzen",
+    "für kinder",
+    "für die küche",
+    "für die bad",
+    "für die badezimmer",
+    "für die schlafzimmer",
+  ];
+
+  if (contextKeywords.some((w) => t.includes(w))) {
+    console.log("[EFRO ProductRelated]", {
+      text,
+      isProductRelated: true,
+      reason: "contextKeyword",
+    });
+    return true;
+  }
+
   // Wörter, die auf typische Produkt-/Shopfragen hindeuten
   const productHints = [
     "duschgel",
@@ -133,9 +237,34 @@ function isProductRelated(text: string): boolean {
     "sensible",
     "sensibel",
     "pflege",
+
+    // Reinigungs-/Verschmutzungsbegriffe
+    "schmutz",
+    "verschmutz",
+    "verschmutzungen",
+    "fleck",
+    "flecken",
+    "kalk",
+    "reinigen",
+    "reinigung",
+    "entfernen",
+
+    // Anti-Aging / reife Haut
+    "anti-aging",
+    "anti aging",
+    "antiaging",
+    "anti age",
+    "reife haut",
+    "mature skin",
   ];
 
-  return productHints.some((w) => t.includes(w));
+  const result = productHints.some((w) => t.includes(w));
+  console.log("[EFRO ProductRelated]", {
+    text,
+    isProductRelated: result,
+    reason: result ? "productHint" : "none",
+  });
+  return result;
 }
 
 /**
@@ -263,11 +392,319 @@ function extractUserPriceRange(
 }
 
 /**
+ * Baut einen dynamischen Attribut-Index aus allen Produkten.
+ *
+ * Erkennt heuristisch Attribute wie:
+ * - skin_type: "dry", "sensitive", "oily", "combination", "mature"
+ * - audience: "men", "women", "kids", "baby", "unisex"
+ * - pet: "dog", "cat", "pet"
+ * - room: "bathroom", "kitchen", "living_room", "bedroom"
+ * - family: "shower_gel", "shampoo", "hoodie", "cleaner", "wipes", "spray", "cream", "oil", "soap"
+ *
+ * Diese Funktion wird in einem späteren Schritt von EFRO genutzt,
+ * um pro Shop eine Lernbasis für Attribute aufzubauen.
+ */
+function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
+  const perProduct: Record<string, ProductAttributeMap> = {};
+
+  // Vokabular-Sammlung: key -> { values: Set, examples: string[], count: number }
+  const vocabMap = new Map<
+    string,
+    {
+      values: Set<string>;
+      examples: string[];
+      usageCount: number;
+    }
+  >();
+
+  /**
+   * Hilfsfunktion: Fügt ein Attribut zu einem Produkt hinzu
+   */
+  function addAttribute(
+    productId: string,
+    attributeKey: string,
+    attributeValue: string
+  ): void {
+    if (!perProduct[productId]) {
+      perProduct[productId] = {};
+    }
+
+    const productAttrs = perProduct[productId];
+
+    if (!productAttrs[attributeKey]) {
+      productAttrs[attributeKey] = [];
+    }
+
+    if (!productAttrs[attributeKey].includes(attributeValue)) {
+      productAttrs[attributeKey].push(attributeValue);
+    }
+
+    if (!vocabMap.has(attributeKey)) {
+      vocabMap.set(attributeKey, {
+        values: new Set<string>(),
+        examples: [],
+        usageCount: 0,
+      });
+    }
+
+    const vocab = vocabMap.get(attributeKey)!;
+    vocab.values.add(attributeValue);
+    vocab.usageCount += 1;
+
+    // Beispiel-Titel hinzufügen (max. 3 verschiedene)
+    const product = allProducts.find((p) => p.id === productId);
+    if (product && vocab.examples.length < 3) {
+      if (!vocab.examples.includes(product.title)) {
+        vocab.examples.push(product.title);
+      }
+    }
+  }
+
+  /**
+   * Hilfsfunktion: Erkennt Hauttyp-Attribute
+   */
+  function detectSkinType(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (
+      /trockenhaut|trockene\s+haut|trockener\s+haut|dry\s+skin/.test(normalized)
+    ) {
+      addAttribute(productId, "skin_type", "dry");
+    }
+
+    if (
+      /empfindliche\s+haut|empfindlicher\s+haut|empfindlich|sensible\s+haut|sensibler\s+haut|sensitive\s+skin/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "skin_type", "sensitive");
+    }
+
+    if (
+      /fettige\s+haut|fettiger\s+haut|fettig|oily\s+skin/.test(normalized)
+    ) {
+      addAttribute(productId, "skin_type", "oily");
+    }
+
+    if (/mischhaut|combination\s+skin/.test(normalized)) {
+      addAttribute(productId, "skin_type", "combination");
+    }
+
+    if (
+      /reife\s+haut|reifer\s+haut|reif|mature\s+skin|anti-?aging|anti\s+aging/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "skin_type", "mature");
+    }
+  }
+
+  /**
+   * Hilfsfunktion: Erkennt Zielgruppe (Audience)
+   */
+  function detectAudience(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (
+      /für\s+herren|für\s+männer|for\s+men\b|herren\b|männer\b|\bmen\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "audience", "men");
+    }
+
+    if (
+      /für\s+damen|für\s+frauen|for\s+women\b|damen\b|frauen\b|\bwomen\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "audience", "women");
+    }
+
+    if (
+      /für\s+kinder|for\s+kids\b|\bkinder\b|\bkids\b|\bchildren\b|für\s+jungs|für\s+mädchen/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "audience", "kids");
+    }
+
+    if (
+      /für\s+babys|für\s+babies|for\s+baby\b|\bbaby\b|\bbabies\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "audience", "baby");
+    }
+
+    if (/unisex\b|für\s+alle|for\s+all\b/.test(normalized)) {
+      addAttribute(productId, "audience", "unisex");
+    }
+  }
+
+  /**
+   * Hilfsfunktion: Erkennt Tier-Attribute
+   */
+  function detectPet(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (
+      /für\s+hunde|for\s+dog\b|\bhund\b|\bhunde\b|\bdog\b|\bdogs\b|\bwelpe\b|\bpuppy\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "pet", "dog");
+    }
+
+    if (
+      /für\s+katzen|for\s+cat\b|\bkatze\b|\bkatzen\b|\bcat\b|\bcats\b|\bkitten\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "pet", "cat");
+    }
+
+    if (
+      !perProduct[productId]?.pet &&
+      /haustier|haustiere|\bpet\b|\bpets\b|für\s+tiere/.test(normalized)
+    ) {
+      addAttribute(productId, "pet", "pet");
+    }
+  }
+
+  /**
+   * Hilfsfunktion: Erkennt Raum / Einsatzort
+   */
+  function detectRoom(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (
+      /für\s+bad|für\s+badezimmer|for\s+bathroom\b|\bbad\b|\bbadezimmer\b|\bbathroom\b|\bbath\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "room", "bathroom");
+    }
+
+    if (
+      /für\s+küche|für\s+kueche|for\s+kitchen\b|\bküche\b|\bkueche\b|\bkitchen\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "room", "kitchen");
+    }
+
+    if (
+      /für\s+wohnzimmer|for\s+living\s+room\b|\bwohnzimmer\b|\bliving\s+room\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "room", "living_room");
+    }
+
+    if (
+      /für\s+schlafzimmer|for\s+bedroom\b|\bschlafzimmer\b|\bbedroom\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "room", "bedroom");
+    }
+  }
+
+  /**
+   * Hilfsfunktion: Erkennt Produkt-Familien
+   */
+  function detectFamily(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (/duschgel|shower\s+gel|dusch\s+gel/.test(normalized)) {
+      addAttribute(productId, "family", "shower_gel");
+    }
+
+    if (/shampoo|shamp\b/.test(normalized)) {
+      addAttribute(productId, "family", "shampoo");
+    }
+
+    if (/hoodie|hoody/.test(normalized)) {
+      addAttribute(productId, "family", "hoodie");
+    }
+
+    if (/reiniger|cleaner|reinigungs|cleaning/.test(normalized)) {
+      addAttribute(productId, "family", "cleaner");
+    }
+
+    if (/tücher|tuecher|tuch|wipes/.test(normalized)) {
+      addAttribute(productId, "family", "wipes");
+    }
+
+    if (/\bspray\b/.test(normalized)) {
+      addAttribute(productId, "family", "spray");
+    }
+
+    if (/creme|cream|lotion/.test(normalized)) {
+      addAttribute(productId, "family", "cream");
+    }
+
+    if (/\böl\b|\boil\b/.test(normalized)) {
+      addAttribute(productId, "family", "oil");
+    }
+
+    if (/seife|soap/.test(normalized)) {
+      addAttribute(productId, "family", "soap");
+    }
+  }
+
+  // Haupt-Loop: Durch alle Produkte iterieren
+  for (const product of allProducts) {
+    const productId = product.id;
+
+    const tagsText =
+      Array.isArray((product as any).tags)
+        ? (product as any).tags.join(" ")
+        : typeof (product as any).tags === "string"
+        ? (product as any).tags
+        : "";
+
+    const aggregatedText = normalizeText(
+      [
+        product.title,
+        product.description || "",
+        product.category || "",
+        tagsText,
+      ].join(" ")
+    );
+
+    detectSkinType(aggregatedText, productId);
+    detectAudience(aggregatedText, productId);
+    detectPet(aggregatedText, productId);
+    detectRoom(aggregatedText, productId);
+    detectFamily(aggregatedText, productId);
+  }
+
+  const vocabulary: ShopAttributeVocabulary[] = Array.from(
+    vocabMap.entries()
+  ).map(([key, data]) => ({
+    key,
+    values: Array.from(data.values).sort(),
+    examples: data.examples.slice(0, 3),
+    usageCount: data.usageCount,
+  }));
+
+  vocabulary.sort((a, b) => b.usageCount - a.usageCount);
+
+  return {
+    perProduct,
+    vocabulary,
+  };
+}
+
+/**
  * Query in Produktkern und Attribute aufteilen
  */
 type ParsedQuery = {
-  coreTerms: string[]; // eigentliche Produktbegriffe (duschgel, hoodie, tuch, reiniger …)
-  attributeTerms: string[]; // alles, was wie Bedingung wirkt (trockene, haut, herren, vegan, xxl …)
+  coreTerms: string[];              // Produktbegriffe (duschgel, hoodie, tuch, reiniger …)
+  attributeTerms: string[];         // Begriffe/Phrasen, die wie Bedingungen klingen (trockene, haut, herren, vegan …)
+  attributeFilters: ProductAttributeMap; // strukturierte Filter, z. B. { skin_type: ["dry"], audience: ["men"] }
 };
 
 function parseQueryForAttributes(text: string): ParsedQuery {
@@ -372,7 +809,175 @@ function parseQueryForAttributes(text: string): ParsedQuery {
     }
   }
 
-  return { coreTerms, attributeTerms };
+  // NEU: Strukturierte Attribute-Filter aufbauen
+  const attributeFilters: ProductAttributeMap = {};
+
+  /**
+   * Hilfsfunktion: Fügt einen Filter-Wert hinzu
+   */
+  function addFilter(key: string, value: string): void {
+    if (!attributeFilters[key]) {
+      attributeFilters[key] = [];
+    }
+    if (!attributeFilters[key].includes(value)) {
+      attributeFilters[key].push(value);
+    }
+  }
+
+  // skin_type Erkennung
+  if (
+    /trockenhaut|trockene\s+haut|trockener\s+haut|dry\s+skin/.test(normalized)
+  ) {
+    addFilter("skin_type", "dry");
+  }
+  if (
+    /empfindliche\s+haut|empfindlicher\s+haut|empfindlich|sensible\s+haut|sensibler\s+haut|sensitive\s+skin/.test(
+      normalized
+    )
+  ) {
+    addFilter("skin_type", "sensitive");
+  }
+  if (
+    /fettige\s+haut|fettiger\s+haut|fettig|oily\s+skin/.test(normalized)
+  ) {
+    addFilter("skin_type", "oily");
+  }
+  if (/mischhaut|combination\s+skin/.test(normalized)) {
+    addFilter("skin_type", "combination");
+  }
+  if (
+    /reife\s+haut|reifer\s+haut|reif|mature\s+skin|anti-?aging|anti\s+aging/.test(
+      normalized
+    )
+  ) {
+    addFilter("skin_type", "mature");
+  }
+
+  // Anti-Aging wird wie "reife Haut" behandelt
+  if (/anti-aging|anti aging|antiaging|anti age/.test(normalized)) {
+    addFilter("skin_type", "mature");
+  }
+
+  // audience Erkennung
+  if (
+    /für\s+herren|für\s+männer|for\s+men\b|herren\b|männer\b|\bmen\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("audience", "men");
+  }
+  if (
+    /für\s+damen|für\s+frauen|for\s+women\b|damen\b|frauen\b|\bwomen\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("audience", "women");
+  }
+  if (
+    /für\s+kinder|for\s+kids\b|\bkinder\b|\bkids\b|\bchildren\b|für\s+jungs|für\s+mädchen/.test(
+      normalized
+    )
+  ) {
+    addFilter("audience", "kids");
+  }
+  if (
+    /für\s+babys|für\s+babies|for\s+baby\b|\bbaby\b|\bbabies\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("audience", "baby");
+  }
+  if (/unisex\b|für\s+alle|for\s+all\b/.test(normalized)) {
+    addFilter("audience", "unisex");
+  }
+
+  // pet Erkennung
+  if (
+    /für\s+hunde|hund\b|\bhunde\b|for\s+dog\b|\bdog\b|\bdogs\b|\bwelpe\b|\bpuppy\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("pet", "dog");
+  }
+  if (
+    /für\s+katzen|katze\b|\bkatzen\b|for\s+cat\b|\bcat\b|\bcats\b|\bkitten\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("pet", "cat");
+  }
+  // Allgemein Haustier (nur wenn nicht bereits dog oder cat gesetzt)
+  if (
+    !attributeFilters.pet &&
+    /haustier|haustiere|\bpet\b|\bpets\b|für\s+tiere/.test(normalized)
+  ) {
+    addFilter("pet", "pet");
+  }
+
+  // room Erkennung
+  if (
+    /für\s+bad|für\s+badezimmer|\bbad\b|\bbadezimmer\b|for\s+bathroom\b|\bbathroom\b|\bbath\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("room", "bathroom");
+  }
+  if (
+    /für\s+küche|für\s+kueche|\bküche\b|\bkueche\b|for\s+kitchen\b|\bkitchen\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("room", "kitchen");
+  }
+  if (
+    /für\s+wohnzimmer|\bwohnzimmer\b|for\s+living\s+room\b|\bliving\s+room\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("room", "living_room");
+  }
+  if (
+    /für\s+schlafzimmer|\bschlafzimmer\b|for\s+bedroom\b|\bbedroom\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("room", "bedroom");
+  }
+
+  // family Erkennung
+  if (/duschgel|shower\s+gel|dusch\s+gel/.test(normalized)) {
+    addFilter("family", "shower_gel");
+  }
+  if (/shampoo|shamp\b/.test(normalized)) {
+    addFilter("family", "shampoo");
+  }
+  if (/hoodie|hoody/.test(normalized)) {
+    addFilter("family", "hoodie");
+  }
+  if (/reiniger|cleaner|reinigungs|cleaning|schmutz|verschmutz|verschmutzungen|fleck|flecken|kalk/.test(normalized)) {
+    addFilter("family", "cleaner");
+  }
+  if (/tücher|tuecher|tuch|wipes/.test(normalized)) {
+    addFilter("family", "wipes");
+  }
+  if (/\bspray\b/.test(normalized)) {
+    addFilter("family", "spray");
+  }
+  if (/creme|cream|lotion/.test(normalized)) {
+    addFilter("family", "cream");
+  }
+  if (/\böl\b|\boil\b/.test(normalized)) {
+    addFilter("family", "oil");
+  }
+  if (/seife|soap/.test(normalized)) {
+    addFilter("family", "soap");
+  }
+
+  return {
+    coreTerms,
+    attributeTerms,
+    attributeFilters,
+  };
 }
 
 /**
@@ -440,6 +1045,9 @@ function filterProducts(
   console.log("[EFRO Filter ENTER]", { text, intent });
 
   const t = normalize(text);
+
+  // Dynamischen Attribut-Index für alle Produkte bauen
+  const attributeIndex = buildAttributeIndex(allProducts);
 
   if (allProducts.length === 0) {
     console.log("[EFRO Filter RESULT]", {
@@ -627,7 +1235,68 @@ function filterProducts(
 
   // Query in Core- und Attribute-Terms aufteilen
   const parsed = parseQueryForAttributes(text);
-  const { coreTerms, attributeTerms } = parsed;
+  const { coreTerms, attributeTerms, attributeFilters } = parsed;
+
+  console.log("[EFRO Filter ATTR_FILTERS]", {
+    text,
+    attributeFilters,
+  });
+
+  // Strukturierte Attribute-Filter aus der Query anwenden (sofern vorhanden)
+  const activeAttributeFilterEntries = Object.entries(attributeFilters).filter(
+    ([, values]) => Array.isArray(values) && values.length > 0
+  );
+
+  let candidatesAfterAttr = candidates;
+
+  if (activeAttributeFilterEntries.length > 0) {
+    const beforeAttrFilterCount = candidates.length;
+
+    // Spezieller Fall: menschliche Haut-Typen, aber keine Tier-Anfrage
+    if (
+      attributeFilters.skin_type &&
+      attributeFilters.skin_type.length > 0 &&
+      (!attributeFilters.pet || attributeFilters.pet.length === 0)
+    ) {
+      candidatesAfterAttr = candidatesAfterAttr.filter((p) => {
+        const cat = normalize(p.category || "");
+        return HUMAN_SKIN_CATEGORIES.some((allowed) => cat.includes(allowed));
+      });
+    }
+
+    const filteredByAttributes = candidatesAfterAttr.filter((product) => {
+      const productAttrs: ProductAttributeMap =
+        attributeIndex.perProduct[product.id] ?? {};
+
+      // Alle aktiven Filter müssen matchen
+      return activeAttributeFilterEntries.every(([key, values]) => {
+        const prodValues = productAttrs[key] ?? [];
+
+        if (!Array.isArray(prodValues) || prodValues.length === 0) {
+          return false;
+        }
+
+        return values.some((v) => prodValues.includes(v));
+      });
+    });
+
+    if (filteredByAttributes.length > 0) {
+      console.log("[EFRO Filter ATTR_FILTER_APPLIED]", {
+        text,
+        attributeFilters,
+        beforeAttrFilterCount,
+        afterAttrFilterCount: filteredByAttributes.length,
+      });
+      candidates = filteredByAttributes;
+    } else {
+      console.log("[EFRO Filter ATTR_FILTER_NO_MATCH]", {
+        text,
+        attributeFilters,
+        beforeAttrFilterCount,
+      });
+      // Kein harter Filter: wir behalten die ursprünglichen Kandidaten
+    }
+  }
 
   if (words.length > 0 || coreTerms.length > 0 || attributeTerms.length > 0) {
     // Für jedes Produkt einen searchText erstellen
@@ -657,7 +1326,7 @@ function filterProducts(
       // Keyword-Score (bestehende Logik)
       const keywordScore = scoreProductForWords(p, words);
 
-      // Attribute-Score: Zähle, wie viele attributeTerms vorkommen
+      // Attribute-Score: Zähle, wie viele attributeTerms im Text vorkommen
       let attributeScore = 0;
       for (const attr of attributeTerms) {
         if (searchText.includes(attr)) {
@@ -665,8 +1334,80 @@ function filterProducts(
         }
       }
 
-      // Gesamt-Score: Keyword-Score + Attribute-Bonus
-      const totalScore = keywordScore + attributeScore * 2;
+      // Strukturierte Attribute-Score: basiert auf attributeFilters + AttributeIndex
+      let structuredAttributeScore = 0;
+      const productAttrs: ProductAttributeMap =
+        attributeIndex.perProduct[p.id] ?? {};
+
+      for (const [key, values] of Object.entries(attributeFilters)) {
+        const prodValues = productAttrs[key] ?? [];
+
+        if (!Array.isArray(prodValues) || prodValues.length === 0) continue;
+
+        if (values.some((v) => prodValues.includes(v))) {
+          // Jeder passende strukturierte Filter gibt einen extra Bonus
+          structuredAttributeScore += 2;
+        }
+      }
+
+      // Gesamt-Score: Keywords + Text-Attribute + strukturierte Attribute
+      let totalScore =
+        keywordScore + attributeScore * 2 + structuredAttributeScore * 3;
+
+      // Spezielle Ranking-Regel für "Schimmel": Bevorzuge Reiniger/Sprays, benachteilige Tücher
+      // Testfälle:
+      // - "Es soll Schimmel entfernen." → Reiniger/Sprays vor Tüchern
+      // - "Ich brauche etwas gegen Schimmel im Bad." → Reiniger/Sprays vor Tüchern
+      // - "Hast du einen Schimmelentferner für die Dusche?" → Reiniger/Sprays vor Tüchern
+      const normalizedUserText = t;
+      if (normalizedUserText.includes("schimmel")) {
+        const normalizedTitle = normalize(p.title);
+        const normalizedDescription = normalize(p.description || "");
+        const hasSchimmelInProduct =
+          normalizedTitle.includes("schimmel") ||
+          normalizedDescription.includes("schimmel");
+
+        if (hasSchimmelInProduct) {
+          const scoreBefore = totalScore;
+          const productFamily = productAttrs.family || [];
+          // normalizedTitle ist bereits lowercase durch normalize()
+
+          // Bonus für Reiniger/Sprays mit Schimmel-Bezug
+          if (
+            productFamily.includes("cleaner") ||
+            normalizedTitle.includes("reiniger") ||
+            normalizedTitle.includes("spray") ||
+            normalizedTitle.includes("schimmelentferner") ||
+            normalizedTitle.includes("anti-schimmel")
+          ) {
+            totalScore += 3;
+          }
+
+          // Malus für Tücher/Wipes mit Schimmel-Bezug (damit sie nachrangig erscheinen)
+          if (
+            productFamily.includes("wipes") ||
+            normalizedTitle.includes("tuch") ||
+            normalizedTitle.includes("tücher") ||
+            normalizedTitle.includes("tuecher") ||
+            normalizedTitle.includes("wipes")
+          ) {
+            totalScore -= 1;
+          }
+
+          // Debug-Log nur im Schimmel-Fall
+          if (scoreBefore !== totalScore) {
+            console.log("[EFRO SchimmelRanking]", {
+              userText: normalizedUserText,
+              appliedMoldBoost: true,
+              productId: p.id,
+              title: p.title,
+              family: productFamily,
+              scoreBefore,
+              scoreAfter: totalScore,
+            });
+          }
+        }
+      }
 
       return { product: p, score: totalScore, attributeScore };
     });
@@ -684,9 +1425,9 @@ function filterProducts(
           return b.score - a.score;
         }
         // Preis-Sortierung je nach Intent
-        if (intent === "premium") {
+  if (intent === "premium") {
           return (b.product.price ?? 0) - (a.product.price ?? 0);
-        } else if (intent === "bargain") {
+  } else if (intent === "bargain") {
           return (a.product.price ?? 0) - (b.product.price ?? 0);
         }
         return 0;
@@ -705,7 +1446,7 @@ function filterProducts(
         attributeTerms,
         matchedTitles: candidates.slice(0, 10).map((p) => p.title),
       });
-    } else {
+  } else {
       console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
         text,
         intent,
@@ -734,7 +1475,7 @@ function filterProducts(
   }
 
   if (minPrice !== null || maxPrice !== null) {
-    candidates = candidates.filter((p) => {
+      candidates = candidates.filter((p) => {
       const price = p.price ?? 0;
       if (minPrice !== null && price < minPrice) return false;
       if (maxPrice !== null && price > maxPrice) return false;
@@ -755,8 +1496,8 @@ function filterProducts(
   /**
    * 4) Fallback, wenn durch Filter alles weggefallen ist
    */
-  if (candidates.length === 0) {
-    candidates = [...allProducts];
+      if (candidates.length === 0) {
+        candidates = [...allProducts];
 
     if (matchedCategories.length > 0) {
       const byCat = candidates.filter((p) =>
@@ -988,7 +1729,7 @@ function buildReplyText(
       `• ${first.title} – ${formatPrice(first)}\n\n` +
       "Zusätzlich habe ich dir unten noch weitere passende Produkte eingeblendet:";
 
-    const lines = recommended.map(
+  const lines = recommended.map(
       (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
     );
 
@@ -1151,11 +1892,11 @@ export function runSellerBrain(
       maxRecommendations,
     });
 
-    return {
-      intent: nextIntent,
-      recommended,
-      replyText,
-    };
+  return {
+    intent: nextIntent,
+    recommended,
+    replyText,
+  };
   }
 
   // OFF-TOPIC-GUARD
@@ -1181,10 +1922,39 @@ export function runSellerBrain(
   }
 
   // Normale Such-/Kaufanfrage -> filtern
-  let recommended = filterProducts(cleaned, nextIntent, allProducts).slice(
-    0,
-    maxRecommendations
-  );
+  const filterResult = filterProducts(cleaned, nextIntent, allProducts);
+  const candidateCount = filterResult.length;
+  
+  // NEU: Schimmel-Only-Filter
+  const moldQuery = isMoldQuery(cleaned);
+  let finalRanked = filterResult;
+  
+  if (moldQuery) {
+    const moldOnly = filterResult.filter((p) => isMoldProduct(p));
+    
+    if (moldOnly.length > 0) {
+      finalRanked = moldOnly;
+      
+      console.log("[EFRO MoldOnly Filter]", {
+        userText: cleaned,
+        moldCount: moldOnly.length,
+        titles: moldOnly.map((p) => p.title),
+      });
+    }
+  }
+  
+  // Bei Schimmel-Anfragen maximal 1 Produkt zeigen (Hero-Produkt)
+  const effectiveMaxRecommendations = moldQuery
+    ? Math.min(1, maxRecommendations ?? 1)
+    : maxRecommendations;
+  
+  let recommended = finalRanked.slice(0, effectiveMaxRecommendations);
+
+  // Force-Show-Logik: Bei klaren Produktanfragen immer Produkte anzeigen
+  const forceShowProducts =
+    nextIntent === "quick_buy" &&
+    isProductRelated(cleaned) &&
+    candidateCount > 0;
 
   let reusedPreviousProducts = false;
 
@@ -1213,13 +1983,31 @@ export function runSellerBrain(
   let replyText: string;
 
   if (isOffTopic) {
-    recommended = [];
+    // Nur leeren, wenn nicht forceShowProducts aktiv ist
+    if (!forceShowProducts) {
+      recommended = [];
+    }
     replyText =
       "Ich bin EFRO und helfe dir nur bei Fragen zu Produkten aus diesem Shop. " +
       "Frag mich z. B. nach Kategorien, Preisen, Größen, Materialien oder bestimmten Artikeln – " +
       "dann zeige ich dir passende Produkte.";
   } else {
     replyText = buildReplyText(cleaned, nextIntent, recommended);
+  }
+
+  // Force-Show-Logik nach allen Guards: Wenn Produkte gefunden wurden, aber recommended leer ist
+  if (forceShowProducts && recommended.length === 0 && candidateCount > 0) {
+    recommended = finalRanked.slice(0, effectiveMaxRecommendations);
+    console.log("[EFRO SellerBrain FORCE_PRODUCTS]", {
+      text: cleaned,
+      intent: nextIntent,
+      candidateCount,
+      usedCount: recommended.length,
+    });
+    // Reply-Text neu generieren, wenn noch nicht gesetzt
+    if (!replyText || replyText.includes("helfe dir nur")) {
+      replyText = buildReplyText(cleaned, nextIntent, recommended);
+    }
   }
 
   console.log("[EFRO SellerBrain]", {
@@ -1239,4 +2027,44 @@ export function runSellerBrain(
     recommended,
     replyText,
   };
+}
+
+// ------------------------------------------------------
+// Spezialisierte Logik für Schimmel-Anfragen
+// ------------------------------------------------------
+
+function isMoldQuery(text: string): boolean {
+  const t = (text || "").toLowerCase();
+  // Typische deutsche Formulierungen für Schimmel
+  return (
+    t.includes("schimmel") ||
+    t.includes("schimmelentferner") ||
+    t.includes("schimmel-reiniger") ||
+    t.includes("schimmelreiniger")
+  );
+}
+
+function isMoldProduct(product: EfroProduct): boolean {
+  const parts: string[] = [];
+
+  if (product.title) parts.push(String(product.title));
+  if (product.description) parts.push(String(product.description));
+  if (product.category) parts.push(String(product.category));
+
+  const rawTags = (product as any).tags;
+  if (Array.isArray(rawTags)) {
+    parts.push(rawTags.map((t) => String(t)).join(" "));
+  } else if (typeof rawTags === "string") {
+    parts.push(rawTags);
+  }
+
+  const full = parts.join(" ").toLowerCase();
+
+  return (
+    full.includes("schimmel") ||
+    full.includes("schimmelentferner") ||
+    full.includes("schimmel-reiniger") ||
+    full.includes("schimmelreiniger") ||
+    full.includes("mold")
+  );
 }

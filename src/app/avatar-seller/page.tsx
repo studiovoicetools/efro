@@ -18,7 +18,9 @@ import {
   ShoppingIntent,
   mockCatalog,
 } from "@/lib/products/mockCatalog";
+import { efroAttributeTestProducts } from "@/lib/catalog/efro-attribute-test-products";
 import { runSellerBrain, SellerBrainResult } from "@/lib/sales/sellerBrain";
+import { analyzeCatalogKeywords } from "@/lib/sales/catalogKeywordAnalyzer";
 
 /* ===========================================================
    SHOPIFY → EFRO MAPPING
@@ -588,6 +590,13 @@ export default function Home({ searchParams }: HomeProps) {
         tags: (p as any).tags,
       })),
     });
+
+    // NEU: Keyword-Analyse
+    const stats = analyzeCatalogKeywords(products);
+    console.log("[EFRO Catalog Keywords]", {
+      totalProducts: stats.totalProducts,
+      topKeywords: stats.keywords.slice(0, 30),
+    });
   }, []);
 
   /* ===========================================================
@@ -618,13 +627,28 @@ export default function Home({ searchParams }: HomeProps) {
         throw new Error("Keine Shopify-Produkte im Response");
       }
 
-      const products = mapShopifyToEfro(shopifyProducts);
+      let products = mapShopifyToEfro(shopifyProducts);
 
-      const titles = products.slice(0, 10).map((p) => p.title);
+      // Optionale Test-Produkte für Attribut-Engine hinzufügen
+      const enableAttributeDemo =
+        process.env.NEXT_PUBLIC_EFRO_ATTRIBUTE_DEMO === "1" &&
+        shopDomain === "local-dev";
+
+      if (enableAttributeDemo) {
+        products = [...products, ...efroAttributeTestProducts];
+      }
+
+      const sources = Array.from(
+        new Set(
+          products.map((p) => (p as any).source || "shopify-admin")
+        )
+      );
+
       console.log("[EFRO AllProducts]", {
         count: products.length,
-        titles,
-        source: "shopify-admin",
+        shopDomain,
+        sources,
+        sample: products.slice(0, 10).map((p) => p.title),
       });
 
       setAllProducts(products);
@@ -635,13 +659,28 @@ export default function Home({ searchParams }: HomeProps) {
         err
       );
 
-      const products = mockCatalog;
-      const titles = products.slice(0, 10).map((p) => p.title);
+      let products = mockCatalog;
+
+      // Optionale Test-Produkte für Attribut-Engine hinzufügen
+      const enableAttributeDemo =
+        process.env.NEXT_PUBLIC_EFRO_ATTRIBUTE_DEMO === "1" &&
+        shopDomain === "local-dev";
+
+      if (enableAttributeDemo) {
+        products = [...products, ...efroAttributeTestProducts];
+      }
+
+      const sources = Array.from(
+        new Set(
+          products.map((p) => (p as any).source || "mockCatalog")
+        )
+      );
 
       console.log("[EFRO AllProducts]", {
         count: products.length,
-        titles,
-        source: "mockCatalog (fallback from avatar-seller)",
+        shopDomain,
+        sources,
+        sample: products.slice(0, 10).map((p) => p.title),
       });
 
       setAllProducts(products);
@@ -748,42 +787,87 @@ export default function Home({ searchParams }: HomeProps) {
   ): "ingredients" | "usage" | "washing" | "price" | null {
     const t = text.toLowerCase();
 
-    if (
+    const isIngredientQuestion =
       t.includes("inhaltsstoff") ||
       t.includes("inhaltsstoffe") ||
       t.includes("ingredient") ||
       t.includes("ingredients") ||
-      t.includes("inci")
-    ) {
-      return "ingredients";
-    }
+      t.includes("inci");
 
-    if (
+    const isUsageQuestion =
       t.includes("wie verwende ich") ||
       t.includes("wie benutze ich") ||
       t.includes("anwendung") ||
       t.includes("apply") ||
-      t.includes("usage")
-    ) {
-      return "usage";
-    }
+      t.includes("usage") ||
+      t.includes("verwenden") ||
+      t.includes("verwende") ||
+      t.includes("benutzen") ||
+      t.includes("für was darf ich") ||
+      t.includes("für was kann ich") ||
+      t.includes("wofür kann ich") ||
+      t.includes("wofür darf ich") ||
+      t.includes("geeignet für") ||
+      (t.includes("ist es für") && t.includes("haut"));
 
-    if (
+    const isWashingQuestion =
       t.includes("waschen") ||
       t.includes("wasche") ||
       t.includes("pflegehinweis") ||
       t.includes("pflege") ||
       t.includes("wash") ||
-      t.includes("washing")
-    ) {
-      return "washing";
-    }
+      t.includes("washing");
 
-    if (isPriceQuestion(t)) {
-      return "price";
-    }
+    const isPrice = isPriceQuestion(t);
 
+    if (isIngredientQuestion) return "ingredients";
+    if (isUsageQuestion) return "usage";
+    if (isWashingQuestion) return "washing";
+    if (isPrice) return "price";
     return null;
+  }
+
+  function findBestProductMatchByText(
+    text: string,
+    products: EfroProduct[]
+  ): EfroProduct | null {
+    const t = text.toLowerCase();
+    const words = t
+      .split(/[^a-z0-9äöüß]+/i)
+      .map((w) => w.trim())
+      .filter((w) => w.length >= 3);
+
+    if (words.length === 0 || products.length === 0) return null;
+
+    const strong = words.filter((w) => w.length >= 4);
+
+    let best: EfroProduct | null = null;
+    let bestScore = 0;
+
+    for (const p of products) {
+      const blob =
+        `${(p.title || "")} ${(p.description || "")} ` +
+        `${Array.isArray((p as any).tags) ? (p as any).tags.join(" ") : ""}`.toLowerCase();
+
+      let score = 0;
+
+      for (const w of words) {
+        if (!w) continue;
+        if (blob.includes(w)) score += 2;
+      }
+
+      for (const w of strong) {
+        if (blob.includes(w)) score += 3;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = p;
+      }
+    }
+
+    if (bestScore === 0) return null;
+    return best;
   }
 
   /* ===========================================================
@@ -851,11 +935,23 @@ export default function Home({ searchParams }: HomeProps) {
 
       // ---------- Inhaltsstoffe ----------
       if (explanation === "ingredients" || isIngredientsQuestion(cleanedText)) {
-        const fromLast =
+        let fromLast =
           lastRecommendedProducts[0] || lastRecommendations[0] || null;
-        const fromSeller = sellerRecommended[0] || null;
-        const primary = fromLast || fromSeller;
-        const contextFromRef = fromLast ? 1 : fromSeller ? 2 : 0;
+        let fromSeller = sellerRecommended[0] || null;
+        let primary: EfroProduct | null = fromLast || fromSeller;
+
+        // Wenn noch kein Produkt im Kontext ist: direkt aus dem Text matchen
+        if (!primary) {
+          primary = findBestProductMatchByText(cleanedText, allProducts);
+        }
+
+        const contextFromRef = fromLast
+          ? 1
+          : fromSeller
+          ? 2
+          : primary
+          ? 3 // 3 = direkt aus Text gematcht
+          : 0;
 
         console.log("[EFRO IngredientsExplanation]", {
           text: cleanedText,
@@ -894,11 +990,22 @@ export default function Home({ searchParams }: HomeProps) {
 
       // ---------- Anwendung / Waschen ----------
       if (explanation === "usage" || explanation === "washing") {
+        const t = cleanedText.toLowerCase();
         let reply = "";
 
         if (explanation === "usage") {
-          reply =
-            "Die genaue Anwendung hängt vom jeweiligen Produkt ab. Auf der Produktseite im Shop findest du alle wichtigen Anwendungshinweise.";
+          if (
+            t.includes("trockene haut") ||
+            t.includes("trockener haut") ||
+            t.includes("sensible haut") ||
+            t.includes("empfindliche haut")
+          ) {
+            reply =
+              "Ob ein Duschgel speziell für trockene oder empfindliche Haut geeignet ist, erfährst du am besten in der Produktbeschreibung oder auf der Verpackung. Schau dir die Produktseite im Shop an – dort findest du Hinweise zum Hauttyp und zur Verträglichkeit.";
+          } else {
+            reply =
+              "Die genaue Anwendung hängt vom jeweiligen Produkt ab. Auf der Produktseite im Shop findest du alle wichtigen Anwendungshinweise.";
+          }
         } else if (explanation === "washing") {
           reply =
             "Wasch- und Pflegehinweise findest du am besten direkt auf der Produktseite im Shop oder auf dem Pflegeetikett.";
@@ -966,6 +1073,12 @@ export default function Home({ searchParams }: HomeProps) {
         hasKeywordInCatalog: recommendations.length > 0,
       });
 
+      console.log("[EFRO UI Result]", {
+        intent: result.intent,
+        productCount: recommendations.length,
+        titles: recommendations.slice(0, 5).map((p) => p.title),
+      });
+
       // letzte Empfehlungen merken
       setLastRecommendedProducts(recommendations);
       setLastRecommendations(recommendations);
@@ -1014,7 +1127,11 @@ export default function Home({ searchParams }: HomeProps) {
 
         {/* PRODUKT-PANEL */}
         <EfroProductPanel
-          visible={!!sellerResult && (sellerResult.recommended?.length ?? 0) > 0}
+          visible={
+            !!sellerResult &&
+            sellerResult.recommended !== undefined &&
+            sellerResult.recommended.length > 0
+          }
           products={sellerResult?.recommended ?? []}
           replyText={sellerResult?.replyText ?? sellerReplyText}
         />
