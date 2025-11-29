@@ -6,6 +6,7 @@ import type {
   EfroProduct,
 } from "@/lib/products/mockCatalog";
 import { runSellerBrain } from "../../../../lib/sales/sellerBrain";
+import { logEfroEventServer } from "@/lib/efro/logEventServer";
 
 type SuggestResponse = {
   shop: string;
@@ -56,6 +57,9 @@ export async function GET(req: NextRequest) {
     const prevIntent =
       (searchParams.get("prevIntent") as ShoppingIntent | null) ||
       "quick_buy";
+    // Plan-Parameter aus Query-String lesen (default: "starter" für lokale Tests)
+    // TODO: Später echte Shop-Plan-Mapping implementieren
+    const planParam = searchParams.get("plan") ?? "starter";
 
     if (!text.trim()) {
       return NextResponse.json(
@@ -70,7 +74,13 @@ export async function GET(req: NextRequest) {
       shop
     );
 
-    const brainResult = runSellerBrain(text, prevIntent, products);
+    const brainResult = runSellerBrain(
+      text,
+      prevIntent,
+      products,
+      planParam,
+      undefined // previousRecommended wird in GET vorerst nicht genutzt
+    );
 
     const payload: SuggestResponse = {
       shop,
@@ -81,9 +91,41 @@ export async function GET(req: NextRequest) {
       productsSource: source,
     };
 
+    // Event-Logging nach erfolgreichem SellerBrain-Call
+    await logEfroEventServer({
+      shopDomain: shop || "local-dev",
+      userText: text,
+      intent: brainResult.intent,
+      productCount: brainResult.recommended.length,
+      plan: null, // Plan kann später aus Shop-Meta geholt werden, falls nötig
+      hadError: false,
+      errorMessage: null,
+    }).catch((err) => {
+      // Logging-Fehler sollen die API-Antwort nicht beeinträchtigen
+      console.error("[EFRO suggest] Logging failed (ignored)", err);
+    });
+
     return NextResponse.json(payload, { status: 200 });
   } catch (err) {
     console.error("[/api/efro/suggest] GET error:", err);
+    
+    // Event-Logging für Fehlerfall
+    const { searchParams } = req.nextUrl;
+    const shop = searchParams.get("shop") || "local-dev";
+    const text = searchParams.get("text") || "";
+    
+    await logEfroEventServer({
+      shopDomain: shop || "local-dev",
+      userText: text,
+      intent: null,
+      productCount: 0,
+      plan: null,
+      hadError: true,
+      errorMessage: err instanceof Error ? err.message : "Unknown error",
+    }).catch(() => {
+      // Ignoriere Logging-Fehler auch im Fehlerfall
+    });
+    
     return NextResponse.json(
       { error: "Internal server error." },
       { status: 500 }
@@ -101,17 +143,22 @@ export async function GET(req: NextRequest) {
  * }
  */
 export async function POST(req: NextRequest) {
+  let shop = "local-dev";
+  let text = "";
+  
   try {
     const body = await req.json().catch(() => ({} as any));
 
-    const shop =
+    shop =
       (typeof body.shop === "string" && body.shop.trim()) || "local-dev";
-    const text =
+    text =
       (typeof body.text === "string" && body.text.trim()) || "";
     const prevIntent: ShoppingIntent =
       typeof body.prevIntent === "string"
         ? (body.prevIntent as ShoppingIntent)
         : "quick_buy";
+    // Plan-Parameter aus Body lesen (default: "starter" für lokale Tests)
+    const planParam = (typeof body.plan === "string" && body.plan.trim()) || "starter";
 
     if (!text) {
       return NextResponse.json(
@@ -125,7 +172,20 @@ export async function POST(req: NextRequest) {
       shop
     );
 
-    const brainResult = runSellerBrain(text, prevIntent, products);
+    // Optional: previousRecommended aus Body extrahieren (falls vorhanden)
+    let previousRecommended: EfroProduct[] | undefined = undefined;
+    if (Array.isArray(body.previousRecommendedIds) && body.previousRecommendedIds.length > 0) {
+      const ids = body.previousRecommendedIds as string[];
+      previousRecommended = products.filter((p) => ids.includes(p.id));
+    }
+
+    const brainResult = runSellerBrain(
+      text,
+      prevIntent,
+      products,
+      planParam,
+      previousRecommended
+    );
 
     const payload: SuggestResponse = {
       shop,
@@ -136,9 +196,37 @@ export async function POST(req: NextRequest) {
       productsSource: source,
     };
 
+    // Event-Logging nach erfolgreichem SellerBrain-Call
+    await logEfroEventServer({
+      shopDomain: shop || "local-dev",
+      userText: text,
+      intent: brainResult.intent,
+      productCount: brainResult.recommended.length,
+      plan: null, // Plan kann später aus Shop-Meta geholt werden, falls nötig
+      hadError: false,
+      errorMessage: null,
+    }).catch((err) => {
+      // Logging-Fehler sollen die API-Antwort nicht beeinträchtigen
+      console.error("[EFRO suggest] Logging failed (ignored)", err);
+    });
+
     return NextResponse.json(payload, { status: 200 });
   } catch (err) {
     console.error("[/api/efro/suggest] POST error:", err);
+    
+    // Event-Logging für Fehlerfall
+    await logEfroEventServer({
+      shopDomain: shop || "local-dev",
+      userText: text,
+      intent: null,
+      productCount: 0,
+      plan: null,
+      hadError: true,
+      errorMessage: err instanceof Error ? err.message : "Unknown error",
+    }).catch(() => {
+      // Ignoriere Logging-Fehler auch im Fehlerfall
+    });
+    
     return NextResponse.json(
       { error: "Internal server error." },
       { status: 500 }

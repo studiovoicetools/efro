@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { logEfroEvent } from "@/lib/efro/logEventClient";
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
 import {
@@ -10,6 +12,7 @@ import {
   Fit,
   useMascotElevenlabs,
 } from "@mascotbot-sdk/react";
+import { AvatarPreview } from "@/components/efro/AvatarPreview";
 
 import EFROChatWindow from "@/components/EFROChatWindow";
 import { EfroProductPanel } from "@/components/EfroProductPanel";
@@ -21,6 +24,7 @@ import {
 import { efroAttributeTestProducts } from "@/lib/catalog/efro-attribute-test-products";
 import { runSellerBrain, SellerBrainResult } from "@/lib/sales/sellerBrain";
 import { analyzeCatalogKeywords } from "@/lib/sales/catalogKeywordAnalyzer";
+import { buildMascotUrl } from "@/lib/efro/mascotConfig";
 
 /* ===========================================================
    SHOPIFY → EFRO MAPPING
@@ -499,7 +503,7 @@ type HomeProps = {
 };
 
 export default function Home({ searchParams }: HomeProps) {
-  const mascotUrl = "/retroBot.riv";
+  const mascotUrl = buildMascotUrl(/* später avatarId, aktuell undefined lassen */);
 
   // für Shopify: ?shop=domain kommt von der Theme Extension
   const shopDomain = searchParams?.shop ?? "local-dev";
@@ -1062,49 +1066,88 @@ export default function Home({ searchParams }: HomeProps) {
       }
 
       // ---------- Normale Produktanfrage → SellerBrain ----------
-      const result: SellerBrainResult = runSellerBrain(
-        cleanedText,
-        sellerIntent,
-        sellerProducts,
-        shopPlan,
-        sellerRecommended
-      );
+      try {
+        const result: SellerBrainResult = runSellerBrain(
+          cleanedText,
+          sellerIntent,
+          sellerProducts,
+          shopPlan,
+          sellerRecommended
+        );
 
-      const recommendations = result.recommended ?? [];
+        const recommendations = result.recommended ?? [];
 
-      console.log("[EFRO SellerBrain]", {
-        userText: cleanedText,
-        intent: result.intent,
-        plan: shopPlan,
-        recCount: recommendations.length,
-        usedSourceCount: sellerProducts.length,
-        hasKeywordInCatalog: recommendations.length > 0,
-      });
+        console.log("[EFRO SellerBrain]", {
+          userText: cleanedText,
+          intent: result.intent,
+          plan: shopPlan,
+          recCount: recommendations.length,
+          usedSourceCount: sellerProducts.length,
+          hasKeywordInCatalog: recommendations.length > 0,
+        });
 
-      console.log("[EFRO UI Result]", {
-        intent: result.intent,
-        productCount: recommendations.length,
-        titles: recommendations.slice(0, 5).map((p) => p.title),
-      });
+        // EFRO Event Logging: Erfolgreicher SellerBrain-Call (fire-and-forget)
+        fetch("/api/efro/log-event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shopDomain: "local-dev",
+            userText: cleanedText,
+            intent: result.intent,
+            productCount: recommendations.length,
+            plan: shopPlan ?? "starter",
+            hadError: false,
+            errorMessage: null,
+          }),
+          keepalive: true, // hilft, wenn der Tab kurz danach geschlossen wird
+        }).catch((err) => {
+          // Fehler nur loggen, UI darf nicht blockiert werden
+          console.error("[EFRO Event Logging] Fetch failed", err);
+        });
 
-      console.log("[EFRO UI PRODUCTS]", {
-        text: cleanedText,
-        intent: result.intent,
-        productCount: recommendations.length,
-        titles: recommendations.map((p) => p.title),
-        categories: recommendations.map((p) => p.category),
-      });
+        console.log("[EFRO UI Result]", {
+          intent: result.intent,
+          productCount: recommendations.length,
+          titles: recommendations.slice(0, 5).map((p) => p.title),
+        });
 
-      // letzte Empfehlungen merken
-      setLastRecommendedProducts(recommendations);
-      setLastRecommendations(recommendations);
+        console.log("[EFRO UI PRODUCTS]", {
+          text: cleanedText,
+          intent: result.intent,
+          productCount: recommendations.length,
+          titles: recommendations.map((p) => p.title),
+          categories: recommendations.map((p) => p.category),
+        });
 
-      setSellerResult(result);
-      setLastProductResult(result);
+        // letzte Empfehlungen merken
+        setLastRecommendedProducts(recommendations);
+        setLastRecommendations(recommendations);
 
-      setSellerIntent(result.intent);
-      setSellerReplyText(result.replyText);
-      setSellerRecommended(recommendations);
+        setSellerResult(result);
+        setLastProductResult(result);
+
+        setSellerIntent(result.intent);
+        setSellerReplyText(result.replyText);
+        setSellerRecommended(recommendations);
+      } catch (err: any) {
+        console.error("[EFRO SellerBrain Error]", err);
+
+        // EFRO Event Logging: Fehlerfall
+        void logEfroEvent({
+          shopDomain: shopDomain || "local-dev",
+          userText: cleanedText,
+          intent: "error",
+          productCount: 0,
+          plan: shopPlan ?? null,
+          hadError: true,
+          errorMessage: err?.message ? String(err.message) : "Unknown SellerBrain error",
+        });
+
+        // Fallback: Leere Empfehlungen setzen, damit UI nicht crasht
+        setSellerResult(null);
+        setSellerRecommended([]);
+        setSellerReplyText("Entschuldigung, es gab einen Fehler bei der Produktsuche.");
+      }
     },
     [
       allProducts,
@@ -1121,25 +1164,19 @@ export default function Home({ searchParams }: HomeProps) {
   ============================================================ */
 
   return (
-    <MascotProvider>
-      <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
-        {/* AVATAR + VOICE + CHAT */}
-        <MascotClient
-          src={mascotUrl}
-          artboard="Character"
-          inputs={["is_speaking", "gesture"]}
-          layout={{
-            fit: Fit.Contain,
-            alignment: Alignment.BottomRight,
-          }}
-        >
-          <ElevenLabsAvatar
-            dynamicVariables={dynamicVariables}
-            createRecommendations={createRecommendations}
-            setChatMessages={setChatMessages}
-            registerSpeakHandler={registerSpeakHandler}
-          />
-        </MascotClient>
+    <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
+      {/* AVATAR + VOICE + CHAT */}
+      <AvatarPreview
+        src={mascotUrl}
+        className="w-full h-full"
+      >
+        <ElevenLabsAvatar
+          dynamicVariables={dynamicVariables}
+          createRecommendations={createRecommendations}
+          setChatMessages={setChatMessages}
+          registerSpeakHandler={registerSpeakHandler}
+        />
+      </AvatarPreview>
 
         {/* PRODUKT-PANEL */}
         <EfroProductPanel
@@ -1151,7 +1188,6 @@ export default function Home({ searchParams }: HomeProps) {
           products={sellerResult?.recommended ?? []}
           replyText={sellerResult?.replyText ?? sellerReplyText}
         />
-      </main>
-    </MascotProvider>
+    </main>
   );
 }

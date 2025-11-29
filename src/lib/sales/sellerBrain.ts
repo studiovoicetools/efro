@@ -545,6 +545,9 @@ function detectIntentFromText(
     "qualitat",
     "luxus",
     "teuer",
+    "teuerste",
+    "teuersten",
+    "teuerster",
   ];
   const bargainWords = [
     "billig",
@@ -585,6 +588,18 @@ function detectIntentFromText(
   }
 
   return currentIntent || "quick_buy";
+}
+
+/**
+ * Erkennt, ob der User explizit nach dem teuersten Produkt fragt
+ */
+function detectMostExpensiveRequest(text: string): boolean {
+  const normalized = normalizeText(text);
+  return (
+    /\b(teuerste|teuersten|teuerster)\s+(produkt|produkte|artikel)\b/.test(
+      normalized
+    ) || normalized.includes("most expensive")
+  );
 }
 
 /**
@@ -1790,6 +1805,9 @@ function filterProducts(
 
   const t = normalize(text);
 
+  // Erkenne, ob User explizit nach dem teuersten Produkt fragt
+  const wantsMostExpensive = detectMostExpensiveRequest(text);
+
   // Dynamischen Attribut-Index für alle Produkte bauen
   const attributeIndex = buildAttributeIndex(allProducts);
 
@@ -2243,7 +2261,45 @@ function filterProducts(
   }
   // --- Ende EFRO Alias-Hard-Filter --------------------------------------
 
-  if (expandedWords.length > 0 || coreTerms.length > 0 || attributeTerms.length > 0) {
+  // Prüfe, ob es eine sehr allgemeine Premium-Anfrage ist (ohne konkrete Produktkategorie)
+  const premiumTokens = [
+    "zeige",
+    "zeig",
+    "mir",
+    "mich",
+    "premium",
+    "beste",
+    "hochwertig",
+    "luxus",
+    "teuer",
+    "teuerste",
+    "teuersten",
+    "teuerster",
+  ];
+
+  const hasPremiumToken =
+    coreTerms.length > 0 &&
+    coreTerms.some((t) => premiumTokens.includes(t));
+
+  const isGenericPremiumQuery =
+    currentIntent === "premium" &&
+    // keine Kategorie-Hints
+    categoryHintsInText.length === 0 &&
+    // keine Attribute
+    attributeTerms.length === 0 &&
+    // mindestens ein Premium-Token in coreTerms vorhanden
+    hasPremiumToken;
+
+  if (isGenericPremiumQuery) {
+    console.log("[EFRO KEYWORD_MATCHES_PREMIUM_SKIP]", {
+      text,
+      candidateCountBefore: candidates.length,
+      coreTerms,
+      attributeTerms,
+      categoryHintsInText,
+    });
+    // candidates bleiben unverändert - KEYWORD_MATCHES wird übersprungen
+  } else if (expandedWords.length > 0 || coreTerms.length > 0 || attributeTerms.length > 0) {
     // Für jedes Produkt einen searchText erstellen
     const candidatesWithScores = productsForKeywordMatch.map((p) => {
       const searchText = normalizeText(
@@ -2437,6 +2493,56 @@ function filterProducts(
     }
   }
 
+  // Debug-Log am Ende des KEYWORD_MATCHES-Blocks
+  console.log("[EFRO KEYWORD_MATCHES_RESULT]", {
+    text,
+    intent: currentIntent,
+    candidateCountAfterKeywordMatches: candidates.length,
+    wasSkipped: isGenericPremiumQuery,
+  });
+
+  /**
+   * PREMIUM: High-End-Filter, wenn kein expliziter Preisbereich und nicht "teuerste Produkt"
+   * Filtert auf oberstes Preissegment (Top-25%, 75-Perzentil)
+   */
+  if (
+    currentIntent === "premium" &&
+    userMinPrice === null &&
+    userMaxPrice === null &&
+    !wantsMostExpensive
+  ) {
+    const priceValues = candidates
+      .map((c) => c.price ?? 0)
+      .filter((p) => typeof p === "number" && p > 0)
+      .sort((a, b) => a - b); // Aufsteigend sortieren
+
+    if (priceValues.length === 0) {
+      console.log("[EFRO PREMIUM_HIGH_END_FILTER]", {
+        text,
+        skipped: true,
+        reason: "no valid prices found",
+      });
+    } else {
+      // 75-Perzentil: Top-25% der teuersten Produkte
+      const idx = Math.floor(priceValues.length * 0.75);
+      const threshold = priceValues[Math.min(idx, priceValues.length - 1)];
+
+      const beforeCount = candidates.length;
+      candidates = candidates.filter((c) => {
+        const price = c.price ?? 0;
+        return price >= threshold;
+      });
+
+      console.log("[EFRO PREMIUM_HIGH_END_FILTER]", {
+        text,
+        beforeCount,
+        afterCount: candidates.length,
+        threshold,
+        priceSamples: priceValues.slice(0, 10), // nur erste 10 zur Übersicht
+      });
+    }
+  }
+
   /**
    * 3) Intent-/Preis-Logik
    */
@@ -2532,6 +2638,19 @@ function filterProducts(
     if (currentIntent === "premium") {
       // Premium: teuerste zuerst
       candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+
+      // Spezialfall: User will explizit das teuerste Produkt
+      if (wantsMostExpensive && candidates.length > 1) {
+        candidates = [candidates[0]];
+      }
+
+      // Debug-Log für Premium-Intent
+      console.log("[EFRO PREMIUM_INTENT]", {
+        text,
+        intent: currentIntent,
+        wantsMostExpensive,
+        candidateCount: candidates.length,
+      });
     } else if (
       currentIntent === "bargain" ||
       currentIntent === "gift" ||
@@ -2573,12 +2692,13 @@ function getDescriptionSnippet(
 }
 
 /**
- * Reply-Text für EFRO bauen
+ * Regel-basierte Reply-Text-Generierung (bisherige Logik)
  */
-function buildReplyText(
+function buildRuleBasedReplyText(
   text: string,
   intent: ShoppingIntent,
-  recommended: EfroProduct[]
+  recommended: EfroProduct[],
+  plan?: string
 ): string {
   const count = recommended.length;
 
@@ -2593,6 +2713,18 @@ function buildReplyText(
     p.price != null ? `${p.price.toFixed(2)} €` : "–";
 
   const first = recommended[0];
+
+  // Prüfe, ob User explizit nach dem teuersten Produkt fragt
+  const wantsMostExpensive = detectMostExpensiveRequest(text);
+
+  // Spezialfall: "Teuerstes Produkt" mit gefundenen Produkten
+  if (wantsMostExpensive && count > 0) {
+    const top = recommended[0];
+    return [
+      `Ich habe dir das teuerste Produkt aus dem Shop eingeblendet: "${top.title}".`,
+      `Wenn du das Produkt anklickst, siehst du alle Details und den genauen Preis.`,
+    ].join(" ");
+  }
 
   const { minPrice, maxPrice } = extractUserPriceRange(text);
   const hasBudget = minPrice !== null || maxPrice !== null;
@@ -2830,6 +2962,23 @@ function buildReplyText(
     "\n\nWenn du möchtest, helfe ich dir jetzt beim Eingrenzen – zum Beispiel nach Preisbereich, Kategorie oder Einsatzzweck.";
 
   return [intro, "", ...lines, closing].join("\n");
+}
+
+/**
+ * Reply-Text für EFRO bauen
+ */
+function buildReplyText(
+  text: string,
+  intent: ShoppingIntent,
+  recommended: EfroProduct[]
+): string {
+  console.log("[EFRO ReplyText] mode='rule-based'", {
+    intent,
+    recommendedCount: recommended.length,
+  });
+
+  // vorerst nur Durchreichung an die Regel-Logik
+  return buildRuleBasedReplyText(text, intent, recommended);
 }
 
 /**
