@@ -1686,15 +1686,23 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
  * (basierend auf Kategorie, Titel, Beschreibung, Tags)
  */
 function isPerfumeProduct(product: EfroProduct): boolean {
-  const title = normalize(product.title || "");
-  const category = normalize(product.category || "");
+      const title = normalize(product.title || "");
   const description = normalize(product.description || "");
-  const tagsText = Array.isArray(product.tags)
-    ? normalize(product.tags.join(" "))
-    : normalize((product.tags || "").toString());
+  const category = normalize(product.category || ""); // ← NEU
+
+  // Tags defensiv in ein string[] verwandeln
+  const rawTags = Array.isArray(product.tags)
+    ? product.tags
+    : typeof product.tags === "string"
+    ? [product.tags]
+    : [];
+
+  const tagsText = normalize(rawTags.join(" "));
 
   // Text-Blob für starke Keywords (ohne Kategorie, da Kategorie separat geprüft wird)
   const textBlob = `${title} ${description} ${tagsText}`;
+
+
 
   // Starke POSITIVE Keywords für Kategorie
   const perfumeCategoryKeywords = [

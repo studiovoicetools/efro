@@ -37,5 +37,9 @@
     ".next/types/**/*.ts"
   ],
 
-  "exclude": ["node_modules", "src_backup"]
+  "exclude": [
+    "node_modules",
+    "src_backup",
+    "src/efro_legacy/**/*"
+  ]
 }

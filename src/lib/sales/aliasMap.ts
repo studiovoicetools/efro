@@ -92,26 +92,33 @@ export function initializeAliasMap(catalogKeywords: string[]): AliasMap {
     (catalogKeywords || []).map((k) => normalizeAliasKey(k))
   );
 
-  const raw = (generatedAliasMapJson || {}) as Record<string, string[]>;
+  // Wichtig: JSON kann auch Meta-Keys wie "_comment": "..." enthalten
+  // -> darum hier unknown statt string[]
+  const raw = (generatedAliasMapJson || {}) as Record<string, unknown>;
   const normalized: AliasMap = {};
 
   // 1. Aus generatedAliasMap.json (bestehende Logik beibehalten)
   for (const [rawKey, rawValues] of Object.entries(raw)) {
     // Überspringe Metadaten-Keys
     if (rawKey.startsWith("_")) continue;
-    
+
     const key = normalizeAliasKey(rawKey);
     if (!key) continue;
-    
+
     const isLanguageAlias = LANGUAGE_ALIAS_KEYS.has(key);
-    
-    // Filtere Values: 
+
+    // Neu: nur echte Arrays weiterverarbeiten, alles andere (z. B. "_comment": "…") ignorieren
+    const rawArray = Array.isArray(rawValues) ? rawValues : [];
+
+    // Filtere Values:
     // - Bei Language-Aliases: Alle Values behalten (auch wenn nicht in catalogKeywords)
     // - Bei anderen: Nur solche, die im Katalog vorkommen
     const values = Array.from(
       new Set(
-        (rawValues || [])
-          .map((v) => normalizeAliasKey(v))
+        (rawArray || [])
+          .map((v) =>
+            typeof v === "string" ? normalizeAliasKey(v) : ""
+          )
           .filter((v) => {
             if (v.length === 0) return false;
             // Language-Aliase: Immer behalten
@@ -125,7 +132,12 @@ export function initializeAliasMap(catalogKeywords: string[]): AliasMap {
     // Language-Aliase: Immer behalten, auch wenn values leer ist (wird später gefüllt)
     if (isLanguageAlias && values.length === 0) {
       // Falls leer, versuche trotzdem die rawValues zu behalten (für Debugging)
-      const rawNormalized = (rawValues || []).map((v) => normalizeAliasKey(v)).filter((v) => v.length > 0);
+      const rawNormalized = (rawArray || [])
+        .map((v) =>
+          typeof v === "string" ? normalizeAliasKey(v) : ""
+        )
+        .filter((v) => v.length > 0);
+
       if (rawNormalized.length > 0) {
         normalized[key] = rawNormalized;
       }
@@ -138,29 +150,27 @@ export function initializeAliasMap(catalogKeywords: string[]): AliasMap {
   }
 
   // 2. Sprach-Aliase ergänzen (OHNE Filterung gegen catalogKeywords)
-  // Grund: Sprach-Aliase sollen AUCH funktionieren, wenn der Katalog das Keyword
-  // nicht explizit als eigenes Token enthält, aber z. B. im Titel oder in der Beschreibung.
+  // (dein bestehender Block – unverändert lassen)
   for (const [rawKey, rawValues] of Object.entries(LANGUAGE_ALIAS_SEEDS)) {
     const key = normalizeAliasKey(rawKey);
     if (!key) continue;
-    
+
     const normalizedValues = Array.from(
       new Set(
         (rawValues || [])
           .map((v) => normalizeAliasKey(v))
-          .filter((v) => v.length > 0) // Nur leere Werte entfernen, KEINE catalogKeywords-Filterung
+          .filter((v) => v.length > 0)
       )
     );
 
     if (normalizedValues.length > 0) {
-      // Merge mit bestehenden Einträgen (falls vorhanden)
       const existing = normalized[key] || [];
       const merged = Array.from(new Set([...existing, ...normalizedValues]));
       normalized[key] = merged;
     }
   }
 
-  // Debug-Log (nur im Dev-Mode)
+  // Debug-Log (so wie bei dir, nur raw ist jetzt unknown – für Log ist das egal)
   const isDev = process.env.NODE_ENV !== "production";
   if (isDev) {
     const parfumKey = normalizeAliasKey("parfum");
@@ -171,12 +181,17 @@ export function initializeAliasMap(catalogKeywords: string[]): AliasMap {
       aliasKeysCount: Object.keys(normalized).length,
       rawAliasKeys: Object.keys(raw).slice(0, 20),
       fressnapfEntry: normalized["fressnapf"] || null,
-      rawFressnapfEntry: raw["fressnapf"] || raw["Fressnapf"] || null,
+      rawFressnapfEntry:
+        (raw as Record<string, unknown>)["fressnapf"] ??
+        (raw as Record<string, unknown>)["Fressnapf"] ??
+        null,
       parfumEntry: normalized[parfumKey] || null,
       parfümEntry: normalized[parfümKey] || null,
       hasPerfumeInKnown: known.has("perfume"),
       parfumFromSeeds: LANGUAGE_ALIAS_SEEDS["parfum"] || null,
-      exampleKnown: Array.from(known).slice(0, 20).filter(k => k.includes("perf") || k.includes("duft")),
+      exampleKnown: Array.from(known)
+        .slice(0, 20)
+        .filter((k) => k.includes("perf") || k.includes("duft")),
     });
   }
 
