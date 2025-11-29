@@ -1,6 +1,12 @@
 ﻿// src/lib/sales/sellerBrain.ts
 
 import { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
+// Import der generierten Hints aus JSON
+// Hinweis: TypeScript erwartet hier einen Typ-Assertion, da JSON-Imports als any kommen
+import generatedProductHintsJson from "./generatedProductHints.json";
+// Import der Alias-Map für AI-gestützte Begriff-Auflösung
+import type { AliasMap } from "./aliasMap";
+import { normalizeAliasKey, initializeAliasMap } from "./aliasMap";
 
 /**
  * Ergebnisstruktur des Seller-Gehirns
@@ -38,6 +44,16 @@ type AttributeIndex = {
 };
 
 /**
+ * Typ für Produkt-Hints (statisch oder generiert)
+ */
+export type ProductHint = {
+  keyword: string;
+  categoryHint?: string;
+  attributes?: string[];
+  weight?: number;
+};
+
+/**
  * Zentrale Text-Normalisierung (vereinheitlicht)
  * – Umlaute bleiben erhalten, damit Stopwords wie "für", "größer" etc. sauber matchen.
  */
@@ -66,6 +82,196 @@ const HUMAN_SKIN_CATEGORIES = [
  */
 function normalize(text: string): string {
   return normalizeText(text);
+}
+
+/**
+ * Statische Produkt-Hints (manuell gepflegt)
+ * Wird als string[] exportiert, um bestehenden Code nicht zu brechen.
+ */
+export const productHints: string[] = [
+  "duschgel",
+  "shampoo",
+  "gel",
+  "öl",
+  "seife",
+  "hund",
+  "katze",
+  "spielzeug",
+  "produkt",
+  "produkte",
+  "shop",
+  "kaufen",
+  "preis",
+  "kosten",
+  "angebot",
+  "rabatt",
+  "größe",
+  "groesse",
+  "farbe",
+  "variant",
+  "haushalt",
+  "haushaltswaren",
+  "kosmetik",
+  "tiere",
+  "haustier",
+  "zeig",
+  "zeige",
+  "suche",
+  "suchen",
+  "finde",
+  "finden",
+  "empfehl",
+  "vorschlag",
+  "was",
+  "welch",
+  "welche",
+  "welches",
+
+  // NEU: Haut-/Haar-Attribute, damit Fragen wie
+  // "Ist es für trockene Haut?" nicht mehr als Off-Topic gelten
+  "haut",
+  "haare",
+  "trockene",
+  "trocken",
+  "empfindliche",
+  "empfindlich",
+  "sensible",
+  "sensibel",
+  "pflege",
+
+  // Reinigungs-/Verschmutzungsbegriffe
+  "schmutz",
+  "verschmutz",
+  "verschmutzungen",
+  "fleck",
+  "flecken",
+  "kalk",
+  "reinigen",
+  "reinigung",
+  "entfernen",
+
+  // Anti-Aging / reife Haut
+  "anti-aging",
+  "anti aging",
+  "antiaging",
+  "anti age",
+  "reife haut",
+  "mature skin",
+];
+
+/**
+ * Typisierte Version der statischen Hints
+ * Wird aus productHints generiert, um Kompatibilität zu gewährleisten.
+ */
+export const staticProductHints: ProductHint[] = productHints.map((keyword) => ({
+  keyword,
+  weight: 1,
+}));
+
+/**
+ * Führt statische und generierte Hints zusammen.
+ * 
+ * Regeln:
+ * - Statische Hints haben Priorität bei Duplikaten
+ * - Wenn beide ein weight haben, wird das höhere verwendet
+ * - Generierte Hints ohne Duplikate werden übernommen
+ * 
+ * @param staticHints Statische, manuell gepflegte Hints
+ * @param generatedHints Optional: Dynamisch generierte Hints (z. B. aus JSON)
+ * @returns Zusammengeführte Liste von ProductHint
+ */
+function mergeHints(
+  staticHints: ProductHint[],
+  generatedHints?: ProductHint[]
+): ProductHint[] {
+  // Wenn keine generierten Hints vorhanden, nur statische zurückgeben
+  if (!generatedHints || generatedHints.length === 0) {
+    return [...staticHints];
+  }
+
+  // Map für schnelles Lookup nach keyword
+  const mergedMap = new Map<string, ProductHint>();
+
+  // Zuerst alle statischen Hints einfügen (haben Priorität)
+  for (const hint of staticHints) {
+    mergedMap.set(hint.keyword.toLowerCase(), { ...hint });
+  }
+
+  // Dann generierte Hints hinzufügen, falls nicht bereits vorhanden
+  for (const hint of generatedHints) {
+    const key = hint.keyword.toLowerCase();
+    const existing = mergedMap.get(key);
+
+    if (!existing) {
+      // Neues Keyword → übernehmen
+      mergedMap.set(key, { ...hint });
+    } else {
+      // Duplikat: Statischer Hint hat Priorität, aber weight kann überschrieben werden
+      // wenn der generierte Hint ein höheres weight hat
+      if (
+        hint.weight !== undefined &&
+        (existing.weight === undefined || hint.weight > existing.weight)
+      ) {
+        existing.weight = hint.weight;
+      }
+      // Weitere Felder (categoryHint, attributes) können optional vom generierten Hint ergänzt werden,
+      // wenn sie im statischen Hint fehlen
+      if (!existing.categoryHint && hint.categoryHint) {
+        existing.categoryHint = hint.categoryHint;
+      }
+      if (!existing.attributes && hint.attributes) {
+        existing.attributes = hint.attributes;
+      }
+    }
+  }
+
+  // In Array konvertieren und sortieren (optional: nach weight absteigend, dann alphabetisch)
+  const merged = Array.from(mergedMap.values());
+  merged.sort((a, b) => {
+    // Zuerst nach weight (höher = besser)
+    const weightA = a.weight ?? 0;
+    const weightB = b.weight ?? 0;
+    if (weightB !== weightA) {
+      return weightB - weightA;
+    }
+    // Dann alphabetisch nach keyword
+    return a.keyword.localeCompare(b.keyword);
+  });
+
+  return merged;
+}
+
+// initializeAliasMap ist jetzt in aliasMap.ts definiert und wird von dort importiert
+
+/**
+ * Gibt die aktuell aktiven Produkt-Hints zurück.
+ * 
+ * Kombiniert statische Hints (manuell gepflegt) mit generierten Hints
+ * aus generatedProductHints.json.
+ * 
+ * @returns Array von ProductHint
+ */
+function getActiveProductHints(): ProductHint[] {
+  try {
+    // Generierte Hints aus JSON laden (als ProductHint[] casten)
+    const generatedHints: ProductHint[] =
+      (generatedProductHintsJson as unknown as ProductHint[]) ?? [];
+
+    // Statische und generierte Hints zusammenführen
+    const merged = mergeHints(staticProductHints, generatedHints);
+
+    console.log("[EFRO ActiveHints]", {
+      staticCount: staticProductHints.length,
+      generatedCount: generatedHints.length,
+      mergedCount: merged.length,
+    });
+
+    return merged;
+  } catch (err) {
+    console.error("[EFRO ActiveHints ERROR]", err);
+    // Fallback nur auf statische Hints bei Fehler
+    return staticProductHints;
+  }
 }
 
 /**
@@ -134,6 +340,11 @@ function isProductRelated(text: string): boolean {
     "tuch",
     "wipes",
 
+    // Näpfe/Fressnäpfe
+    "napf",
+    "fressnapf",
+    "futternapf",
+
     // Reinigungs-/Verschmutzungsbegriffe
     "schmutz",
     "verschmutz",
@@ -187,78 +398,12 @@ function isProductRelated(text: string): boolean {
   }
 
   // Wörter, die auf typische Produkt-/Shopfragen hindeuten
-  const productHints = [
-    "duschgel",
-    "shampoo",
-    "gel",
-    "öl",
-    "seife",
-    "hund",
-    "katze",
-    "spielzeug",
-    "produkt",
-    "produkte",
-    "shop",
-    "kaufen",
-    "preis",
-    "kosten",
-    "angebot",
-    "rabatt",
-    "größe",
-    "groesse",
-    "farbe",
-    "variant",
-    "haushalt",
-    "haushaltswaren",
-    "kosmetik",
-    "tiere",
-    "haustier",
-    "zeig",
-    "zeige",
-    "suche",
-    "suchen",
-    "finde",
-    "finden",
-    "empfehl",
-    "vorschlag",
-    "was",
-    "welch",
-    "welche",
-    "welches",
+  // HINWEIS: Die lokale productHints-Liste wurde entfernt.
+  // Stattdessen wird getActiveProductHints() verwendet, um künftig
+  // auch generierte Hints zu berücksichtigen.
 
-    // NEU: Haut-/Haar-Attribute, damit Fragen wie
-    // "Ist es für trockene Haut?" nicht mehr als Off-Topic gelten
-    "haut",
-    "haare",
-    "trockene",
-    "trocken",
-    "empfindliche",
-    "empfindlich",
-    "sensible",
-    "sensibel",
-    "pflege",
-
-    // Reinigungs-/Verschmutzungsbegriffe
-    "schmutz",
-    "verschmutz",
-    "verschmutzungen",
-    "fleck",
-    "flecken",
-    "kalk",
-    "reinigen",
-    "reinigung",
-    "entfernen",
-
-    // Anti-Aging / reife Haut
-    "anti-aging",
-    "anti aging",
-    "antiaging",
-    "anti age",
-    "reife haut",
-    "mature skin",
-  ];
-
-  const result = productHints.some((w) => t.includes(w));
+  const activeHints = getActiveProductHints();
+  const result = activeHints.some((hint) => t.includes(hint.keyword));
   console.log("[EFRO ProductRelated]", {
     text,
     isProductRelated: result,
@@ -652,6 +797,11 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     if (/seife|soap/.test(normalized)) {
       addAttribute(productId, "family", "soap");
     }
+
+    // NEU: Napf/Fressnapf als eigene Familie "bowl"
+    if (/napf|fressnapf|futternapf/.test(normalized)) {
+      addAttribute(productId, "family", "bowl");
+    }
   }
 
   // Haupt-Loop: Durch alle Produkte iterieren
@@ -981,6 +1131,175 @@ function parseQueryForAttributes(text: string): ParsedQuery {
 }
 
 /**
+ * Erweitert Wörter um Katalog-Keywords, wenn sie als Komposita erkannt werden.
+ * 
+ * Beispiel: "fressnapf" → ["fressnapf", "napf"] (wenn "napf" im Katalog vorkommt)
+ * 
+ * @param words Array von normalisierten User-Wörtern
+ * @param catalogKeywords Array von bekannten Katalog-Keywords
+ * @returns Erweiterte Liste von Wörtern (inkl. Originale + aufgebrochene Komposita)
+ */
+function expandWordsWithCatalogKeywords(
+  words: string[],
+  catalogKeywords: string[]
+): string[] {
+  const result = new Set<string>();
+  const keywordSet = new Set(
+    catalogKeywords.map((k) => k.toLowerCase().trim()).filter((k) => k.length >= 3)
+  );
+
+  for (const w of words) {
+    const lower = w.toLowerCase().trim();
+    if (!lower) continue;
+
+    // Original-Wort immer behalten
+    result.add(lower);
+
+    // Heuristik: wenn das Wort mit einem bekannten Keyword endet,
+    // z. B. "fressnapf" -> "napf", dann dieses Keyword zusätzlich übernehmen.
+    for (const kw of keywordSet) {
+      if (lower !== kw && lower.endsWith(kw)) {
+        result.add(kw);
+      }
+    }
+  }
+
+  const expanded = Array.from(result);
+  console.log("[EFRO CompoundSplit]", { words, expanded });
+  return expanded;
+}
+
+/**
+ * Identifiziert unbekannte Begriffe im User-Text und löst sie auf bekannte Keywords auf.
+ * 
+ * Verwendet eine Alias-Map für AI-generierte Mappings und zusätzlich Substring-Heuristiken
+ * als Fallback.
+ * 
+ * @param text Der ursprüngliche User-Text
+ * @param knownKeywords Array von bekannten Keywords (aus Katalog + erweiterte User-Wörter)
+ * @param aliasMap Alias-Map mit Mappings von unbekannten Begriffen zu bekannten Keywords
+ * @returns Objekt mit unbekannten Begriffen und aufgelösten Begriffen
+ */
+type UnknownTermsResult = {
+  rawTerms: string[];
+  normalizedTerms: string[];
+  unknownTerms: string[];
+  resolved: string[];
+  aliasMapUsed: boolean;
+};
+
+function resolveUnknownTerms(
+  text: string,
+  knownKeywords: string[],
+  aliasMap: AliasMap
+): UnknownTermsResult {
+  // Token-Extraktion: Gleiche Logik wie in filterProducts
+  const normalizedText = normalizeText(text || "");
+  const rawTerms = normalizedText
+    .split(/[^a-z0-9äöüß]+/i)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 3);
+
+  // WICHTIG: Nur normalizeAliasKey verwenden für Konsistenz
+  const normalizedTerms = rawTerms
+    .map((t) => normalizeAliasKey(t))
+    .filter((t) => t.length > 0);
+
+  // Known-Set mit normalizeAliasKey erstellen
+  const knownSet = new Set(
+    (knownKeywords || [])
+      .map((kw) => normalizeAliasKey(kw))
+      .filter((kw) => kw.length > 0)
+  );
+
+  // Unbekannte Begriffe identifizieren
+  const unknownTermsSet = new Set<string>();
+  const aliasResolvedSet = new Set<string>();
+  const substringResolvedSet = new Set<string>();
+  let aliasMapUsed = false;
+
+  // Schritt 1: Alias-Map-Lookup
+  for (const term of normalizedTerms) {
+    if (!knownSet.has(term)) {
+      unknownTermsSet.add(term);
+
+      // Alias-Lookup mit normalisiertem Key
+      const aliases = (aliasMap && aliasMap[term]) || [];
+
+      if (aliases && aliases.length > 0) {
+        aliasMapUsed = true;
+
+        for (const alias of aliases) {
+          const normalizedAlias = normalizeAliasKey(alias);
+
+          if (normalizedAlias.length > 0) {
+            // Nur Aliase hinzufügen, die auch in knownSet enthalten sind
+            // (damit wir keine Phantom-Wörter haben, die im Katalog gar nicht vorkommen)
+            if (knownSet.has(normalizedAlias)) {
+              aliasResolvedSet.add(normalizedAlias);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Schritt 2: Substring-Heuristik als Fallback, NUR wenn Alias nichts geliefert hat
+  if (!aliasMapUsed && unknownTermsSet.size > 0 && knownSet.size > 0) {
+    for (const unknown of unknownTermsSet) {
+      for (const kw of knownSet) {
+        if (
+          kw.length >= 3 &&
+          kw !== unknown &&
+          (unknown.includes(kw) || kw.includes(unknown))
+        ) {
+          substringResolvedSet.add(kw);
+        }
+      }
+    }
+  }
+
+  // Schritt 3: Resolved-Tokens zusammenführen
+  // Wenn Alias-Treffer vorhanden, verwende diese (optional plus Substring, aber Alias hat Priorität)
+  const resolvedSet = new Set<string>();
+  if (aliasResolvedSet.size > 0) {
+    // Alias-Tokens haben Priorität
+    aliasResolvedSet.forEach((t) => resolvedSet.add(t));
+    // Optional: Substring-Tokens auch hinzufügen (falls gewünscht)
+    // substringResolvedSet.forEach((t) => resolvedSet.add(t));
+  } else if (substringResolvedSet.size > 0) {
+    // Nur Substring-Tokens, wenn kein Alias-Treffer
+    substringResolvedSet.forEach((t) => resolvedSet.add(t));
+  }
+
+  const uniqUnknown = Array.from(unknownTermsSet);
+  const uniqResolved = Array.from(resolvedSet);
+
+  console.log("[EFRO UnknownTermsResolved]", {
+    text,
+    rawTerms,
+    normalizedTerms,
+    unknownTerms: uniqUnknown,
+    resolved: uniqResolved,
+    aliasResolved: Array.from(aliasResolvedSet),
+    substringResolved: Array.from(substringResolvedSet),
+    knownKeywordsCount: knownKeywords.length,
+    aliasMapUsed,
+    aliasMapKeys: aliasMap ? Object.keys(aliasMap).slice(0, 10) : [],
+    lookupKey: uniqUnknown.length > 0 ? normalizeAliasKey(uniqUnknown[0]) : null,
+    lookupResult: uniqUnknown.length > 0 ? aliasMap?.[normalizeAliasKey(uniqUnknown[0])] : null,
+  });
+
+  return {
+    rawTerms,
+    normalizedTerms,
+    unknownTerms: uniqUnknown,
+    resolved: uniqResolved,
+    aliasMapUsed,
+  };
+}
+
+/**
  * Produkt-Scoring für Keywords
  */
 function scoreProductForWords(product: EfroProduct, words: string[]): number {
@@ -1044,6 +1363,9 @@ function filterProducts(
 ): EfroProduct[] {
   console.log("[EFRO Filter ENTER]", { text, intent });
 
+  // Intent kann innerhalb der Funktion angepasst werden
+  let currentIntent: ShoppingIntent = intent;
+
   const t = normalize(text);
 
   // Dynamischen Attribut-Index für alle Produkte bauen
@@ -1052,7 +1374,7 @@ function filterProducts(
   if (allProducts.length === 0) {
     console.log("[EFRO Filter RESULT]", {
       text,
-      intent,
+      intent: currentIntent,
       resultTitles: [],
     });
     return [];
@@ -1225,11 +1547,126 @@ function filterProducts(
   // reine Zahlen nicht als Keyword benutzen
   words = words.filter((w) => !/^\d+$/.test(w));
 
+  // Katalog-Keywords aus allen Produkten extrahieren
+  const catalogKeywordsSet = new Set<string>();
+  for (const product of allProducts) {
+    // Titel normalisieren und splitten
+    const titleWords = normalizeText(product.title || "")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+    titleWords.forEach((w) => catalogKeywordsSet.add(w));
+
+    // Beschreibung normalisieren und splitten
+    const descWords = normalizeText(product.description || "")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+    descWords.forEach((w) => catalogKeywordsSet.add(w));
+
+    // Tags normalisieren und splitten
+    const rawTags = (product as any).tags;
+    if (Array.isArray(rawTags)) {
+      rawTags.forEach((tag: string) => {
+        const tagWords = normalizeText(String(tag))
+          .split(/\s+/)
+          .filter((w) => w.length >= 3);
+        tagWords.forEach((w) => catalogKeywordsSet.add(w));
+      });
+    } else if (typeof rawTags === "string") {
+      const tagWords = normalizeText(rawTags)
+        .split(/\s+/)
+        .filter((w) => w.length >= 3);
+      tagWords.forEach((w) => catalogKeywordsSet.add(w));
+    }
+  }
+  const catalogKeywords = Array.from(catalogKeywordsSet);
+
+  // Alias-Map initialisieren und filtern (nur Keywords, die im Katalog vorkommen)
+  const aliasMap = initializeAliasMap(catalogKeywords);
+
+  // Wörter mit Katalog-Keywords erweitern (Komposita aufbrechen)
+  let expandedWords = expandWordsWithCatalogKeywords(words, catalogKeywords);
+
   console.log("[EFRO Filter WORDS]", {
     text,
-    words,
+    words: expandedWords,
     categoryHintsInText,
   });
+
+  // Intent-Fix: "Zeige mir X" mit konkretem Produkt → quick_buy statt explore
+  const lowered = t.toLowerCase();
+  const wordCount = words.length;
+
+  const startsWithShowMe =
+    lowered.startsWith("zeige mir ") ||
+    lowered.startsWith("zeig mir ") ||
+    lowered.startsWith("show me ");
+
+  if (currentIntent === "explore" && startsWithShowMe && wordCount > 0 && wordCount <= 4) {
+    currentIntent = "quick_buy";
+    console.log("[EFRO IntentFix] Upgraded explore -> quick_buy for 'zeige mir' pattern", {
+      text,
+      words,
+      wordCount,
+    });
+  }
+
+  // --- EFRO Alias-Preprocessing -----------------------------------------
+  // Alias-Map VOR dem Keyword-Matching anwenden, damit unbekannte Begriffe
+  // (z. B. "fressnapf") in bekannte Keywords (z. B. "hunde", "napfset") aufgelöst werden
+  // WICHTIG: Nur catalogKeywords übergeben, NICHT words/expandedWords,
+  // damit User-Wörter wie "fressnapf" als unknownTerm erkannt werden
+  const aliasResult = resolveUnknownTerms(text, catalogKeywords, aliasMap);
+
+  // Speichere aliasResult für späteren Hard-Filter
+  const unknownResult = aliasResult;
+
+  if (aliasResult.resolved.length > 0) {
+    const wordsBefore = [...words];
+    const expandedBefore = [...expandedWords];
+    const resolvedSet = new Set(aliasResult.resolved);
+
+    // Wenn aliasMapUsed === true, verwende nur die Alias-resolved Tokens
+    if (aliasResult.aliasMapUsed && aliasResult.resolved.length > 0) {
+      const aliasResolved = aliasResult.resolved;
+      const effectiveWordsSet = new Set<string>([
+        ...words,
+        ...aliasResolved,
+      ]);
+
+      words = Array.from(effectiveWordsSet);
+      expandedWords = Array.from(effectiveWordsSet);
+    } else {
+      // Fallback: Normale Erweiterung
+      const updatedWords = Array.from(
+        new Set([
+          ...words,
+          ...resolvedSet,
+        ])
+      );
+
+      const updatedExpandedWords = Array.from(
+        new Set([
+          ...(expandedWords || []),
+          ...resolvedSet,
+        ])
+      );
+
+      words = updatedWords;
+      expandedWords = updatedExpandedWords;
+    }
+
+    console.log("[EFRO AliasPreApplied]", {
+      text,
+      unknownTerms: aliasResult.unknownTerms,
+      resolved: aliasResult.resolved,
+      aliasMapUsed: aliasResult.aliasMapUsed,
+      wordsBefore,
+      expandedBefore,
+      wordsAfter: words,
+      expandedAfter: expandedWords,
+    });
+  }
+  // --- Ende EFRO Alias-Preprocessing ------------------------------------
 
   const hasBudget = userMinPrice !== null || userMaxPrice !== null;
 
@@ -1276,6 +1713,30 @@ function filterProducts(
           return false;
         }
 
+        // Speziallogik für Haustiere (pet = dog/cat/pet)
+        if (key === "pet") {
+          const hasGeneric = prodValues.includes("pet");
+          const hasDog = prodValues.includes("dog");
+          const hasCat = prodValues.includes("cat");
+
+          const wantsGeneric = values.includes("pet");
+          const wantsDog = values.includes("dog");
+          const wantsCat = values.includes("cat");
+
+          // Direktes Matching (dog↔dog, cat↔cat, pet↔pet)
+          const directMatch = values.some((v) => prodValues.includes(v));
+
+          // Query: "Haustiere" (pet) → akzeptiere dog oder cat
+          const genericMatchesSpecies = wantsGeneric && (hasDog || hasCat);
+
+          // Query: "Hund(e)" bzw. "Katze(n)" → akzeptiere generische Haustier-Produkte (pet)
+          const speciesMatchesGeneric =
+            (wantsDog || wantsCat) && hasGeneric;
+
+          return directMatch || genericMatchesSpecies || speciesMatchesGeneric;
+        }
+
+        // Standardfall für alle anderen Attribute
         return values.some((v) => prodValues.includes(v));
       });
     });
@@ -1298,9 +1759,51 @@ function filterProducts(
     }
   }
 
-  if (words.length > 0 || coreTerms.length > 0 || attributeTerms.length > 0) {
+  // --- EFRO Alias-Hard-Filter ------------------------------------------
+  // Bei aliasMapUsed === true: Harte Filterung auf Produkte, die Alias-Tokens enthalten
+  let productsForKeywordMatch = candidates;
+  
+  if (unknownResult.aliasMapUsed && unknownResult.resolved.length > 0) {
+    const aliasTerms = new Set(unknownResult.resolved);
+
+    const aliasCandidates = candidates.filter((p) => {
+      const haystack = normalizeText(
+        [
+          p.title,
+          p.description || "",
+          p.category || "",
+          Array.isArray((p as any).tags)
+            ? (p as any).tags.join(" ")
+            : typeof (p as any).tags === "string"
+            ? (p as any).tags
+            : "",
+        ].join(" ")
+      ).toLowerCase();
+
+      for (const term of aliasTerms) {
+        if (term && haystack.includes(term)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (aliasCandidates.length > 0) {
+      console.log("[EFRO AliasHardFilter]", {
+        text,
+        aliasTerms: Array.from(aliasTerms),
+        beforeCount: candidates.length,
+        afterCount: aliasCandidates.length,
+        sampleTitles: aliasCandidates.slice(0, 5).map((p) => p.title),
+      });
+      productsForKeywordMatch = aliasCandidates;
+    }
+  }
+  // --- Ende EFRO Alias-Hard-Filter --------------------------------------
+
+  if (expandedWords.length > 0 || coreTerms.length > 0 || attributeTerms.length > 0) {
     // Für jedes Produkt einen searchText erstellen
-    const candidatesWithScores = candidates.map((p) => {
+    const candidatesWithScores = productsForKeywordMatch.map((p) => {
       const searchText = normalizeText(
         [
           p.title,
@@ -1314,17 +1817,19 @@ function filterProducts(
         ].join(" ")
       );
 
-      // Core-Match: Mindestens 1 coreTerm muss vorkommen (oder keine coreTerms vorhanden)
+      // Core-Match: Mindestens 1 coreTerm oder expandedWord muss vorkommen
+      // (erweiterte Wörter werden auch für Core-Matching verwendet)
       const hasCoreMatch =
-        coreTerms.length === 0 ||
-        coreTerms.some((term) => searchText.includes(term));
+        (coreTerms.length === 0 && expandedWords.length === 0) ||
+        coreTerms.some((term) => searchText.includes(term)) ||
+        expandedWords.some((word) => searchText.includes(word));
 
-      if (!hasCoreMatch && coreTerms.length > 0) {
+      if (!hasCoreMatch && (coreTerms.length > 0 || expandedWords.length > 0)) {
         return { product: p, score: 0, attributeScore: 0 };
       }
 
-      // Keyword-Score (bestehende Logik)
-      const keywordScore = scoreProductForWords(p, words);
+      // Keyword-Score mit erweiterten Wörtern (inkl. aufgebrochene Komposita)
+      const keywordScore = scoreProductForWords(p, expandedWords);
 
       // Attribute-Score: Zähle, wie viele attributeTerms im Text vorkommen
       let attributeScore = 0;
@@ -1425,9 +1930,9 @@ function filterProducts(
           return b.score - a.score;
         }
         // Preis-Sortierung je nach Intent
-  if (intent === "premium") {
+  if (currentIntent === "premium") {
           return (b.product.price ?? 0) - (a.product.price ?? 0);
-  } else if (intent === "bargain") {
+  } else if (currentIntent === "bargain") {
           return (a.product.price ?? 0) - (b.product.price ?? 0);
         }
         return 0;
@@ -1441,18 +1946,21 @@ function filterProducts(
 
       console.log("[EFRO Filter KEYWORD_MATCHES]", {
         text,
-        words,
+        words: expandedWords,
         coreTerms,
         attributeTerms,
+        aliasMapUsed: unknownResult.aliasMapUsed,
+        candidatesCount: productsForKeywordMatch.length,
         matchedTitles: candidates.slice(0, 10).map((p) => p.title),
       });
   } else {
       console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
         text,
-        intent,
-        words,
+        intent: currentIntent,
+        words: expandedWords,
         coreTerms,
         attributeTerms,
+        note: "Alias-Preprocessing wurde bereits vor dem Keyword-Matching angewendet",
       });
     }
   }
@@ -1535,24 +2043,24 @@ function filterProducts(
       candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
     }
   } else {
-    if (intent === "premium") {
+    if (currentIntent === "premium") {
       // Premium: teuerste zuerst
       candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
     } else if (
-      intent === "bargain" ||
-      intent === "gift" ||
-      intent === "quick_buy"
+      currentIntent === "bargain" ||
+      currentIntent === "gift" ||
+      currentIntent === "quick_buy"
     ) {
       // Schnäppchen / Geschenk / Quick-Buy: günstigste zuerst
       candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    } else if (intent === "explore") {
+    } else if (currentIntent === "explore") {
       candidates.sort((a, b) => a.title.localeCompare(b.title));
     }
   }
 
   console.log("[EFRO Filter RESULT]", {
     text,
-    intent,
+    intent: currentIntent,
     resultTitles: candidates.slice(0, 4).map((p) => p.title),
   });
 
@@ -2068,3 +2576,4 @@ function isMoldProduct(product: EfroProduct): boolean {
     full.includes("mold")
   );
 }
+

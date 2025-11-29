@@ -1,0 +1,5 @@
+{
+  "fressnapf": ["napf", "näpfe", "napfset", "futternapf", "futternäpfe"],
+  "napf": ["näpfe", "napfset", "futternapf", "futternäpfe"],
+  "napfset": ["napf", "näpfe", "futternapf", "futternäpfe"]
+}

@@ -105,17 +105,17 @@ export default function EFROProductCards({ products, variant = "default", title,
             {p.title}
           </h3>
           {!isCompact && (
-            <p
-              style={{
-                fontSize: "0.9rem",
-                lineHeight: 1.4,
-                margin: "0 0 0.5rem",
-                color: "#4b5563",
-                flexGrow: 1,
-              }}
-            >
-              {p.description}
-            </p>
+          <p
+            style={{
+              fontSize: "0.9rem",
+              lineHeight: 1.4,
+              margin: "0 0 0.5rem",
+              color: "#4b5563",
+              flexGrow: 1,
+            }}
+          >
+            {p.description}
+          </p>
           )}
           {isCompact && p.description && (
             <p

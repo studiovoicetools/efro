@@ -7,34 +7,34 @@ import { getShopMeta } from "@/lib/shops/meta";
 async function createSignedUrlFromElevenLabs(
   dynamicVariables: any
 ): Promise<string> {
-  // Use Mascot Bot proxy endpoint for automatic viseme injection
-  const response = await fetch("https://api.mascot.bot/v1/get-signed-url", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.MASCOT_BOT_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      config: {
-        provider: "elevenlabs",
-        provider_config: {
-          agent_id: process.env.ELEVENLABS_AGENT_ID,
-          api_key: process.env.ELEVENLABS_API_KEY,
-          ...(dynamicVariables && { dynamic_variables: dynamicVariables }),
-        },
+    // Use Mascot Bot proxy endpoint for automatic viseme injection
+    const response = await fetch("https://api.mascot.bot/v1/get-signed-url", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.MASCOT_BOT_API_KEY}`,
+        "Content-Type": "application/json",
       },
-    }),
-    // Ensure fresh URL for WebSocket avatar connection
-    cache: "no-store",
-  });
+      body: JSON.stringify({
+        config: {
+          provider: "elevenlabs",
+          provider_config: {
+            agent_id: process.env.ELEVENLABS_AGENT_ID,
+            api_key: process.env.ELEVENLABS_API_KEY,
+            ...(dynamicVariables && { dynamic_variables: dynamicVariables }),
+          },
+        },
+      }),
+      // Ensure fresh URL for WebSocket avatar connection
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Failed to get signed URL:", errorText);
-    throw new Error("Failed to get signed URL");
-  }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to get signed URL:", errorText);
+      throw new Error("Failed to get signed URL");
+    }
 
-  const data = await response.json();
+    const data = await response.json();
   return data.signed_url;
 }
 
