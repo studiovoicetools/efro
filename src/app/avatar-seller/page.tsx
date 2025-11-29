@@ -518,6 +518,8 @@ export default function Home({ searchParams }: HomeProps) {
 
   // 🔹 Produkt- und SellerBrain-State
   const [allProducts, setAllProducts] = useState<EfroProduct[]>([]);
+  // Ref für synchronen Zugriff auf Produkte (verhindert Race Conditions)
+  const allProductsRef = useRef<EfroProduct[]>([]);
   const [sellerIntent, setSellerIntent] =
     useState<ShoppingIntent>("quick_buy");
   const [sellerReplyText, setSellerReplyText] = useState("");
@@ -652,6 +654,7 @@ export default function Home({ searchParams }: HomeProps) {
       });
 
       setAllProducts(products);
+      allProductsRef.current = products; // Ref synchron aktualisieren
       debugCatalogOverview(products);
     } catch (err) {
       console.error(
@@ -684,6 +687,7 @@ export default function Home({ searchParams }: HomeProps) {
       });
 
       setAllProducts(products);
+      allProductsRef.current = products; // Ref synchron aktualisieren
       debugCatalogOverview(products);
     }
   }, [debugCatalogOverview]);
@@ -896,9 +900,13 @@ export default function Home({ searchParams }: HomeProps) {
 
   const createRecommendations = useCallback(
     (userText: string) => {
-      if (!allProducts.length) {
+      // Verwende Ref für synchronen Zugriff (verhindert Race Conditions)
+      const sellerProducts = allProductsRef.current;
+      
+      if (!sellerProducts.length) {
         console.log(
-          "[EFRO SellerBrain] Kein Katalog geladen, Empfehlung übersprungen."
+          "[EFRO SellerBrain] Kein Katalog geladen, Empfehlung übersprungen.",
+          { allProductsStateLength: allProducts.length, allProductsRefLength: sellerProducts.length }
         );
         return;
       }
@@ -942,7 +950,7 @@ export default function Home({ searchParams }: HomeProps) {
 
         // Wenn noch kein Produkt im Kontext ist: direkt aus dem Text matchen
         if (!primary) {
-          primary = findBestProductMatchByText(cleanedText, allProducts);
+          primary = findBestProductMatchByText(cleanedText, sellerProducts);
         }
 
         const contextFromRef = fromLast
@@ -1057,7 +1065,7 @@ export default function Home({ searchParams }: HomeProps) {
       const result: SellerBrainResult = runSellerBrain(
         cleanedText,
         sellerIntent,
-        allProducts,
+        sellerProducts,
         shopPlan,
         sellerRecommended
       );
@@ -1069,7 +1077,7 @@ export default function Home({ searchParams }: HomeProps) {
         intent: result.intent,
         plan: shopPlan,
         recCount: recommendations.length,
-        usedSourceCount: allProducts.length,
+        usedSourceCount: sellerProducts.length,
         hasKeywordInCatalog: recommendations.length > 0,
       });
 
@@ -1077,6 +1085,14 @@ export default function Home({ searchParams }: HomeProps) {
         intent: result.intent,
         productCount: recommendations.length,
         titles: recommendations.slice(0, 5).map((p) => p.title),
+      });
+
+      console.log("[EFRO UI PRODUCTS]", {
+        text: cleanedText,
+        intent: result.intent,
+        productCount: recommendations.length,
+        titles: recommendations.map((p) => p.title),
+        categories: recommendations.map((p) => p.category),
       });
 
       // letzte Empfehlungen merken

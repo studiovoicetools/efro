@@ -1,5 +1,119 @@
 {
-  "fressnapf": ["napf", "näpfe", "napfset", "futternapf", "futternäpfe"],
-  "napf": ["näpfe", "napfset", "futternapf", "futternäpfe"],
-  "napfset": ["napf", "näpfe", "futternapf", "futternäpfe"]
+  "badreiniger": [
+    "bad",
+    "badezimmer"
+  ],
+  "hundeshampoo": [
+    "hund",
+    "hunde"
+  ],
+  "pflegecreme": [
+    "pflege",
+    "creme"
+  ],
+  "duschgel": [
+    "duschkabine"
+  ],
+  "haushaltsreiniger": [
+    "cleaner",
+    "reiniger"
+  ],
+  "babyhautpflege": [
+    "babys",
+    "babyhaut"
+  ],
+  "kinderpflege": [
+    "kids",
+    "kinder"
+  ],
+  "haarpflege": [
+    "haare",
+    "shampoo"
+  ],
+  "katzenshampoo": [
+    "katze",
+    "katzen"
+  ],
+  "alltagsreiniger": [
+    "alltag",
+    "reiniger"
+  ],
+  "relaxpflege": [
+    "entspannung",
+    "entspannendes"
+  ],
+  "pflegeprodukte": [
+    "pflege",
+    "produkt"
+  ],
+  "frischepflege": [
+    "fresh",
+    "frisches"
+  ],
+  "schlafzimmerpflege": [
+    "schlaf",
+    "schlafzimmer"
+  ],
+  "kalkentferner": [
+    "kalk",
+    "entfernt"
+  ],
+  "unisexpflege": [
+    "unisex",
+    "pflege"
+  ],
+  "trockenehautcreme": [
+    "trockene",
+    "haut"
+  ],
+  "sensiblehautpflege": [
+    "sensible",
+    "haut"
+  ],
+  "pflegeshampoo": [
+    "pflegende",
+    "shampoo"
+  ],
+  "hautfettregulator": [
+    "fettige",
+    "haut"
+  ],
+  "fressnapf": [
+    "napf",
+    "näpfe",
+    "napfset",
+    "futternapf",
+    "futternäpfe"
+  ],
+  "napf": [
+    "näpfe",
+    "napfset",
+    "futternapf",
+    "futternäpfe"
+  ],
+  "napfset": [
+    "napf",
+    "näpfe",
+    "futternapf",
+    "futternäpfe"
+  ],
+  "_comment": "Language-Aliase: Generische Sprach-Aliase für alle Shops (z. B. parfum/parfüm -> perfume)",
+  "parfum": [
+    "perfume"
+  ],
+  "parfüm": [
+    "perfume"
+  ],
+  "perfüm": [
+    "perfume"
+  ],
+  "parfume": [
+    "perfume"
+  ],
+  "pulsmesser": [
+    "spray"
+  ],
+  "fitnessuhr": [
+    "spray"
+  ]
 }

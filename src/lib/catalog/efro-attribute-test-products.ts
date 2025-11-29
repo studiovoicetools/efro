@@ -1,6 +1,23 @@
 // src/lib/catalog/efro-attribute-test-products.ts
+//
+// Hinweis: Diese Datei ist so geschrieben, dass sie auch von ts-node ohne Next.js-Alias (@/)
+// direkt geladen werden kann (für AI-Batch-Skripte).
 
-import { EfroProduct } from "@/lib/products/mockCatalog";
+/**
+ * Lokaler Typ für Test-Produkte (kompatibel mit EfroProduct, aber ohne externe Abhängigkeiten)
+ */
+type EFROTestProduct = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  tags: string[];
+  category: string;
+  rating?: number;
+  popularityScore?: number;
+  source?: string;
+};
 
 /**
  * Test-Produktliste für die Attribut-Engine (buildAttributeIndex, attributeFilters)
@@ -18,7 +35,7 @@ import { EfroProduct } from "@/lib/products/mockCatalog";
  * - Reiniger/Sprays mit Schimmel-Bezug sollen bevorzugt werden (+3 Bonus)
  * - Tücher/Wipes sollen nachrangig erscheinen (-1 Malus)
  */
-export const efroAttributeTestProducts: EfroProduct[] = [
+export const efroAttributeTestProducts: EFROTestProduct[] = [
   {
     id: "attr-demo-01",
     title: "Duschgel Sensitive Care für trockene, empfindliche Haut für Herren",
@@ -31,7 +48,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.7,
     popularityScore: 88,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-02",
@@ -45,7 +62,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.9,
     popularityScore: 92,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-03",
@@ -59,7 +76,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.6,
     popularityScore: 85,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-04",
@@ -73,7 +90,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.5,
     popularityScore: 80,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-05",
@@ -87,7 +104,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.4,
     popularityScore: 78,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-06",
@@ -101,7 +118,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.8,
     popularityScore: 90,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-07",
@@ -115,7 +132,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.7,
     popularityScore: 87,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-08",
@@ -129,7 +146,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.9,
     popularityScore: 95,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-09",
@@ -143,7 +160,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.6,
     popularityScore: 82,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-10",
@@ -157,7 +174,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.5,
     popularityScore: 75,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-11",
@@ -171,7 +188,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.3,
     popularityScore: 70,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-12",
@@ -185,7 +202,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.7,
     popularityScore: 83,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-13",
@@ -199,7 +216,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.4,
     popularityScore: 77,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-14",
@@ -213,7 +230,7 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.8,
     popularityScore: 91,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 
   {
     id: "attr-demo-15",
@@ -227,6 +244,6 @@ export const efroAttributeTestProducts: EfroProduct[] = [
     rating: 4.6,
     popularityScore: 81,
     source: "efro-attribute-demo",
-  } as EfroProduct & { source?: string },
+  },
 ];
 

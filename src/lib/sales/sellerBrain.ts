@@ -1,5 +1,105 @@
 ﻿// src/lib/sales/sellerBrain.ts
 
+/**
+ * ============================================================
+ * ARCHITEKTUR-ÜBERSICHT: FILTER-PIPELINE IN filterProducts()
+ * ============================================================
+ * 
+ * Reihenfolge der Filter in filterProducts(text, intent, allProducts):
+ * 
+ * 1. ENTER: Initialisierung
+ *    - candidates = [...allProducts] (Start: alle Produkte)
+ *    - Intent kann innerhalb der Funktion angepasst werden (currentIntent)
+ * 
+ * 2. PRICE: Preisbereich extrahieren
+ *    - extractUserPriceRange(text) → userMinPrice, userMaxPrice
+ *    - Wird später angewendet (nach KEYWORD_MATCHES)
+ * 
+ * 3. CATEGORY: Kategorie-Filter
+ *    - matchedCategories aus Text extrahieren
+ *    - candidates = candidates.filter(p => matchedCategories.includes(p.category))
+ * 
+ * 4. WORDS: Keyword-Extraktion
+ *    - words aus Text extrahieren (Stopwörter entfernt)
+ *    - catalogKeywords aus allen Produkten extrahieren
+ *    - expandWordsWithCatalogKeywords() für Komposita-Aufbrechen
+ * 
+ * 5. ALIAS-PREPROCESSING: Alias-Map vor Keyword-Matching
+ *    - resolveUnknownTerms() mit catalogKeywords
+ *    - Wenn resolved.length > 0: words/expandedWords erweitern
+ *    - AliasHardFilter: Bei aliasMapUsed === true nur Produkte mit Alias-Tokens
+ * 
+ * 6. KEYWORD_MATCHES: Scoring und Filterung
+ *    - scoreProductsForWords() für alle Kandidaten
+ *    - candidates = scored.filter(score > 0).sort().slice(0, 20)
+ *    - PERFUME-SYNONYMS: Wenn userAskedForPerfume === true
+ *      → candidates = perfumeCandidates (nur echte Parfüm-Produkte)
+ * 
+ * 7. PRICE-FILTER: Preisbereich anwenden
+ *    - candidates = candidates.filter(price >= minPrice && price <= maxPrice)
+ * 
+ * 8. FALLBACK: Wenn candidates.length === 0
+ *    - Bei Parfüm-Intent: originalPerfumeCandidates beibehalten
+ *    - Sonst: candidates = [...allProducts] + Kategorie/Preis-Filter erneut
+ * 
+ * 9. SORTIERUNG: Nach Intent/Budget
+ *    - Premium: teuerste zuerst
+ *    - Bargain/Quick-Buy: günstigste zuerst
+ *    - Budget: je nach Min/Max sortiert
+ * 
+ * 10. RESULT: return candidates.slice(0, 4)
+ * 
+ * WICHTIGE VARIABLEN:
+ * - candidates: Haupt-Kandidatenliste (wird durch Filter verändert)
+ * - currentIntent: Intent kann innerhalb der Funktion angepasst werden
+ * - hasPerfumeCandidates: Flag für Parfüm-Intent (schützt vor Fallback-Überschreibung)
+ * - originalPerfumeCandidates: Backup der Parfüm-Kandidaten für Fallback-Schutz
+ * 
+ * INTENT-ÄNDERUNGEN:
+ * - explore → quick_buy: Bei "zeige mir X" mit 1-4 Wörtern (Zeile ~1595-1611)
+ * 
+ * ============================================================
+ * 
+ * TEST-CASES FÜR GESUNDHEITSCHECK:
+ * ============================================================
+ * 
+ * Budget-Only:
+ * - "Mein Budget ist 20 Euro."
+ *   Erwartung: [EFRO FILTER PRICE] userMaxPrice: 20, UI zeigt Produkte ≤ 20€
+ * 
+ * - "Mein Budget ist 50 Euro."
+ *   Erwartung: [EFRO FILTER PRICE] userMaxPrice: 50, UI zeigt Produkte ≤ 50€
+ * 
+ * Kategorie/Brand:
+ * - "Zeige mir Fressnapf."
+ *   Erwartung: [EFRO AliasHardFilter] reduziert Kandidaten, UI zeigt Fressnapf-Artikel
+ * 
+ * Parfüm:
+ * - "Zeige mir Parfüm."
+ * - "Zeig mir Parfum!"
+ *   Erwartung:
+ *     [EFRO PERFUME] afterCount = Anzahl echter Parfüm-Produkte
+ *     [EFRO FINAL PRODUCTS] → nur Parfüm-Produkte (categories z. B. "perfume" / "duft")
+ *     KEINE Duschgele/Shampoos/Lotions/Tücher
+ * 
+ * High-Budget:
+ * - "Zeig mir Produkte über 350 Euro!"
+ *   Erwartung: Nur teure Produkte (High-End) in FINAL/UI
+ * 
+ * Kombi:
+ * - "Zeig mir Parfüm unter 50 Euro."
+ *   Erwartung: Entweder echte Parfüms ≤ 50€ ODER klarer Fallback (keine Körperpflege-Nicht-Parfüms)
+ * 
+ * STATUS:
+ * - Budget-Only: ✅ Funktioniert
+ * - Fressnapf: ✅ Funktioniert (AliasHardFilter)
+ * - Parfüm: 🔧 Wird repariert (zu breite Erkennung)
+ * - High-Budget: ✅ Funktioniert
+ * - Kombi: 🔧 Wird getestet nach Parfüm-Fix
+ * 
+ * ============================================================
+ */
+
 import { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
 // Import der generierten Hints aus JSON
 // Hinweis: TypeScript erwartet hier einen Typ-Assertion, da JSON-Imports als any kommen
@@ -403,11 +503,27 @@ function isProductRelated(text: string): boolean {
   // auch generierte Hints zu berücksichtigen.
 
   const activeHints = getActiveProductHints();
-  const result = activeHints.some((hint) => t.includes(hint.keyword));
+  let result = activeHints.some((hint) => t.includes(hint.keyword));
+  let reason = result ? "productHint" : "none";
+
+  // Budget-Sätze als produktbezogen erkennen
+  // Beispiel: "Mein Budget ist 50 Euro.", "Maximal 80 €", "Ich möchte nicht mehr als 30 Euro ausgeben."
+  if (!result) {
+    const hasEuroNumber = /\b(\d+)\s*(€|euro|eur)\b/i.test(text);
+    const hasBudgetWord = /\b(budget|preis|maximal|max|höchstens|hoechstens|nicht mehr als|unter|bis)\b/i.test(
+      text.toLowerCase()
+    );
+
+    if (hasEuroNumber && hasBudgetWord) {
+      result = true;
+      reason = "priceOnly";
+    }
+  }
+
   console.log("[EFRO ProductRelated]", {
     text,
     isProductRelated: result,
-    reason: result ? "productHint" : "none",
+    reason,
   });
   return result;
 }
@@ -474,16 +590,57 @@ function detectIntentFromText(
 /**
  * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
  */
+/**
+ * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
+ *
+ * WICHTIG:
+ * - Budget-Sätze ("mein Budget ist 50 Euro") werden als OBERGRENZE interpretiert → maxPrice = 50
+ * - "unter / bis / höchstens" → OBERGRENZE → maxPrice = X
+ * - "über / mindestens / ab" → UNTERGRENZE → minPrice = X
+ */
+/**
+ * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
+ *
+ * WICHTIG:
+ * - Budget-Sätze ("mein Budget ist 50 Euro") werden als OBERGRENZE interpretiert → maxPrice = 50
+ * - "unter / bis / höchstens / maximal / nicht mehr als" → OBERGRENZE → maxPrice = X
+ * - "über / mindestens / ab / mehr als" → UNTERGRENZE → minPrice = X
+ */
+/**
+ * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
+ *
+ * Regeln:
+ * - Budget-Sätze ("mein Budget ist 50 Euro") => OBERGRENZE → maxPrice = 50
+ * - "unter / bis / höchstens / maximal / nicht mehr als" => OBERGRENZE
+ * - "über / mindestens / ab X Euro / mehr als"           => UNTERGRENZE
+ */
+/**
+ * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
+ *
+ * Regeln:
+ * - Budget-Sätze ("mein Budget ist 50 Euro") => OBERGRENZE → maxPrice = 50
+ * - "unter / bis / höchstens / maximal / nicht mehr als" => OBERGRENZE
+ * - "über / ueber / uber / mindestens / ab X Euro / mehr als" => UNTERGRENZE
+ */
+/**
+ * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
+ *
+ * Regeln:
+ * - Budget-Sätze ("mein Budget ist 50 Euro") => OBERGRENZE → maxPrice = 50
+ * - "unter / bis / höchstens / maximal / weniger als / nicht mehr als" => OBERGRENZE
+ * - "über / ueber / uber / mindestens / ab X Euro / mehr als / größer als" => UNTERGRENZE
+ */
 function extractUserPriceRange(
   text: string
 ): { minPrice: number | null; maxPrice: number | null } {
-  const t = normalize(text);
+  const original = text.toLowerCase();        // mit Umlauten
+  const normalized = normalize(text);         // deine bestehende normalize-Funktion
 
   let minPrice: number | null = null;
   let maxPrice: number | null = null;
 
   // 1) "zwischen 30 und 50 Euro"
-  const betweenMatch = t.match(
+  const betweenMatch = original.match(
     /zwischen\s+(\d+)\s*(und|-)\s*(\d+)\s*(euro|eur|€)/
   );
   if (betweenMatch) {
@@ -492,49 +649,151 @@ function extractUserPriceRange(
     if (!Number.isNaN(v1) && !Number.isNaN(v2)) {
       minPrice = Math.min(v1, v2);
       maxPrice = Math.max(v1, v2);
+      console.log("[EFRO DEBUG PRICE_RANGE]", {
+        text,
+        pattern: "zwischen",
+        minPrice,
+        maxPrice,
+      });
       return { minPrice, maxPrice };
     }
   }
 
   // 2) "von 30 bis 50 Euro"
-  const fromToMatch = t.match(/von\s+(\d+)\s*(bis|-)\s*(\d+)\s*(euro|eur|€)/);
+  const fromToMatch = original.match(
+    /von\s+(\d+)\s*(bis|-)\s*(\d+)\s*(euro|eur|€)/
+  );
   if (fromToMatch) {
     const v1 = parseInt(fromToMatch[1], 10);
     const v2 = parseInt(fromToMatch[3], 10);
     if (!Number.isNaN(v1) && !Number.isNaN(v2)) {
       minPrice = Math.min(v1, v2);
       maxPrice = Math.max(v1, v2);
+      console.log("[EFRO DEBUG PRICE_RANGE]", {
+        text,
+        pattern: "von-bis",
+        minPrice,
+        maxPrice,
+      });
       return { minPrice, maxPrice };
     }
   }
 
-  // 3) Standard-Fall: genau EINE Zahl mit "Euro/EUR/€"
-  const priceMatch = t.match(/(\d+)\s*(euro|eur|€)/);
+  // 3) Einzelner Betrag: "<Zahl> Euro"
+  const priceMatch = original.match(/(\d+)\s*(euro|eur|€)/);
   if (!priceMatch) {
+    console.log("[EFRO DEBUG PRICE_RANGE]", {
+      text,
+      pattern: "none",
+      minPrice,
+      maxPrice,
+    });
     return { minPrice, maxPrice };
   }
 
   const value = parseInt(priceMatch[1], 10);
   if (Number.isNaN(value)) {
+    console.log("[EFRO DEBUG PRICE_RANGE]", {
+      text,
+      pattern: "invalid-number",
+      minPrice,
+      maxPrice,
+    });
     return { minPrice, maxPrice };
   }
 
-  const prefix = t.slice(0, priceMatch.index ?? 0);
+  // --- Schlüsselwörter analysieren ---
 
+  // Budget-Wörter (oberste Priorität)
+  const hasBudgetWord =
+    original.includes("mein budget") ||
+    original.includes("ich habe ein budget") ||
+    original.includes("ich habe budget") ||
+    original.includes(" budget ");
+
+  // Obergrenze ("unter / bis / höchstens / maximal / weniger als / nicht mehr als")
   const hasUnder =
-    /unter|bis|höchstens|hoechstens|maximal|weniger als/.test(prefix);
-  const hasOver = /über|ueber|mindestens|ab|mehr als/.test(prefix);
+    original.includes(" unter ") ||
+    original.startsWith("unter ") ||
+    original.includes(" bis ") ||
+    original.includes("höchstens") ||
+    original.includes("hoechstens") ||
+    original.includes("maximal") ||
+    original.includes("weniger als") ||
+    original.includes("nicht mehr als");
 
-  if (hasUnder && !hasOver) {
+  // "ab 50 euro" → explizit als Untergrenze interpretieren
+  const hasAbPattern =
+    /ab\s+\d+\s*(euro|eur|€)/.test(original) ||
+    /ab\s+\d+\s*(euro|eur|€)/.test(normalized);
+
+  // Untergrenze ("über / ueber / uber / mindestens / mehr als / größer als")
+  const hasOverCore =
+    original.includes(" über ") ||
+    original.startsWith("über ") ||
+    original.includes(" ueber ") ||
+    original.startsWith("ueber ") ||
+    original.includes(" uber ") ||
+    original.startsWith("uber ") ||
+    original.includes("mindestens") ||
+    original.includes("mehr als") ||
+    original.includes(" größer als") ||
+    original.includes(" groesser als");
+
+  const hasOver = hasOverCore || hasAbPattern;
+
+  // 1) Budget-Sätze: immer als Obergrenze interpretieren
+  if (hasBudgetWord) {
+    minPrice = null;
     maxPrice = value;
-  } else if (hasOver && !hasUnder) {
-    minPrice = value;
-  } else {
-    maxPrice = value;
+    console.log("[EFRO DEBUG PRICE_RANGE]", {
+      text,
+      pattern: "budget",
+      minPrice,
+      maxPrice,
+    });
+    return { minPrice, maxPrice };
   }
 
+  // 2) Explizite Untergrenze (über / ab / mindestens / mehr als / größer als)
+  if (hasOver && !hasUnder) {
+    minPrice = value;
+    maxPrice = null;
+    console.log("[EFRO DEBUG PRICE_RANGE]", {
+      text,
+      pattern: "over",
+      minPrice,
+      maxPrice,
+    });
+    return { minPrice, maxPrice };
+  }
+
+  // 3) Explizite Obergrenze (unter / bis / höchstens / maximal / weniger als / nicht mehr als)
+  if (hasUnder && !hasOver) {
+    minPrice = null;
+    maxPrice = value;
+    console.log("[EFRO DEBUG PRICE_RANGE]", {
+      text,
+      pattern: "under",
+      minPrice,
+      maxPrice,
+    });
+    return { minPrice, maxPrice };
+  }
+
+  // 4) Fallback: Einzelbetrag ohne klare Richtung → als Obergrenze
+  minPrice = null;
+  maxPrice = value;
+  console.log("[EFRO DEBUG PRICE_RANGE]", {
+    text,
+    pattern: "fallback-max",
+    minPrice,
+    maxPrice,
+  });
   return { minPrice, maxPrice };
 }
+
+
 
 /**
  * Baut einen dynamischen Attribut-Index aus allen Produkten.
@@ -1170,10 +1429,65 @@ function expandWordsWithCatalogKeywords(
 }
 
 /**
+ * Simple fuzzy helper: findet nahe Tokens im Katalog für ein gegebenes Wort
+ * 
+ * Verwendet eine einfache Heuristik basierend auf Längenunterschied und Substring-Matching.
+ * 
+ * @param term Der zu suchende Begriff (normalisiert)
+ * @param catalogKeywords Array von bekannten Katalog-Keywords
+ * @param maxDistance Maximale Längendifferenz (Standard: 2)
+ * @returns Array von gefundenen Fuzzy-Matches
+ */
+function getClosestCatalogTokens(
+  term: string,
+  catalogKeywords: string[],
+  maxDistance: number = 2
+): string[] {
+  if (!term || term.length < 3) return [];
+
+  const normalizedTerm = normalizeAliasKey(term);
+  const matches: string[] = [];
+
+  for (const keyword of catalogKeywords) {
+    if (!keyword || keyword.length < 3) continue;
+
+    const normalizedKeyword = normalizeAliasKey(keyword);
+
+    // Exakte Übereinstimmung
+    if (normalizedKeyword === normalizedTerm) {
+      matches.push(keyword);
+      continue;
+    }
+
+    // Sehr einfache Distanz-Heuristik: Länge + enthalten
+    const lengthDiff = Math.abs(normalizedKeyword.length - normalizedTerm.length);
+    const contains =
+      normalizedKeyword.includes(normalizedTerm) || normalizedTerm.includes(normalizedKeyword);
+
+    if (lengthDiff <= maxDistance || contains) {
+      matches.push(keyword);
+    }
+  }
+
+  // Begrenze auf Top 3 Matches
+  const limitedMatches = matches.slice(0, 3);
+
+  if (limitedMatches.length > 0) {
+    console.log("[EFRO FuzzyResolve]", {
+      term,
+      fuzzyMatches: limitedMatches,
+      maxDistance,
+    });
+  }
+
+  return limitedMatches;
+}
+
+/**
  * Identifiziert unbekannte Begriffe im User-Text und löst sie auf bekannte Keywords auf.
  * 
- * Verwendet eine Alias-Map für AI-generierte Mappings und zusätzlich Substring-Heuristiken
- * als Fallback.
+ * Verwendet eine Alias-Map für AI-generierte Mappings, Fuzzy-Matching für ähnliche Schreibvarianten,
+ * und zusätzlich Substring-Heuristiken als Fallback.
  * 
  * @param text Der ursprüngliche User-Text
  * @param knownKeywords Array von bekannten Keywords (aus Katalog + erweiterte User-Wörter)
@@ -1244,8 +1558,18 @@ function resolveUnknownTerms(
     }
   }
 
-  // Schritt 2: Substring-Heuristik als Fallback, NUR wenn Alias nichts geliefert hat
+  // Schritt 2: Fuzzy-Matching als Fallback (vor Substring-Heuristik)
+  // Grundlage für "smarte" Schreibvarianten (z. B. parfum → perfume mit Levenshtein-Distanz)
+  const fuzzyResolvedSet = new Set<string>();
   if (!aliasMapUsed && unknownTermsSet.size > 0 && knownSet.size > 0) {
+    for (const unknown of unknownTermsSet) {
+      const fuzzyMatches = getClosestCatalogTokens(unknown, Array.from(knownSet));
+      fuzzyMatches.forEach((match) => fuzzyResolvedSet.add(match));
+    }
+  }
+
+  // Schritt 3: Substring-Heuristik als Fallback, NUR wenn Alias und Fuzzy nichts geliefert haben
+  if (!aliasMapUsed && fuzzyResolvedSet.size === 0 && unknownTermsSet.size > 0 && knownSet.size > 0) {
     for (const unknown of unknownTermsSet) {
       for (const kw of knownSet) {
         if (
@@ -1259,16 +1583,16 @@ function resolveUnknownTerms(
     }
   }
 
-  // Schritt 3: Resolved-Tokens zusammenführen
-  // Wenn Alias-Treffer vorhanden, verwende diese (optional plus Substring, aber Alias hat Priorität)
+  // Schritt 4: Resolved-Tokens zusammenführen (Priorität: Alias > Fuzzy > Substring)
   const resolvedSet = new Set<string>();
   if (aliasResolvedSet.size > 0) {
-    // Alias-Tokens haben Priorität
+    // Alias-Tokens haben höchste Priorität
     aliasResolvedSet.forEach((t) => resolvedSet.add(t));
-    // Optional: Substring-Tokens auch hinzufügen (falls gewünscht)
-    // substringResolvedSet.forEach((t) => resolvedSet.add(t));
+  } else if (fuzzyResolvedSet.size > 0) {
+    // Fuzzy-Tokens als zweite Priorität
+    fuzzyResolvedSet.forEach((t) => resolvedSet.add(t));
   } else if (substringResolvedSet.size > 0) {
-    // Nur Substring-Tokens, wenn kein Alias-Treffer
+    // Substring-Tokens als letzte Priorität
     substringResolvedSet.forEach((t) => resolvedSet.add(t));
   }
 
@@ -1282,12 +1606,17 @@ function resolveUnknownTerms(
     unknownTerms: uniqUnknown,
     resolved: uniqResolved,
     aliasResolved: Array.from(aliasResolvedSet),
+    fuzzyResolved: Array.from(fuzzyResolvedSet),
     substringResolved: Array.from(substringResolvedSet),
     knownKeywordsCount: knownKeywords.length,
     aliasMapUsed,
     aliasMapKeys: aliasMap ? Object.keys(aliasMap).slice(0, 10) : [],
     lookupKey: uniqUnknown.length > 0 ? normalizeAliasKey(uniqUnknown[0]) : null,
     lookupResult: uniqUnknown.length > 0 ? aliasMap?.[normalizeAliasKey(uniqUnknown[0])] : null,
+    // Debug: Prüfe spezifisch für "parfum" / "parfüm"
+    parfumLookup: aliasMap?.[normalizeAliasKey("parfum")] || null,
+    parfümLookup: aliasMap?.[normalizeAliasKey("parfüm")] || null,
+    hasPerfumeInKnown: knownSet.has("perfume"),
   });
 
   return {
@@ -1353,6 +1682,84 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
 }
 
 /**
+ * Prüft, ob ein Produkt ein echtes Parfüm-Produkt ist
+ * (basierend auf Kategorie, Titel, Beschreibung, Tags)
+ */
+function isPerfumeProduct(product: EfroProduct): boolean {
+  const title = normalize(product.title || "");
+  const category = normalize(product.category || "");
+  const description = normalize(product.description || "");
+  const tagsText = Array.isArray(product.tags)
+    ? normalize(product.tags.join(" "))
+    : normalize((product.tags || "").toString());
+
+  // Text-Blob für starke Keywords (ohne Kategorie, da Kategorie separat geprüft wird)
+  const textBlob = `${title} ${description} ${tagsText}`;
+
+  // Starke POSITIVE Keywords für Kategorie
+  const perfumeCategoryKeywords = [
+    "parfum", "parfums", "parfüm", "perfume", "perfumes",
+    "duft", "düfte", "fragrance", "fragrances"
+  ];
+
+  // Starke POSITIVE Keywords für Text (Titel/Beschreibung/Tags)
+  const strongTextKeywords = [
+    "eau de parfum",
+    "eau de toilette"
+  ];
+
+  // NEGATIVE Keywords (um "parfümfrei" etc. rauszufiltern)
+  const negativeKeywords = [
+    "parfumfrei",
+    "parfümfrei",
+    "ohne parfum",
+    "ohne parfüm",
+    "ohne duft",
+    "ohne duftstoffe",
+    "duschgel",
+    "dusch gel",
+    "dusch-gel",
+    "shower gel",
+    "body wash",
+    "shampoo",
+    "lotion",
+    "creme",
+    "reinigungstuch",
+    "tuch",
+    "tücher"
+  ];
+
+  // Kategorie-Check: Muss explizit Parfüm/Duft/Fragrance enthalten
+  const categoryHasPerfume = perfumeCategoryKeywords.some(kw =>
+    category.includes(kw)
+  );
+
+  // Text-Check: Starke Parfüm-Keywords in Titel/Beschreibung/Tags
+  const textHasStrongPerfume = strongTextKeywords.some(kw =>
+    textBlob.includes(kw)
+  );
+
+  // Negative-Check: Ausschluss-Kriterien
+  const textHasNegative = negativeKeywords.some(kw =>
+    textBlob.includes(kw) || category.includes(kw)
+  );
+
+  // Nur als Parfüm werten, wenn:
+  // - Kategorie explizit Parfüm/Duft/Fragrance ODER starke Text-Keywords vorhanden
+  // UND keine negativen Keywords vorhanden
+  return (categoryHasPerfume || textHasStrongPerfume) && !textHasNegative;
+}
+
+/**
+ * Prüft, ob der Nutzertext explizit nach Parfüm fragt
+ */
+function userMentionsPerfume(text: string): boolean {
+  const normalizedText = normalize(text);
+  const parfumSynonyms = ["parfum", "parfüm", "parfume", "perfüm"];
+  return parfumSynonyms.some((syn) => normalizedText.includes(syn));
+}
+
+/**
  * Produkte nach Keywords, Kategorie und Preis filtern
  * – NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
  */
@@ -1361,7 +1768,14 @@ function filterProducts(
   intent: ShoppingIntent,
   allProducts: EfroProduct[]
 ): EfroProduct[] {
-  console.log("[EFRO Filter ENTER]", { text, intent });
+  // WICHTIG: Parfüm-Flags GANZ AM ANFANG deklarieren, vor allen Logs und if-Blocks
+  let hasPerfumeCandidates = false;
+  let originalPerfumeCandidates: EfroProduct[] = [];
+  
+  // WICHTIG: candidates muss GANZ AM ANFANG deklariert werden, vor allen Logs
+  let candidates: EfroProduct[] = [...allProducts];
+
+  console.log("[EFRO FILTER ENTER]", { text, intent, totalProducts: allProducts.length });
 
   // Intent kann innerhalb der Funktion angepasst werden
   let currentIntent: ShoppingIntent = intent;
@@ -1382,9 +1796,7 @@ function filterProducts(
 
   const { minPrice: userMinPrice, maxPrice: userMaxPrice } =
     extractUserPriceRange(text);
-  console.log("[EFRO Filter PRICE]", { text, userMinPrice, userMaxPrice });
-
-  let candidates = [...allProducts];
+  console.log("[EFRO FILTER PRICE]", { text, userMinPrice, userMaxPrice, candidateCountAfterPrice: candidates.length });
 
   /**
    * 1) Kategorie-Erkennung
@@ -1550,6 +1962,19 @@ function filterProducts(
   // Katalog-Keywords aus allen Produkten extrahieren
   const catalogKeywordsSet = new Set<string>();
   for (const product of allProducts) {
+    // Kategorie normalisieren und hinzufügen (wichtig für canonicalTokens)
+    if (product.category) {
+      const catNormalized = normalizeText(product.category);
+      const catWords = catNormalized.split(/\s+/).filter((w) => w.length >= 3);
+      catWords.forEach((w) => catalogKeywordsSet.add(w));
+      // Auch die gesamte normalisierte Kategorie als Token hinzufügen (konsistent mit normalizeAliasKey)
+      // z. B. "Perfume" -> "perfume" (für Language-Aliase wie "parfum" -> "perfume")
+      const fullCat = normalizeAliasKey(product.category);
+      if (fullCat && fullCat.length >= 3) {
+        catalogKeywordsSet.add(fullCat);
+      }
+    }
+
     // Titel normalisieren und splitten
     const titleWords = normalizeText(product.title || "")
       .split(/\s+/)
@@ -1664,6 +2089,14 @@ function filterProducts(
       expandedBefore,
       wordsAfter: words,
       expandedAfter: expandedWords,
+      // Debug für "Parfüm" / Language-Aliase
+      ...(text.toLowerCase().includes("parf") ? {
+        debugParfum: {
+          normalizedText: normalizeText(text),
+          hasParfumInResolved: aliasResult.resolved.includes("perfume"),
+          resolvedTokens: aliasResult.resolved,
+        }
+      } : {}),
     });
   }
   // --- Ende EFRO Alias-Preprocessing ------------------------------------
@@ -1674,9 +2107,10 @@ function filterProducts(
   const parsed = parseQueryForAttributes(text);
   const { coreTerms, attributeTerms, attributeFilters } = parsed;
 
-  console.log("[EFRO Filter ATTR_FILTERS]", {
+  console.log("[EFRO FILTER ATTR_FILTERS]", {
     text,
     attributeFilters,
+    candidateCountAfterAttr: candidates.length,
   });
 
   // Strukturierte Attribute-Filter aus der Query anwenden (sofern vorhanden)
@@ -1944,6 +2378,36 @@ function filterProducts(
         candidates = candidates.slice(0, 20);
       }
 
+      // --- Language-level synonyms: Parfum/Parfüm -> Perfume ---
+      const userAskedForPerfume = userMentionsPerfume(text);
+
+      if (userAskedForPerfume) {
+        // Basis-Liste: ALLE Produkte, nicht nur die bisherigen Kandidaten
+        const perfumeSource = allProducts;
+        const beforeCount = perfumeSource.length;
+
+        // WICHTIG: Hier jetzt die ganze Basis filtern, nicht nur candidates
+        const perfumeCandidates = perfumeSource.filter((p) =>
+          isPerfumeProduct(p)
+        );
+
+        if (perfumeCandidates.length > 0) {
+          candidates = perfumeCandidates;
+          hasPerfumeCandidates = true;
+          originalPerfumeCandidates = [...perfumeCandidates];
+        } else {
+          // wenn wirklich KEIN echtes Parfüm im Sortiment ist, candidates so lassen wie vorher
+        }
+
+        console.log("[EFRO PERFUME]", {
+          text,
+          userAskedForPerfume,
+          beforeCount,
+          afterCount: perfumeCandidates.length,
+          sampleTitles: perfumeCandidates.slice(0, 5).map((p) => p.title),
+        });
+      }
+
       console.log("[EFRO Filter KEYWORD_MATCHES]", {
         text,
         words: expandedWords,
@@ -2003,32 +2467,46 @@ function filterProducts(
 
   /**
    * 4) Fallback, wenn durch Filter alles weggefallen ist
+   * WICHTIG: Bei Parfüm-Intent die Parfüm-Kandidaten NICHT überschreiben
    */
       if (candidates.length === 0) {
-        candidates = [...allProducts];
+        // Bei Parfüm-Intent: Wenn Parfüm-Kandidaten existieren, diese beibehalten
+        // (auch wenn sie durch Preisfilter leer wurden - besser als alle Produkte zu zeigen)
+        if (hasPerfumeCandidates && originalPerfumeCandidates.length > 0) {
+          candidates = originalPerfumeCandidates;
+          console.log("[EFRO PerfumeFallback]", {
+            text,
+            note: "Parfüm-Kandidaten beibehalten trotz leerer candidates nach Filter",
+            perfumeCount: candidates.length,
+            sampleTitles: candidates.slice(0, 5).map((p) => p.title),
+          });
+        } else {
+          // Normale Fallback-Logik für Nicht-Parfüm-Anfragen
+          candidates = [...allProducts];
 
-    if (matchedCategories.length > 0) {
-      const byCat = candidates.filter((p) =>
-        matchedCategories.includes(normalize(p.category || ""))
-      );
-      if (byCat.length > 0) {
-        candidates = byCat;
+          if (matchedCategories.length > 0) {
+            const byCat = candidates.filter((p) =>
+              matchedCategories.includes(normalize(p.category || ""))
+            );
+            if (byCat.length > 0) {
+              candidates = byCat;
+            }
+          }
+
+          if (userMinPrice !== null || userMaxPrice !== null) {
+            let tmp = candidates.filter((p) => {
+              const price = p.price ?? 0;
+              if (userMinPrice !== null && price < userMinPrice) return false;
+              if (userMaxPrice !== null && price > userMaxPrice) return false;
+              return true;
+            });
+
+            if (tmp.length > 0) {
+              candidates = tmp;
+            }
+          }
+        }
       }
-    }
-
-    if (userMinPrice !== null || userMaxPrice !== null) {
-      let tmp = candidates.filter((p) => {
-        const price = p.price ?? 0;
-        if (userMinPrice !== null && price < userMinPrice) return false;
-        if (userMaxPrice !== null && price > userMaxPrice) return false;
-        return true;
-      });
-
-      if (tmp.length > 0) {
-        candidates = tmp;
-      }
-    }
-  }
 
   /**
    * 5) Sortierung abhängig von Budget & Intent
@@ -2528,6 +3006,14 @@ export function runSellerBrain(
     usedSourceCount: allProducts.length,
     explanationMode: explanationMode ?? null,
     reusedPreviousProducts,
+  });
+
+  console.log("[EFRO FINAL PRODUCTS]", {
+    text: cleaned,
+    intent: nextIntent,
+    finalCount: recommended.length,
+    titles: recommended.map((p) => p.title),
+    categories: recommended.map((p) => p.category),
   });
 
   return {
