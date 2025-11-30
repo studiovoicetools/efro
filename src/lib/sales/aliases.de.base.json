@@ -3,15 +3,6 @@
   "_version": "1.0.0",
   "aliases": [
     {
-      "term": "fressnapf",
-      "normalizedTerm": "fressnapf",
-      "type": "brand",
-      "mapToBrand": "fressnapf",
-      "mapToTag": "napf",
-      "confidence": 1.0,
-      "source": "static"
-    },
-    {
       "term": "napf",
       "normalizedTerm": "napf",
       "type": "tag",

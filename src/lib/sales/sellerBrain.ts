@@ -167,6 +167,7 @@ import {
   PERFUME_SYNONYMS,
   PREMIUM_TOKENS,
   MOLD_KEYWORDS,
+  getDynamicSynonyms,
   MOLD_PRODUCT_KEYWORDS,
   CONTEXT_KEYWORDS,
   PREMIUM_WORDS,
@@ -179,6 +180,8 @@ import {
   CATEGORY_KEYWORDS_FOR_SCENARIO,
   PRODUCT_KEYWORDS_FOR_BUDGET_ONLY,
   BUDGET_ONLY_STOPWORDS,
+  WAX_HAIR_KEYWORDS,
+  WAX_SNOWBOARD_KEYWORDS,
 } from "./languageRules.de";
 
 /**
@@ -195,11 +198,26 @@ export interface SellerBrainAiTrigger {
   /** true, wenn SellerBrain zusätzliche AI-Hilfe gebrauchen könnte */
   needsAiHelp: boolean;
   /** Kurzbegründung, warum AI sinnvoll wäre */
-  reason: string;
+  reason?: string;
   /** Begriffe, die bisher nicht gut aufgelöst wurden */
-  unknownTerms: string[];
+  unknownTerms?: string[];
   /** Erkannter Produktcode wie "ABC123" */
   codeTerm?: string;
+  /** Unbekannte Produktcodes (z. B. ["XY-9000"]) */
+  unknownProductCodes?: string[];
+  /** Original-Query für AI (z. B. für Erklärungen) */
+  queryForAi?: string;
+  /** Kontext für AI (z. B. matchedProducts für Erklärungen) */
+  context?: {
+    matchedProducts?: Array<{ id: string; title: string; category?: string }>;
+    /** EFRO WAX-Fix: Produktbeschreibung für AI-Zusammenfassung */
+    productDescription?: string;
+  };
+  /** EFRO Fressnapf-Fix: Strukturierte Anfragen für unbekannte Begriffe */
+  termExplainRequests?: Array<{
+    term: string;
+    purpose: "category_guess" | "semantic_help";
+  }>;
 }
 
 /**
@@ -212,6 +230,24 @@ export type SellerBrainResult = {
   nextContext?: SellerBrainContext;
   /** Meta-Infos, wann eine AI-Hilfe sinnvoll wäre */
   aiTrigger?: SellerBrainAiTrigger;
+  /** EFRO Budget-Fix 2025-11-30: Flag, wenn keine Produkte im gewünschten Preisbereich gefunden wurden */
+  priceRangeNoMatch?: boolean;
+  /** EFRO Budget-Fix 2025-11-30: Preisbereich-Informationen für ehrliche Kommunikation */
+  priceRangeInfo?: {
+    userMinPrice: number | null;
+    userMaxPrice: number | null;
+    categoryMinPrice: number | null;
+    categoryMaxPrice: number | null;
+    category?: string | null;
+  };
+  /** EFRO Budget-Fix 2025-11-30: Fehlende Kategorie-Hinweis (z. B. "Bindungen" nicht im Katalog) */
+  missingCategoryHint?: string;
+  /** EFRO Explanation-Mode: true, wenn der User eine Erklärung anfordert */
+  explanationMode?: boolean;
+  /** EFRO WAX-Fix: Debug-Flags für fehlende Beschreibungen etc. */
+  debugFlags?: {
+    missingDescription?: boolean;
+  };
 };
 
 type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
@@ -407,28 +443,254 @@ function getActiveProductHints(): ProductHint[] {
  * Erkennt, ob der Nutzer eher eine Erklärung will
  * (Inhaltsstoffe / Material / Anwendung / Pflege).
  */
+/**
+ * EFRO Explanation-Mode-Erkennung verbessert
+ * Erkennt Fragen wie "Wie benutze ich...?", "Erklär mir...", "Wie funktioniert...?"
+ * EFRO S18/S19 Fix: Robuste Erkennung für "Wie wende ich...", "Wie genau funktioniert..."
+ */
 function detectExplanationMode(text: string): ExplanationMode | null {
   const t = normalize(text || "");
   if (!t) return null;
 
-  // Zutaten / Inhaltsstoffe
-  if (EXPLANATION_MODE_KEYWORDS.ingredients.some((w) => t.includes(w))) {
+  // EFRO S18/S19 Fix: Robuste Pattern-Erkennung für Usage-Mode
+  const normalized = text.toLowerCase();
+  
+  const usagePatterns: RegExp[] = [
+    /wie\s+wende\s+ich\b/i,
+    /\banwendung\b/i,
+    /\banwenden\b/i,
+    /wie\s+genau\s+funktioniert\b/i,
+    /wie\s+funktioniert\b/i,
+    /funktioniert\s+dies(es|er|e)?\s+\w*\b/i,
+    /erkl(ä|a)r(e|st|en)?\s+(mir\s+)?(bitte\s+)?(mal\s+)?(genau\s+)?wie\b/i,
+    /wie\s+benutze\s+ich\b/i,
+    /wie\s+verwende\s+ich\b/i,
+    /wie\s+nutze\s+ich\b/i,
+  ];
+
+  const hasUsagePattern = usagePatterns.some((re) => re.test(normalized));
+
+  // Erweiterte Erkennung für Erklärungsanfragen
+  if (
+    t.includes("erklär") ||
+    t.includes("erklaer") ||
+    t.includes("erkläre") ||
+    t.includes("erklaere") ||
+    t.includes("wie benutze ich") ||
+    t.includes("wie verwende ich") ||
+    t.includes("wie funktioniert") ||
+    t.startsWith("was ist ") ||
+    t.startsWith("was sind ") ||
+    hasUsagePattern
+  ) {
+    // Zutaten / Inhaltsstoffe
+    if (EXPLANATION_MODE_KEYWORDS.ingredients.some((w) => t.includes(w))) {
     return "ingredients";
   }
 
   // Anwendung / benutzen
-  if (EXPLANATION_MODE_KEYWORDS.usage.some((w) => t.includes(w))) {
+    if (EXPLANATION_MODE_KEYWORDS.usage.some((w) => t.includes(w)) || hasUsagePattern) {
     return "usage";
   }
 
   // Waschen / Pflege
+    if (EXPLANATION_MODE_KEYWORDS.washing.some((w) => t.includes(w))) {
+    return "washing";
+  }
+
+    // Fallback: generische Erklärung
+    return "usage";
+  }
+
+  // Bestehende Logik beibehalten
+  if (EXPLANATION_MODE_KEYWORDS.ingredients.some((w) => t.includes(w))) {
+    return "ingredients";
+  }
+
+  if (EXPLANATION_MODE_KEYWORDS.usage.some((w) => t.includes(w)) || hasUsagePattern) {
+    return "usage";
+  }
+
   if (EXPLANATION_MODE_KEYWORDS.washing.some((w) => t.includes(w))) {
     return "washing";
   }
 
-  // materials / care könnten später hier ergänzt werden
-
   return null;
+}
+
+/**
+ * EFRO WAX-Fix: Extrahiert Schritte aus einer Produktbeschreibung
+ * Erkennt strukturierte Anleitungen (z. B. "Belag reinigen:", "Wachs auftragen:", etc.)
+ */
+function extractStepsFromDescription(description: string): string[] {
+  if (!description || description.trim().length < 30) {
+    return [];
+  }
+  
+  const steps: string[] = [];
+  const lines = description.split(/\n+/);
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    // Erkenne Schritte anhand von Mustern wie "Belag reinigen:", "Wachs auftragen:", etc.
+    const stepPattern = /^([A-ZÄÖÜ][a-zäöüß\s]+):\s*(.+)$/;
+    const match = trimmed.match(stepPattern);
+    
+    if (match) {
+      const stepTitle = match[1].trim();
+      const stepDescription = match[2].trim();
+      if (stepDescription.length > 10) {
+        steps.push(`${stepTitle}: ${stepDescription}`);
+      } else {
+        steps.push(stepTitle);
+      }
+    } else if (trimmed.length > 20 && /^(reinigen|auftragen|einbügeln|abkühlen|abziehen|bürsten|sicherheit)/i.test(trimmed)) {
+      // Fallback: Erkenne Schritte auch ohne Doppelpunkt
+      steps.push(trimmed);
+    }
+  }
+  
+  // Wenn keine strukturierten Schritte gefunden wurden, aber Beschreibung lang genug ist,
+  // versuche Absätze als Schritte zu interpretieren
+  if (steps.length === 0 && description.length > 100) {
+    const paragraphs = description.split(/\n\s*\n/).filter((p) => p.trim().length > 20);
+    if (paragraphs.length > 0) {
+      return paragraphs.slice(0, 7); // Maximal 7 Schritte
+    }
+  }
+  
+  return steps;
+}
+
+/**
+ * EFRO S18/S19 Fix: Patch für ProductRelated bei Wax-Erklärungen
+ */
+function patchProductRelatedForWax(
+  result: { isProductRelated: boolean; reason: string },
+  normalizedText: string,
+  explanationMode: ExplanationMode | null
+) {
+  if (!result.isProductRelated && explanationMode && /\b(wax|wachs)\b/i.test(normalizedText)) {
+    result.isProductRelated = true;
+    result.reason = "coreProductKeyword_wax";
+  }
+}
+
+/**
+ * EFRO S18/S19 Fix: Handle Wax-Erklärungen mit AI-Trigger
+ */
+function handleWaxExplanation(
+  text: string,
+  products: EfroProduct[],
+  explanationMode: ExplanationMode | null,
+  previousCount: number
+): {
+  explanationMode: ExplanationMode | null;
+  previousCount: number;
+  usedCount: number;
+  maxRecommendations: number;
+  hasCategoryFromQuery: boolean;
+  waxProductsFound: boolean;
+  hasUsableDescription: boolean;
+  descriptionLength: number;
+  stepsExtracted: number;
+  aiTrigger?: SellerBrainAiTrigger;
+} {
+  const normalized = text.toLowerCase();
+  const mentionsWax = /\b(wax|wachs)\b/.test(normalized);
+
+  // Wenn keine Erklärfrage oder kein Wax erwähnt wird, nichts Besonderes tun
+  if (!explanationMode || !mentionsWax) {
+    return {
+      explanationMode,
+      previousCount,
+      usedCount: 0,
+      maxRecommendations: 2,
+      hasCategoryFromQuery: false,
+      waxProductsFound: false,
+      hasUsableDescription: false,
+      descriptionLength: 0,
+      stepsExtracted: 0,
+    };
+  }
+
+  // Wax-Produkte im Katalog finden
+  const waxProducts = products.filter((p) => {
+    const title = (p.title ?? "").toLowerCase();
+    const tagsText = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
+    const category = (p.category ?? "").toLowerCase();
+    return (
+      title.includes("wax") ||
+      title.includes("wachs") ||
+      tagsText.includes("wax") ||
+      tagsText.includes("wachs") ||
+      category.includes("wax") ||
+      category.includes("wachs")
+    );
+  });
+
+  const waxProductsFound = waxProducts.length > 0;
+  const maxRecommendations = 2;
+
+  let hasUsableDescription = false;
+  let descriptionLength = 0;
+  let stepsExtracted = 0;
+  let bestDescription = "";
+
+  // Längste, nicht-leere Beschreibung suchen (z. B. "Selling Plans Ski Wax")
+  for (const p of waxProducts) {
+    const desc = (p.description ?? "").trim();
+    if (!desc) continue;
+    const len = desc.length;
+    if (len > descriptionLength) {
+      descriptionLength = len;
+      bestDescription = desc;
+    }
+  }
+
+  if (descriptionLength >= 80) {
+    hasUsableDescription = true;
+    const rawLines = bestDescription
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    stepsExtracted = rawLines.length;
+  }
+
+  console.log("[EFRO Explanation Wax] Wax-Produkte gefunden (keine Kategorie erkannt)", {
+    text,
+    waxProductsCount: waxProducts.length,
+    sampleTitles: waxProducts.slice(0, 3).map((p) => p.title),
+  });
+
+  const result = {
+    explanationMode: "usage" as const,
+    previousCount,
+    usedCount: 0,
+    maxRecommendations,
+    hasCategoryFromQuery: false,
+    waxProductsFound,
+    hasUsableDescription,
+    descriptionLength,
+    stepsExtracted,
+  };
+
+  console.log("[EFRO SellerBrain] Explanation mode – Direkt aus Beschreibung", {
+    text,
+    ...result,
+  });
+
+  // EFRO Fix: KEIN AI-Trigger mehr für Erklärungen mit/ohne Beschreibung
+  // Die Antwort wird direkt aus der Beschreibung generiert (wenn vorhanden)
+  // oder ehrlich kommuniziert, dass keine Beschreibung vorhanden ist (ohne AI)
+  // AI wird nur für unbekannte Begriffe (z. B. "Fressnapf") genutzt
+  const aiTrigger: SellerBrainAiTrigger | undefined = undefined;
+
+  return {
+    ...result,
+  };
 }
 
 /**
@@ -580,6 +842,34 @@ function detectMostExpensiveRequest(text: string): boolean {
  * - "unter / bis / höchstens / maximal / weniger als / nicht mehr als" => OBERGRENZE
  * - "über / ueber / uber / mindestens / ab X Euro / mehr als / größer als" => UNTERGRENZE
  */
+/**
+ * EFRO Budget-Parser: Extrahiert Zahlen für Budget, ignoriert Zahlen in Produktcodes
+ * 
+ * Unterscheidet zwischen "reinen Zahlen" (z. B. "50") und Zahlen in alphanumerischen Tokens (z. B. "XY-9000").
+ * Bei "Zeig mir Produkte für XY-9000 unter 50 Euro" wird nur 50 als Budget interpretiert, nicht 9000.
+ */
+type ParsedNumber = { value: number; fromAlphaNumeric: boolean };
+
+function extractNumbersForBudget(normalizedText: string): ParsedNumber[] {
+  const tokens = normalizedText.split(/\s+/);
+  const result: ParsedNumber[] = [];
+
+  for (const token of tokens) {
+    const match = token.match(/\d+/);
+    if (!match) continue;
+
+    const value = Number(match[0]);
+    // Prüfe, ob der Token alphanumerisch ist (enthält Buchstaben)
+    const fromAlphaNumeric = /[a-zA-Z]/.test(token);
+
+    if (!Number.isNaN(value)) {
+      result.push({ value, fromAlphaNumeric });
+    }
+  }
+
+  return result;
+}
+
 function extractUserPriceRange(
   text: string
 ): { minPrice: number | null; maxPrice: number | null } {
@@ -593,6 +883,13 @@ function extractUserPriceRange(
   let note = "";
   let hasBudgetWord = false;
   let numbersFound: number[] = [];
+
+  // EFRO Budget-Parser-Fix: Extrahiere Zahlen und unterscheide zwischen reinen Zahlen und Produktcodes
+  const parsedNumbers = extractNumbersForBudget(normalized);
+  const pureNumbers = parsedNumbers.filter((n) => !n.fromAlphaNumeric);
+  const fallbackNumbers = parsedNumbers.filter((n) => n.fromAlphaNumeric);
+  // Bevorzuge reine Zahlen, nur wenn keine vorhanden sind, verwende Fallback
+  const numbersForBudget = pureNumbers.length > 0 ? pureNumbers : fallbackNumbers;
 
   // 1) Prüfe zuerst BUDGET_RANGE_PATTERNS (zwischen/von-bis/Range)
   for (const pattern of BUDGET_RANGE_PATTERNS) {
@@ -618,20 +915,20 @@ function extractUserPriceRange(
     }
   }
 
-  // 2) Einzelner Betrag: "<Zahl> Euro" oder einfach "<Zahl>"
-  const priceMatch = t.match(/(\d+)\s*(?:euro|eur|€)?/);
-  if (!priceMatch) {
+  // 2) Einzelner Betrag: Verwende nur reine Zahlen (nicht aus Produktcodes)
+  if (numbersForBudget.length === 0) {
     console.log("[EFRO SB Budget] Parsed budget", {
       rawText,
       hasBudgetWord: false,
       numbersFound: [],
       budgetRange: { minPrice, maxPrice },
-      note: "Keine Zahl gefunden",
+      note: "Keine reine Zahl gefunden (Zahlen in Produktcodes ignoriert)",
     });
     return { minPrice, maxPrice };
   }
 
-  const amount = parseInt(priceMatch[1], 10);
+  // Verwende die erste reine Zahl (oder Fallback, wenn keine reine Zahl vorhanden)
+  const amount = numbersForBudget[0].value;
   if (Number.isNaN(amount)) {
     console.log("[EFRO SB Budget] Parsed budget", {
       rawText,
@@ -645,89 +942,88 @@ function extractUserPriceRange(
 
   numbersFound = [amount];
 
-  // Budget-Wort-Erkennung
+  // EFRO Budget-Fix 2025-11-30: Budget-Wort-Erkennung (breiter gefasst)
+  // Verwende normalized für bessere Umlaut-Erkennung
   hasBudgetWord =
     BUDGET_WORD_PATTERNS.some((pattern) => t.includes(pattern)) ||
-    /\bbudget\b/i.test(t);
+    /\b(budget|preisrahmen|preisgrenze|budgetrahmen)\b/i.test(normalized);
 
-  // Prüfe MIN/MAX/AROUND-Wörter
+  // EFRO Budget-Fix 2025-11-30: Prüfe Budget-Wörter für einzelne Zahl
+  // Verwende sowohl t (lowercase) als auch normalized für robuste Erkennung
+  const hasUnder = /\bunter\b|\bbis\b|\bhöchstens\b|\bhoechstens\b/i.test(t) || 
+                   /\bunter\b|\bbis\b|\bhoechstens\b/i.test(normalized);
+  // EFRO Budget-Fix 2025-11-30: 'über' korrekt erkennen (mit Umlaut und ohne)
+  const hasOver = /\büber\b|\bueber\b/i.test(t) || 
+                  /\bueber\b/i.test(normalized) ||
+                  t.includes("über") || t.includes("ueber");
+  const hasAtLeast = /\bab\b/i.test(t) || /\bmindestens\b/i.test(t);
   const hasMinWord = BUDGET_MIN_WORDS.some((w) => t.includes(w));
-  const hasMaxWord = BUDGET_MAX_WORDS.some((w) => t.includes(w));
+  const hasMaxWordWithoutUeber = BUDGET_MAX_WORDS.filter((w) => w !== "über").some((w) => t.includes(w));
   const hasAroundWord = BUDGET_AROUND_WORDS.some((w) => t.includes(w));
 
-  // 3) Budget-Sätze: Interpretation abhängig von MIN/MAX-Wörtern (DEUTSCHE LESART)
-  if (hasBudgetWord) {
-    if (hasMinWord) {
-      // Untergrenze: "Mein Budget ist ab 600 Euro" oder "Mein Budget ist mindestens 600 Euro"
-      budgetRange.minPrice = amount;
-      budgetRange.maxPrice = null;
-      note = "Budget (DE): Untergrenze erkannt (minPrice) - ab/mindestens";
-    } else if (hasMaxWord) {
-      // Obergrenze: "Mein Budget ist über 600 Euro", "bis 600", "unter 600", "höchstens 600"
-      // WICHTIG: "über" wird im Deutschen Budget-Kontext als Obergrenze interpretiert
-      budgetRange.minPrice = null;
-      budgetRange.maxPrice = amount;
-      note = "Budget (DE): 'über'/'bis'/'unter'/'höchstens' als Obergrenze interpretiert (maxPrice)";
-    } else if (hasAroundWord) {
-      // Ungefähr: vorerst als Obergrenze behandeln
-      budgetRange.minPrice = null;
-      budgetRange.maxPrice = amount;
-      note = "Budget (DE): um/circa/ca. wird vorerst als Obergrenze (maxPrice) behandelt";
+  // EFRO Budget-Fix 2025-11-30: Konsolidierte Logik für eine einzelne Zahl
+  if (numbersFound.length === 1) {
+    const n = numbersFound[0];
+
+    // EFRO Budget-Fix 2025-11-30: 'über X' ohne 'Budget' => minPrice (Untergrenze)
+    if (hasOver && !hasBudgetWord) {
+      // Fall: "über 800 Euro" ohne "Budget" => Untergrenze
+      // Beispiel: "Premium-Snowboard über 800 Euro."
+      minPrice = n;
+      maxPrice = null;
+      note = "Budget (DE): 'über X' ohne 'Budget' ⇒ minPrice";
+    } else if (hasOver && hasBudgetWord) {
+      // EFRO Budget-Fix 2025-11-30: 'über ... Budget' => maxPrice (Obergrenze)
+      // Beispiel: "800 Euro sind über meinem Budget."
+      minPrice = null;
+      maxPrice = n;
+      note = "Budget (DE): 'über ... Budget' ⇒ maxPrice";
+    } else if (hasUnder) {
+      // "unter/bis/höchstens" wie bisher => Obergrenze
+      minPrice = null;
+      maxPrice = n;
+      note = "Budget (DE): 'unter'/'bis'/'höchstens' → maxPrice";
+    } else if (hasAtLeast) {
+      // "ab/mindestens" => Untergrenze
+      minPrice = n;
+      maxPrice = null;
+      note = "Budget (DE): 'ab'/'mindestens' → minPrice";
   } else {
-      // Fallback: neutrale Angabe, als Obergrenze interpretiert
-      budgetRange.minPrice = null;
-      budgetRange.maxPrice = amount;
-      note = "Budget (DE): neutrale Angabe, als maxPrice interpretiert";
+      // EFRO Budget-Fix 2025-11-30: einfache Zahl ohne Budget-Wörter => Obergrenze (wie bisher)
+      minPrice = null;
+      maxPrice = n;
+      note = 'Budget (DE): einfache Zahl → maxPrice';
     }
-    minPrice = budgetRange.minPrice;
-    maxPrice = budgetRange.maxPrice;
+
+    budgetRange = { minPrice, maxPrice };
     console.log("[EFRO SB Budget] Parsed budget", {
       rawText,
-      hasBudgetWord: true,
+      hasBudgetWord,
+      hasOver,
+      hasUnder,
+      hasAtLeast,
       numbersFound,
       budgetRange,
       note,
     });
-    return { minPrice, maxPrice };
-  }
+  return { minPrice, maxPrice };
+}
 
-  // 4) Normale Sätze (ohne "Budget"-Wort)
-  if (hasMinWord && amount != null) {
-    // Untergrenze: "ab 600", "mindestens 600"
-    budgetRange.minPrice = amount;
-    budgetRange.maxPrice = null;
-    note = "Budget (DE): Untergrenze erkannt (minPrice) - ab/mindestens";
-    minPrice = budgetRange.minPrice;
-    maxPrice = budgetRange.maxPrice;
-  } else if (hasMaxWord && amount != null) {
-    // Obergrenze: "über 600", "bis 600", "unter 600", "höchstens 600", "maximal 600"
-    // WICHTIG: "über" wird auch hier als Obergrenze interpretiert
+  // EFRO Budget-Fix 2025-11-30: Fallback für Fälle, die nicht durch die obige Logik abgedeckt sind
+  // (z. B. wenn amount != null, aber numbersFound.length !== 1 - sollte eigentlich nicht vorkommen)
+  if (amount != null && (budgetRange.maxPrice == null && budgetRange.minPrice == null)) {
     budgetRange.maxPrice = amount;
     budgetRange.minPrice = null;
-    note = "Budget (DE): 'über'/'bis'/'unter'/'höchstens' als Obergrenze interpretiert (maxPrice)";
+    note = 'Budget (DE): einfache Zahl → maxPrice';
     minPrice = budgetRange.minPrice;
     maxPrice = budgetRange.maxPrice;
-  } else if (hasAroundWord && amount != null) {
-    // Ungefähr: vorerst als Obergrenze behandeln
-    budgetRange.maxPrice = amount;
-    budgetRange.minPrice = null;
-    note = "Budget (DE): um/circa/ca. wird vorerst als Obergrenze (maxPrice) behandelt";
-    minPrice = budgetRange.minPrice;
-    maxPrice = budgetRange.maxPrice;
-  } else if (amount != null) {
-    // Fallback: einfache Zahl, als Obergrenze interpretieren
-    if (budgetRange.maxPrice == null && budgetRange.minPrice == null) {
-      budgetRange.maxPrice = amount;
-      budgetRange.minPrice = null;
-      note = "Budget (DE): einfache Zahl, als Obergrenze (maxPrice) interpretiert";
-      minPrice = budgetRange.minPrice;
-      maxPrice = budgetRange.maxPrice;
-    }
   }
 
   console.log("[EFRO SB Budget] Parsed budget", {
     rawText,
     hasBudgetWord,
+    hasOver,
+    hasUnder,
     numbersFound,
     budgetRange,
     note,
@@ -1000,8 +1296,9 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
       addAttribute(productId, "family", "soap");
     }
 
-    // NEU: Napf/Fressnapf als eigene Familie "bowl"
-    if (/napf|fressnapf|futternapf/.test(normalized)) {
+    // NEU: Napf/Futternapf als eigene Familie "bowl"
+    // WICHTIG: "fressnapf" wurde entfernt - soll dynamisch über AI gelernt werden
+    if (/napf|futternapf/.test(normalized)) {
       addAttribute(productId, "family", "bowl");
     }
   }
@@ -1809,10 +2106,29 @@ function filterProducts(
     }
   }
 
+  // EFRO Budget-Fix 2025-11-30: Prüfe, ob eine Kategorie-Hint erkannt wurde, aber nicht im Katalog existiert
+  // (z. B. "Bindungen" erkannt, aber keine Bindungen im Katalog)
+  let missingCategoryHint: string | undefined = undefined;
+  if (categoryHintsFromRules.length > 0 && matchedCategories.length === 0 && effectiveCategorySlug === null) {
+    // Eine Kategorie wurde im Text erkannt (z. B. "Bindungen"), aber nicht im Katalog gefunden
+    const firstHint = categoryHintsFromRules[0];
+    const normalizedHint = normalize(firstHint);
+    const existsInCatalog = allCategories.some((cat) => normalize(cat) === normalizedHint);
+    if (!existsInCatalog) {
+      missingCategoryHint = firstHint;
+      console.log("[EFRO SB Category] Missing category hint detected", {
+        text: text.substring(0, 80),
+        missingCategoryHint,
+        note: "Kategorie im Text erkannt, aber nicht im Katalog vorhanden",
+      });
+    }
+  }
+
   console.log("[EFRO SB Category] Effective category", {
     fromText: matchedCategories.length > 0 ? matchedCategories[0] : null,
     fromContext: contextCategory ?? null,
     effective: effectiveCategorySlug,
+    missingCategoryHint: missingCategoryHint ?? null,
   });
 
   // Filtere nach effectiveCategorySlug (entweder aus Text oder aus Kontext)
@@ -1836,6 +2152,110 @@ function filterProducts(
       isBudgetOnly: (userMinPrice !== null || userMaxPrice !== null) && matchedCategories.length === 0,
     });
   } else {
+    // EFRO Fallback-Suche: Wenn keine Kategorie erkannt wurde, suche direkt in Titel/Beschreibung/Tags
+    const hasCategoryFromQuery = !!effectiveCategorySlug;
+    
+    if (!hasCategoryFromQuery) {
+      // Fallback: Suche direkt in Produkten nach Query-Begriffen
+      const normalizedText = normalize(text);
+      const tokens = normalizedText.split(/\s+/).filter((w) => w.length >= 3);
+      
+      // EFRO WAX-Disambiguierung: Unterscheide zwischen Haarwachs und Snowboard-Wachs
+      const hasWaxKeyword = normalizedText.includes("wax") || normalizedText.includes("wachs");
+      const hasHairKeywords = WAX_HAIR_KEYWORDS.some((kw) => normalizedText.includes(kw));
+      const hasSnowboardKeywords = WAX_SNOWBOARD_KEYWORDS.some((kw) => normalizedText.includes(kw));
+      
+      // Prüfe auf explizite Negationen
+      const hasHairNegation = /nicht.*haar|kein.*haar|nicht.*frisur|kein.*frisur/i.test(text);
+      const hasSnowboardNegation = /nicht.*snowboard|kein.*snowboard|nicht.*ski|kein.*ski|nicht.*board|kein.*board/i.test(text);
+      
+      // Intent bestimmen
+      let waxIntent: "hair" | "snowboard" | "unknown" = "unknown";
+      if (hasHairNegation && hasSnowboardKeywords) {
+        waxIntent = "snowboard";
+      } else if (hasSnowboardNegation && hasHairKeywords) {
+        waxIntent = "hair";
+      } else if (hasSnowboardKeywords) {
+        waxIntent = "snowboard";
+      } else if (hasHairKeywords) {
+        waxIntent = "hair";
+      }
+      
+      const fallbackMatches = candidates.filter((p) => {
+        const haystack = (
+          (p.title ?? "") +
+          " " +
+          (p.description ?? "") +
+          " " +
+          (p.category ?? "") +
+          " " +
+          (Array.isArray(p.tags) ? p.tags.join(" ") : "")
+        ).toLowerCase();
+        
+        // EFRO WAX-Disambiguierung: Wenn "wax"/"wachs" im Query ist, prüfe Intent
+        if (hasWaxKeyword) {
+          const hasWaxInTitle = (p.title ?? "").toLowerCase().includes("wax") || 
+                                (p.title ?? "").toLowerCase().includes("wachs");
+          const hasWaxInTags = Array.isArray(p.tags) && p.tags.some((tag: string) => 
+            tag.toLowerCase().includes("wax") || tag.toLowerCase().includes("wachs")
+          );
+          
+          if (hasWaxInTitle || hasWaxInTags) {
+            // Prüfe, ob Produkt zu Intent passt
+            const isSnowboardWax = haystack.includes("snowboard") || 
+                                   haystack.includes("ski") || 
+                                   haystack.includes("belag") ||
+                                   (Array.isArray(p.tags) && p.tags.some((tag: string) => 
+                                     ["sport", "winter", "accessory", "accessories"].includes(tag.toLowerCase())
+                                   ));
+            const isHairWax = haystack.includes("hair") || 
+                             haystack.includes("haar") || 
+                             haystack.includes("styling") ||
+                             haystack.includes("frisur");
+            
+            // Intent-basierte Filterung
+            if (waxIntent === "snowboard" && !isSnowboardWax) {
+              return false; // Haarwachs bei Snowboard-Intent ausschließen
+            }
+            if (waxIntent === "hair" && !isHairWax) {
+              return false; // Snowboard-Wachs bei Hair-Intent ausschließen
+            }
+            
+            return true; // Wax-Produkt gefunden, auch ohne Kategorie
+          }
+        }
+        
+        // Simple ANY-match: mindestens ein Token muss vorkommen
+        return tokens.some((t) => haystack.includes(t));
+      });
+      
+      console.log("[EFRO WAX Disambiguierung]", {
+        text: text.substring(0, 80),
+        hasWaxKeyword,
+        hasHairKeywords,
+        hasSnowboardKeywords,
+        hasHairNegation,
+        hasSnowboardNegation,
+        waxIntent,
+        fallbackMatchesCount: fallbackMatches.length,
+      });
+      
+      if (fallbackMatches.length > 0) {
+        candidates = fallbackMatches;
+        console.log("[EFRO SB Fallback] Keine Kategorie erkannt, Fallback-Suche in Titel/Beschreibung/Tags", {
+          text: text.substring(0, 80),
+          tokens: tokens.slice(0, 5),
+          fallbackMatchesCount: fallbackMatches.length,
+          sampleTitles: fallbackMatches.slice(0, 3).map((p) => p.title),
+          hasWaxKeyword,
+          waxProductsFound: hasWaxKeyword ? fallbackMatches.filter((p) => 
+            (p.title ?? "").toLowerCase().includes("wax") || 
+            (p.title ?? "").toLowerCase().includes("wachs")
+          ).length : 0,
+        });
+      }
+    }
+    
     // Keine Kategorie-Matches und kein Kontext: Log für Budget-only Szenarien
     // WICHTIG: Nur loggen, wenn wirklich kein Kontext vorhanden ist
     if (userMinPrice !== null || userMaxPrice !== null) {
@@ -1937,7 +2357,31 @@ function filterProducts(
   
   // Wort-Classification: Kategorien, Usage, Skin-Keywords erkennen
   const fullTextLower = t.toLowerCase();
+  
+  // EFRO: Integriere dynamische Synonyme in die Kategorie-Erkennung
+  const dynEntries = getDynamicSynonyms();
+  const dynamicCategoryHints: string[] = [];
+  const tokens = fullTextLower.split(/\s+/).filter((w) => w.length >= 3);
+  
+  for (const token of tokens) {
+    const lower = token.toLowerCase();
+    const dyn = dynEntries.find((e) => lower.includes(e.term) || e.term.includes(lower));
+    if (dyn?.canonicalCategory) {
+      dynamicCategoryHints.push(dyn.canonicalCategory);
+      console.log("[EFRO DynamicSynonym] Kategorie aus dynamischem Synonym erkannt", {
+        term: dyn.term,
+        canonicalCategory: dyn.canonicalCategory,
+        token,
+      });
+    }
+  }
+  
   const categoryHints = collectMatches(fullTextLower, CATEGORY_KEYWORDS);
+  // Ergänze dynamische Kategorie-Hints
+  if (dynamicCategoryHints.length > 0) {
+    categoryHints.push(...dynamicCategoryHints);
+  }
+  
   const usageHints = collectMatches(fullTextLower, USAGE_KEYWORDS);
   const skinHints = collectMatches(fullTextLower, SKIN_KEYWORDS);
   
@@ -1984,10 +2428,19 @@ function filterProducts(
 
   // --- EFRO Alias-Preprocessing -----------------------------------------
   // Alias-Map VOR dem Keyword-Matching anwenden, damit unbekannte Begriffe
-  // (z. B. "fressnapf") in bekannte Keywords (z. B. "hunde", "napfset") aufgelöst werden
-  // WICHTIG: Nur catalogKeywords übergeben, NICHT words/expandedWords,
-  // damit User-Wörter wie "fressnapf" als unknownTerm erkannt werden
-  const aliasResult = resolveUnknownTerms(text, catalogKeywords, aliasMap);
+  // in bekannte Keywords aufgelöst werden
+  // EFRO Fressnapf-Fix: "fressnapf" soll NICHT als Alias verwendet werden, sondern als unbekannte Marke behandelt werden
+  // Erstelle eine gefilterte AliasMap ohne "fressnapf"
+  const filteredAliasMap: AliasMap = {};
+  for (const [key, values] of Object.entries(aliasMap)) {
+    const normalizedKey = normalizeAliasKey(key);
+    // Ignoriere "fressnapf" in der AliasMap
+    if (normalizedKey !== "fressnapf") {
+      filteredAliasMap[key] = values;
+    }
+  }
+  
+  const aliasResult = resolveUnknownTerms(text, catalogKeywords, filteredAliasMap);
 
   // Speichere aliasResult für späteren Hard-Filter
   const unknownResult = aliasResult;
@@ -2465,6 +2918,16 @@ function filterProducts(
     maxPrice = null;
   }
 
+  // EFRO Budget-Fix 2025-11-30: Track ob nach Price-Filter keine Produkte gefunden wurden
+  let priceRangeNoMatch = false;
+  let priceRangeInfo: {
+    userMinPrice: number | null;
+    userMaxPrice: number | null;
+    categoryMinPrice: number | null;
+    categoryMaxPrice: number | null;
+    category: string | null;
+  } | undefined = undefined;
+
   if (minPrice !== null || maxPrice !== null) {
     const beforePriceFilter = candidates.length;
       candidates = candidates.filter((p) => {
@@ -2479,12 +2942,50 @@ function filterProducts(
       return true;
     });
     
+    // EFRO Budget-Fix 2025-11-30: Prüfe, ob nach Price-Filter keine Produkte gefunden wurden
+    const candidateCountAfterPriceFilter = candidates.length;
+    if (candidateCountAfterPriceFilter === 0 && beforePriceFilter > 0) {
+      // Es gab eine konkrete Preisangabe, aber keine Produkte im Preisbereich
+      priceRangeNoMatch = true;
+      
+      // Berechne Preis-Informationen für ehrliche Kommunikation
+      const categoryForInfo = effectiveCategorySlug || null;
+      const productsInCategory = categoryForInfo
+        ? allProducts.filter((p) => normalize(p.category || "") === categoryForInfo)
+        : allProducts;
+      
+      const pricesInCategory = productsInCategory
+        .map((p) => p.price ?? 0)
+        .filter((p) => p > 0)
+        .sort((a, b) => a - b);
+      
+      const categoryMinPrice = pricesInCategory.length > 0 ? pricesInCategory[0] : null;
+      const categoryMaxPrice = pricesInCategory.length > 0 ? pricesInCategory[pricesInCategory.length - 1] : null;
+      
+      priceRangeInfo = {
+        userMinPrice: minPrice,
+        userMaxPrice: maxPrice,
+        categoryMinPrice,
+        categoryMaxPrice,
+        category: categoryForInfo,
+      };
+      
+      console.log("[EFRO SB] PRICE RANGE NO MATCH", {
+        text: text.substring(0, 80),
+        beforePriceFilter,
+        afterPriceFilter: candidateCountAfterPriceFilter,
+        priceRangeInfo,
+        note: "Keine Produkte im gewünschten Preisbereich gefunden, aber Fallback wird Produkte zurückgeben",
+      });
+    }
+    
     console.log("[EFRO SB] AFTER PRICE FILTER", {
       text: text.substring(0, 80),
       minPrice,
       maxPrice,
       beforeCount: beforePriceFilter,
       afterCount: candidates.length,
+      priceRangeNoMatch,
       // Sample-Preise für Debugging
       samplePrices: candidates.slice(0, 5).map((p) => p.price ?? 0),
     });
@@ -3136,12 +3637,119 @@ function buildReplyText(
   text: string,
   intent: ShoppingIntent,
   recommended: EfroProduct[],
-  aiTrigger?: SellerBrainAiTrigger
+  aiTrigger?: SellerBrainAiTrigger,
+  priceRangeNoMatch?: boolean,
+  priceRangeInfo?: {
+    userMinPrice: number | null;
+    userMaxPrice: number | null;
+    categoryMinPrice: number | null;
+    categoryMaxPrice: number | null;
+    category?: string | null;
+  },
+  missingCategoryHint?: string
 ): string {
   console.log("[EFRO ReplyText] mode='rule-based'", {
     intent,
     recommendedCount: recommended.length,
+    priceRangeNoMatch,
+    missingCategoryHint,
   });
+
+  // EFRO Budget-Fix 2025-11-30 – PriceRangeNoMatch Reply: Ehrliche Kommunikation, wenn kein Produkt im gewünschten Preisbereich
+  // WICHTIG: Bei priceRangeNoMatch NUR den speziellen Text zurückgeben, KEIN zusätzlicher Standard-Budget-Text
+  if (priceRangeNoMatch && priceRangeInfo) {
+    const { userMinPrice, userMaxPrice, categoryMinPrice, categoryMaxPrice, category } = priceRangeInfo;
+    
+    let priceRangeText = "";
+    if (userMinPrice !== null && userMaxPrice === null) {
+      priceRangeText = `über ${userMinPrice} €`;
+    } else if (userMaxPrice !== null && userMinPrice === null) {
+      priceRangeText = `unter ${userMaxPrice} €`;
+    } else if (userMinPrice !== null && userMaxPrice !== null) {
+      priceRangeText = `zwischen ${userMinPrice} € und ${userMaxPrice} €`;
+    }
+    
+    const categoryLabel = category ? category : "Produkte";
+    
+    // EFRO Budget-Fix 2025-11-30: Sauberer, kurzer Text ohne zusätzliche Budget-Formulierungen
+    let clarifyText = "";
+    if (userMinPrice !== null && userMaxPrice === null) {
+      // "über X" = Untergrenze, aber nichts gefunden
+      if (categoryMinPrice !== null && categoryMaxPrice !== null) {
+        clarifyText = `Im Shop gibt es keine ${categoryLabel} über ${userMinPrice} €. Die vorhandenen ${categoryLabel} liegen zwischen ${categoryMinPrice.toFixed(2)} € und ${categoryMaxPrice.toFixed(2)} €. Wenn du möchtest, kann ich dir die günstigsten oder die Premium-Variante zeigen.`;
+      } else {
+        clarifyText = `Im Shop gibt es keine ${categoryLabel} über ${userMinPrice} €. Wenn du möchtest, kann ich dir die verfügbaren Optionen zeigen.`;
+      }
+    } else if (userMaxPrice !== null && userMinPrice === null) {
+      // "unter X" = Obergrenze, aber nichts gefunden
+      if (categoryMinPrice !== null && categoryMaxPrice !== null) {
+        clarifyText = `Im Shop gibt es keine ${categoryLabel} unter ${userMaxPrice} €. Die vorhandenen ${categoryLabel} liegen zwischen ${categoryMinPrice.toFixed(2)} € und ${categoryMaxPrice.toFixed(2)} €. Wenn du möchtest, kann ich dir die günstigsten oder die Premium-Variante zeigen.`;
+      } else {
+        clarifyText = `Im Shop gibt es keine ${categoryLabel} unter ${userMaxPrice} €. Wenn du möchtest, kann ich dir die verfügbaren Optionen zeigen.`;
+      }
+    } else {
+      // Bereich oder allgemein
+      if (categoryMinPrice !== null && categoryMaxPrice !== null) {
+        clarifyText = `Im Shop gibt es keine ${categoryLabel} im Preisbereich ${priceRangeText}. Die vorhandenen ${categoryLabel} liegen zwischen ${categoryMinPrice.toFixed(2)} € und ${categoryMaxPrice.toFixed(2)} €. Wenn du möchtest, kann ich dir die günstigsten oder die Premium-Variante zeigen.`;
+      } else {
+        clarifyText = `Im Shop gibt es keine ${categoryLabel} im Preisbereich ${priceRangeText}. Wenn du möchtest, kann ich dir die verfügbaren Optionen zeigen.`;
+      }
+    }
+    
+    console.log("[EFRO ReplyText PriceRangeNoMatch]", {
+      priceRangeNoMatch,
+      priceRangeInfo,
+      clarifyTextLength: clarifyText.length,
+      note: "Nur spezieller Text, kein zusätzlicher Standard-Budget-Text",
+    });
+    
+    // EFRO Budget-Fix 2025-11-30: Direkt zurückgeben, KEIN zusätzlicher baseText
+    return clarifyText;
+  }
+
+  // EFRO Budget-Fix 2025-11-30: Spezialfall: Fehlende Kategorie (z. B. "Bindungen" nicht im Katalog)
+  if (missingCategoryHint) {
+    const categoryLabel = missingCategoryHint;
+    
+    // EFRO S9 Fix: "pflege" soll auf "kosmetik" gemappt werden, nicht auf zufällige Kategorie
+    const normalizedHint = normalize(categoryLabel);
+    let alternativeCategory = recommended.length > 0 && recommended[0].category 
+      ? recommended[0].category 
+      : "Produkte";
+    
+    // Spezielle Fallback-Mappings für häufige Kategorien
+    if (normalizedHint === "pflege" || normalizedHint.includes("pflege")) {
+      // Prüfe, ob "kosmetik" im Katalog existiert
+      const hasCosmetics = recommended.some((p) => 
+        normalize(p.category || "").includes("kosmetik") || 
+        normalize(p.category || "").includes("cosmetic")
+      );
+      if (hasCosmetics) {
+        alternativeCategory = recommended.find((p) => 
+          normalize(p.category || "").includes("kosmetik") || 
+          normalize(p.category || "").includes("cosmetic")
+        )?.category || alternativeCategory;
+      }
+    }
+    
+    const clarifyText = `In deinem Katalog finde ich nur ${alternativeCategory}, aber keine ${categoryLabel}. Ich zeige dir die ${alternativeCategory.toLowerCase()}.\n\n` +
+      `Hinweis für den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} – nur ${alternativeCategory} und Zubehör. ` +
+      `Wenn du ${categoryLabel} verkaufen möchtest, solltest du entsprechende Produkte/Kategorien anlegen.`;
+    
+    console.log("[EFRO ReplyText MissingCategory]", {
+      missingCategoryHint,
+      alternativeCategory,
+      clarifyTextLength: clarifyText.length,
+    });
+    
+    // Wenn Produkte vorhanden sind, füge den Hinweis zum normalen Text hinzu
+    if (recommended.length > 0) {
+      const baseText = buildRuleBasedReplyText(text, intent, recommended);
+      return `${clarifyText}\n\n${baseText}`;
+    }
+    
+    return clarifyText;
+  }
 
   // Spezialfall: Nutzer nennt einen unbekannten Produktcode wie "ABC123"
   if (aiTrigger?.reason === "unknown_product_code_only") {
@@ -3329,38 +3937,163 @@ export function runSellerBrain(
   const maxRecommendations = getMaxRecommendationsForPlan(plan);
 
   const explanationMode = detectExplanationMode(cleaned);
+  const previousRecommendedCount = previousRecommended ? previousRecommended.length : 0;
+  
   console.log("[EFRO SellerBrain] explanationMode", {
     text: cleaned,
     explanationMode,
-    previousCount: previousRecommended ? previousRecommended.length : 0,
+    previousCount: previousRecommendedCount,
   });
 
-  // Erklärung zuerst, aber ohne neue Produktauswahl
-  if (explanationMode) {
+  // EFRO S18/S19 Fix: Handle Wax-Erklärungen mit AI-Trigger
+  const waxExplanationInfo = handleWaxExplanation(
+    cleaned,
+    allProducts,
+    explanationMode,
+    previousRecommendedCount
+  );
+
+  // explanationMode ggf. übernehmen (für S18/S19)
+  const effectiveExplanationMode = waxExplanationInfo.explanationMode || explanationMode;
+
+  // EFRO Explanation-Mode: Erkennt Erklärungsanfragen und setzt AI-Trigger
+  if (effectiveExplanationMode) {
+    // EFRO Wax-Fall: Wenn keine Kategorie erkannt wird, suche nach "wachs"/"wax" in Produkten
+    const normalized = normalize(cleaned);
+    const hasCategoryFromQuery = CATEGORY_KEYWORDS && Object.values(CATEGORY_KEYWORDS).some((keywords) =>
+      keywords.some((kw) => normalized.includes(kw.toLowerCase()))
+    );
+    
+    let explanationProducts: EfroProduct[] = [];
+    
+    if (!hasCategoryFromQuery) {
+      // Fallback: Suche nach "wachs" / "wax" in Titel/Beschreibung/Tags
+      const waxRelatedProducts = allProducts.filter((p) => {
+        const haystack = (
+          (p.title ?? "") +
+          " " +
+          (p.description ?? "") +
+          " " +
+          (Array.isArray(p.tags) ? p.tags.join(" ") : "")
+        ).toLowerCase();
+        
+        return haystack.includes("wachs") || haystack.includes("wax");
+      });
+      
+      if (waxRelatedProducts.length > 0) {
+        explanationProducts = waxRelatedProducts.slice(0, 3);
+        console.log("[EFRO Explanation Wax] Wax-Produkte gefunden (keine Kategorie erkannt)", {
+          text: cleaned,
+          waxProductsCount: waxRelatedProducts.length,
+          sampleTitles: explanationProducts.map((p) => p.title),
+        });
+      }
+    }
+    
     const recommended = previousRecommended
       ? previousRecommended.slice(0, maxRecommendations)
+      : explanationProducts.length > 0
+      ? explanationProducts
       : [];
 
-    // AI-Trigger wird hier noch nicht berechnet (explanation mode), daher undefined
-    const replyText =
-      recommended.length > 0
-        ? buildReplyText(cleaned, nextIntent, recommended, undefined)
-        : "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
-          "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
-          "dann kann ich dir die Details dazu erklären.";
+    // EFRO WAX-Fix: Prüfe Beschreibung für Wax-Produkte
+    // Nutze previousRecommended, wenn vorhanden (für Follow-up-Fragen)
+    let hasUsableDescription = false;
+    let waxProductWithDescription: EfroProduct | null = null;
+    
+    // Priorisiere previousRecommended für Follow-up-Fragen
+    const productsToCheck = previousRecommended && previousRecommended.length > 0 
+      ? previousRecommended 
+      : recommended;
+    
+    if (productsToCheck.length > 0) {
+      // Finde das beste Wax-Produkt (falls vorhanden)
+      const waxProduct = productsToCheck.find((p) => {
+        const haystack = ((p.title ?? "") + " " + (p.description ?? "")).toLowerCase();
+        return haystack.includes("wax") || haystack.includes("wachs");
+      }) || productsToCheck[0]; // Fallback: erstes empfohlenes Produkt
+      
+      if (waxProduct) {
+        const desc = (waxProduct.description || "").trim();
+        hasUsableDescription = desc.length >= 30; // Mindestens 30 Zeichen für sinnvolle Beschreibung
+        waxProductWithDescription = hasUsableDescription ? waxProduct : null;
+        
+        console.log("[EFRO WAX Description Check]", {
+          productTitle: waxProduct.title,
+          descriptionLength: desc.length,
+          hasUsableDescription,
+          usingPreviousRecommended: previousRecommended && previousRecommended.length > 0,
+        });
+      }
+    }
 
-    console.log("[EFRO SellerBrain] Explanation mode – no new filtering", {
+    // EFRO Explanation-Mode: AI-Trigger für Erklärungsanfragen setzen
+    const matchedProductsForContext = recommended.slice(0, 3).map((p) => ({
+      id: p.id,
+      title: p.title,
+      category: p.category,
+    }));
+
+    // EFRO Fix: KEIN AI-Trigger für Erklärungen mit Produktbeschreibung
+    // Die Antwort wird direkt aus der Beschreibung generiert (siehe ReplyText-Logik unten)
+    let aiTrigger: SellerBrainAiTrigger | undefined = undefined;
+
+    // EFRO WAX-Fix: ReplyText direkt aus Produktbeschreibung generieren (ohne AI-Call)
+    let replyText = "";
+    if (productsToCheck.length > 0) {
+      if (hasUsableDescription && waxProductWithDescription) {
+        // Beschreibung vorhanden: Direkt aus Produktbeschreibung antworten
+        const description = waxProductWithDescription.description || "";
+        const productTitle = waxProductWithDescription.title || "dieses Produkt";
+        
+        // Extrahiere Schritte aus der Beschreibung (falls strukturiert)
+        const steps = extractStepsFromDescription(description);
+        
+        if (steps.length > 0) {
+          replyText = `Hier ist die Anleitung für ${productTitle}:\n\n` +
+            steps.map((step: string, idx: number) => `${idx + 1}. ${step}`).join("\n");
+        } else {
+          // Fallback: Nutze Beschreibung direkt (gekürzt, falls zu lang)
+          const maxLength = 500;
+          const truncatedDesc = description.length > maxLength 
+            ? description.substring(0, maxLength) + "..."
+            : description;
+          replyText = `Für ${productTitle}:\n\n${truncatedDesc}`;
+        }
+      } else {
+        // Beschreibung fehlt: Ehrliche Antwort ohne AI
+        replyText = "Für dieses Produkt liegt aktuell keine ausführliche Beschreibung im Shop vor. " +
+          "Bitte wenden Sie sich direkt an den Shop oder schauen Sie später noch einmal vorbei.";
+      }
+    } else {
+      replyText = "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
+        "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
+        "dann kann ich dir die Details dazu erklären.";
+    }
+
+    console.log("[EFRO SellerBrain] Explanation mode – Direkt aus Beschreibung", {
       text: cleaned,
       explanationMode,
       previousCount: previousRecommended ? previousRecommended.length : 0,
       usedCount: recommended.length,
       maxRecommendations,
+      hasCategoryFromQuery,
+      waxProductsFound: explanationProducts.length > 0,
+      hasUsableDescription,
+      descriptionLength: waxProductWithDescription ? (waxProductWithDescription.description || "").length : 0,
+      stepsExtracted: hasUsableDescription && waxProductWithDescription 
+        ? extractStepsFromDescription(waxProductWithDescription.description || "").length 
+        : 0,
     });
 
   return {
     intent: nextIntent,
     recommended,
     replyText,
+    explanationMode: true,
+    aiTrigger, // Nur setzen, wenn Beschreibung vorhanden
+    // EFRO WAX-Fix: Debug-Flag für fehlende Beschreibung
+    debugFlags: hasUsableDescription ? undefined : { missingDescription: true },
   };
   }
 
@@ -3390,10 +4123,81 @@ export function runSellerBrain(
   const filterResult = filterProducts(cleaned, nextIntent, allProducts, context?.activeCategorySlug);
   const candidateCount = filterResult.length;
   
+  // EFRO Budget-Fix 2025-11-30: Prüfe, ob nach Price-Filter keine Produkte im gewünschten Preisbereich gefunden wurden
+  const { minPrice: userMinPrice, maxPrice: userMaxPrice } = extractUserPriceRange(cleaned);
+  const hasUserPriceRange = userMinPrice !== null || userMaxPrice !== null;
+  // EFRO Budget-Fix 2025-11-30: Prüfe, ob nach Price-Filter keine Produkte im gewünschten Preisbereich gefunden wurden
+  let priceRangeNoMatch = false;
+  let priceRangeInfo: {
+    userMinPrice: number | null;
+    userMaxPrice: number | null;
+    categoryMinPrice: number | null;
+    categoryMaxPrice: number | null;
+    category?: string | null;
+  } | undefined = undefined;
+  
+  // Prüfe, ob es eine konkrete Preisangabe gab, aber keine Produkte gefunden wurden
+  // (nach Fallback könnten Produkte vorhanden sein, aber nicht im gewünschten Preisbereich)
+  if (hasUserPriceRange) {
+    // Prüfe, ob die gefundenen Produkte wirklich im Preisbereich liegen
+    const productsInPriceRange = filterResult.filter((p) => {
+      const price = p.price ?? 0;
+      if (userMinPrice !== null && price < userMinPrice) return false;
+      if (userMaxPrice !== null && price > userMaxPrice) return false;
+      return true;
+    });
+    
+    // Wenn keine Produkte im Preisbereich gefunden wurden, aber es eine Preisangabe gab
+    if (productsInPriceRange.length === 0) {
+      // Es gibt Produkte, aber nicht im gewünschten Preisbereich
+      priceRangeNoMatch = true;
+      
+      // EFRO Budget-Fix 2025-11-30: Berechne Preis-Informationen für ehrliche Kommunikation
+      // Bestimme die effektive Kategorie aus dem Kontext oder aus den gefilterten Produkten
+      let effectiveCategorySlug: string | null = null;
+      if (context?.activeCategorySlug) {
+        effectiveCategorySlug = normalize(context.activeCategorySlug);
+      } else if (filterResult.length > 0 && filterResult[0].category) {
+        effectiveCategorySlug = normalize(filterResult[0].category);
+      }
+      
+      const productsInCategory = effectiveCategorySlug
+        ? allProducts.filter((p) => normalize(p.category || "") === effectiveCategorySlug)
+        : allProducts;
+      
+      const pricesInCategory = productsInCategory
+        .map((p) => p.price ?? 0)
+        .filter((p) => p > 0)
+        .sort((a, b) => a - b);
+      
+      const categoryMinPrice = pricesInCategory.length > 0 ? pricesInCategory[0] : null;
+      const categoryMaxPrice = pricesInCategory.length > 0 ? pricesInCategory[pricesInCategory.length - 1] : null;
+      
+      priceRangeInfo = {
+        userMinPrice,
+        userMaxPrice,
+        categoryMinPrice,
+        categoryMaxPrice,
+        category: effectiveCategorySlug,
+      };
+      
+      console.log("[EFRO SB] PRICE RANGE NO MATCH detected", {
+        text: cleaned.substring(0, 100),
+        userMinPrice,
+        userMaxPrice,
+        filterResultCount: filterResult.length,
+        productsInPriceRangeCount: productsInPriceRange.length,
+        priceRangeInfo,
+        note: "Keine Produkte im gewünschten Preisbereich gefunden",
+      });
+    }
+  }
+  
   console.log("[EFRO SB] AFTER filterProducts", {
     userText: cleaned.substring(0, 100),
     intent: nextIntent,
     candidateCount,
+    priceRangeNoMatch,
     sampleTitles: filterResult.slice(0, 3).map((p) => p.title),
   });
   
@@ -3501,7 +4305,7 @@ export function runSellerBrain(
       "dann zeige ich dir passende Produkte.";
   } else {
     // AI-Trigger wird später berechnet, hier noch undefined
-    replyText = buildReplyText(cleaned, nextIntent, recommended, undefined);
+    replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined);
   }
 
   // Force-Show-Logik nach allen Guards: Wenn Produkte gefunden wurden, aber recommended leer ist
@@ -3516,7 +4320,7 @@ export function runSellerBrain(
     // Reply-Text neu generieren, wenn noch nicht gesetzt
     // AI-Trigger wird später berechnet, hier noch undefined
     if (!replyText || replyText.includes("helfe dir nur")) {
-      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined);
+      replyText = buildReplyText(cleaned, nextIntent, recommended);
     }
   }
 
@@ -3605,6 +4409,26 @@ export function runSellerBrain(
     descWords.forEach((w) => catalogKeywordsSet.add(w));
   }
   
+  // EFRO: Sammle mögliche Produktcodes (z. B. "XY-9000") für AI-Trigger
+  const possibleProductCodes: string[] = [];
+  const tokens = normalizedText.split(/\s+/);
+  for (const token of tokens) {
+    const lower = token.toLowerCase();
+    const hasLetters = /[a-z]/.test(lower);
+    const hasDigits = /\d/.test(lower);
+    
+    if (hasLetters && hasDigits && looksLikeProductCode(lower)) {
+      // Prüfe, ob Token NICHT durch bekannte Alias-/Kategorie-Maps abgedeckt ist
+      const isKnown = CATEGORY_KEYWORDS && Object.values(CATEGORY_KEYWORDS).some((keywords) =>
+        keywords.some((kw) => lower.includes(kw.toLowerCase()) || kw.toLowerCase().includes(lower))
+      );
+      
+      if (!isKnown && !NON_CODE_TERMS_SET.has(lower)) {
+        possibleProductCodes.push(lower);
+      }
+    }
+  }
+
   const words = normalizedText
     .split(/\s+/)
     .filter((w) => w.length >= 3)
@@ -3836,15 +4660,62 @@ export function runSellerBrain(
   // AI-Trigger initialisieren
   let aiTrigger: SellerBrainAiTrigger | undefined = undefined;
 
-  // 1. Budget-Only-Queries: kein AI-Trigger
-  if (isBudgetOnly) {
-    console.log("[EFRO SB AI-Trigger] Skipped for budget-only query", {
+  // EFRO S14 Fix: Prüfe frühzeitig auf unbekannte Produktcodes (vor Budget-Only-Check)
+  // Diese sollen auch bei Budget-Only-Queries einen AI-Trigger auslösen
+  let hasUnknownProductCode = false;
+  let hasFressnapf = false;
+  let unknownProductCodesForTrigger: string[] = [];
+  
+  // Prüfe possibleProductCodes
+  if (possibleProductCodes.length > 0) {
+    for (const code of possibleProductCodes) {
+      const codeExists = allProducts.some((p) => {
+        const fields: string[] = [];
+        if (typeof (p as any).sku === "string") fields.push((p as any).sku);
+        if (typeof (p as any).title === "string") fields.push((p as any).title);
+        if (typeof (p as any).handle === "string") fields.push((p as any).handle);
+        return fields.some((f) => f.toLowerCase().includes(code));
+      });
+      if (!codeExists) {
+        unknownProductCodesForTrigger.push(code);
+        hasUnknownProductCode = true;
+      }
+    }
+  }
+  
+  // Prüfe auch detectedCodeTerm (wird später im CodeDetect-Block berechnet, hier vorbereiten)
+  if (detectedCodeTerm) {
+    const codeLc = detectedCodeTerm.toLowerCase();
+    const productCodeExistsInCatalogForTrigger = allProducts.some((p) => {
+      const fields: string[] = [];
+      if (typeof (p as any).sku === "string") fields.push((p as any).sku);
+      if (typeof (p as any).title === "string") fields.push((p as any).title);
+      if (typeof (p as any).handle === "string") fields.push((p as any).handle);
+      return fields.some((f) => f.toLowerCase().includes(codeLc));
+    });
+    if (!productCodeExistsInCatalogForTrigger) {
+      hasUnknownProductCode = true;
+    }
+  }
+  
+  // EFRO Fressnapf-Fix: Prüfe, ob "fressnapf" in den unbekannten Begriffen ist
+  hasFressnapf = filteredUnknownTerms.some((t) => 
+    normalizeAliasKey(t) === "fressnapf" || t.toLowerCase().includes("fressnapf")
+  );
+  
+  const hasUnknownBrandOrCode = hasUnknownProductCode || hasFressnapf;
+
+  // 1. Budget-Only-Queries: kein AI-Trigger, AUSSER es gibt unbekannte Produktcodes/Marken
+  if (isBudgetOnly && !hasUnknownBrandOrCode) {
+    console.log("[EFRO SB AI-Trigger] Skipped for budget-only query (no unknown codes/brands)", {
       text: cleaned.substring(0, 100),
       finalCount,
       hasBudgetWord,
       isBudgetOnly,
       originalUnknownCount: aiUnknownTerms.length,
       filteredUnknownCount,
+      hasUnknownProductCode,
+      hasFressnapf,
     });
     // KEIN AI-Trigger → aiTrigger bleibt undefined
   } else {
@@ -3859,6 +4730,25 @@ export function runSellerBrain(
       (matchedCategories && matchedCategories.length > 0) ||
       (categoryHintsInText && categoryHintsInText.length > 0);
     
+    // EFRO Fix: Erklärungs-Intent mit Produkt → KEINE AI
+    // Die Antwort wird direkt aus der Produktbeschreibung generiert (wenn vorhanden)
+    // oder ehrlich kommuniziert, dass keine Beschreibung vorhanden ist (ohne AI)
+    const isExplanationIntent = effectiveExplanationMode !== null;
+    
+    if (isExplanationIntent && hasRecommendations) {
+      // Erklärung + Produkt gefunden → KEINE AI
+      needsAiHelp = false;
+      reason = "";
+      console.log("[EFRO SB AI-Trigger] Skipped for explanation with product match", {
+        text: cleaned.substring(0, 100),
+        explanationMode: effectiveExplanationMode,
+        finalCount,
+        hasRecommendations,
+        note: "Antwort wird direkt aus Produktbeschreibung generiert, keine AI nötig",
+      });
+    } else {
+      // Standard AI-Trigger-Logik für alle anderen Fälle
+      
     // a) Code-Only-Unknown-Fall (soll bleiben)
     // 1.3) AI-Trigger „unknown_product_code_only“ nur im echten Code-Only-Fall erlauben
     // WICHTIG: Wenn ein erfolgreicher AliasMatch vorhanden ist, darf unknown_product_code_only NICHT gesetzt werden
@@ -3883,8 +4773,22 @@ export function runSellerBrain(
       needsAiHelp = true;
       reason = "unknown_product_code_only";
     } else if (finalCount === 0) {
-      needsAiHelp = true;
-      reason = "no_results";
+      // EFRO Fix: Nur AI, wenn auch unbekannte Keywords vorhanden sind
+      // synonymLookupTerms wird weiter unten definiert, daher hier nur filteredUnknownCount prüfen
+      const hasUnknownKeywords = filteredUnknownCount > 0;
+      if (hasUnknownKeywords) {
+        needsAiHelp = true;
+        reason = "no_results_with_unknown_keywords";
+      } else {
+        needsAiHelp = false;
+        reason = "";
+        console.log("[EFRO SB AI-Trigger] Skipped for no results without unknown keywords", {
+          text: cleaned.substring(0, 100),
+          finalCount,
+          filteredUnknownCount,
+          note: "Keine Produkte gefunden, aber auch keine unbekannten Keywords → keine AI",
+        });
+      }
     } else if (filteredUnknownCount > 0 && finalCount > 0) {
       // b) Low-Confidence-Unknown-Terms-Fall: Nur wenn gefilterte Unknown-Terms vorhanden
       needsAiHelp = true;
@@ -3893,12 +4797,56 @@ export function runSellerBrain(
       needsAiHelp = true;
       reason = "many_unknown_terms";
     }
+    }
+
+    // EFRO: Verwende bereits berechnete unknownProductCodesForTrigger
+    const unknownProductCodes = unknownProductCodesForTrigger.length > 0 
+      ? unknownProductCodesForTrigger 
+      : [];
+    
+    // EFRO: Prüfe auf unbekannte Begriffe für Synonym-Lookup (z. B. "fressnapf")
+    // Diese Begriffe sind nicht in CATEGORY_KEYWORDS, nicht in statischen Synonym-Maps,
+    // und nicht in Tag-/Titel-Treffern gefunden
+    const synonymLookupTerms: string[] = [];
+    if (filteredUnknownTerms.length > 0) {
+      // Prüfe, ob Begriffe in dynamischen Synonymen vorhanden sind
+      const dynamicSynonyms = getDynamicSynonyms();
+      const dynamicSynonymTerms = new Set(dynamicSynonyms.map((s) => s.term.toLowerCase()));
+      
+      for (const term of filteredUnknownTerms) {
+        // Wenn Begriff nicht in dynamischen Synonymen und nicht wie ein Produktcode aussieht
+        if (!dynamicSynonymTerms.has(term) && !looksLikeProductCode(term)) {
+          // Prüfe, ob Begriff in Produkten gefunden wurde
+          const foundInProducts = allProducts.some((p) => {
+            const searchText = `${p.title} ${p.description} ${(p.tags || []).join(" ")}`.toLowerCase();
+            return searchText.includes(term);
+          });
+          
+          if (!foundInProducts) {
+            synonymLookupTerms.push(term);
+          }
+        }
+      }
+    }
+    
+    // EFRO: Setze AI-Trigger für unknown_product_code, wenn Codes gefunden wurden
+    if (unknownProductCodes.length > 0 && !needsAiHelp) {
+      needsAiHelp = true;
+      reason = "unknown_product_code";
+    }
+    
+    // EFRO: Setze AI-Trigger für synonym_lookup, wenn unbekannte Begriffe gefunden wurden
+    if (synonymLookupTerms.length > 0 && !needsAiHelp && finalCount === 0) {
+      needsAiHelp = true;
+      reason = "synonym_lookup";
+    }
 
     if (needsAiHelp) {
       aiTrigger = {
         needsAiHelp: true,
         reason,
-        unknownTerms: reason === "unknown_product_code_only" ? [] : filteredUnknownTerms,
+        unknownTerms: reason === "unknown_product_code_only" || reason === "unknown_product_code" ? [] : filteredUnknownTerms,
+        queryForAi: cleaned,
       };
 
       // Code-Term setzen, falls vorhanden
@@ -3910,6 +4858,40 @@ export function runSellerBrain(
         if (codeFromTerms) {
           aiTrigger.codeTerm = codeFromTerms;
         }
+      }
+      
+      // EFRO: Setze unknownProductCodes, falls vorhanden
+      if (unknownProductCodesForTrigger.length > 0) {
+        aiTrigger.unknownProductCodes = unknownProductCodesForTrigger;
+      }
+      
+      // EFRO Fressnapf-Fix: Setze unknownTerms für "fressnapf" als unbekannte Marke
+      if (hasFressnapf) {
+        const fressnapfTerms = filteredUnknownTerms.filter((t) => 
+          normalizeAliasKey(t) === "fressnapf" || t.toLowerCase().includes("fressnapf")
+        );
+        if (fressnapfTerms.length > 0) {
+          aiTrigger.unknownTerms = [...(aiTrigger.unknownTerms || []), ...fressnapfTerms];
+        }
+      }
+      
+      // EFRO S14 Fix: Bei Budget + unbekanntem Code, füge Code zu unknownTerms hinzu
+      if ((reason === "unknown_product_code_with_budget" || reason === "unknown_product_code") && 
+          unknownProductCodesForTrigger.length > 0) {
+        aiTrigger.unknownTerms = [...(aiTrigger.unknownTerms || []), ...unknownProductCodesForTrigger];
+      }
+      
+      // EFRO: Setze unknownTerms für synonym_lookup
+      if (reason === "synonym_lookup" && synonymLookupTerms.length > 0) {
+        aiTrigger.unknownTerms = synonymLookupTerms;
+      }
+      
+      // EFRO Fressnapf-Fix: Setze termExplainRequests für unbekannte Begriffe
+      if (filteredUnknownTerms.length > 0 && (reason === "unknown_term_expansion" || reason === "low_confidence_unknown_terms" || reason === "synonym_lookup")) {
+        aiTrigger.termExplainRequests = filteredUnknownTerms.map((term) => ({
+          term,
+          purpose: "category_guess" as const,
+        }));
       }
       
       console.log("[EFRO SB AI-Trigger] Set", {
@@ -4019,10 +5001,37 @@ export function runSellerBrain(
     });
   }
 
+  // EFRO Budget-Fix 2025-11-30: Prüfe auf fehlende Kategorie (z. B. "Bindungen" nicht im Katalog)
+  let missingCategoryHint: string | undefined = undefined;
+  const categoryHintsFromText = collectMatches(normalize(cleaned).toLowerCase(), CATEGORY_KEYWORDS);
+  if (categoryHintsFromText.length > 0) {
+    const firstHint = categoryHintsFromText[0];
+    const normalizedHint = normalize(firstHint);
+    const allCategories = Array.from(
+      new Set(
+        allProducts
+          .map((p) => normalize(p.category || ""))
+          .filter((c) => c.length >= 3)
+      )
+    );
+    const existsInCatalog = allCategories.some((cat) => normalize(cat) === normalizedHint);
+    if (!existsInCatalog) {
+      missingCategoryHint = firstHint;
+      console.log("[EFRO SB] Missing category hint detected in runSellerBrain", {
+        text: cleaned.substring(0, 100),
+        missingCategoryHint,
+        note: "Kategorie im Text erkannt, aber nicht im Katalog vorhanden",
+      });
+    }
+  }
+
   // Reply-Text mit AI-Klärung neu generieren, falls aiTrigger vorhanden
+  // EFRO Budget-Fix 2025-11-30: priceRangeNoMatch hat Priorität vor AI-Trigger
   let finalReplyText = replyText;
-  if (aiTrigger?.needsAiHelp) {
-    finalReplyText = buildReplyText(cleaned, nextIntent, recommended, aiTrigger);
+  if (priceRangeNoMatch) {
+    finalReplyText = buildReplyText(cleaned, nextIntent, recommended, aiTrigger, priceRangeNoMatch, priceRangeInfo, missingCategoryHint);
+  } else if (aiTrigger?.needsAiHelp || missingCategoryHint) {
+    finalReplyText = buildReplyText(cleaned, nextIntent, recommended, aiTrigger, priceRangeNoMatch, priceRangeInfo, missingCategoryHint);
   }
 
   // Defensive Guard: Stelle sicher, dass replyText niemals leer oder undefined ist
@@ -4044,6 +5053,8 @@ export function runSellerBrain(
     replyTextLength: finalReplyText.length,
     aiTrigger,
     nextContext,
+    priceRangeNoMatch,
+    priceRangeInfo,
   });
 
   return {
@@ -4052,6 +5063,9 @@ export function runSellerBrain(
     replyText: finalReplyText,
     nextContext,
     aiTrigger,
+    priceRangeNoMatch: priceRangeNoMatch || undefined,
+    priceRangeInfo: priceRangeInfo || undefined,
+    missingCategoryHint: missingCategoryHint || undefined,
   };
 }
 

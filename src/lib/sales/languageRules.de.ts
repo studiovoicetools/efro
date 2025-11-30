@@ -15,6 +15,8 @@ export const BUDGET_RANGE_PATTERNS = [
   /zwischen\s+(\d+)\s*(?:€|euro)?\s+und\s+(\d+)\s*(?:€|euro)?/i,
   // "von 400 bis 800"
   /von\s+(\d+)\s*(?:€|euro)?\s+bis\s+(\d+)\s*(?:€|euro)?/i,
+  // "20 bis 30 Euro" oder "20 bis 30 €" (ohne "von")
+  /(\d+)\s*(?:€|euro)?\s+bis\s+(\d+)\s*(?:€|euro)/i,
   // "400-800" oder "400 – 800"
   /(\d+)\s*[-–]\s*(\d+)/,
 ];
@@ -56,6 +58,8 @@ export const BUDGET_AROUND_WORDS = [
 // Kategorie-Keywords: Mapping von Kategorie-Slug zu Suchbegriffen
 export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   snowboard: ["snowboard", "snowboards", "board"],
+  // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
+  bindungen: ["bindungen", "bindung", "binding", "bindings", "snowboard-bindungen", "snowboard-bindung", "snowboardbindungen", "snowboardbindung"],
   haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad"],
   pflege: ["pflege", "shampoo", "duschgel", "seife", "creme", "öl", "oel", "lotion"],
   tierbedarf: ["tier", "tierbedarf", "hund", "hunde", "welpe", "welpen", "katze", "katzen", "kater", "hündin", "futter", "leckerli"],
@@ -440,7 +444,10 @@ export const EXPLANATION_MODE_KEYWORDS = {
     "wie verwende ich",
     "wie benutze ich",
     "wie nutze ich",
+    "wie wende ich",
     "anwendung",
+    "schritt für schritt",
+    "schritt-für-schritt",
   ],
   washing: [
     "wie kann ich das waschen",
@@ -450,6 +457,48 @@ export const EXPLANATION_MODE_KEYWORDS = {
     "pflegehinweis",
   ],
 };
+
+// EFRO WAX-Disambiguierung: Keywords für Haarwachs vs. Snowboard-Wachs
+export const WAX_HAIR_KEYWORDS = [
+  "haare",
+  "haar",
+  "frisur",
+  "frisör",
+  "friseur",
+  "styling",
+  "pomade",
+  "hair",
+  "haarwachs",
+  "haarstyling",
+  "frisurprodukt",
+  "frisurprodukte",
+  "gelf",
+  "gel",
+  "wax für haare",
+  "wax für die haare",
+  "haarwax",
+];
+
+export const WAX_SNOWBOARD_KEYWORDS = [
+  "snowboard",
+  "snowboards",
+  "ski",
+  "skis",
+  "belag",
+  "board",
+  "piste",
+  "kanten",
+  "wax für snowboard",
+  "wax für ski",
+  "ski wax",
+  "snowboard wax",
+  "skiwachs",
+  "snowboardwachs",
+  "winter",
+  "sport",
+  "accessory",
+  "accessories",
+];
 
 // Kern-Produkt-Keywords: Wörter, die immer produktbezogen sind
 export const CORE_PRODUCT_KEYWORDS = [
@@ -467,8 +516,8 @@ export const CORE_PRODUCT_KEYWORDS = [
   "tuch",
   "wipes",
   // Näpfe/Fressnäpfe
+  // WICHTIG: "fressnapf" wurde entfernt - soll dynamisch über AI gelernt werden
   "napf",
-  "fressnapf",
   "futternapf",
   // Reinigungs-/Verschmutzungsbegriffe
   "schmutz",
@@ -635,4 +684,53 @@ export const BUDGET_ONLY_STOPWORDS = [
   "marke",
   "brand",
 ];
+
+// ====================================================================
+// EFRO Dynamic Synonym Infrastructure
+// ====================================================================
+// Diese Infrastruktur ermöglicht es, Synonyme dynamisch zur Laufzeit
+// hinzuzufügen (z. B. durch AI-Lernen), ohne LanguageRules zu ändern.
+
+export type DynamicSynonymEntry = {
+  term: string;              // z. B. ein vom Nutzer verwendeter Begriff
+  canonicalCategory?: string; // z. B. "haustier" oder "pet"
+  extraKeywords?: string[];   // z. B. ["napf", "napfset"]
+};
+
+const dynamicSynonyms: DynamicSynonymEntry[] = [];
+
+/**
+ * Registriert ein dynamisches Synonym zur Laufzeit
+ * Wird typischerweise von der AI-Schicht aufgerufen, nachdem ein unbekannter Begriff
+ * erfolgreich aufgelöst wurde.
+ */
+export function registerDynamicSynonym(entry: DynamicSynonymEntry) {
+  const term = entry.term.toLowerCase().trim();
+  if (!term) return;
+
+  const existing = dynamicSynonyms.find(
+    (e) => e.term.toLowerCase() === term
+  );
+
+  if (existing) {
+    existing.canonicalCategory = entry.canonicalCategory ?? existing.canonicalCategory;
+    if (entry.extraKeywords?.length) {
+      const merged = new Set([...(existing.extraKeywords ?? []), ...entry.extraKeywords]);
+      existing.extraKeywords = Array.from(merged);
+    }
+  } else {
+    dynamicSynonyms.push({
+      term,
+      canonicalCategory: entry.canonicalCategory,
+      extraKeywords: entry.extraKeywords ?? [],
+    });
+  }
+}
+
+/**
+ * Gibt alle registrierten dynamischen Synonyme zurück
+ */
+export function getDynamicSynonyms(): DynamicSynonymEntry[] {
+  return dynamicSynonyms;
+}
 

@@ -263,9 +263,6 @@ export function loadAliasEntries(language: "de" = "de", shopDomain?: string): Al
       if (normalizedValue === "perfume") {
         type = "category";
         mapToCategorySlug = "perfume";
-      } else if (key === "fressnapf") {
-        type = "brand";
-        mapToBrand = "fressnapf";
       } else {
         type = "tag";
         mapToTag = normalizedValue;
@@ -376,7 +373,7 @@ const LANGUAGE_ALIAS_SEEDS: Record<string, string[]> = {
  */
 const LANGUAGE_ALIAS_KEYS = new Set([
   "parfum", "parfüm", "perfüm", "parfume", "perfume",
-  "fressnapf", "napf", "napfset", // Bestehende manuelle Aliase
+  "napf", "napfset", // Bestehende manuelle Aliase (fressnapf entfernt - soll dynamisch gelernt werden)
 ]);
 
 /**
@@ -504,7 +501,6 @@ export function initializeAliasMap(
       aliasKeys: Object.keys(map).slice(0, 20),
       aliasKeysCount: Object.keys(map).length,
       entriesCount: entries.length,
-      fressnapfEntry: map["fressnapf"] || null,
       parfumEntry: map[parfumKey] || null,
       parfümEntry: map[parfümKey] || null,
       hasPerfumeInKnown: known.has("perfume"),
