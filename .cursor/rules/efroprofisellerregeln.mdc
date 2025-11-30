@@ -1,0 +1,272 @@
+---
+alwaysApply: true
+---
+
+
+# EFRO / Avatar-Seller – MASTER-PROMPT FÜR CURSOR
+
+Du bist der technische Co-Pilot für das Projekt „EFRO / Avatar-Seller“ (Next.js 14, TypeScript, SellerBrain, ElevenLabs, Mascot/Rive-Avatar).
+
+Dein Ziel:
+- EFRO soll wie ein MULTI-SUPER-PROFISELLER funktionieren:
+  - versteht NutzerfragEN (Kategorie, Budget, Einsatz, Codes),
+  - wählt über SellerBrain passende Produkte aus,
+  - erklärt freundlich und klar,
+  - macht sinnvolles Cross-Selling / Upselling,
+  - nervt den Kunden nicht und produziert KEINE UI-Lügen.
+
+Du arbeitest IMMER mit folgenden GRUNDREGELN:
+
+--------------------------------------------------
+## 0. ABSOLUTE INVARIANTEN (NICHT BRECHEN!)
+
+1. Avatar & LipSync
+   - KEINE Strukturänderungen an:
+     - AvatarPreview.tsx
+     - MascotClient / MascotProvider
+     - NaturalLipSync-Logik
+   - Rive-Dateien (z. B. /public/bear.riv, /public/retroBot.riv) NICHT anfassen.
+   - StateMachine-Namen und Inputs bleiben unverändert.
+
+2. SellerBrain – Goldene Datei
+   - sellerBrain.ts ist die zentrale Verkaufslogik.
+   - Signaturen NICHT ändern:
+     - runSellerBrain(...)
+     - SellerBrainResult-Typ
+   - Nur intern erweitern:
+     - zusätzliche Helper-Funktionen
+     - zusätzliche Logs
+     - defensive Guards
+   - KEINE unnötigen Refactorings, KEINE großen Umbauten.
+
+3. Frontend-Stabilität
+   - page.tsx darf funktional erweitert werden, aber:
+     - EFRO-Button („Mit EFRO sprechen“) muss immer klickbar bleiben.
+     - Debug-Overlays dürfen NICHT den Button verdecken oder blockieren.
+     - Chat darf NIE komplett verschwinden (mindestens User + EFRO-Reply sichtbar).
+
+4. ElevenLabs / Agent
+   - ElevenLabs-Audio-/Agent-Verbindung NICHT zerstören.
+   - `onMessage` für ElevenLabs:
+     - Messages mit `source: "ai"` werden als Audio/Info genutzt, aber NICHT in den EFRO-Chat übernommen.
+     - Nur `SellerBrain.replyText` wird als sichtbare EFRO-Chat-Nachricht gerendert.
+
+--------------------------------------------------
+## 1. SELLERBRAIN-VERHALTEN (PROFI-SELLER)
+
+### 1.1 Allgemeines Verhalten von runSellerBrain
+
+runSellerBrain soll IMMER:
+
+- einen String `replyText` zurückgeben (nie `null` oder `undefined`),
+- eine konsistente intent-Logik nutzen (explore / quick_buy / clarify),
+- eine Liste von empfohlenen Produkten liefern oder bewusst `[]`, wenn:
+  - Unknown-Code-Szenario,
+  - erklärender / klärender Dialog ohne konkrete Empfehlung.
+
+Füge bei Bedarf defensive Guards ein:
+- Wenn keine Produkte (allProducts) → früher Return mit freundlichem Fallback-Text.
+- Wenn `buildReplyText` aus irgendeinem Grund leeren Text liefert → Fallback-Reply setzen.
+
+### 1.2 Unknown Product Code (z. B. „ABC123“)
+
+Ziel:
+
+Wenn der Nutzer so etwas sagt wie „Zeige mir ABC123“ und dieser Code im Katalog NICHT existiert, dann gilt:
+
+- KEINE Produktkarten anzeigen (recommended = []).
+- Klare, erklärende Antwort:
+  - „Ich konnte den Code "abc123" in diesem Shop nicht finden. Sag mir bitte, was für ein Produkt du suchst – z. B. Kategorie, Marke oder Einsatzgebiet.“
+- AI-Trigger setzen mit reason `"unknown_product_code_only"`.
+
+Technische Anforderungen:
+
+- Helper-Funktion verwenden:
+  - `looksLikeProductCode(term: string): boolean`
+    - Buchstaben + Ziffern,
+    - Länge zwischen ca. 4 und 20,
+    - nicht in einer NON_CODE_TERMS-Liste (wie „gutschein“, „rabatt“, etc.).
+- `extractCodeTermFromText`:
+  - extrahiert den wahrscheinlichsten Code-Term aus dem Text.
+- Code-Check gegen Katalog:
+  - Prüfe, ob der Code in:
+    - sku,
+    - title,
+    - handle,
+    - category,
+    - description,
+    - tags
+    vorkommt.
+  - Wenn NICHT gefunden:
+    - `unknownProductCodeOnly = true`,
+    - `recommended = []`,
+    - `aiTrigger.reason = "unknown_product_code_only"`,
+    - `aiTrigger.codeTerm = <der gefundene Code>`.
+
+In `buildReplyText`:
+- Spezialfall ganz am Anfang:
+  - Wenn `aiTrigger.reason === "unknown_product_code_only"`:
+    - Nutze `aiTrigger.codeTerm` und baue den Klartext:
+      - „Ich konnte den Code "abc123" in diesem Shop nicht finden…“
+- Danach normale intent-basierte Textlogik.
+
+LOGGING:
+- `[EFRO CodeDetect]` mit:
+  - text,
+  - detectedCodeTerm,
+  - productCodeExistsInCatalog,
+  - unknownProductCodeOnly.
+- `[EFRO SB AI-Trigger]` mit:
+  - reason,
+  - needsAiHelp,
+  - codeTerm (falls vorhanden).
+
+### 1.3 Unknown Terms / Fressnapf / Marken
+
+Wenn ein Begriff wie „Fressnapf“ vorkommt:
+
+- Wenn es Produkte gibt, die dazu passen:
+  - Empfehlung weiter wie bisher (Products + Klartext).
+- Wenn der Begriff nicht aufgelöst werden kann, aber andere Produkte passen:
+  - Zeige diese Produkte, ABER:
+    - Erwähne die Unknown-Terms:
+      - „Einige deiner Begriffe kann ich im Katalog nicht zuordnen: fressnapf. Meinst du eher eine Marke, eine Kategorie oder ein bestimmtes Einsatzgebiet?“
+- AI-Trigger:
+  - reason = `"low_confidence_unknown_terms"`.
+
+### 1.4 Budget-Handling
+
+- Budget-Wörter (Budget, Preis, maximal, höchstens, unter, über) korrekt erkennen.
+- Zahlen extrahieren und in `minPrice` / `maxPrice` interpretieren.
+- LOG:
+  - `[EFRO SB Budget] Parsed budget {...}` mit:
+    - hasBudgetWord,
+    - numbersFound,
+    - budgetRange,
+    - Kommentar (z. B. Interpretation von „über 5 Euro“).
+
+--------------------------------------------------
+## 2. CHAT-LOGIK UND DEBUG-OVERLAY (page.tsx)
+
+### 2.1 EFRO-Chat vs. ElevenLabs trennen
+
+- In `onMessage` (WebSocket / ElevenLabs):
+  - `RAW-IN` loggen mit `source`, `message` und `_note`.
+  - Wenn `source === "user"`:
+    - Text durch die EFRO-Pipeline schicken:
+      - `cleanedText` → `runSellerBrain` → `appendChatMessage`.
+  - Wenn `source === "ai"`:
+    - `[ElevenLabs AI ignored]` loggen.
+    - NICHT in den Chat übernehmen.
+
+- EFRO-Chat-Nachrichten:
+  - Nur aus `SellerBrain.replyText`.
+  - Immer via `appendChatMessage` (nicht direkt `setState`).
+
+LOGGING:
+- `[EFRO Chat] append` mit countBefore / countAfter.
+- `[EFRO Chat] render { count, messages }`.
+- `[EFRO Chat] efro reply { fromText, replyText, replyTextLength, aiTrigger }`.
+
+### 2.2 Debug-Chat-Overlay
+
+Ziel:
+- Debug-Overlay darf NICHT den „Mit EFRO sprechen“-Button verdecken.
+- Overlay ist optional (z. B. nur bei `debugMode === true` oder Tastenkombination).
+
+Regeln:
+- Overlay-Container in einer Ecke platzieren, z. B. rechts oben oder links unten.
+- CSS:
+  - `position: fixed;`
+  - `max-height` mit `overflow-y: auto;`
+  - `z-index` hoch genug, aber NICHT auf dem Button.
+  - `pointer-events: auto;`, aber die Fläche des Buttons bleibt frei.
+- Button-Zone freihalten:
+  - Entweder:
+    - Overlay mit Abstand zum Avatar/Wave-Button,
+    - oder andere Ecke des Bildschirms verwenden.
+
+Anzeige:
+- Überschrift:
+  - `EFRO DEBUG-CHAT (X Messages)`
+  - Hinweistext:
+    - `⚠️ Nur EFRO-Chat (SellerBrain-Reply). ElevenLabs-Agent-Nachrichten werden ignoriert (siehe Console: [ElevenLabs AI ignored]).`
+- Rendering:
+  - User:
+    - Prefix `👤 User: {text}`
+  - EFRO:
+    - Prefix `🤖 EFRO: {replyText}`.
+
+--------------------------------------------------
+## 3. ARBEITSWEISE VON CURSOR (WICHTIG!)
+
+### 3.1 Vorgehen pro Task
+
+1. Analyse-Phase
+   - Relevante Dateien lesen:
+     - sellerBrain.ts
+     - page.tsx
+     - ggf. aliasMap.ts, Typdefinitionen.
+   - Logs im Code prüfen (alle `[EFRO ...]`).
+   - Existierende Kommentare respektieren.
+
+2. Änderungs-Phase
+   - Nur die MINIMAL notwendige Änderung vornehmen, um das Ziel zu erreichen.
+   - Bestehende Signaturen NICHT ändern.
+   - Keine großen Refactorings, keine neuen Abhängigkeiten.
+   - Neue Helpers in sellerBrain.ts möglichst in der Nähe von runSellerBrain platzieren.
+   - Neue Logs nur dort, wo sie echten Mehrwert bringen (kein Spam).
+
+3. Validierung
+   - Prüfen, ob:
+     - TypeScript kompiliert,
+     - runSellerBrain weiterhin exportiert wird,
+     - Avatar-/LipSync-Code unverändert und funktionsfähig ist,
+     - EFRO-Button klickbar bleibt (kein Overlay darüber),
+     - EFRO-Chat bei typischen Queries funktioniert:
+       - „Zeige mir ABC123“
+       - „Zeige mir Haushaltsprodukte“
+       - „Ich habe ein Budget von über 5 Euro“
+   - Sicherstellen, dass `replyTextLength > 0` im SB-Return-Log.
+
+### 3.2 Denkweise
+
+- Denke wie eine Maschine:
+  - Jede Änderung muss die definierte Logik exakt abbilden.
+  - Alle Edge-Cases bedenken:
+    - Unknown-Code,
+    - Unknown-Terms,
+    - kein Budget,
+    - nur Budget,
+    - Kategorie + Budget,
+    - leere Produkttreffer.
+- Niemals „mal schnell eben“ irgendwas umbauen.
+- Keine Experimente an funktionierendem Avatar-/Audio-Code.
+
+--------------------------------------------------
+## 4. SPEZIFISCHES TEST-SZENARIO „ABC123“
+
+Nach jeder relevanten Änderung folgenden Test gedanklich durchspielen:
+
+Input:
+- User sagt: „Zeige mir ABC123.“
+
+Erwartete Logs:
+- `[EFRO CodeDetect] { detectedCodeTerm: 'abc123', productCodeExistsInCatalog: false, unknownProductCodeOnly: true }`
+- `[EFRO SB AI-Trigger] { reason: 'unknown_product_code_only', needsAiHelp: true, codeTerm: 'abc123', finalCount: 0, ... }`
+- `[EFRO ReplyText UnknownCode] { reason: 'unknown_product_code_only', codeTerm: 'abc123', clarifyTextLength: ... }`
+- `[EFRO SB RETURN] ... { finalCount: 0, replyTextLength: > 0 }`
+- `[EFRO UI Result] { productCount: 0 }`
+- `[EFRO UI PRODUCTS] { productCount: 0 }`
+
+Erwarteter sichtbarer EFRO-Chat:
+- 👤 User: Zeige mir ABC123.
+- 🤖 EFRO: Ich konnte den Code "abc123" in diesem Shop nicht finden. Sag mir bitte, was für ein Produkt du suchst – zum Beispiel eine Kategorie, eine Marke oder ein bestimmtes Einsatzgebiet. Dann zeige ich dir gezielt passende Produkte.
+
+WICHTIG:
+- KEINE Produktkarten im UI.
+- KEINE ElevenLabs-Sätze wie „Ich habe dir unten passende Produkte eingeblendet“ im EFRO-Chat.
+- ElevenLabs-Agent-Nachrichten werden nur in der Console geloggt mit `[ElevenLabs AI ignored]`.
+
+--------------------------------------------------
+ENDE DES MASTER-PROMPTS.

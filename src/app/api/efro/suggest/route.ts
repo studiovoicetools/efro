@@ -5,7 +5,11 @@ import type {
   ShoppingIntent,
   EfroProduct,
 } from "@/lib/products/mockCatalog";
-import { runSellerBrain } from "../../../../lib/sales/sellerBrain";
+import {
+  runSellerBrain,
+  type SellerBrainContext,
+  type SellerBrainAiTrigger,
+} from "../../../../lib/sales/sellerBrain";
 import { logEfroEventServer } from "@/lib/efro/logEventServer";
 
 type SuggestResponse = {
@@ -16,9 +20,8 @@ type SuggestResponse = {
   productCount: number;
   productsSource: string;
   sellerBrain?: {
-    nextContext?: {
-      activeCategorySlug?: string | null;
-    } | null;
+    nextContext?: SellerBrainContext | null;
+    aiTrigger?: SellerBrainAiTrigger;
   };
 };
 
@@ -79,12 +82,16 @@ export async function GET(req: NextRequest) {
       shop
     );
 
+    // Context aus Query-Parameter (optional, für GET vorerst nicht genutzt)
+    const context: SellerBrainContext | undefined = undefined;
+
     const brainResult = runSellerBrain(
       text,
       prevIntent,
       products,
       planParam,
-      undefined // previousRecommended wird in GET vorerst nicht genutzt
+      undefined, // previousRecommended wird in GET vorerst nicht genutzt
+      context
     );
 
     const payload: SuggestResponse = {
@@ -94,6 +101,10 @@ export async function GET(req: NextRequest) {
       recommended: brainResult.recommended,
       productCount: products.length,
       productsSource: source,
+      sellerBrain: {
+        nextContext: brainResult.nextContext ?? null,
+        aiTrigger: brainResult.aiTrigger,
+      },
     };
 
     // Event-Logging nach erfolgreichem SellerBrain-Call
@@ -214,6 +225,7 @@ export async function POST(req: NextRequest) {
       productsSource: source,
       sellerBrain: {
         nextContext: brainResult.nextContext ?? null,
+        aiTrigger: brainResult.aiTrigger,
       },
     };
 

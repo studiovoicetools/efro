@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
-    "prebuild": "node prebuild.cjs"
+    "prebuild": "node prebuild.cjs",
+    "test:efro": "tsx tests/efro-sellerBrain-tests.ts"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
@@ -39,6 +40,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.3",
     "ts-node": "^10.9.2",
+    "tsx": "^4.0.0",
     "typescript": "^5.9.3"
   }
 }

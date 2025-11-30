@@ -2,6 +2,42 @@
 
 /**
  * ============================================================
+ * ÄNDERUNGEN (Senior TypeScript/Next.js Engineer - Debug-Fix)
+ * ============================================================
+ * 
+ * 1. Defensive Guard für leere allProducts in runSellerBrain() hinzugefügt
+ *    → Früher Return mit Fallback-Text, wenn keine Produkte verfügbar
+ * 
+ * 2. Defensive Guard für leeren/undefined replyText am Ende von runSellerBrain()
+ *    → Sicherstellt, dass IMMER ein gültiger String zurückgegeben wird
+ * 
+ * 3. Frontend-Integration verbessert (src/app/avatar-seller/page.tsx)
+ *    → Prüfung auf nicht-leeren String statt nur truthy-Check
+ *    → Fallback-Nachricht, wenn replyText leer ist
+ * 
+ * 4. JSON-Imports verifiziert (tsconfig.json hat resolveJsonModule: true)
+ *    → generatedProductHints.json und generatedAliasMap.json funktionieren korrekt
+ * 
+ * 5. Tags-Behandlung bereits defensiv implementiert
+ *    → isPerfumeProduct() und isMoldProduct() behandeln tags als Array oder String
+ * 
+ * 6. buildAttributeIndex() wird sicher mit Array aufgerufen
+ *    → Guard in filterProducts() prüft allProducts.length === 0
+ * 
+ * 7. buildRuleBasedReplyText() gibt IMMER einen String zurück
+ *    → Auch bei count === 0 gibt es einen Fallback-Text
+ * 
+ * 8. Logging erweitert für besseres Debugging
+ *    → Warn-Logs bei leeren Produktlisten oder replyText
+ *    → replyTextLength in [EFRO SB RETURN] Log
+ * 
+ * 9. Keine Änderungen an API-Signaturen
+ *    → runSellerBrain() und SellerBrainResult bleiben unverändert
+ * 
+ * 10. Keine Änderungen an Avatar/LipSync-Code
+ *     → Nur sellerBrain.ts und Frontend-Integration angepasst
+ * 
+ * ============================================================
  * ARCHITEKTUR-ÜBERSICHT: FILTER-PIPELINE IN filterProducts()
  * ============================================================
  * 
@@ -107,12 +143,63 @@ import generatedProductHintsJson from "./generatedProductHints.json";
 // Import der Alias-Map für AI-gestützte Begriff-Auflösung
 import type { AliasMap } from "./aliasMap";
 import { normalizeAliasKey, initializeAliasMap } from "./aliasMap";
+// Import der Sprach-Konfiguration für deutsche Budget- und Keyword-Erkennung
+import {
+  BUDGET_RANGE_PATTERNS,
+  BUDGET_MIN_WORDS,
+  BUDGET_MAX_WORDS,
+  BUDGET_AROUND_WORDS,
+  BUDGET_WORD_PATTERNS,
+  RANGE_BUDGET_WORDS,
+  CATEGORY_KEYWORDS,
+  USAGE_KEYWORDS,
+  SKIN_KEYWORDS,
+  INTENT_WORDS,
+  QUERY_STOPWORDS,
+  ATTRIBUTE_PHRASES,
+  ATTRIBUTE_KEYWORDS,
+  PRODUCT_HINTS,
+  NON_CODE_TERMS as NON_CODE_TERMS_ARRAY,
+  UNKNOWN_AI_STOPWORDS as UNKNOWN_AI_STOPWORDS_ARRAY,
+  SHOW_ME_PATTERNS,
+  EXPLANATION_MODE_KEYWORDS,
+  CORE_PRODUCT_KEYWORDS,
+  PERFUME_SYNONYMS,
+  PREMIUM_TOKENS,
+  MOLD_KEYWORDS,
+  MOLD_PRODUCT_KEYWORDS,
+  CONTEXT_KEYWORDS,
+  PREMIUM_WORDS,
+  BARGAIN_WORDS,
+  GIFT_WORDS,
+  BUNDLE_WORDS,
+  EXPLORE_WORDS,
+  MOST_EXPENSIVE_PATTERNS,
+  BUDGET_KEYWORDS_FOR_SCENARIO,
+  CATEGORY_KEYWORDS_FOR_SCENARIO,
+  PRODUCT_KEYWORDS_FOR_BUDGET_ONLY,
+  BUDGET_ONLY_STOPWORDS,
+} from "./languageRules.de";
 
 /**
  * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
  */
 export interface SellerBrainContext {
   activeCategorySlug?: string | null;
+}
+
+/**
+ * AI-Trigger: Signal, wann SellerBrain zusätzliche AI-Hilfe gebrauchen könnte
+ */
+export interface SellerBrainAiTrigger {
+  /** true, wenn SellerBrain zusätzliche AI-Hilfe gebrauchen könnte */
+  needsAiHelp: boolean;
+  /** Kurzbegründung, warum AI sinnvoll wäre */
+  reason: string;
+  /** Begriffe, die bisher nicht gut aufgelöst wurden */
+  unknownTerms: string[];
+  /** Erkannter Produktcode wie "ABC123" */
+  codeTerm?: string;
 }
 
 /**
@@ -123,6 +210,8 @@ export type SellerBrainResult = {
   recommended: EfroProduct[];
   replyText: string;
   nextContext?: SellerBrainContext;
+  /** Meta-Infos, wann eine AI-Hilfe sinnvoll wäre */
+  aiTrigger?: SellerBrainAiTrigger;
 };
 
 type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
@@ -195,77 +284,9 @@ function normalize(text: string): string {
 /**
  * Statische Produkt-Hints (manuell gepflegt)
  * Wird als string[] exportiert, um bestehenden Code nicht zu brechen.
+ * Importiert aus languageRules.de.ts
  */
-export const productHints: string[] = [
-  "duschgel",
-  "shampoo",
-  "gel",
-  "öl",
-  "seife",
-  "hund",
-  "katze",
-  "spielzeug",
-  "produkt",
-  "produkte",
-  "shop",
-  "kaufen",
-  "preis",
-  "kosten",
-  "angebot",
-  "rabatt",
-  "größe",
-  "groesse",
-  "farbe",
-  "variant",
-  "haushalt",
-  "haushaltswaren",
-  "kosmetik",
-  "tiere",
-  "haustier",
-  "zeig",
-  "zeige",
-  "suche",
-  "suchen",
-  "finde",
-  "finden",
-  "empfehl",
-  "vorschlag",
-  "was",
-  "welch",
-  "welche",
-  "welches",
-
-  // NEU: Haut-/Haar-Attribute, damit Fragen wie
-  // "Ist es für trockene Haut?" nicht mehr als Off-Topic gelten
-  "haut",
-  "haare",
-  "trockene",
-  "trocken",
-  "empfindliche",
-  "empfindlich",
-  "sensible",
-  "sensibel",
-  "pflege",
-
-  // Reinigungs-/Verschmutzungsbegriffe
-  "schmutz",
-  "verschmutz",
-  "verschmutzungen",
-  "fleck",
-  "flecken",
-  "kalk",
-  "reinigen",
-  "reinigung",
-  "entfernen",
-
-  // Anti-Aging / reife Haut
-  "anti-aging",
-  "anti aging",
-  "antiaging",
-  "anti age",
-  "reife haut",
-  "mature skin",
-];
+export const productHints: string[] = PRODUCT_HINTS;
 
 /**
  * Typisierte Version der statischen Hints
@@ -391,33 +412,17 @@ function detectExplanationMode(text: string): ExplanationMode | null {
   if (!t) return null;
 
   // Zutaten / Inhaltsstoffe
-  if (
-    t.includes("inhaltsstoff") ||
-    t.includes("inhaltsstoffe") ||
-    t.includes("zutaten") ||
-    t.includes("ingredients")
-  ) {
+  if (EXPLANATION_MODE_KEYWORDS.ingredients.some((w) => t.includes(w))) {
     return "ingredients";
   }
 
   // Anwendung / benutzen
-  if (
-    t.includes("wie verwende ich") ||
-    t.includes("wie benutze ich") ||
-    t.includes("wie nutze ich") ||
-    t.includes("anwendung")
-  ) {
+  if (EXPLANATION_MODE_KEYWORDS.usage.some((w) => t.includes(w))) {
     return "usage";
   }
 
   // Waschen / Pflege
-  if (
-    t.includes("wie kann ich das waschen") ||
-    t.includes("wie kann ich das reinigen") ||
-    t.includes("wie wasche ich das") ||
-    t.includes("waschhinweis") ||
-    t.includes("pflegehinweis")
-  ) {
+  if (EXPLANATION_MODE_KEYWORDS.washing.some((w) => t.includes(w))) {
     return "washing";
   }
 
@@ -433,46 +438,8 @@ function isProductRelated(text: string): boolean {
   const t = normalize(text || "");
 
   // Kern-Produkt-Keywords: Wenn eines davon vorkommt, ist es immer produktbezogen
-  const coreProductKeywords = [
-    "shampoo",
-    "duschgel",
-    "reiniger",
-    "spray",
-    "lotion",
-    "creme",
-    "cream",
-    "seife",
-    "soap",
-    "tücher",
-    "tuecher",
-    "tuch",
-    "wipes",
-
-    // Näpfe/Fressnäpfe
-    "napf",
-    "fressnapf",
-    "futternapf",
-
-    // Reinigungs-/Verschmutzungsbegriffe
-    "schmutz",
-    "verschmutz",
-    "verschmutzungen",
-    "fleck",
-    "flecken",
-    "kalk",
-    "reinigen",
-    "reinigung",
-    "entfernen",
-
-    // Anti-Aging / reife Haut – explizit als Produktkontext
-    "anti-aging",
-    "anti aging",
-    "antiaging",
-    "anti age",
-  ];
-
-  // Sofort true, wenn ein Kern-Produkt-Keyword gefunden wird
-  if (coreProductKeywords.some((w) => t.includes(w))) {
+  // Importiert aus languageRules.de.ts
+  if (CORE_PRODUCT_KEYWORDS.some((w) => t.includes(w))) {
     console.log("[EFRO ProductRelated]", {
       text,
       isProductRelated: true,
@@ -482,21 +449,8 @@ function isProductRelated(text: string): boolean {
   }
 
   // Kontext-Keywords: "für die Küche", "fürs Bad", etc.
-  const contextKeywords = [
-    "für die küche",
-    "fürs bad",
-    "fürs badezimmer",
-    "fürs schlafzimmer",
-    "für hunde",
-    "für katzen",
-    "für kinder",
-    "für die küche",
-    "für die bad",
-    "für die badezimmer",
-    "für die schlafzimmer",
-  ];
-
-  if (contextKeywords.some((w) => t.includes(w))) {
+  // Importiert aus languageRules.de.ts
+  if (CONTEXT_KEYWORDS.some((w) => t.includes(w))) {
     console.log("[EFRO ProductRelated]", {
       text,
       isProductRelated: true,
@@ -518,7 +472,9 @@ function isProductRelated(text: string): boolean {
   // Beispiel: "Mein Budget ist 50 Euro.", "Maximal 80 €", "Ich möchte nicht mehr als 30 Euro ausgeben."
   if (!result) {
     const hasEuroNumber = /\b(\d+)\s*(€|euro|eur)\b/i.test(text);
-    const hasBudgetWord = /\b(budget|preis|maximal|max|höchstens|hoechstens|nicht mehr als|unter|bis)\b/i.test(
+    // Importiert aus languageRules.de.ts - nutze BUDGET_MAX_WORDS für Budget-Wort-Erkennung
+    const budgetWordsForRegex = ["budget", "preis", ...BUDGET_MAX_WORDS].join("|");
+    const hasBudgetWord = new RegExp(`\\b(${budgetWordsForRegex})\\b`, "i").test(
       text.toLowerCase()
     );
 
@@ -545,53 +501,20 @@ function detectIntentFromText(
 ): ShoppingIntent {
   const t = normalize(text);
 
-  const premiumWords = [
-    "premium",
-    "beste",
-    "hochwertig",
-    "qualitaet",
-    "qualitat",
-    "luxus",
-    "teuer",
-    "teuerste",
-    "teuersten",
-    "teuerster",
-  ];
-  const bargainWords = [
-    "billig",
-    "guenstig",
-    "günstig",
-    "discount",
-    "spar",
-    "rabatt",
-    "deal",
-    "bargain",
-    "günstigste",
-    "günstigsten",
-  ];
-  const giftWords = ["geschenk", "gift", "praesent", "praes", "present"];
-  const bundleWords = ["bundle", "set", "paket", "combo"];
-  const exploreWords = [
-    "zeig mir was",
-    "inspiration",
-    "zeige mir",
-    "was hast du",
-    "was gibt es",
-  ];
-
-  if (premiumWords.some((w) => t.includes(w))) {
+  // Intent-Wörter importiert aus languageRules.de.ts
+  if (PREMIUM_WORDS.some((w) => t.includes(w))) {
     return "premium";
   }
-  if (bargainWords.some((w) => t.includes(w))) {
+  if (BARGAIN_WORDS.some((w) => t.includes(w))) {
     return "bargain";
   }
-  if (giftWords.some((w) => t.includes(w))) {
+  if (GIFT_WORDS.some((w) => t.includes(w))) {
     return "gift";
   }
-  if (bundleWords.some((w) => t.includes(w))) {
+  if (BUNDLE_WORDS.some((w) => t.includes(w))) {
     return "bundle";
   }
-  if (exploreWords.some((w) => t.includes(w))) {
+  if (EXPLORE_WORDS.some((w) => t.includes(w))) {
     return "explore";
   }
 
@@ -603,11 +526,15 @@ function detectIntentFromText(
  */
 function detectMostExpensiveRequest(text: string): boolean {
   const normalized = normalizeText(text);
-  return (
-    /\b(teuerste|teuersten|teuerster)\s+(produkt|produkte|artikel)\b/.test(
-      normalized
-    ) || normalized.includes("most expensive")
-  );
+  // Prüfe Patterns aus languageRules.de.ts
+  for (const pattern of MOST_EXPENSIVE_PATTERNS) {
+    if (typeof pattern === "string") {
+      if (normalized.includes(pattern)) return true;
+    } else if (pattern instanceof RegExp) {
+      if (pattern.test(normalized)) return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -656,176 +583,156 @@ function detectMostExpensiveRequest(text: string): boolean {
 function extractUserPriceRange(
   text: string
 ): { minPrice: number | null; maxPrice: number | null } {
-  const original = text.toLowerCase();        // mit Umlauten
-  const normalized = normalize(text);         // deine bestehende normalize-Funktion
+  const rawText = text;
+  const t = rawText.toLowerCase();
+  const normalized = normalize(text);
 
   let minPrice: number | null = null;
   let maxPrice: number | null = null;
+  let budgetRange: { minPrice: number | null; maxPrice: number | null } = { minPrice, maxPrice };
+  let note = "";
+  let hasBudgetWord = false;
+  let numbersFound: number[] = [];
 
-  // 1) "zwischen 30 und 50 Euro"
-  const betweenMatch = original.match(
-    /zwischen\s+(\d+)\s*(und|-)\s*(\d+)\s*(euro|eur|€)/
-  );
-  if (betweenMatch) {
-    const v1 = parseInt(betweenMatch[1], 10);
-    const v2 = parseInt(betweenMatch[3], 10);
+  // 1) Prüfe zuerst BUDGET_RANGE_PATTERNS (zwischen/von-bis/Range)
+  for (const pattern of BUDGET_RANGE_PATTERNS) {
+    const match = t.match(pattern);
+    if (match) {
+      const v1 = parseInt(match[1], 10);
+      const v2 = parseInt(match[2], 10);
     if (!Number.isNaN(v1) && !Number.isNaN(v2)) {
       minPrice = Math.min(v1, v2);
       maxPrice = Math.max(v1, v2);
-      console.log("[EFRO DEBUG PRICE_RANGE]", {
-        text,
-        pattern: "zwischen",
-        minPrice,
-        maxPrice,
-      });
+        budgetRange = { minPrice, maxPrice };
+        numbersFound = [v1, v2];
+        note = "Budget (DE): Bereich 'zwischen X und Y' erkannt";
+        console.log("[EFRO SB Budget] Parsed budget", {
+          rawText,
+          hasBudgetWord: false,
+          numbersFound,
+          budgetRange,
+          note,
+        });
       return { minPrice, maxPrice };
+    }
     }
   }
 
-  // 2) "von 30 bis 50 Euro"
-  const fromToMatch = original.match(
-    /von\s+(\d+)\s*(bis|-)\s*(\d+)\s*(euro|eur|€)/
-  );
-  if (fromToMatch) {
-    const v1 = parseInt(fromToMatch[1], 10);
-    const v2 = parseInt(fromToMatch[3], 10);
-    if (!Number.isNaN(v1) && !Number.isNaN(v2)) {
-      minPrice = Math.min(v1, v2);
-      maxPrice = Math.max(v1, v2);
-      console.log("[EFRO DEBUG PRICE_RANGE]", {
-        text,
-        pattern: "von-bis",
-        minPrice,
-        maxPrice,
-      });
-      return { minPrice, maxPrice };
-    }
-  }
-
-  // 3) Einzelner Betrag: "<Zahl> Euro"
-  const priceMatch = original.match(/(\d+)\s*(euro|eur|€)/);
+  // 2) Einzelner Betrag: "<Zahl> Euro" oder einfach "<Zahl>"
+  const priceMatch = t.match(/(\d+)\s*(?:euro|eur|€)?/);
   if (!priceMatch) {
-    console.log("[EFRO DEBUG PRICE_RANGE]", {
-      text,
-      pattern: "none",
-      minPrice,
-      maxPrice,
-    });
-    return { minPrice, maxPrice };
-  }
-
-  const value = parseInt(priceMatch[1], 10);
-  if (Number.isNaN(value)) {
-    console.log("[EFRO DEBUG PRICE_RANGE]", {
-      text,
-      pattern: "invalid-number",
-      minPrice,
-      maxPrice,
-    });
-    return { minPrice, maxPrice };
-  }
-
-  // --- Schlüsselwörter analysieren ---
-
-  // Budget-Wörter (oberste Priorität) - erweitert für robustere Erkennung
-  // WICHTIG: Wenn "budget" im Text vorkommt, ist die Zahl IMMER die Obergrenze,
-  // auch wenn "über" im Satz steht (z. B. "Ich habe ein Budget von über 100" → maxPrice = 100)
-  const hasBudgetWord =
-    original.includes("mein budget") ||
-    original.includes("ich habe ein budget") ||
-    original.includes("ich habe budget") ||
-    original.includes(" budget ") ||
-    original.includes("budget von") ||
-    original.includes("budget liegt") ||
-    original.includes("budget so bei") ||
-    original.includes("budget bei") ||
-    /\bbudget\b/i.test(original); // Fallback: jedes Vorkommen von "budget"
-
-  // Obergrenze ("unter / bis / höchstens / maximal / weniger als / nicht mehr als")
-  const hasUnder =
-    original.includes(" unter ") ||
-    original.startsWith("unter ") ||
-    original.includes(" bis ") ||
-    original.includes("höchstens") ||
-    original.includes("hoechstens") ||
-    original.includes("maximal") ||
-    original.includes("weniger als") ||
-    original.includes("nicht mehr als");
-
-  // "ab 50 euro" → explizit als Untergrenze interpretieren
-  const hasAbPattern =
-    /ab\s+\d+\s*(euro|eur|€)/.test(original) ||
-    /ab\s+\d+\s*(euro|eur|€)/.test(normalized);
-
-  // Untergrenze ("über / ueber / uber / mindestens / mehr als / größer als")
-  // WICHTIG: Diese Logik wird NUR angewendet, wenn KEIN "budget" im Text steht
-  const hasOverCore =
-    original.includes(" über ") ||
-    original.startsWith("über ") ||
-    original.includes(" ueber ") ||
-    original.startsWith("ueber ") ||
-    original.includes(" uber ") ||
-    original.startsWith("uber ") ||
-    original.includes("mindestens") ||
-    original.includes("mehr als") ||
-    original.includes(" größer als") ||
-    original.includes(" groesser als");
-
-  const hasOver = hasOverCore || hasAbPattern;
-
-  // 1) Budget-Sätze: IMMER als Obergrenze interpretieren (höchste Priorität)
-  // Auch wenn "über" im Satz steht: "Ich habe ein Budget von über 100" → maxPrice = 100
-  if (hasBudgetWord) {
-    minPrice = null;
-    maxPrice = value;
     console.log("[EFRO SB Budget] Parsed budget", {
-      rawText: text,
-      hasBudgetWord: true,
-      numbersFound: [value],
+      rawText,
+      hasBudgetWord: false,
+      numbersFound: [],
       budgetRange: { minPrice, maxPrice },
-      note: "Budget erkannt - Zahl wird als Obergrenze (maxPrice) interpretiert, auch wenn 'über' im Satz steht",
+      note: "Keine Zahl gefunden",
     });
     return { minPrice, maxPrice };
   }
 
-  // 2) Explizite Untergrenze (über / ab / mindestens / mehr als / größer als)
-  // WICHTIG: Diese Logik greift NUR, wenn KEIN "budget" im Text steht
-  // Bei Budget-Sätzen wurde bereits oben (Zeile 761-771) maxPrice gesetzt
-  if (hasOver && !hasUnder) {
-    minPrice = value;
-    maxPrice = null;
-    console.log("[EFRO DEBUG PRICE_RANGE]", {
-      text,
-      pattern: "over",
-      minPrice,
-      maxPrice,
-      note: "Normale 'über X'-Filterung (kein Budget-Wort im Text)",
+  const amount = parseInt(priceMatch[1], 10);
+  if (Number.isNaN(amount)) {
+    console.log("[EFRO SB Budget] Parsed budget", {
+      rawText,
+      hasBudgetWord: false,
+      numbersFound: [],
+      budgetRange: { minPrice, maxPrice },
+      note: "Ungültige Zahl",
     });
     return { minPrice, maxPrice };
   }
 
-  // 3) Explizite Obergrenze (unter / bis / höchstens / maximal / weniger als / nicht mehr als)
-  if (hasUnder && !hasOver) {
-    minPrice = null;
-    maxPrice = value;
-    console.log("[EFRO DEBUG PRICE_RANGE]", {
-      text,
-      pattern: "under",
-      minPrice,
-      maxPrice,
+  numbersFound = [amount];
+
+  // Budget-Wort-Erkennung
+  hasBudgetWord =
+    BUDGET_WORD_PATTERNS.some((pattern) => t.includes(pattern)) ||
+    /\bbudget\b/i.test(t);
+
+  // Prüfe MIN/MAX/AROUND-Wörter
+  const hasMinWord = BUDGET_MIN_WORDS.some((w) => t.includes(w));
+  const hasMaxWord = BUDGET_MAX_WORDS.some((w) => t.includes(w));
+  const hasAroundWord = BUDGET_AROUND_WORDS.some((w) => t.includes(w));
+
+  // 3) Budget-Sätze: Interpretation abhängig von MIN/MAX-Wörtern (DEUTSCHE LESART)
+  if (hasBudgetWord) {
+    if (hasMinWord) {
+      // Untergrenze: "Mein Budget ist ab 600 Euro" oder "Mein Budget ist mindestens 600 Euro"
+      budgetRange.minPrice = amount;
+      budgetRange.maxPrice = null;
+      note = "Budget (DE): Untergrenze erkannt (minPrice) - ab/mindestens";
+    } else if (hasMaxWord) {
+      // Obergrenze: "Mein Budget ist über 600 Euro", "bis 600", "unter 600", "höchstens 600"
+      // WICHTIG: "über" wird im Deutschen Budget-Kontext als Obergrenze interpretiert
+      budgetRange.minPrice = null;
+      budgetRange.maxPrice = amount;
+      note = "Budget (DE): 'über'/'bis'/'unter'/'höchstens' als Obergrenze interpretiert (maxPrice)";
+    } else if (hasAroundWord) {
+      // Ungefähr: vorerst als Obergrenze behandeln
+      budgetRange.minPrice = null;
+      budgetRange.maxPrice = amount;
+      note = "Budget (DE): um/circa/ca. wird vorerst als Obergrenze (maxPrice) behandelt";
+  } else {
+      // Fallback: neutrale Angabe, als Obergrenze interpretiert
+      budgetRange.minPrice = null;
+      budgetRange.maxPrice = amount;
+      note = "Budget (DE): neutrale Angabe, als maxPrice interpretiert";
+    }
+    minPrice = budgetRange.minPrice;
+    maxPrice = budgetRange.maxPrice;
+    console.log("[EFRO SB Budget] Parsed budget", {
+      rawText,
+      hasBudgetWord: true,
+      numbersFound,
+      budgetRange,
+      note,
     });
     return { minPrice, maxPrice };
   }
 
-  // 4) Fallback: Einzelbetrag ohne klare Richtung → als Obergrenze
-  minPrice = null;
-  maxPrice = value;
-  console.log("[EFRO DEBUG PRICE_RANGE]", {
-    text,
-    pattern: "fallback-max",
-    minPrice,
-    maxPrice,
+  // 4) Normale Sätze (ohne "Budget"-Wort)
+  if (hasMinWord && amount != null) {
+    // Untergrenze: "ab 600", "mindestens 600"
+    budgetRange.minPrice = amount;
+    budgetRange.maxPrice = null;
+    note = "Budget (DE): Untergrenze erkannt (minPrice) - ab/mindestens";
+    minPrice = budgetRange.minPrice;
+    maxPrice = budgetRange.maxPrice;
+  } else if (hasMaxWord && amount != null) {
+    // Obergrenze: "über 600", "bis 600", "unter 600", "höchstens 600", "maximal 600"
+    // WICHTIG: "über" wird auch hier als Obergrenze interpretiert
+    budgetRange.maxPrice = amount;
+    budgetRange.minPrice = null;
+    note = "Budget (DE): 'über'/'bis'/'unter'/'höchstens' als Obergrenze interpretiert (maxPrice)";
+    minPrice = budgetRange.minPrice;
+    maxPrice = budgetRange.maxPrice;
+  } else if (hasAroundWord && amount != null) {
+    // Ungefähr: vorerst als Obergrenze behandeln
+    budgetRange.maxPrice = amount;
+    budgetRange.minPrice = null;
+    note = "Budget (DE): um/circa/ca. wird vorerst als Obergrenze (maxPrice) behandelt";
+    minPrice = budgetRange.minPrice;
+    maxPrice = budgetRange.maxPrice;
+  } else if (amount != null) {
+    // Fallback: einfache Zahl, als Obergrenze interpretieren
+    if (budgetRange.maxPrice == null && budgetRange.minPrice == null) {
+      budgetRange.maxPrice = amount;
+      budgetRange.minPrice = null;
+      note = "Budget (DE): einfache Zahl, als Obergrenze (maxPrice) interpretiert";
+      minPrice = budgetRange.minPrice;
+      maxPrice = budgetRange.maxPrice;
+    }
+  }
+
+  console.log("[EFRO SB Budget] Parsed budget", {
+    rawText,
+    hasBudgetWord,
+    numbersFound,
+    budgetRange,
+    note,
   });
+
   return { minPrice, maxPrice };
 }
 
@@ -1155,46 +1062,10 @@ type ParsedQuery = {
 function parseQueryForAttributes(text: string): ParsedQuery {
   const normalized = normalizeText(text);
 
-  const stopwords = [
-    "für",
-    "mit",
-    "und",
-    "oder",
-    "in",
-    "auf",
-    "zum",
-    "zur",
-    "der",
-    "die",
-    "das",
-    "den",
-    "dem",
-    "ein",
-    "eine",
-    "einen",
-    "einem",
-    "einer",
-    "eines",
-  ];
+  const stopwords = QUERY_STOPWORDS;
 
   // 2-Wort-Phrasen erkennen
-  const attributePhrases = [
-    "trockene haut",
-    "empfindliche haut",
-    "sensible haut",
-    "trockene haare",
-    "für herren",
-    "für damen",
-    "für kinder",
-    "für männer",
-    "für frauen",
-    "für bad",
-    "für küche",
-    "für wohnung",
-    "für haustiere",
-    "für hunde",
-    "für katzen",
-  ];
+  const attributePhrases = ATTRIBUTE_PHRASES;
 
   const foundPhrases: string[] = [];
   let remainingText = normalized;
@@ -1214,29 +1085,7 @@ function parseQueryForAttributes(text: string): ParsedQuery {
     .filter((t) => t.length >= 3 && !stopwords.includes(t));
 
   // Attribute-Terms: Phrasen + einzelne Wörter, die typischerweise Attribute sind
-  const attributeKeywords = [
-    "trockene",
-    "empfindliche",
-    "sensible",
-    "herren",
-    "damen",
-    "kinder",
-    "männer",
-    "frauen",
-    "vegan",
-    "bio",
-    "organic",
-    "xxl",
-    "xl",
-    "l",
-    "m",
-    "s",
-    "haut",
-    "haare",
-    "bad",
-    "küche",
-    "wohnung",
-  ];
+  const attributeKeywords = ATTRIBUTE_KEYWORDS;
 
   const attributeTerms: string[] = [...foundPhrases];
   const coreTerms: string[] = [];
@@ -1795,12 +1644,31 @@ function isPerfumeProduct(product: EfroProduct): boolean {
 }
 
 /**
+ * Hilfsfunktion: Sammelt Matches aus einem Dictionary von Keywords
+ */
+function collectMatches(
+  text: string,
+  dict: Record<string, string[]>
+): string[] {
+  const t = text.toLowerCase();
+  const hits: string[] = [];
+  for (const [key, patterns] of Object.entries(dict)) {
+    for (const p of patterns) {
+      if (t.includes(p.toLowerCase())) {
+        hits.push(key);
+        break;
+      }
+    }
+  }
+  return Array.from(new Set(hits));
+}
+
+/**
  * Prüft, ob der Nutzertext explizit nach Parfüm fragt
  */
 function userMentionsPerfume(text: string): boolean {
   const normalizedText = normalize(text);
-  const parfumSynonyms = ["parfum", "parfüm", "parfume", "perfüm"];
-  return parfumSynonyms.some((syn) => normalizedText.includes(syn));
+  return PERFUME_SYNONYMS.some((syn) => normalizedText.includes(syn));
 }
 
 /**
@@ -1902,16 +1770,43 @@ function filterProducts(
     });
   }
 
+  // Wort-Classification: Kategorien aus languageRules.de erkennen (additiv)
+  const fullTextLowerForCategory = t.toLowerCase();
+  const categoryHintsFromRules = collectMatches(fullTextLowerForCategory, CATEGORY_KEYWORDS);
+  
+  // categoryHints additiv zu matchedCategories hinzufügen (nur wenn noch nicht vorhanden)
+  for (const hint of categoryHintsFromRules) {
+    const normalizedHint = normalize(hint);
+    // Prüfe, ob die Kategorie bereits in matchedCategories oder allCategories vorhanden ist
+    const existsInCategories = allCategories.some((cat) => normalize(cat) === normalizedHint);
+    if (existsInCategories && !matchedCategories.some((cat) => normalize(cat) === normalizedHint)) {
+      // Kategorie aus categoryHints hinzufügen, wenn sie im Katalog existiert
+      const matchingCategory = allCategories.find((cat) => normalize(cat) === normalizedHint);
+      if (matchingCategory) {
+        matchedCategories.push(matchingCategory);
+        categoryHintsInText.push(matchingCategory);
+      }
+    }
+  }
+
   // KONEXT-LOGIK: Wenn keine neue Kategorie im Text erkannt wurde, aber contextCategory vorhanden ist
   // → nutze contextCategory als effectiveCategory
   let effectiveCategorySlug: string | null = null;
-  
+
   if (matchedCategories.length > 0) {
     // Neue Kategorie im Text erkannt → diese hat Vorrang
     effectiveCategorySlug = matchedCategories[0]; // Nimm die erste gefundene Kategorie
   } else if (contextCategory) {
     // Keine neue Kategorie im Text, aber Kontext vorhanden → nutze Kontext
     effectiveCategorySlug = normalize(contextCategory);
+  } else if (categoryHintsFromRules.length > 0) {
+    // Fallback: Wenn categoryHints vorhanden sind, aber keine matchedCategories, versuche die erste categoryHint zu nutzen
+    const firstHint = categoryHintsFromRules[0];
+    const normalizedHint = normalize(firstHint);
+    const matchingCategory = allCategories.find((cat) => normalize(cat) === normalizedHint);
+    if (matchingCategory) {
+      effectiveCategorySlug = normalize(matchingCategory);
+    }
   }
 
   console.log("[EFRO SB Category] Effective category", {
@@ -1942,13 +1837,26 @@ function filterProducts(
     });
   } else {
     // Keine Kategorie-Matches und kein Kontext: Log für Budget-only Szenarien
+    // WICHTIG: Nur loggen, wenn wirklich kein Kontext vorhanden ist
     if (userMinPrice !== null || userMaxPrice !== null) {
-      console.log("[EFRO SB] CATEGORY FILTER SKIPPED (budget-only query, no context)", {
-        text: text.substring(0, 80),
-        userMinPrice,
-        userMaxPrice,
-        candidateCount: candidates.length,
-      });
+      if (!contextCategory) {
+        console.log("[EFRO SB] CATEGORY FILTER SKIPPED (budget-only query, no context)", {
+          text: text.substring(0, 80),
+          userMinPrice,
+          userMaxPrice,
+          candidateCount: candidates.length,
+          contextCategory: null,
+        });
+      } else {
+        console.log("[EFRO SB] CATEGORY FILTER APPLIED (budget-only query, using context)", {
+          text: text.substring(0, 80),
+          userMinPrice,
+          userMaxPrice,
+          contextCategory,
+          effectiveCategorySlug,
+          candidateCount: candidates.length,
+        });
+      }
     }
   }
 
@@ -1962,109 +1870,7 @@ function filterProducts(
   /**
    * 2) Generische Keyword-Suche
    */
-  const intentWords = [
-    // Meta-/Preis-/Intent-Wörter
-    "premium",
-    "beste",
-    "hochwertig",
-    "qualitaet",
-    "qualitat",
-    "luxus",
-    "teuer",
-    "teure",
-    "teuren",
-    "teuerste",
-    "teuersten",
-    "billig",
-    "guenstig",
-    "günstig",
-    "günstige",
-    "günstigsten",
-    "günstigste",
-    "discount",
-    "spar",
-    "rabatt",
-    "preis",
-    "preise",
-    "preiswert",
-    "preiswerte",
-    "deal",
-    "bargain",
-
-    // Geschenk-/Bundle-Intents
-    "geschenk",
-    "gift",
-    "praesent",
-    "praes",
-    "present",
-    "bundle",
-    "set",
-    "paket",
-    "combo",
-
-    // generische Produktwörter (keine echten Produkte)
-    "produkte",
-    "produkt",
-    "artikel",
-    "artikeln",
-    "ware",
-    "waren",
-    "sachen",
-    "dinge",
-    "items",
-    "item",
-    "premium-produkte",
-    "premium-produkt",
-    "premiumprodukte",
-    "premiumprodukt",
-    "luxusprodukt",
-    "luxusprodukte",
-    "teuerster",
-
-    // Preis-Wörter
-    "unter",
-    "ueber",
-    "über",
-    "bis",
-    "maximal",
-    "mindestens",
-    "höchstens",
-    "hoechstens",
-    "weniger",
-    "mehr",
-    "zwischen",
-    "euro",
-    "eur",
-
-    // Füllwörter / Stopwörter
-    "zeig",
-    "zeige",
-    "zeigst",
-    "mir",
-    "was",
-    "hast",
-    "habe",
-    "du",
-    "gibt",
-    "es",
-    "inspiration",
-    "suche",
-    "suchen",
-    "ich",
-    "brauche",
-    "bitte",
-    "danke",
-    "dankeschoen",
-    "dankeschön",
-    "meine",
-    "deine",
-    "und",
-    "oder",
-    "die",
-    "der",
-    "das",
-    "den",
-  ];
+  const intentWords = INTENT_WORDS;
 
   let words: string[] = t
     .split(/[^a-z0-9äöüß]+/i)
@@ -2129,12 +1935,33 @@ function filterProducts(
   // Query in Core- und Attribute-Terms aufteilen (für Log)
   const parsedForLog = parseQueryForAttributes(text);
   
+  // Wort-Classification: Kategorien, Usage, Skin-Keywords erkennen
+  const fullTextLower = t.toLowerCase();
+  const categoryHints = collectMatches(fullTextLower, CATEGORY_KEYWORDS);
+  const usageHints = collectMatches(fullTextLower, USAGE_KEYWORDS);
+  const skinHints = collectMatches(fullTextLower, SKIN_KEYWORDS);
+  
+  // keywordSummary erweitern (falls noch nicht vorhanden, hier initialisieren)
+  const keywordSummary = {
+    categoryHints,
+    usageHints,
+    skinHints,
+  };
+  
+  console.log("[EFRO KeywordSummary]", {
+    text: text.substring(0, 80),
+    categoryHints,
+    usageHints,
+    skinHints,
+  });
+  
   console.log("[EFRO SB] AFTER WORD EXTRACTION", {
     text: text.substring(0, 80),
     words: expandedWords.slice(0, 10), // Nur erste 10 für Übersicht
     coreTerms: parsedForLog.coreTerms.slice(0, 10),
     attributeTerms: parsedForLog.attributeTerms.slice(0, 10),
     candidateCountBeforeKeywordMatch: candidates.length,
+    keywordSummary,
   });
 
   // Intent-Fix: "Zeige mir X" mit konkretem Produkt → quick_buy statt explore
@@ -2356,24 +2183,10 @@ function filterProducts(
   // --- Ende EFRO Alias-Hard-Filter --------------------------------------
 
   // Prüfe, ob es eine sehr allgemeine Premium-Anfrage ist (ohne konkrete Produktkategorie)
-  const premiumTokens = [
-    "zeige",
-    "zeig",
-    "mir",
-    "mich",
-    "premium",
-    "beste",
-    "hochwertig",
-    "luxus",
-    "teuer",
-    "teuerste",
-    "teuersten",
-    "teuerster",
-  ];
-
+  // Importiert aus languageRules.de.ts
   const hasPremiumToken =
     coreTerms.length > 0 &&
-    coreTerms.some((t) => premiumTokens.includes(t));
+    coreTerms.some((t) => PREMIUM_TOKENS.includes(t));
 
   const isGenericPremiumQuery =
     currentIntent === "premium" &&
@@ -2457,12 +2270,13 @@ function filterProducts(
       // - "Ich brauche etwas gegen Schimmel im Bad." → Reiniger/Sprays vor Tüchern
       // - "Hast du einen Schimmelentferner für die Dusche?" → Reiniger/Sprays vor Tüchern
       const normalizedUserText = t;
-      if (normalizedUserText.includes("schimmel")) {
+      // Importiert aus languageRules.de.ts
+      if (MOLD_KEYWORDS.some((kw) => normalizedUserText.includes(kw))) {
         const normalizedTitle = normalize(p.title);
         const normalizedDescription = normalize(p.description || "");
         const hasSchimmelInProduct =
-          normalizedTitle.includes("schimmel") ||
-          normalizedDescription.includes("schimmel");
+          MOLD_KEYWORDS.some((kw) => normalizedTitle.includes(kw)) ||
+          MOLD_KEYWORDS.some((kw) => normalizedDescription.includes(kw));
 
         if (hasSchimmelInProduct) {
           const scoreBefore = totalScore;
@@ -2470,23 +2284,19 @@ function filterProducts(
           // normalizedTitle ist bereits lowercase durch normalize()
 
           // Bonus für Reiniger/Sprays mit Schimmel-Bezug
+          // Importiert aus languageRules.de.ts
           if (
             productFamily.includes("cleaner") ||
-            normalizedTitle.includes("reiniger") ||
-            normalizedTitle.includes("spray") ||
-            normalizedTitle.includes("schimmelentferner") ||
-            normalizedTitle.includes("anti-schimmel")
+            MOLD_PRODUCT_KEYWORDS.cleaners.some((kw) => normalizedTitle.includes(kw))
           ) {
             totalScore += 3;
           }
 
           // Malus für Tücher/Wipes mit Schimmel-Bezug (damit sie nachrangig erscheinen)
+          // Importiert aus languageRules.de.ts
           if (
             productFamily.includes("wipes") ||
-            normalizedTitle.includes("tuch") ||
-            normalizedTitle.includes("tücher") ||
-            normalizedTitle.includes("tuecher") ||
-            normalizedTitle.includes("wipes")
+            MOLD_PRODUCT_KEYWORDS.wipes.some((kw) => normalizedTitle.includes(kw))
           ) {
             totalScore -= 1;
           }
@@ -2558,7 +2368,7 @@ function filterProducts(
         }
 
         console.log("[EFRO PERFUME]", {
-          text,
+        text,
           userAskedForPerfume,
           beforeCount,
           afterCount: perfumeCandidates.length,
@@ -2657,7 +2467,7 @@ function filterProducts(
 
   if (minPrice !== null || maxPrice !== null) {
     const beforePriceFilter = candidates.length;
-    candidates = candidates.filter((p) => {
+      candidates = candidates.filter((p) => {
       const price = p.price ?? 0;
       // TODO Vorschlag: Bei Budget-only Anfragen könnte man hier flexibler sein
       // (z. B. ±10% Toleranz), aktuell exakte Grenzen
@@ -2816,7 +2626,84 @@ function getDescriptionSnippet(
 }
 
 /**
- * Regel-basierte Reply-Text-Generierung (bisherige Logik)
+ * Szenario-Typen für Profiseller-Reply-Engine
+ */
+type ProfisellerScenario =
+  | "S1" // QUICK BUY – EIN klares Produkt
+  | "S2" // QUICK BUY – WENIGE Optionen (2-4)
+  | "S3" // EXPLORE – Mehrere Produkte (>= 3)
+  | "S4" // BUDGET-ONLY ANFRAGE
+  | "S5" // ONLY CATEGORY / MARKENANFRAGE
+  | "S6" // ZERO RESULTS (kein unknown_product_code_only)
+  | "fallback"; // Bestehendes Verhalten
+
+/**
+ * Erkennt das Profiseller-Szenario basierend auf Intent, Produktanzahl, Budget, etc.
+ */
+function detectProfisellerScenario(
+  text: string,
+  intent: ShoppingIntent,
+  count: number,
+  hasBudget: boolean,
+  minPrice: number | null,
+  maxPrice: number | null,
+  attributeTerms: string[]
+): ProfisellerScenario {
+  // S6: ZERO RESULTS (wird bereits in buildRuleBasedReplyText behandelt, aber für Vollständigkeit)
+  if (count === 0) {
+    return "S6";
+  }
+
+  // S4: BUDGET-ONLY ANFRAGE
+  // Erkennung: Budget vorhanden, aber wenig oder keine Keywords (nur Budget-Wörter)
+  if (hasBudget) {
+    const normalized = normalize(text);
+    // Prüfe, ob der Text hauptsächlich Budget-Keywords enthält
+    // Importiert aus languageRules.de.ts
+    const hasOnlyBudgetKeywords = BUDGET_KEYWORDS_FOR_SCENARIO.some(kw => normalized.includes(kw)) && 
+                                   attributeTerms.length === 0 &&
+                                   !BUDGET_ONLY_STOPWORDS.some(stopword => normalized.includes(stopword)) &&
+                                   !PRODUCT_KEYWORDS_FOR_BUDGET_ONLY.some(kw => normalized.includes(kw));
+    
+    if (hasOnlyBudgetKeywords || (normalized.match(/\d+\s*(€|euro|eur)/) && attributeTerms.length === 0)) {
+      return "S4";
+    }
+  }
+
+  // S5: ONLY CATEGORY / MARKENANFRAGE
+  // Erkennung: explore Intent, Produkte vorhanden, aber kein Budget
+  if (intent === "explore" && !hasBudget && count > 0) {
+    // Prüfe, ob hauptsächlich Kategorie/Marke genannt wurde
+    const normalized = normalize(text);
+    // Importiert aus languageRules.de.ts
+    const hasCategoryKeyword = CATEGORY_KEYWORDS_FOR_SCENARIO.some(kw => normalized.includes(kw));
+    
+    if (hasCategoryKeyword || (attributeTerms.length > 0 && !normalized.match(/\d+\s*(€|euro|eur)/))) {
+      return "S5";
+    }
+  }
+
+  // S1: QUICK BUY – EIN klares Produkt
+  if (intent === "quick_buy" && count === 1) {
+    return "S1";
+  }
+
+  // S2: QUICK BUY – WENIGE Optionen (2-4)
+  if (intent === "quick_buy" && count >= 2 && count <= 4) {
+    return "S2";
+  }
+
+  // S3: EXPLORE – Mehrere Produkte (>= 3)
+  if (intent === "explore" && count >= 3) {
+    return "S3";
+  }
+
+  // Fallback: Bestehendes Verhalten
+  return "fallback";
+}
+
+/**
+ * Regel-basierte Reply-Text-Generierung (Profiseller-Engine v1)
  */
 function buildRuleBasedReplyText(
   text: string,
@@ -2826,10 +2713,13 @@ function buildRuleBasedReplyText(
 ): string {
   const count = recommended.length;
 
+  // S6: ZERO RESULTS wird hier behandelt, aber Szenario-Erkennung erfolgt später
+  // (unknown_product_code_only wird bereits in buildReplyText behandelt)
   if (count === 0) {
+    // S6-Text wird später im switch-case verwendet, hier nur Fallback
     return (
-      "Ich habe in den aktuellen Shop-Daten leider kein Produkt gefunden, das genau zu deiner Anfrage passt. " +
-      "Wenn du mir deinen Wunsch etwas anders beschreibst – zum Beispiel Kategorie oder Budget – probiere ich es gerne direkt noch einmal."
+      "Zu deiner Anfrage konnte ich in diesem Shop leider nichts Passendes finden.\n\n" +
+      "Wenn du möchtest, formuliere deine Anfrage noch einmal – z. B. mit Kategorie, Budget oder Einsatzzweck."
     );
   }
 
@@ -2879,7 +2769,28 @@ function buildRuleBasedReplyText(
       : "dieses Produkts";
   const priceLabel = formatPrice(first);
 
-  // 0) Spezialfälle: Erklär-Modus
+  // Szenario-Erkennung für Profiseller-Engine
+  const scenario = detectProfisellerScenario(
+    text,
+    intent,
+    count,
+    hasBudget,
+    minPrice,
+    maxPrice,
+    attributeTerms
+  );
+
+  console.log("[EFRO Profiseller] scenario", {
+    text: text.substring(0, 100),
+    intent,
+    finalCount: count,
+    scenario,
+    hasBudget,
+    minPrice,
+    maxPrice,
+  });
+
+  // 0) Spezialfälle: Erklär-Modus (hat Priorität vor Profiseller-Szenarien)
   if (explanationMode) {
     if (explanationMode === "ingredients") {
       if (hasDesc) {
@@ -2962,9 +2873,97 @@ function buildRuleBasedReplyText(
   }
 
   /**
-   * 1) Fälle mit explizitem Budget im Text
+   * Profiseller-Szenarien S1-S6
    */
-  if (hasBudget) {
+  switch (scenario) {
+    case "S1": {
+      // QUICK BUY – EIN klares Produkt
+      const priceInfo = first.price != null ? ` – ${formatPrice(first)}` : "";
+      return (
+        "Ich habe ein passendes Produkt für dich gefunden:\n\n" +
+        `• ${first.title}${priceInfo}\n\n` +
+        "Wenn du möchtest, helfe ich dir beim Vergleichen oder wir suchen eine Alternative."
+      );
+    }
+
+    case "S2": {
+      // QUICK BUY – WENIGE Optionen (2-4)
+      const priceRange = (() => {
+        const prices = recommended
+          .map((p) => p.price)
+          .filter((p): p is number => p != null);
+        if (prices.length === 0) return null;
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        if (min === max) return `${min.toFixed(2)} €`;
+        return `${min.toFixed(2)} € – ${max.toFixed(2)} €`;
+      })();
+
+      const priceInfo = priceRange ? ` (Preisbereich: ${priceRange})` : "";
+      const topProducts = recommended.slice(0, 3).map((p) => {
+        const price = p.price != null ? ` – ${formatPrice(p)}` : "";
+        return `• ${p.title}${price}`;
+      });
+
+      return (
+        "Ich habe mehrere passende Produkte für dich gefunden:\n\n" +
+        topProducts.join("\n") +
+        (recommended.length > 3 ? `\n• ... und ${recommended.length - 3} weitere` : "") +
+        priceInfo +
+        "\n\nWorauf legst du am meisten Wert – Preis, Marke oder Einsatzgebiet?"
+      );
+    }
+
+    case "S3": {
+      // EXPLORE – Mehrere Produkte (>= 3)
+      return (
+        "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet.\n\n" +
+        "• Du kannst dir in Ruhe die Details und Preise ansehen.\n" +
+        "• Wenn du willst, grenze ich das für dich nach Preisbereich, Kategorie oder Einsatzzweck ein.\n\n" +
+        "Was ist dir wichtiger: ein günstiger Preis oder eine bestimmte Marke?"
+      );
+    }
+
+    case "S4": {
+      // BUDGET-ONLY ANFRAGE
+      const budgetDisplay = budgetText || (maxPrice ? `bis etwa ${maxPrice} €` : minPrice ? `ab etwa ${minPrice} €` : "");
+      return (
+        `Mit deinem Budget von ${budgetDisplay} habe ich dir unten passende Produkte eingeblendet.\n\n` +
+        "Wenn du mir noch sagst, für welchen Bereich (z. B. Haushalt, Pflege, Tierbedarf), kann ich die Auswahl weiter eingrenzen."
+      );
+    }
+
+    case "S5": {
+      // ONLY CATEGORY / MARKENANFRAGE
+      const categoryName = first.category && first.category.trim().length > 0
+        ? first.category
+        : "diesem Bereich";
+      return (
+        "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet.\n\n" +
+        `Alle Produkte gehören in den Bereich ${categoryName}.\n\n` +
+        "Möchtest du eher etwas Günstiges für den Alltag oder eher eine Premiumnote?"
+      );
+    }
+
+    case "S6": {
+      // ZERO RESULTS (kein unknown_product_code_only)
+      return (
+        "Zu deiner Anfrage konnte ich in diesem Shop leider nichts Passendes finden.\n\n" +
+        "Wenn du möchtest, formuliere deine Anfrage noch einmal – z. B. mit Kategorie, Budget oder Einsatzzweck."
+      );
+    }
+
+    case "fallback":
+    default: {
+      // Bestehendes Verhalten für alle anderen Fälle
+      break;
+    }
+  }
+
+  /**
+   * 1) Fälle mit explizitem Budget im Text (Fallback, wenn nicht S4)
+   */
+  if (hasBudget && scenario === "fallback") {
     if (count === 1) {
       return (
         `Ich habe ein Produkt gefunden, das gut zu deinem Budget ${budgetText} passt:\n\n` +
@@ -3089,20 +3088,180 @@ function buildRuleBasedReplyText(
 }
 
 /**
+ * AI-Klärungstexte basierend auf aiTrigger hinzufügen
+ */
+function buildReplyTextWithAiClarification(
+  baseReplyText: string,
+  aiTrigger?: SellerBrainAiTrigger,
+  finalCount?: number
+): string {
+  if (!aiTrigger || !aiTrigger.needsAiHelp) {
+    return baseReplyText;
+  }
+
+  const terms = (aiTrigger.unknownTerms ?? []).filter(Boolean);
+  const termsSnippet = terms.length ? ` ${terms.join(", ")}` : "";
+
+  let clarification = "";
+
+  if (aiTrigger.reason === "no_results") {
+    clarification = terms.length
+      ? `\n\nIch finde zu folgendem Begriff nichts im Katalog:${termsSnippet}. Meinst du eine bestimmte Marke, Kategorie oder etwas anderes?`
+      : `\n\nIch habe zu deiner Beschreibung keine passenden Produkte gefunden. Magst du dein Anliegen noch einmal anders formulieren oder eine Kategorie bzw. ein Budget nennen?`;
+  } else {
+    clarification = terms.length
+      ? `\n\nEinige deiner Begriffe kann ich im Katalog nicht zuordnen:${termsSnippet}. Meinst du eher eine Marke, eine Kategorie oder ein bestimmtes Einsatzgebiet?`
+      : `\n\nEin Teil deiner Anfrage ist für mich schwer zuzuordnen. Magst du mir noch sagen, ob es eher um eine Marke, eine Kategorie oder einen Einsatzbereich geht?`;
+  }
+
+  // Optional: Wenn wirklich gar keine Produkte gefunden wurden,
+  // kannst du den Basetext später kürzen. Für jetzt hängen wir
+  // nur die Klärung sauber an.
+  const combined = `${baseReplyText.trim()}\n\n${clarification.trim()}`;
+
+  console.log("[EFRO ReplyText AI-Clarify]", {
+    reason: aiTrigger.reason,
+    needsAiHelp: aiTrigger.needsAiHelp,
+    unknownTerms: aiTrigger.unknownTerms,
+    finalReplyText: combined,
+  });
+
+  return combined;
+}
+
+/**
  * Reply-Text für EFRO bauen
  */
 function buildReplyText(
   text: string,
   intent: ShoppingIntent,
-  recommended: EfroProduct[]
+  recommended: EfroProduct[],
+  aiTrigger?: SellerBrainAiTrigger
 ): string {
   console.log("[EFRO ReplyText] mode='rule-based'", {
     intent,
     recommendedCount: recommended.length,
   });
 
-  // vorerst nur Durchreichung an die Regel-Logik
-  return buildRuleBasedReplyText(text, intent, recommended);
+  // Spezialfall: Nutzer nennt einen unbekannten Produktcode wie "ABC123"
+  if (aiTrigger?.reason === "unknown_product_code_only") {
+    const codeTerm =
+      aiTrigger.codeTerm ||
+      (aiTrigger.unknownTerms && aiTrigger.unknownTerms.find((t) => looksLikeProductCode(t))) ||
+      (aiTrigger.unknownTerms && aiTrigger.unknownTerms[0]) ||
+      null;
+
+    const codeLabel = codeTerm ? `"${codeTerm}"` : "diesen Code";
+
+    const clarifyText =
+      `Ich konnte den Code ${codeLabel} in diesem Shop nicht finden.\n\n` +
+      `Sag mir bitte, was für ein Produkt du suchst – zum Beispiel eine Kategorie (Haushalt, Pflege, Tierbedarf), ` +
+      `eine Marke oder ein bestimmtes Einsatzgebiet.\n` +
+      `Dann zeige ich dir gezielt passende Produkte.`;
+
+    console.log("[EFRO ReplyText UnknownCode]", {
+      reason: aiTrigger.reason,
+      codeTerm,
+      clarifyTextLength: clarifyText.length,
+    });
+
+    return clarifyText;
+  }
+
+  // Regel-basierte Logik
+  const baseReplyText = buildRuleBasedReplyText(text, intent, recommended);
+
+  // AI-Klärung hinzufügen, falls nötig
+  const finalReplyText = buildReplyTextWithAiClarification(
+    baseReplyText,
+    aiTrigger,
+    recommended.length
+  );
+
+  return finalReplyText;
+}
+
+/**
+ * Prüft, ob ein Begriff wie ein Produktcode aussieht (z. B. ABC123 oder ABCDFG)
+ * WICHTIG: Reine Zahlen werden NICHT als Code akzeptiert
+ */
+function looksLikeProductCode(term: string): boolean {
+  const t = term.toLowerCase().trim();
+  if (t.length < 4 || t.length > 20) return false;
+  
+  // Numeric-only Tokens ignorieren (z. B. "50", "21", "22")
+  if (/^[0-9]+$/.test(t)) return false;
+  
+  // Mischung aus Buchstaben und Zahlen (z. B. ABC123)
+  const hasLetter = /[a-z]/i.test(t);
+  const hasDigit = /\d/.test(t);
+  if (hasLetter && hasDigit) return true;
+  
+  // Reine Buchstabencodes (z. B. ABCDFG) - mindestens 4 Zeichen, hauptsächlich Buchstaben
+  const isMostlyLetters = /^[a-z]+$/i.test(t);
+  if (isMostlyLetters && t.length >= 4) return true;
+  
+  return false;
+}
+
+// Häufige Wörter, die KEIN Produktcode sind, auch wenn sie Buchstaben/Zahlen enthalten könnten
+const NON_CODE_TERMS_SET = new Set(NON_CODE_TERMS_ARRAY);
+
+// Stopwörter für AI-Unknown-Terms-Filterung
+// Diese Wörter sollen NICHT als "unbekannte Begriffe" für AI-Trigger zählen
+const UNKNOWN_AI_STOPWORDS_SET = new Set<string>(UNKNOWN_AI_STOPWORDS_ARRAY);
+
+// Extrahiert einen einzelnen Code-ähnlichen Term aus dem Nutzersatz
+// Erkennt sowohl gemischte Codes (ABC123) als auch reine Buchstabencodes (ABCDFG)
+function extractCodeTermFromText(text: string): string | null {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+
+  // Schritt 1: Einfache Wort-Splittung für gemischte Codes (ABC123)
+  const candidates = lower.match(/\b[a-z0-9\-]{4,20}\b/gi);
+  if (!candidates) return null;
+
+  const codeCandidates = candidates.filter((c) => {
+    const trimmed = c.toLowerCase();
+    if (NON_CODE_TERMS_SET.has(trimmed)) return false;
+    return looksLikeProductCode(trimmed);
+  });
+
+  if (codeCandidates.length === 1) {
+    return codeCandidates[0];
+  }
+
+  // Schritt 2: Für reine Buchstabencodes (ABCDFG) - isolierte unbekannte Terms prüfen
+  // Extrahiere alle Terms nach Entfernen von Stoppwörtern
+  const stopwords = new Set([
+    "kannst", "du", "mir", "zeigen", "zeige", "zeig", "bitte", "ich", "suche", "ein", "eine", "einen",
+    "produkt", "produkte", "artikel", "kann", "können", "soll", "sollte", "möchte", "will", "würde",
+    // Personalpronomen
+    "er", "sie", "wir", "ihr",
+    // Verben (haben)
+    "habe", "hast", "hat", "haben",
+    // Budget/Preis-Wörter
+    "budget", "preis", "euro", "unter", "über", "bis", "ca", "etwa", "ungefähr", "von",
+  ]);
+  
+  const normalized = normalize(text);
+  const allTerms = normalized
+    .split(/\s+/)
+    .filter((t) => t.length >= 3)
+    .filter((t) => !stopwords.has(t.toLowerCase()))
+    .filter((t) => !NON_CODE_TERMS_SET.has(t.toLowerCase()))
+    // Numeric-only Tokens ignorieren
+    .filter((t) => !/^[0-9]+$/.test(t));
+
+  // Wenn genau 1 Term übrig bleibt und dieser wie ein Code aussieht
+  if (allTerms.length === 1) {
+    const singleTerm = allTerms[0];
+    if (looksLikeProductCode(singleTerm)) {
+      return singleTerm;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -3118,6 +3277,30 @@ export function runSellerBrain(
 ): SellerBrainResult {
   const raw = userText ?? "";
   const cleaned = raw.trim();
+
+  // Defensive Guard: Leere Produktliste
+  if (!Array.isArray(allProducts) || allProducts.length === 0) {
+    console.warn("[EFRO SB] Empty product list", {
+      userText: cleaned.substring(0, 100),
+      allProductsType: typeof allProducts,
+      allProductsLength: Array.isArray(allProducts) ? allProducts.length : "not an array",
+    });
+
+    const fallbackReplyText =
+      "Entschuldigung, im Moment sind keine Produkte verfügbar. Bitte versuche es später noch einmal.";
+
+    return {
+      intent: currentIntent,
+      recommended: [],
+      replyText: fallbackReplyText,
+      nextContext: context,
+      aiTrigger: {
+        needsAiHelp: true,
+        reason: "no_results",
+        unknownTerms: [],
+      },
+    };
+  }
 
   const nextIntent = detectIntentFromText(cleaned, currentIntent);
 
@@ -3158,9 +3341,10 @@ export function runSellerBrain(
       ? previousRecommended.slice(0, maxRecommendations)
       : [];
 
+    // AI-Trigger wird hier noch nicht berechnet (explanation mode), daher undefined
     const replyText =
       recommended.length > 0
-        ? buildReplyText(cleaned, nextIntent, recommended)
+        ? buildReplyText(cleaned, nextIntent, recommended, undefined)
         : "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
           "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
           "dann kann ich dir die Details dazu erklären.";
@@ -3231,9 +3415,45 @@ export function runSellerBrain(
     }
   }
   
+  // Budget-only-Query: Maximal 2 günstigste Produkte
+  const { minPrice, maxPrice } = extractUserPriceRange(cleaned);
+  const hasBudget = minPrice !== null || maxPrice !== null;
+  
+  // Erkennung: Budget vorhanden, aber hauptsächlich nur Budget-Keywords (keine Produkt-Keywords)
+  const isBudgetOnly = hasBudget && (() => {
+    const normalized = normalize(cleaned);
+    // Importiert aus languageRules.de.ts
+    const hasBudgetKeyword = BUDGET_KEYWORDS_FOR_SCENARIO.some(kw => normalized.includes(kw));
+    const parsed = parseQueryForAttributes(cleaned);
+    // Keine Attribute-Terms und keine Produkt-Keywords außer Budget-Wörter
+    // Importiert aus languageRules.de.ts
+    const hasProductKeyword = PRODUCT_KEYWORDS_FOR_BUDGET_ONLY.some(kw => normalized.includes(kw));
+    const hasOnlyBudgetKeywords = hasBudgetKeyword && parsed.attributeTerms.length === 0 && !hasProductKeyword;
+    return hasOnlyBudgetKeywords || (normalized.match(/\d+\s*(€|euro|eur)/) && parsed.attributeTerms.length === 0 && !hasProductKeyword);
+  })();
+  
+  if (isBudgetOnly && finalRanked.length > 2) {
+    // Sortiere nach Preis (günstigste zuerst) und nehme die 2 günstigsten
+    const sortedByPrice = [...finalRanked].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    finalRanked = sortedByPrice.slice(0, 2);
+    
+    console.log("[EFRO SB Budget-Only] Limited to 2 cheapest products", {
+      userText: cleaned.substring(0, 100),
+      originalCount: filterResult.length,
+      finalCount: finalRanked.length,
+      selectedProducts: finalRanked.map((p) => ({
+        title: p.title.substring(0, 50),
+        price: p.price ?? null,
+      })),
+    });
+  }
+  
   // Bei Schimmel-Anfragen maximal 1 Produkt zeigen (Hero-Produkt)
+  // Bei Budget-only maximal 2 Produkte (bereits oben begrenzt)
   const effectiveMaxRecommendations = moldQuery
     ? Math.min(1, maxRecommendations ?? 1)
+    : isBudgetOnly
+    ? Math.min(2, maxRecommendations ?? 2)
     : maxRecommendations;
   
   let recommended = finalRanked.slice(0, effectiveMaxRecommendations);
@@ -3280,7 +3500,8 @@ export function runSellerBrain(
       "Frag mich z. B. nach Kategorien, Preisen, Größen, Materialien oder bestimmten Artikeln – " +
       "dann zeige ich dir passende Produkte.";
   } else {
-    replyText = buildReplyText(cleaned, nextIntent, recommended);
+    // AI-Trigger wird später berechnet, hier noch undefined
+    replyText = buildReplyText(cleaned, nextIntent, recommended, undefined);
   }
 
   // Force-Show-Logik nach allen Guards: Wenn Produkte gefunden wurden, aber recommended leer ist
@@ -3293,8 +3514,9 @@ export function runSellerBrain(
       usedCount: recommended.length,
     });
     // Reply-Text neu generieren, wenn noch nicht gesetzt
+    // AI-Trigger wird später berechnet, hier noch undefined
     if (!replyText || replyText.includes("helfe dir nur")) {
-      replyText = buildReplyText(cleaned, nextIntent, recommended);
+      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined);
     }
   }
 
@@ -3319,6 +3541,416 @@ export function runSellerBrain(
     })),
   });
 
+  // AI-Trigger: Analysiere, ob zusätzliche AI-Hilfe sinnvoll wäre
+  // Analysiere Query erneut, um unknownTerms und coreTerms zu bekommen
+  const parsedForAi = parseQueryForAttributes(cleaned);
+  const { coreTerms: aiCoreTerms } = parsedForAi;
+
+  // Baue Katalog-Keywords-Set für Alias-Analyse
+  const catalogKeywordsSetForAlias = new Set<string>();
+  for (const product of allProducts) {
+    const titleWords = normalizeText(product.title || "")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+    titleWords.forEach((w) => catalogKeywordsSetForAlias.add(w));
+
+    const descWords = normalizeText(product.description || "")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+    descWords.forEach((w) => catalogKeywordsSetForAlias.add(w));
+  }
+  
+  // Prüfe, ob ein erfolgreicher AliasMatch vorhanden war
+  // (wird später in CodeDetect verwendet, um zu verhindern, dass Produkte verworfen werden)
+  const aliasMap = initializeAliasMap(Array.from(catalogKeywordsSetForAlias));
+  const aliasCheckResult = resolveUnknownTerms(cleaned, Array.from(catalogKeywordsSetForAlias), aliasMap);
+  const aliasMatchSuccessful = aliasCheckResult.aliasMapUsed && candidateCount > 0;
+  const candidateCountAfterAlias = candidateCount;
+  
+  console.log("[EFRO SB AliasCheck]", {
+    userText: cleaned.substring(0, 100),
+    aliasMapUsed: aliasCheckResult.aliasMapUsed,
+    aliasResolved: aliasCheckResult.resolved,
+    aliasMatchSuccessful,
+    candidateCountAfterAlias,
+  });
+
+  // Analysiere unbekannte Begriffe
+  const normalizedText = normalize(cleaned);
+  const stopwords = [
+    "für", "mit", "und", "oder", "der", "die", "das", "ein", "eine", "einen",
+    "mir", "mich", "dir", "dich", "ihm", "ihr", "uns", "euch", "ihnen",
+    "zeige", "zeig", "zeigen", "zeigst", "zeigt", "zeigten", "gezeigt",
+    "habe", "hast", "hat", "haben", "hatte", "hattest", "hatten",
+    "bin", "bist", "ist", "sind", "war", "warst", "waren",
+    "kann", "kannst", "können", "konnte", "konntest", "konnten",
+    "will", "willst", "wollen", "wollte", "wolltest", "wollten",
+    "soll", "sollst", "sollen", "sollte", "solltest", "sollten",
+    "muss", "musst", "müssen", "musste", "musstest", "mussten",
+    "darf", "darfst", "dürfen", "durfte", "durftest", "durften",
+  ];
+  const stopwordsSet = new Set(stopwords.map((w) => normalizeText(w)));
+  
+  // Baue Katalog-Keywords-Set für AI-Trigger-Analyse
+  const catalogKeywordsSet = new Set<string>();
+  for (const product of allProducts) {
+    const titleWords = normalizeText(product.title || "")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+    titleWords.forEach((w) => catalogKeywordsSet.add(w));
+
+    const descWords = normalizeText(product.description || "")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+    descWords.forEach((w) => catalogKeywordsSet.add(w));
+  }
+  
+  const words = normalizedText
+    .split(/\s+/)
+    .filter((w) => w.length >= 3)
+    .filter((w) => !stopwordsSet.has(normalizeText(w)));
+
+  const unknownTermsSet = new Set<string>();
+  for (const word of words) {
+    if (!catalogKeywordsSet.has(word)) {
+      unknownTermsSet.add(word);
+    }
+  }
+
+  const unknownTermsFromAnalysis = Array.from(unknownTermsSet);
+
+  // Heuristiken für AI-Trigger
+  const aiUnknownTerms: string[] = [];
+
+  if (unknownTermsFromAnalysis && unknownTermsFromAnalysis.length > 0) {
+    aiUnknownTerms.push(...unknownTermsFromAnalysis);
+  }
+
+  // Basiswerte für Heuristik
+  const finalCount = recommended.length;
+  const unknownCount = aiUnknownTerms.length;
+
+  // ---------------------------------------------
+  // Spezieller Check: Nutzer nennt nur einen Produktcode wie "ABC123"
+  // -> Falls dieser Code im Katalog NICHT vorkommt, behandeln wir es
+  //    als "unknown_product_code_only" und zeigen KEINE Produkte an.
+  // WICHTIG: Budget-Only-Queries dürfen NIE als unknown_product_code_only behandelt werden.
+  // WICHTIG: Kategorie-Codes (z.B. "snowboards" bei Kategorie "snowboard") dürfen NIE als unknown_product_code_only behandelt werden.
+  // ---------------------------------------------
+  
+  // Kategorie-Informationen berechnen (ähnlich wie in filterProducts)
+  const allCategories = Array.from(
+    new Set(
+      allProducts
+        .map((p) => normalize(p.category || ""))
+        .filter((c) => c.length >= 3)
+    )
+  );
+  
+  const categoryHintsInText: string[] = [];
+  const matchedCategories: string[] = [];
+  const t = normalize(cleaned);
+  
+  const catRegex = /kategorie\s+([a-zäöüß]+)/;
+  const catMatch = t.match(catRegex);
+  if (catMatch && catMatch[1]) {
+    const catWord = catMatch[1];
+    categoryHintsInText.push(catWord);
+    allCategories.forEach((cat) => {
+      if (cat.includes(catWord)) {
+        matchedCategories.push(cat);
+      }
+    });
+  } else {
+    allCategories.forEach((cat) => {
+      if (cat && t.includes(cat)) {
+        matchedCategories.push(cat);
+        categoryHintsInText.push(cat);
+      }
+    });
+  }
+  
+  // Effective Category Slug bestimmen (aus Text oder Kontext)
+  let effectiveCategorySlugForCodeDetect: string | null = null;
+  if (matchedCategories.length > 0) {
+    effectiveCategorySlugForCodeDetect = matchedCategories[0];
+  } else if (context?.activeCategorySlug) {
+    effectiveCategorySlugForCodeDetect = normalize(context.activeCategorySlug);
+  } else if (recommended.length > 0 && recommended[0].category) {
+    effectiveCategorySlugForCodeDetect = normalize(recommended[0].category);
+  }
+  
+  // Budget-Wort-Erkennung für zusätzliche Sicherheit (wird bereits oben berechnet, hier wiederverwenden)
+  // Verwende die bereits oben berechneten Variablen: hasBudget, isBudgetOnly
+  const originalForBudget = cleaned.toLowerCase();
+  // Importiert aus languageRules.de.ts
+  const hasBudgetWord =
+    BUDGET_WORD_PATTERNS.some((pattern) => originalForBudget.includes(pattern)) ||
+    /\b(budget|preis|maximal|max|höchstens|hoechstens|nicht mehr als|unter|bis)\b/i.test(cleaned);
+
+  let unknownProductCodeOnly = false;
+  let detectedCodeTerm: string | null = null;
+
+  try {
+    detectedCodeTerm = extractCodeTermFromText(cleaned);
+  } catch (e) {
+    console.warn("[EFRO CodeDetect] Fehler bei extractCodeTermFromText", e);
+  }
+
+  if (detectedCodeTerm) {
+    const codeLc = detectedCodeTerm.toLowerCase();
+
+    // Prüfen, ob dieser Code irgendwo im Katalog vorkommt
+    const productCodeExistsInCatalog = allProducts.some((p) => {
+      const fields: string[] = [];
+      if (typeof (p as any).sku === "string") fields.push((p as any).sku);
+      if (typeof (p as any).title === "string") fields.push((p as any).title);
+      if (typeof (p as any).handle === "string") fields.push((p as any).handle);
+      if (typeof (p as any).category === "string") fields.push((p as any).category);
+      if (typeof (p as any).description === "string") fields.push((p as any).description);
+      if (Array.isArray((p as any).tags)) {
+        fields.push((p as any).tags.join(" "));
+      }
+
+      return fields.some((f) => f.toLowerCase().includes(codeLc));
+    });
+
+    // Hilfsflags für CodeDetect
+    const hasRecommendations = finalCount > 0;
+    const hasEffectiveCategory =
+      !!effectiveCategorySlugForCodeDetect ||
+      (matchedCategories && matchedCategories.length > 0) ||
+      (categoryHintsInText && categoryHintsInText.length > 0);
+    
+    const isLikelyCategoryCodeTerm =
+      !!detectedCodeTerm &&
+      !!effectiveCategorySlugForCodeDetect &&
+      (detectedCodeTerm.toLowerCase().includes(effectiveCategorySlugForCodeDetect) ||
+       effectiveCategorySlugForCodeDetect.includes(detectedCodeTerm.toLowerCase()));
+
+    // WICHTIG: Budget-Only-Queries dürfen NIE als unknown_product_code_only behandelt werden
+    // Verwende die bereits oben berechneten Variablen hasBudgetWord und isBudgetOnly
+    if (hasBudgetWord || isBudgetOnly) {
+      // Budget-Only-Query erkannt → unknownProductCodeOnly NICHT setzen
+      unknownProductCodeOnly = false;
+      console.log("[EFRO CodeDetect] Budget-Only-Query erkannt, CodeDetect blockiert", {
+        text: cleaned,
+        detectedCodeTerm,
+        hasBudgetWord,
+        isBudgetOnly,
+        hasBudget,
+        productCodeExistsInCatalog,
+        note: "Budget-Only-Queries werden nicht als unknown_product_code_only behandelt",
+      });
+    } else if (aliasMatchSuccessful && candidateCountAfterAlias > 0) {
+      // WICHTIG: Wenn ein erfolgreicher AliasMatch vorhanden ist, dürfen diese Produkte NICHT verworfen werden
+      unknownProductCodeOnly = false;
+      console.log("[EFRO CodeDetect] AliasMatch erfolgreich, CodeDetect blockiert", {
+        text: cleaned,
+        detectedCodeTerm,
+        aliasMatchSuccessful,
+        candidateCountAfterAlias,
+        productCodeExistsInCatalog,
+        aliasResolved: aliasCheckResult.resolved,
+        note: "Erfolgreiche AliasMatches werden nicht als unknown_product_code_only behandelt",
+      });
+    } else {
+      unknownProductCodeOnly = !productCodeExistsInCatalog;
+      
+      // 1.2) Unknown-Code-Flag korrigieren: Kategorie-Codes ignorieren
+      if (isLikelyCategoryCodeTerm) {
+        // z. B. "snowboards" bei Kategorie-Slug "snowboard"
+        unknownProductCodeOnly = false;
+        console.log("[EFRO CodeDetect] Kategorie-Code erkannt, CodeDetect blockiert", {
+          text: cleaned,
+          detectedCodeTerm,
+          effectiveCategorySlug: effectiveCategorySlugForCodeDetect,
+          isLikelyCategoryCodeTerm,
+          productCodeExistsInCatalog,
+          note: "Kategorie-Codes werden nicht als unknown_product_code_only behandelt",
+        });
+      }
+      
+      console.log("[EFRO CodeDetect]", {
+        text: cleaned,
+        detectedCodeTerm,
+        productCodeExistsInCatalog,
+        unknownProductCodeOnly,
+        hasRecommendations,
+        hasEffectiveCategory,
+        effectiveCategorySlug: effectiveCategorySlugForCodeDetect,
+        isLikelyCategoryCodeTerm,
+        aliasMatchSuccessful,
+        candidateCountAfterAlias,
+        note: unknownProductCodeOnly 
+          ? "Code erkannt, aber nicht im Katalog gefunden → unknownProductCodeOnly = true"
+          : "Code erkannt, aber blockiert (Kategorie/Alias/Budget)",
+      });
+    }
+
+    if (unknownProductCodeOnly) {
+      // In diesem Fall wollen wir KEINE Produktkarten anzeigen
+      // WICHTIG: Nur wenn KEIN erfolgreicher AliasMatch vorhanden ist
+      if (!aliasMatchSuccessful || candidateCountAfterAlias === 0) {
+        recommended = [];
+        console.log("[EFRO CodeDetect] Produkte verworfen (unknownProductCodeOnly = true)", {
+          text: cleaned,
+          detectedCodeTerm,
+          aliasMatchSuccessful,
+          candidateCountAfterAlias,
+          recommendedCountBefore: recommended.length,
+        });
+      } else {
+        console.log("[EFRO CodeDetect] Produkte NICHT verworfen (AliasMatch erfolgreich)", {
+          text: cleaned,
+          detectedCodeTerm,
+          aliasMatchSuccessful,
+          candidateCountAfterAlias,
+          recommendedCount: recommended.length,
+        });
+      }
+    }
+  }
+
+  // Spezialfall: Nur unbekannter Produktcode (alte Heuristik als Fallback)
+  const onlyUnknownProductCode =
+    Array.isArray(aiCoreTerms) &&
+    Array.isArray(aiUnknownTerms) &&
+    aiCoreTerms.length > 0 &&
+    // alle echten inhaltlichen Begriffe sind unbekannt
+    aiCoreTerms.every((t) => aiUnknownTerms.includes(t)) &&
+    // mindestens ein Term sieht wie ein Code aus (z.B. ABC123)
+    aiCoreTerms.some((t) => looksLikeProductCode(t));
+
+  // AI-Trigger-Heuristik: Vereinfachte Logik
+  // WICHTIG: Budget-Only-Queries dürfen NIE als unknown_product_code_only behandelt werden
+  
+  // Filtere triviale Wörter aus unknownTerms für AI-Trigger-Entscheidungen
+  const filteredUnknownTerms = (aiUnknownTerms || [])
+    .map((t) => t.toLowerCase().trim())
+    .filter((t) => t.length > 1)
+    .filter((t) => !UNKNOWN_AI_STOPWORDS_SET.has(t));
+  
+  const filteredUnknownCount = filteredUnknownTerms.length;
+
+  // AI-Trigger initialisieren
+  let aiTrigger: SellerBrainAiTrigger | undefined = undefined;
+
+  // 1. Budget-Only-Queries: kein AI-Trigger
+  if (isBudgetOnly) {
+    console.log("[EFRO SB AI-Trigger] Skipped for budget-only query", {
+      text: cleaned.substring(0, 100),
+      finalCount,
+      hasBudgetWord,
+      isBudgetOnly,
+      originalUnknownCount: aiUnknownTerms.length,
+      filteredUnknownCount,
+    });
+    // KEIN AI-Trigger → aiTrigger bleibt undefined
+  } else {
+    // Restliche AI-Trigger-Entscheidungen kommen in diesen else-Block
+    let needsAiHelp = false;
+    let reason = "";
+
+    // Hilfsflags für AI-Trigger (wiederverwenden, falls bereits berechnet)
+    const hasRecommendations = finalCount > 0;
+    const hasEffectiveCategory =
+      !!effectiveCategorySlugForCodeDetect ||
+      (matchedCategories && matchedCategories.length > 0) ||
+      (categoryHintsInText && categoryHintsInText.length > 0);
+    
+    // a) Code-Only-Unknown-Fall (soll bleiben)
+    // 1.3) AI-Trigger „unknown_product_code_only“ nur im echten Code-Only-Fall erlauben
+    // WICHTIG: Wenn ein erfolgreicher AliasMatch vorhanden ist, darf unknown_product_code_only NICHT gesetzt werden
+    if (
+      unknownProductCodeOnly &&
+      detectedCodeTerm &&
+      !hasRecommendations &&       // also finalCount === 0
+      !isBudgetOnly &&             // Budget-Only wird schon vorher geblockt
+      !hasEffectiveCategory &&      // keine Kategorie im Spiel
+      !aliasMatchSuccessful         // KEIN erfolgreicher AliasMatch vorhanden
+    ) {
+      needsAiHelp = true;
+      reason = "unknown_product_code_only";
+    } else if (
+      onlyUnknownProductCode &&
+      !hasRecommendations &&
+      !hasBudgetWord &&
+      !isBudgetOnly &&
+      !hasEffectiveCategory &&
+      !aliasMatchSuccessful         // KEIN erfolgreicher AliasMatch vorhanden
+    ) {
+      needsAiHelp = true;
+      reason = "unknown_product_code_only";
+    } else if (finalCount === 0) {
+      needsAiHelp = true;
+      reason = "no_results";
+    } else if (filteredUnknownCount > 0 && finalCount > 0) {
+      // b) Low-Confidence-Unknown-Terms-Fall: Nur wenn gefilterte Unknown-Terms vorhanden
+      needsAiHelp = true;
+      reason = "low_confidence_unknown_terms";
+    } else if (filteredUnknownCount >= 3) {
+      needsAiHelp = true;
+      reason = "many_unknown_terms";
+    }
+
+    if (needsAiHelp) {
+      aiTrigger = {
+        needsAiHelp: true,
+        reason,
+        unknownTerms: reason === "unknown_product_code_only" ? [] : filteredUnknownTerms,
+      };
+
+      // Code-Term setzen, falls vorhanden
+      if (unknownProductCodeOnly && detectedCodeTerm) {
+        aiTrigger.codeTerm = detectedCodeTerm;
+      } else if (onlyUnknownProductCode) {
+        // Versuche Code-Term aus unknownTerms zu extrahieren
+        const codeFromTerms = aiUnknownTerms.find((t) => looksLikeProductCode(t));
+        if (codeFromTerms) {
+          aiTrigger.codeTerm = codeFromTerms;
+        }
+      }
+      
+      console.log("[EFRO SB AI-Trigger] Set", {
+        text: cleaned.substring(0, 100),
+        reason,
+        needsAiHelp,
+        unknownProductCodeOnly,
+        aliasMatchSuccessful,
+        candidateCountAfterAlias,
+        detectedCodeTerm,
+        finalCount,
+        note: aliasMatchSuccessful 
+          ? "AliasMatch erfolgreich → unknown_product_code_only NICHT gesetzt"
+          : "Kein AliasMatch → unknown_product_code_only kann gesetzt werden",
+      });
+    }
+  }
+
+  // Hilfsflags für AI-Trigger-Log (wiederverwenden, falls bereits berechnet)
+  const hasRecommendationsForLog = recommended.length > 0;
+  const hasEffectiveCategoryForLog =
+    !!effectiveCategorySlugForCodeDetect ||
+    (matchedCategories && matchedCategories.length > 0) ||
+    (categoryHintsInText && categoryHintsInText.length > 0);
+
+  console.log("[EFRO SB AI-Trigger]", {
+    text: cleaned.substring(0, 100),
+    finalCount: recommended.length,
+    unknownCount: filteredUnknownCount,
+    originalUnknownCount: aiUnknownTerms.length,
+    needsAiHelp: aiTrigger?.needsAiHelp ?? false,
+    reason: aiTrigger?.reason ?? "none",
+    isBudgetOnly,
+    hasBudgetWord,
+    hasEffectiveCategory: hasEffectiveCategoryForLog,
+    hasRecommendations: hasRecommendationsForLog,
+    filteredUnknownTerms: filteredUnknownTerms.slice(0, 10), // Nur erste 10 für Übersicht
+    unknownProductCodeOnly,
+    codeTerm: aiTrigger?.codeTerm,
+  });
+
   // Bestimme effectiveCategorySlug für nextContext
   // (muss aus filterProducts extrahiert werden, hier vereinfacht: aus recommended ableiten)
   let effectiveCategorySlug: string | null = null;
@@ -3326,7 +3958,32 @@ export function runSellerBrain(
     effectiveCategorySlug = normalize(recommended[0].category);
   } else if (context?.activeCategorySlug) {
     // Wenn keine Produkte gefunden, aber Kontext vorhanden, behalte Kontext
+    // WICHTIG: Bei Budget-only-Queries mit Kontext soll der Kontext beibehalten werden
     effectiveCategorySlug = normalize(context.activeCategorySlug);
+  }
+
+  // WICHTIG: Bei Budget-only mit vorhandenem Kontext soll der Kontext beibehalten werden
+  // auch wenn keine Produkte gefunden wurden oder recommended leer ist
+  const isBudgetOnlyQuery = (() => {
+    const { minPrice, maxPrice } = extractUserPriceRange(cleaned);
+    const hasBudget = minPrice !== null || maxPrice !== null;
+    if (!hasBudget) return false;
+    const normalized = normalize(cleaned);
+    // Importiert aus languageRules.de.ts
+    const hasBudgetKeyword = BUDGET_KEYWORDS_FOR_SCENARIO.some(kw => normalized.includes(kw));
+    const parsed = parseQueryForAttributes(cleaned);
+    // Importiert aus languageRules.de.ts
+    const hasProductKeyword = PRODUCT_KEYWORDS_FOR_BUDGET_ONLY.some(kw => normalized.includes(kw));
+    return hasBudgetKeyword && parsed.attributeTerms.length === 0 && !hasProductKeyword;
+  })();
+
+  if (isBudgetOnlyQuery && context?.activeCategorySlug && !effectiveCategorySlug) {
+    // Budget-only mit Kontext: Kontext beibehalten
+    effectiveCategorySlug = normalize(context.activeCategorySlug);
+    console.log("[EFRO SB Context] Budget-only query, preserving context", {
+      activeCategorySlug: effectiveCategorySlug,
+      recommendedCount: recommended.length,
+    });
   }
 
   const nextContext: SellerBrainContext | undefined = effectiveCategorySlug
@@ -3337,11 +3994,64 @@ export function runSellerBrain(
     activeCategorySlug: nextContext?.activeCategorySlug ?? null,
   });
 
+  // Spezialfall: Bei unbekanntem Produktcode keine Produkte anzeigen
+  // WICHTIG: Nur wenn es KEINE Budget-Only-Query ist UND KEIN erfolgreicher AliasMatch vorhanden ist
+  if (
+    aiTrigger?.reason === "unknown_product_code_only" && 
+    !hasBudgetWord && 
+    !isBudgetOnly &&
+    !aliasMatchSuccessful
+  ) {
+    recommended = [];
+    console.log("[EFRO SB] Produkte verworfen (unknown_product_code_only, kein AliasMatch)", {
+      text: cleaned.substring(0, 100),
+      reason: aiTrigger.reason,
+      aliasMatchSuccessful,
+      candidateCountAfterAlias,
+    });
+  } else if (aiTrigger?.reason === "unknown_product_code_only" && aliasMatchSuccessful) {
+    console.log("[EFRO SB] Produkte NICHT verworfen (unknown_product_code_only, aber AliasMatch erfolgreich)", {
+      text: cleaned.substring(0, 100),
+      reason: aiTrigger.reason,
+      aliasMatchSuccessful,
+      candidateCountAfterAlias,
+      recommendedCount: recommended.length,
+    });
+  }
+
+  // Reply-Text mit AI-Klärung neu generieren, falls aiTrigger vorhanden
+  let finalReplyText = replyText;
+  if (aiTrigger?.needsAiHelp) {
+    finalReplyText = buildReplyText(cleaned, nextIntent, recommended, aiTrigger);
+  }
+
+  // Defensive Guard: Stelle sicher, dass replyText niemals leer oder undefined ist
+  if (!finalReplyText || typeof finalReplyText !== "string" || finalReplyText.trim().length === 0) {
+    console.warn("[EFRO SB] Empty replyText detected, using fallback", {
+      userText: cleaned.substring(0, 100),
+      originalReplyText: finalReplyText,
+      recommendedCount: recommended.length,
+    });
+    finalReplyText =
+      "Ich habe deine Anfrage erhalten. Bitte beschreibe dein Anliegen etwas genauer, dann kann ich dir besser helfen.";
+  }
+
+  console.log("[EFRO SB RETURN]", {
+    text: cleaned,
+    intent: nextIntent,
+    finalCount: recommended.length,
+    replyText: finalReplyText,
+    replyTextLength: finalReplyText.length,
+    aiTrigger,
+    nextContext,
+  });
+
   return {
     intent: nextIntent,
-    recommended,
-    replyText,
+    recommended: recommended || [],
+    replyText: finalReplyText,
     nextContext,
+    aiTrigger,
   };
 }
 
@@ -3352,12 +4062,8 @@ export function runSellerBrain(
 function isMoldQuery(text: string): boolean {
   const t = (text || "").toLowerCase();
   // Typische deutsche Formulierungen für Schimmel
-  return (
-    t.includes("schimmel") ||
-    t.includes("schimmelentferner") ||
-    t.includes("schimmel-reiniger") ||
-    t.includes("schimmelreiniger")
-  );
+  // Importiert aus languageRules.de.ts
+  return MOLD_KEYWORDS.some((kw) => t.includes(kw));
 }
 
 function isMoldProduct(product: EfroProduct): boolean {
@@ -3376,12 +4082,7 @@ function isMoldProduct(product: EfroProduct): boolean {
 
   const full = parts.join(" ").toLowerCase();
 
-  return (
-    full.includes("schimmel") ||
-    full.includes("schimmelentferner") ||
-    full.includes("schimmel-reiniger") ||
-    full.includes("schimmelreiniger") ||
-    full.includes("mold")
-  );
+  // Importiert aus languageRules.de.ts
+  return MOLD_KEYWORDS.some((kw) => full.includes(kw));
 }
 

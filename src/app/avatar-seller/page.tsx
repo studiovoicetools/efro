@@ -4,7 +4,6 @@ import { logEfroEvent } from "@/lib/efro/logEventClient";
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { getRandomDemoPhrase } from "@/lib/voices/demoPhrases";
 import {
   MascotProvider,
   MascotClient,
@@ -23,7 +22,11 @@ import {
   mockCatalog,
 } from "@/lib/products/mockCatalog";
 import { efroAttributeTestProducts } from "@/lib/catalog/efro-attribute-test-products";
-import { runSellerBrain, SellerBrainResult } from "@/lib/sales/sellerBrain";
+import {
+  runSellerBrain,
+  SellerBrainResult,
+  type SellerBrainContext,
+} from "@/lib/sales/sellerBrain";
 import { analyzeCatalogKeywords } from "@/lib/sales/catalogKeywordAnalyzer";
 import { buildMascotUrl } from "@/lib/efro/mascotConfig";
 
@@ -113,7 +116,6 @@ function ElevenLabsAvatar({
 
   const urlRefreshInterval = useRef<NodeJS.Timeout | null>(null);
   const connectionStartTime = useRef<number | null>(null);
-  const hasPlayedIntroRef = useRef(false);
   const [debugStatus, setDebugStatus] = useState("idle");
 
   /* LipSync */
@@ -145,43 +147,8 @@ function ElevenLabsAvatar({
         connectionStartTime.current = null;
       }
 
-      // Intro-Phrase einmalig beim ersten Connect abspielen
-      if (!hasPlayedIntroRef.current) {
-        hasPlayedIntroRef.current = true;
-
-        // TODO: Später language-dynamisch machen (DE/EN) abhängig von Shop-/User-Settings.
-        const intro = getRandomDemoPhrase("intro");
-        console.log("[EFRO Demo] Playing intro phrase:", intro);
-
-        // 1) Intro als Bot-Nachricht in den Chat schreiben
-        const targetSetChatMessages = externalSetChatMessages ?? setChatMessages;
-        targetSetChatMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            text: intro,
-            sender: "efro",
-          },
-        ]);
-
-        // 2) TTS anstoßen (mit kleiner Verzögerung, damit die Verbindung stabil ist)
-        // Verwende conversation.sendUserMessage direkt, da speakForApp hier noch nicht verfügbar ist
-        setTimeout(() => {
-          const fn = (conversation as any)?.sendUserMessage;
-          if (typeof fn === "function") {
-            const phrase = `Bitte sprich genau folgenden Satz und füge nichts hinzu: "${intro}"`;
-            console.log("[EFRO Demo] Sending intro to ElevenLabs:", phrase);
-            const maybePromise = fn(phrase);
-            if (maybePromise && typeof (maybePromise as any).then === "function") {
-              maybePromise.catch((err: any) => {
-                console.error("[EFRO Demo] sendUserMessage error", err);
-              });
-            }
-          } else {
-            console.warn("[EFRO Demo] sendUserMessage nicht verfügbar für Intro-Phrase");
-          }
-        }, 500);
-      }
+      // Demo-Intro deaktiviert: Nur die normale ElevenLabs-Conversational-Engine spricht
+      console.log("[EFRO DemoIntro] Disabled – using only ElevenLabs default greeting");
     },
 
     onDisconnect: () => {
@@ -198,7 +165,13 @@ function ElevenLabsAvatar({
         INCOMING MESSAGES (VOICE + EFRO)
     ============================================================ */
     onMessage: (msg: any) => {
-      console.log("RAW-IN:", msg);
+      // RAW-IN: Alle eingehenden ElevenLabs-Nachrichten (für Debug)
+      // WICHTIG: Nur Nachrichten mit source: "user" werden als EFRO-Chat-Nachricht verwendet.
+      // Nachrichten mit source: "ai" / "assistant" werden ignoriert (siehe unten).
+      console.log("RAW-IN:", {
+        ...msg,
+        _note: "ElevenLabs-Raw-Message. Nur source: 'user' wird als EFRO-Chat-Nachricht verwendet.",
+      });
 
       const rawText =
         msg?.text ||
@@ -279,14 +252,21 @@ function ElevenLabsAvatar({
 
         const targetSetChatMessages = externalSetChatMessages ?? setChatMessages;
 
-        targetSetChatMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
+        targetSetChatMessages((prev) => {
+          const msg = {
+            id: `user-${Date.now()}`,
             text: cleanText,
-            sender: "user",
-          },
-        ]);
+            sender: "user" as const,
+          };
+          const next = [...prev, msg];
+          console.log("[EFRO Chat] append", {
+            msg,
+            countBefore: prev.length,
+            countAfter: next.length,
+          });
+          console.log("[EFRO Chat] user message", { text: cleanText });
+          return next;
+        });
 
         return;
       }
@@ -295,8 +275,15 @@ function ElevenLabsAvatar({
          EFRO (Assistant) → nur für LipSync, NICHT als Chat-Nachricht
       ============================================================ */
       if (isAssistantMessage) {
-        console.log("[ElevenLabs AI ignored]", { message: cleanText });
+        console.log("[ElevenLabs AI ignored]", { 
+          message: cleanText,
+          source: msg.source || msg.role || "unknown",
+          note: "Diese ElevenLabs-Agent-Nachricht wird NICHT als EFRO-Chat-Nachricht angezeigt. Nur SellerBrain-Reply-Text wird im EFRO-Chat verwendet."
+        });
         // keine Chat-Nachricht, keine Recommendations
+        // WICHTIG: ElevenLabs-Agent-Antworten (source: "ai" / "assistant") werden
+        // NICHT in den EFRO-Chat übernommen. Nur SellerBrain.replyText wird als
+        // EFRO-Antwort im Chat angezeigt.
         return;
       }
 
@@ -483,7 +470,12 @@ function ElevenLabsAvatar({
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
           onSend={handleChatSend}
-          messages={chatMessages}
+          messages={chatMessages.map((m) => ({
+            id: m.id,
+            text: m.text,
+            role: m.sender === "user" ? "user" : "efro",
+            createdAt: Date.now(),
+          }))}
         />
       )}
 
@@ -559,6 +551,20 @@ export default function Home({ searchParams }: HomeProps) {
   const [chatMessages, setChatMessages] = useState<
     { id: string; text: string; sender: "user" | "efro" }[]
   >([]);
+  const [showDebugOverlay, setShowDebugOverlay] = useState(true);
+
+  // Helper-Funktion für Chat-Messages mit Logging
+  function appendChatMessage(msg: { id: string; text: string; sender: "user" | "efro" }) {
+    setChatMessages((prev) => {
+      const next = [...prev, msg];
+      console.log("[EFRO Chat] append", {
+        msg,
+        countBefore: prev.length,
+        countAfter: next.length,
+      });
+      return next;
+    });
+  }
 
   // 🔹 Produkt- und SellerBrain-State
   const [allProducts, setAllProducts] = useState<EfroProduct[]>([]);
@@ -592,9 +598,7 @@ export default function Home({ searchParams }: HomeProps) {
   const [shopPlan, setShopPlan] = useState<string>("starter");
 
   // 🔹 SellerBrain-Kontext (z. B. aktive Kategorie)
-  const [sellerContext, setSellerContext] = useState<{
-    activeCategorySlug?: string | null;
-  }>({});
+  const [sellerContext, setSellerContext] = useState<SellerBrainContext>({});
 
   /* ===========================================================
       SPRECH-HANDLER VON AVATAR
@@ -928,14 +932,14 @@ export default function Home({ searchParams }: HomeProps) {
   ============================================================ */
 
   function sendDirectAiReply(reply: string, options?: { speak?: boolean }) {
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        text: reply,
-        sender: "efro",
-      },
-    ]);
+    // Verwende appendChatMessage für konsistente Chat-Nachrichten
+    // Diese Funktion wird nur für ExplanationGuard-Antworten verwendet
+    // (Off-Topic, Inhaltsstoffe, Anwendung, Preis) - NICHT für ElevenLabs-Agent-Antworten
+    appendChatMessage({
+      id: `efro-direct-${Date.now()}`,
+      text: reply,
+      sender: "efro",
+    });
     setSellerReplyText(reply);
 
     if (options?.speak) {
@@ -962,6 +966,8 @@ export default function Home({ searchParams }: HomeProps) {
 
       const cleanedText = userText.trim();
       if (!cleanedText) return;
+
+      console.log("[EFRO Pipeline] cleanedText", { cleanedText });
 
       const explanation = detectExplanationType(cleanedText);
 
@@ -1112,16 +1118,96 @@ export default function Home({ searchParams }: HomeProps) {
 
       // ---------- Normale Produktanfrage → SellerBrain ----------
       try {
+        // User-Nachricht zum Chat hinzufügen
+        appendChatMessage({
+          id: `user-${Date.now()}`,
+          text: cleanedText,
+          sender: "user",
+        });
+        console.log("[EFRO Chat] user message", { text: cleanedText });
+
+        // Kontext für SellerBrain vorbereiten
+        const context: SellerBrainContext | undefined = sellerContext.activeCategorySlug
+          ? { activeCategorySlug: sellerContext.activeCategorySlug }
+          : undefined;
+
+        console.log("[EFRO Client] Sending sellerContext", {
+          sellerContext,
+          context,
+          activeCategorySlug: sellerContext.activeCategorySlug,
+        });
+
+        console.log("[EFRO Pipeline] BEFORE runSellerBrain", {
+          userText: cleanedText,
+          sellerContext,
+        });
+
         const result: SellerBrainResult = runSellerBrain(
           cleanedText,
           sellerIntent,
           sellerProducts,
           shopPlan,
           sellerRecommended,
-          sellerContext.activeCategorySlug
-            ? { activeCategorySlug: sellerContext.activeCategorySlug }
-            : undefined
+          context
         );
+
+        console.log("[EFRO Pipeline] AFTER runSellerBrain", {
+          userText: cleanedText,
+          result: {
+            intent: result.intent,
+            replyText: result.replyText,
+            productCount: result.recommended?.length ?? 0,
+            aiTrigger: result.aiTrigger,
+            nextContext: result.nextContext,
+          },
+        });
+
+        // ============================================================
+        // WICHTIG: EFRO-Chat-Nachrichten vs. ElevenLabs-Agent-Nachrichten
+        // ============================================================
+        // - SellerBrain.replyText ist die EINZIGE Quelle für sichtbare
+        //   EFRO-Antworten im UI-Chat.
+        // - ElevenLabs-Agent-Antworten (source: "ai" / "assistant") werden
+        //   in onMessage() ignoriert und NICHT als EFRO-Chat-Nachricht verwendet.
+        // - Später können wir replyText hier an ElevenLabs als TTS-Input
+        //   weitergeben, aber die Chat-Anzeige bleibt getrennt.
+        // ============================================================
+
+        // EFRO-Antwort in den Chat schreiben (nur SellerBrain-Reply-Text)
+        // Defensive: Prüfe auf String und nicht-leeren Wert
+        const replyText = result.replyText || "";
+        if (replyText.trim().length > 0) {
+          appendChatMessage({
+            id: `efro-${Date.now()}`,
+            text: replyText,
+            sender: "efro",
+          });
+          console.log("[EFRO Chat] efro reply", {
+            fromText: cleanedText,
+            replyText: replyText,
+            replyTextLength: replyText.length,
+            aiTrigger: result.aiTrigger,
+            note: "Dies ist die einzige EFRO-Chat-Nachricht. ElevenLabs-Agent-Antworten werden separat ignoriert.",
+          });
+        } else {
+          console.warn("[EFRO Chat] efro reply missing or empty", {
+            fromText: cleanedText,
+            resultReplyText: result.replyText,
+            resultReplyTextType: typeof result.replyText,
+            resultSummary: {
+              intent: result.intent,
+              productCount: result.recommended?.length ?? 0,
+              aiTrigger: result.aiTrigger,
+            },
+          });
+          // Fallback-Nachricht, damit der Chat nicht leer bleibt
+          const fallbackText = "Entschuldigung, ich konnte keine passende Antwort generieren. Bitte versuche es mit einer anderen Formulierung.";
+          appendChatMessage({
+            id: `efro-fallback-${Date.now()}`,
+            text: fallbackText,
+            sender: "efro",
+          });
+        }
 
         const recommendations = result.recommended ?? [];
 
@@ -1171,6 +1257,11 @@ export default function Home({ searchParams }: HomeProps) {
         setLastRecommendedProducts(recommendations);
         setLastRecommendations(recommendations);
 
+        console.log("[EFRO Pipeline] UI PRODUCTS UPDATE", {
+          fromText: cleanedText,
+          productCount: result.recommended?.length ?? 0,
+        });
+
         setSellerResult(result);
         setLastProductResult(result);
 
@@ -1178,14 +1269,73 @@ export default function Home({ searchParams }: HomeProps) {
         setSellerReplyText(result.replyText);
         setSellerRecommended(recommendations);
 
+        // EFRO-Nachricht wird bereits oben nach runSellerBrain hinzugefügt
+
+        // NOTE: replyText wird aktuell NICHT direkt an ElevenLabs gesendet.
+        // Die ElevenLabs-Konversation läuft über die useConversation Hook und onMessage Callbacks.
+        console.log("[EFRO Pipeline] NOTE: replyText wird aktuell NICHT direkt an ElevenLabs gesendet.", {
+          replyText: result.replyText,
+        });
+
         // Kontext aus SellerBrain-Ergebnis aktualisieren
+        // WICHTIG: activeCategorySlug nur aktualisieren, wenn es nicht null/undefined ist
+        // Sonst würde ein null-Wert den bestehenden Kontext überschreiben
         const nextContext = result.nextContext;
         if (nextContext) {
-          setSellerContext((prev) => ({
-            ...prev,
-            ...nextContext,
-          }));
-          console.log("[EFRO Client] Updated sellerContext", nextContext);
+          setSellerContext((prev) => {
+            const updated = {
+              ...prev,
+              // Nur activeCategorySlug aktualisieren, wenn es einen Wert hat
+              ...(nextContext.activeCategorySlug != null
+                ? { activeCategorySlug: nextContext.activeCategorySlug }
+                : {}),
+            };
+            console.log("[EFRO Client] Updated sellerContext", {
+              previous: prev,
+              nextContext,
+              updated,
+              note: "activeCategorySlug wird nur aktualisiert, wenn es nicht null/undefined ist",
+            });
+            return updated;
+          });
+        } else {
+          // Wenn kein nextContext, behalte den bestehenden Kontext
+          console.log("[EFRO Client] No nextContext in result, keeping existing context", sellerContext);
+        }
+
+        // AI-Trigger: Unbekannte Begriffe an Backend senden (fire-and-forget)
+        const aiTrigger = result.aiTrigger;
+        if (aiTrigger && aiTrigger.needsAiHelp && aiTrigger.unknownTerms?.length > 0) {
+          console.log("[EFRO Client AI-Trigger] Sending unknown terms to backend", {
+            userText: cleanedText,
+            aiTrigger,
+          });
+
+          // Fire-and-forget, Fehler nur loggen
+          fetch("/api/efro/ai-unknown-terms", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              shopDomain: shopDomain,
+              userText: cleanedText,
+              aiTrigger,
+              catalogMeta: {
+                totalProducts: allProducts.length,
+                categories: Array.from(
+                  new Set(
+                    allProducts
+                      .map((p) => (p as any).categorySlug || p.category || "")
+                      .filter(Boolean)
+                  )
+                ).slice(0, 20),
+              },
+            }),
+            keepalive: true, // hilft, wenn der Tab kurz danach geschlossen wird
+          }).catch((err) => {
+            console.warn("[EFRO Client AI-Trigger] Failed to send unknown terms", err);
+          });
         }
       } catch (err: any) {
         console.error("[EFRO SellerBrain Error]", err);
@@ -1214,12 +1364,19 @@ export default function Home({ searchParams }: HomeProps) {
       sellerRecommended,
       lastRecommendedProducts,
       lastRecommendations,
+      sellerContext, // WICHTIG: sellerContext muss in Dependencies, sonst wird immer der initiale Wert verwendet
     ]
   );
 
   /* ===========================================================
       RENDER
   ============================================================ */
+
+  // Debug-Log für Chat-Rendering
+  console.log("[EFRO Chat] render", {
+    count: chatMessages.length,
+    messages: chatMessages,
+  });
 
   return (
     <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
@@ -1246,6 +1403,109 @@ export default function Home({ searchParams }: HomeProps) {
           products={sellerResult?.recommended ?? []}
           replyText={sellerResult?.replyText ?? sellerReplyText}
         />
+
+      {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
+      {showDebugOverlay && (
+        <div
+          style={{
+            position: "fixed",
+            top: 24,
+            right: 16,
+            maxWidth: "420px",
+            maxHeight: "50vh",
+            overflowY: "auto",
+            padding: "12px",
+            background: "rgba(0,0,0,0.85)",
+            color: "#fff",
+            fontSize: "12px",
+            borderRadius: "12px",
+            zIndex: 9999,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setShowDebugOverlay(false)}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              fontSize: "16px",
+              lineHeight: "1",
+              padding: "4px 8px",
+              background: "rgba(255, 255, 255, 0.2)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+            }}
+          >
+            ×
+          </button>
+          <div style={{ marginBottom: 8, opacity: 0.7 }}>
+            EFRO DEBUG-CHAT ({chatMessages.length} Messages)
+          </div>
+        <div style={{ marginBottom: 8, fontSize: "10px", opacity: 0.6 }}>
+          ⚠️ Nur EFRO-Chat (SellerBrain-Reply). ElevenLabs-Agent-Nachrichten
+          werden ignoriert (siehe Console: [ElevenLabs AI ignored]).
+        </div>
+        {chatMessages.map((m, idx) => {
+          const text =
+            // verschiedene mögliche Felder ausprobieren
+            (m as any).text ??
+            (m as any).replyText ??
+            (typeof (m as any).content === "string"
+              ? (m as any).content
+              : Array.isArray((m as any).content)
+              ? (m as any).content
+                  .map((c: any) =>
+                    typeof c === "string"
+                      ? c
+                      : "text" in c
+                      ? c.text
+                      : ""
+                  )
+                  .join(" ")
+              : "");
+
+          if (!text) {
+            console.warn("[EFRO Chat] message ohne text", m);
+            return (
+              <div key={m.id ?? idx} style={{ marginBottom: 4 }}>
+                <strong>{m.sender ?? "?"}</strong>: [kein Text-Feld gefunden]
+              </div>
+            );
+          }
+
+          // Styling basierend auf Sender
+          const isUser = m.sender === "user";
+          const bgColor = isUser ? "rgba(255, 165, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
+          const textColor = isUser ? "#ffa500" : "#fff";
+
+          return (
+            <div
+              key={m.id ?? idx}
+              style={{
+                marginBottom: 4,
+                padding: "4px 8px",
+                background: bgColor,
+                borderRadius: "4px",
+              }}
+            >
+              <strong style={{ color: textColor }}>
+                {m.sender === "user" ? "👤 User" : "🤖 EFRO"}
+              </strong>
+              : <span style={{ color: textColor }}>{text}</span>
+            </div>
+          );
+        })}
+        </div>
+      )}
     </main>
   );
 }

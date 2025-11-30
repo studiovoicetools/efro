@@ -50,3 +50,12 @@ body {
 .animate-spin-slow {
   animation: spinSlow 3.5s linear infinite;
 }
+
+/* EFRO Chat Bubbles */
+.efro-chat-bubble.user {
+  text-align: right;
+}
+
+.efro-chat-bubble.efro {
+  text-align: left;
+}
