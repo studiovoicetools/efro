@@ -15,6 +15,11 @@ type SuggestResponse = {
   recommended: EfroProduct[];
   productCount: number;
   productsSource: string;
+  sellerBrain?: {
+    nextContext?: {
+      activeCategorySlug?: string | null;
+    } | null;
+  };
 };
 
 async function loadProductsViaDebugEndpoint(
@@ -179,12 +184,25 @@ export async function POST(req: NextRequest) {
       previousRecommended = products.filter((p) => ids.includes(p.id));
     }
 
+    // Context aus Body extrahieren (optional)
+    const context = body.context
+      ? {
+          activeCategorySlug:
+            typeof body.context.activeCategorySlug === "string"
+              ? body.context.activeCategorySlug
+              : null,
+        }
+      : undefined;
+
+    console.log("[EFRO SB API] Incoming context", context);
+
     const brainResult = runSellerBrain(
       text,
       prevIntent,
       products,
       planParam,
-      previousRecommended
+      previousRecommended,
+      context
     );
 
     const payload: SuggestResponse = {
@@ -194,6 +212,9 @@ export async function POST(req: NextRequest) {
       recommended: brainResult.recommended,
       productCount: products.length,
       productsSource: source,
+      sellerBrain: {
+        nextContext: brainResult.nextContext ?? null,
+      },
     };
 
     // Event-Logging nach erfolgreichem SellerBrain-Call

@@ -4,6 +4,7 @@ import { logEfroEvent } from "@/lib/efro/logEventClient";
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
+import { getRandomDemoPhrase } from "@/lib/voices/demoPhrases";
 import {
   MascotProvider,
   MascotClient,
@@ -112,6 +113,7 @@ function ElevenLabsAvatar({
 
   const urlRefreshInterval = useRef<NodeJS.Timeout | null>(null);
   const connectionStartTime = useRef<number | null>(null);
+  const hasPlayedIntroRef = useRef(false);
   const [debugStatus, setDebugStatus] = useState("idle");
 
   /* LipSync */
@@ -141,6 +143,44 @@ function ElevenLabsAvatar({
       if (connectionStartTime.current) {
         console.log("Connected in:", Date.now() - connectionStartTime.current);
         connectionStartTime.current = null;
+      }
+
+      // Intro-Phrase einmalig beim ersten Connect abspielen
+      if (!hasPlayedIntroRef.current) {
+        hasPlayedIntroRef.current = true;
+
+        // TODO: Später language-dynamisch machen (DE/EN) abhängig von Shop-/User-Settings.
+        const intro = getRandomDemoPhrase("intro");
+        console.log("[EFRO Demo] Playing intro phrase:", intro);
+
+        // 1) Intro als Bot-Nachricht in den Chat schreiben
+        const targetSetChatMessages = externalSetChatMessages ?? setChatMessages;
+        targetSetChatMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            text: intro,
+            sender: "efro",
+          },
+        ]);
+
+        // 2) TTS anstoßen (mit kleiner Verzögerung, damit die Verbindung stabil ist)
+        // Verwende conversation.sendUserMessage direkt, da speakForApp hier noch nicht verfügbar ist
+        setTimeout(() => {
+          const fn = (conversation as any)?.sendUserMessage;
+          if (typeof fn === "function") {
+            const phrase = `Bitte sprich genau folgenden Satz und füge nichts hinzu: "${intro}"`;
+            console.log("[EFRO Demo] Sending intro to ElevenLabs:", phrase);
+            const maybePromise = fn(phrase);
+            if (maybePromise && typeof (maybePromise as any).then === "function") {
+              maybePromise.catch((err: any) => {
+                console.error("[EFRO Demo] sendUserMessage error", err);
+              });
+            }
+          } else {
+            console.warn("[EFRO Demo] sendUserMessage nicht verfügbar für Intro-Phrase");
+          }
+        }, 500);
       }
     },
 
@@ -550,6 +590,11 @@ export default function Home({ searchParams }: HomeProps) {
 
   // 🔹 Plan-State (starter / pro / enterprise)
   const [shopPlan, setShopPlan] = useState<string>("starter");
+
+  // 🔹 SellerBrain-Kontext (z. B. aktive Kategorie)
+  const [sellerContext, setSellerContext] = useState<{
+    activeCategorySlug?: string | null;
+  }>({});
 
   /* ===========================================================
       SPRECH-HANDLER VON AVATAR
@@ -1072,7 +1117,10 @@ export default function Home({ searchParams }: HomeProps) {
           sellerIntent,
           sellerProducts,
           shopPlan,
-          sellerRecommended
+          sellerRecommended,
+          sellerContext.activeCategorySlug
+            ? { activeCategorySlug: sellerContext.activeCategorySlug }
+            : undefined
         );
 
         const recommendations = result.recommended ?? [];
@@ -1129,6 +1177,16 @@ export default function Home({ searchParams }: HomeProps) {
         setSellerIntent(result.intent);
         setSellerReplyText(result.replyText);
         setSellerRecommended(recommendations);
+
+        // Kontext aus SellerBrain-Ergebnis aktualisieren
+        const nextContext = result.nextContext;
+        if (nextContext) {
+          setSellerContext((prev) => ({
+            ...prev,
+            ...nextContext,
+          }));
+          console.log("[EFRO Client] Updated sellerContext", nextContext);
+        }
       } catch (err: any) {
         console.error("[EFRO SellerBrain Error]", err);
 

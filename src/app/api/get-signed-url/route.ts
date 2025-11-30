@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getShopMeta } from "@/lib/shops/meta";
+import { resolveVoiceForAvatar } from "@/lib/voices/avatarVoices";
+import type { EfroAvatarId } from "@/lib/efro/mascotConfig";
+import type { VoiceKey } from "@/lib/voices/voiceCatalog";
 
 /**
  * Erstellt eine signed URL von ElevenLabs über Mascot Bot
  */
 async function createSignedUrlFromElevenLabs(
+  agentId: string,
   dynamicVariables: any
 ): Promise<string> {
     // Use Mascot Bot proxy endpoint for automatic viseme injection
@@ -18,7 +22,7 @@ async function createSignedUrlFromElevenLabs(
         config: {
           provider: "elevenlabs",
           provider_config: {
-            agent_id: process.env.ELEVENLABS_AGENT_ID,
+            agent_id: agentId,
             api_key: process.env.ELEVENLABS_API_KEY,
             ...(dynamicVariables && { dynamic_variables: dynamicVariables }),
           },
@@ -69,8 +73,32 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    // TODO: use real selected avatarId from context/store
+    // Aktuell: Default auf "bear", später aus Shop-Meta oder Client-Request
+    const avatarId: EfroAvatarId = (incomingDynamic.avatarId as EfroAvatarId) ?? "bear";
+    const preferredVoiceKey: VoiceKey | null = (incomingDynamic.preferredVoiceKey as VoiceKey) ?? null;
+
+    // Voice für Avatar auflösen
+    const resolved = resolveVoiceForAvatar({ avatarId, preferredVoiceKey });
+
+    if (!resolved.agentId) {
+      console.warn("[get-signed-url] No agentId resolved, falling back to legacy ELEVENLABS_AGENT_ID");
+      // Fallback auf Legacy-Verhalten
+      const legacyAgentId = process.env.ELEVENLABS_AGENT_ID || "";
+      if (!legacyAgentId) {
+        return NextResponse.json(
+          { error: "No voice configuration available" },
+          { status: 500 }
+        );
+      }
+      const signedUrl = await createSignedUrlFromElevenLabs(legacyAgentId, finalDynamicVariables);
+      return NextResponse.json({ signedUrl });
+    }
+
+    console.log("[EFRO Voice] Using voice", resolved.voiceKey, "for avatar", avatarId, "agentId:", resolved.agentId);
+
     // Signed URL von ElevenLabs erstellen
-    const signedUrl = await createSignedUrlFromElevenLabs(finalDynamicVariables);
+    const signedUrl = await createSignedUrlFromElevenLabs(resolved.agentId, finalDynamicVariables);
 
     return NextResponse.json({ signedUrl });
   } catch (error) {

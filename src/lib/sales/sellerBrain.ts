@@ -109,12 +109,20 @@ import type { AliasMap } from "./aliasMap";
 import { normalizeAliasKey, initializeAliasMap } from "./aliasMap";
 
 /**
+ * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
+ */
+export interface SellerBrainContext {
+  activeCategorySlug?: string | null;
+}
+
+/**
  * Ergebnisstruktur des Seller-Gehirns
  */
 export type SellerBrainResult = {
   intent: ShoppingIntent;
   recommended: EfroProduct[];
   replyText: string;
+  nextContext?: SellerBrainContext;
 };
 
 type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
@@ -719,12 +727,19 @@ function extractUserPriceRange(
 
   // --- Schlüsselwörter analysieren ---
 
-  // Budget-Wörter (oberste Priorität)
+  // Budget-Wörter (oberste Priorität) - erweitert für robustere Erkennung
+  // WICHTIG: Wenn "budget" im Text vorkommt, ist die Zahl IMMER die Obergrenze,
+  // auch wenn "über" im Satz steht (z. B. "Ich habe ein Budget von über 100" → maxPrice = 100)
   const hasBudgetWord =
     original.includes("mein budget") ||
     original.includes("ich habe ein budget") ||
     original.includes("ich habe budget") ||
-    original.includes(" budget ");
+    original.includes(" budget ") ||
+    original.includes("budget von") ||
+    original.includes("budget liegt") ||
+    original.includes("budget so bei") ||
+    original.includes("budget bei") ||
+    /\bbudget\b/i.test(original); // Fallback: jedes Vorkommen von "budget"
 
   // Obergrenze ("unter / bis / höchstens / maximal / weniger als / nicht mehr als")
   const hasUnder =
@@ -743,6 +758,7 @@ function extractUserPriceRange(
     /ab\s+\d+\s*(euro|eur|€)/.test(normalized);
 
   // Untergrenze ("über / ueber / uber / mindestens / mehr als / größer als")
+  // WICHTIG: Diese Logik wird NUR angewendet, wenn KEIN "budget" im Text steht
   const hasOverCore =
     original.includes(" über ") ||
     original.startsWith("über ") ||
@@ -757,20 +773,24 @@ function extractUserPriceRange(
 
   const hasOver = hasOverCore || hasAbPattern;
 
-  // 1) Budget-Sätze: immer als Obergrenze interpretieren
+  // 1) Budget-Sätze: IMMER als Obergrenze interpretieren (höchste Priorität)
+  // Auch wenn "über" im Satz steht: "Ich habe ein Budget von über 100" → maxPrice = 100
   if (hasBudgetWord) {
     minPrice = null;
     maxPrice = value;
-    console.log("[EFRO DEBUG PRICE_RANGE]", {
-      text,
-      pattern: "budget",
-      minPrice,
-      maxPrice,
+    console.log("[EFRO SB Budget] Parsed budget", {
+      rawText: text,
+      hasBudgetWord: true,
+      numbersFound: [value],
+      budgetRange: { minPrice, maxPrice },
+      note: "Budget erkannt - Zahl wird als Obergrenze (maxPrice) interpretiert, auch wenn 'über' im Satz steht",
     });
     return { minPrice, maxPrice };
   }
 
   // 2) Explizite Untergrenze (über / ab / mindestens / mehr als / größer als)
+  // WICHTIG: Diese Logik greift NUR, wenn KEIN "budget" im Text steht
+  // Bei Budget-Sätzen wurde bereits oben (Zeile 761-771) maxPrice gesetzt
   if (hasOver && !hasUnder) {
     minPrice = value;
     maxPrice = null;
@@ -779,6 +799,7 @@ function extractUserPriceRange(
       pattern: "over",
       minPrice,
       maxPrice,
+      note: "Normale 'über X'-Filterung (kein Budget-Wort im Text)",
     });
     return { minPrice, maxPrice };
   }
@@ -1789,7 +1810,8 @@ function userMentionsPerfume(text: string): boolean {
 function filterProducts(
   text: string,
   intent: ShoppingIntent,
-  allProducts: EfroProduct[]
+  allProducts: EfroProduct[],
+  contextCategory?: string | null
 ): EfroProduct[] {
   // WICHTIG: Parfüm-Flags GANZ AM ANFANG deklarieren, vor allen Logs und if-Blocks
   let hasPerfumeCandidates = false;
@@ -1798,7 +1820,23 @@ function filterProducts(
   // WICHTIG: candidates muss GANZ AM ANFANG deklariert werden, vor allen Logs
   let candidates: EfroProduct[] = [...allProducts];
 
-  console.log("[EFRO FILTER ENTER]", { text, intent, totalProducts: allProducts.length });
+  // Preisbereich extrahieren für ENTER-Log
+  const { minPrice: userMinPriceForLog, maxPrice: userMaxPriceForLog } =
+    extractUserPriceRange(text);
+
+  console.log("[EFRO SB] ENTER filterProducts", {
+    text: text.substring(0, 100),
+    intent,
+    totalProducts: allProducts.length,
+    budgetRange: {
+      min: userMinPriceForLog,
+      max: userMaxPriceForLog,
+    },
+    keywordSummary: {
+      textLength: text.length,
+      hasPriceInfo: userMinPriceForLog !== null || userMaxPriceForLog !== null,
+    },
+  });
 
   // Intent kann innerhalb der Funktion angepasst werden
   let currentIntent: ShoppingIntent = intent;
@@ -1822,7 +1860,14 @@ function filterProducts(
 
   const { minPrice: userMinPrice, maxPrice: userMaxPrice } =
     extractUserPriceRange(text);
-  console.log("[EFRO FILTER PRICE]", { text, userMinPrice, userMaxPrice, candidateCountAfterPrice: candidates.length });
+  
+  // Log nach Preis-Extraktion (noch vor Anwendung)
+  console.log("[EFRO SB] PRICE EXTRACTED", {
+    text: text.substring(0, 80),
+    userMinPrice,
+    userMaxPrice,
+    candidateCountBeforePriceFilter: candidates.length,
+  });
 
   /**
    * 1) Kategorie-Erkennung
@@ -1857,17 +1902,61 @@ function filterProducts(
     });
   }
 
+  // KONEXT-LOGIK: Wenn keine neue Kategorie im Text erkannt wurde, aber contextCategory vorhanden ist
+  // → nutze contextCategory als effectiveCategory
+  let effectiveCategorySlug: string | null = null;
+  
   if (matchedCategories.length > 0) {
-    candidates = candidates.filter((p) =>
-      matchedCategories.includes(normalize(p.category || ""))
-    );
+    // Neue Kategorie im Text erkannt → diese hat Vorrang
+    effectiveCategorySlug = matchedCategories[0]; // Nimm die erste gefundene Kategorie
+  } else if (contextCategory) {
+    // Keine neue Kategorie im Text, aber Kontext vorhanden → nutze Kontext
+    effectiveCategorySlug = normalize(contextCategory);
   }
 
-  console.log("[EFRO Filter CATEGORY]", {
-    text,
+  console.log("[EFRO SB Category] Effective category", {
+    fromText: matchedCategories.length > 0 ? matchedCategories[0] : null,
+    fromContext: contextCategory ?? null,
+    effective: effectiveCategorySlug,
+  });
+
+  // Filtere nach effectiveCategorySlug (entweder aus Text oder aus Kontext)
+  if (effectiveCategorySlug) {
+    const beforeCategoryFilter = candidates.length;
+    candidates = candidates.filter((p) =>
+      normalize(p.category || "") === effectiveCategorySlug
+    );
+    
+    // TODO Vorschlag: Bei Budget-only Anfragen (ohne Produktkategorie) könnte man
+    // den Kategorie-Filter optional machen, damit nicht alle Produkte wegfallen.
+    // Aktuell: Kategorie-Filter ist hart, was bei "zeig mir Parfüm" korrekt ist,
+    // aber bei "50 Euro Budget" ohne Kategorie könnte es zu streng sein.
+    
+    console.log("[EFRO SB] AFTER CATEGORY FILTER", {
+      text: text.substring(0, 80),
+      matchedCategories,
+      effectiveCategorySlug,
+      beforeCount: beforeCategoryFilter,
+      afterCount: candidates.length,
+      isBudgetOnly: (userMinPrice !== null || userMaxPrice !== null) && matchedCategories.length === 0,
+    });
+  } else {
+    // Keine Kategorie-Matches und kein Kontext: Log für Budget-only Szenarien
+    if (userMinPrice !== null || userMaxPrice !== null) {
+      console.log("[EFRO SB] CATEGORY FILTER SKIPPED (budget-only query, no context)", {
+        text: text.substring(0, 80),
+        userMinPrice,
+        userMaxPrice,
+        candidateCount: candidates.length,
+      });
+    }
+  }
+
+  console.log("[EFRO SB] AFTER CATEGORY FILTER", {
+    text: text.substring(0, 80),
     matchedCategories,
     categoryHintsInText,
-    candidateCountAfterCategory: candidates.length,
+    candidateCount: candidates.length,
   });
 
   /**
@@ -2037,10 +2126,15 @@ function filterProducts(
   // Wörter mit Katalog-Keywords erweitern (Komposita aufbrechen)
   let expandedWords = expandWordsWithCatalogKeywords(words, catalogKeywords);
 
-  console.log("[EFRO Filter WORDS]", {
-    text,
-    words: expandedWords,
-    categoryHintsInText,
+  // Query in Core- und Attribute-Terms aufteilen (für Log)
+  const parsedForLog = parseQueryForAttributes(text);
+  
+  console.log("[EFRO SB] AFTER WORD EXTRACTION", {
+    text: text.substring(0, 80),
+    words: expandedWords.slice(0, 10), // Nur erste 10 für Übersicht
+    coreTerms: parsedForLog.coreTerms.slice(0, 10),
+    attributeTerms: parsedForLog.attributeTerms.slice(0, 10),
+    candidateCountBeforeKeywordMatch: candidates.length,
   });
 
   // Intent-Fix: "Zeige mir X" mit konkretem Produkt → quick_buy statt explore
@@ -2055,8 +2149,8 @@ function filterProducts(
   if (currentIntent === "explore" && startsWithShowMe && wordCount > 0 && wordCount <= 4) {
     currentIntent = "quick_buy";
     console.log("[EFRO IntentFix] Upgraded explore -> quick_buy for 'zeige mir' pattern", {
-      text,
-      words,
+    text,
+    words,
       wordCount,
     });
   }
@@ -2472,14 +2566,15 @@ function filterProducts(
         });
       }
 
-      console.log("[EFRO Filter KEYWORD_MATCHES]", {
-        text,
-        words: expandedWords,
-        coreTerms,
-        attributeTerms,
+      console.log("[EFRO SB] AFTER WORD FILTER", {
+        text: text.substring(0, 80),
+        words: expandedWords.slice(0, 10),
+        coreTerms: coreTerms.slice(0, 10),
+        attributeTerms: attributeTerms.slice(0, 10),
         aliasMapUsed: unknownResult.aliasMapUsed,
-        candidatesCount: productsForKeywordMatch.length,
-        matchedTitles: candidates.slice(0, 10).map((p) => p.title),
+        beforeCount: productsForKeywordMatch.length,
+        afterCount: candidates.length,
+        sampleTitles: candidates.slice(0, 5).map((p) => p.title.substring(0, 50)),
       });
   } else {
       console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
@@ -2561,11 +2656,33 @@ function filterProducts(
   }
 
   if (minPrice !== null || maxPrice !== null) {
-      candidates = candidates.filter((p) => {
+    const beforePriceFilter = candidates.length;
+    candidates = candidates.filter((p) => {
       const price = p.price ?? 0;
+      // TODO Vorschlag: Bei Budget-only Anfragen könnte man hier flexibler sein
+      // (z. B. ±10% Toleranz), aktuell exakte Grenzen
       if (minPrice !== null && price < minPrice) return false;
+      // WICHTIG: "über 500" wird aktuell als ">= 500" interpretiert (minPrice = 500, price >= 500)
+      // In der Praxis ist das meist akzeptabel, technisch sollte "über" aber ">" sein.
+      // TODO Vorschlag: Für "über X" könnte man minPrice + 0.01 verwenden, um strikt > zu erzwingen
       if (maxPrice !== null && price > maxPrice) return false;
       return true;
+    });
+    
+    console.log("[EFRO SB] AFTER PRICE FILTER", {
+      text: text.substring(0, 80),
+      minPrice,
+      maxPrice,
+      beforeCount: beforePriceFilter,
+      afterCount: candidates.length,
+      // Sample-Preise für Debugging
+      samplePrices: candidates.slice(0, 5).map((p) => p.price ?? 0),
+    });
+  } else {
+    console.log("[EFRO SB] PRICE FILTER SKIPPED", {
+      text: text.substring(0, 80),
+      reason: "no user price range",
+      candidateCount: candidates.length,
     });
   }
 
@@ -2596,31 +2713,31 @@ function filterProducts(
           });
         } else {
           // Normale Fallback-Logik für Nicht-Parfüm-Anfragen
-          candidates = [...allProducts];
+        candidates = [...allProducts];
 
-          if (matchedCategories.length > 0) {
-            const byCat = candidates.filter((p) =>
-              matchedCategories.includes(normalize(p.category || ""))
-            );
-            if (byCat.length > 0) {
-              candidates = byCat;
-            }
-          }
-
-          if (userMinPrice !== null || userMaxPrice !== null) {
-            let tmp = candidates.filter((p) => {
-              const price = p.price ?? 0;
-              if (userMinPrice !== null && price < userMinPrice) return false;
-              if (userMaxPrice !== null && price > userMaxPrice) return false;
-              return true;
-            });
-
-            if (tmp.length > 0) {
-              candidates = tmp;
-            }
-          }
-        }
+    if (matchedCategories.length > 0) {
+      const byCat = candidates.filter((p) =>
+        matchedCategories.includes(normalize(p.category || ""))
+      );
+      if (byCat.length > 0) {
+        candidates = byCat;
       }
+    }
+
+    if (userMinPrice !== null || userMaxPrice !== null) {
+      let tmp = candidates.filter((p) => {
+        const price = p.price ?? 0;
+        if (userMinPrice !== null && price < userMinPrice) return false;
+        if (userMaxPrice !== null && price > userMaxPrice) return false;
+        return true;
+      });
+
+      if (tmp.length > 0) {
+        candidates = tmp;
+            }
+      }
+    }
+  }
 
   /**
    * 5) Sortierung abhängig von Budget & Intent
@@ -2663,13 +2780,20 @@ function filterProducts(
     }
   }
 
-  console.log("[EFRO Filter RESULT]", {
-    text,
+  // Finales Log mit Produkt-Details
+  const finalProducts = candidates.slice(0, 4);
+  console.log("[EFRO SB] FINAL products", {
+    text: text.substring(0, 80),
     intent: currentIntent,
-    resultTitles: candidates.slice(0, 4).map((p) => p.title),
+    finalCount: finalProducts.length,
+    products: finalProducts.map((p) => ({
+      title: p.title.substring(0, 50),
+      price: p.price ?? null,
+      category: p.category ?? null,
+    })),
   });
 
-  return candidates.slice(0, 4);
+  return finalProducts;
 }
 
 /**
@@ -2989,12 +3113,26 @@ export function runSellerBrain(
   currentIntent: ShoppingIntent,
   allProducts: EfroProduct[],
   plan?: string,
-  previousRecommended?: EfroProduct[]
+  previousRecommended?: EfroProduct[],
+  context?: SellerBrainContext
 ): SellerBrainResult {
   const raw = userText ?? "";
   const cleaned = raw.trim();
 
   const nextIntent = detectIntentFromText(cleaned, currentIntent);
+
+  console.log("[EFRO SB Context] Incoming context", {
+    activeCategorySlug: context?.activeCategorySlug ?? null,
+  });
+
+  console.log("[EFRO SB] ENTER runSellerBrain", {
+    userText: cleaned.substring(0, 100),
+    currentIntent,
+    nextIntent,
+    totalProducts: allProducts.length,
+    plan,
+    previousRecommendedCount: previousRecommended?.length ?? 0,
+  });
 
   // Plan-Logik: starter = 2, pro = 4, enterprise = 6, default = 4
   const getMaxRecommendationsForPlan = (p?: string): number => {
@@ -3065,8 +3203,15 @@ export function runSellerBrain(
   }
 
   // Normale Such-/Kaufanfrage -> filtern
-  const filterResult = filterProducts(cleaned, nextIntent, allProducts);
+  const filterResult = filterProducts(cleaned, nextIntent, allProducts, context?.activeCategorySlug);
   const candidateCount = filterResult.length;
+  
+  console.log("[EFRO SB] AFTER filterProducts", {
+    userText: cleaned.substring(0, 100),
+    intent: nextIntent,
+    candidateCount,
+    sampleTitles: filterResult.slice(0, 3).map((p) => p.title),
+  });
   
   // NEU: Schimmel-Only-Filter
   const moldQuery = isMoldQuery(cleaned);
@@ -3153,30 +3298,50 @@ export function runSellerBrain(
     }
   }
 
-  console.log("[EFRO SellerBrain]", {
-    userText: cleaned,
-    queryText: cleaned,
+  console.log("[EFRO SB] BEFORE REPLY_TEXT", {
+    userText: cleaned.substring(0, 100),
     intent: nextIntent,
     plan,
     maxRecommendations,
-    recCount: recommended.length,
-    usedSourceCount: allProducts.length,
+    recommendedCount: recommended.length,
+    totalProducts: allProducts.length,
     explanationMode: explanationMode ?? null,
-    reusedPreviousProducts,
   });
 
-  console.log("[EFRO FINAL PRODUCTS]", {
-    text: cleaned,
+  console.log("[EFRO SB] FINAL PRODUCTS", {
+    text: cleaned.substring(0, 100),
     intent: nextIntent,
     finalCount: recommended.length,
-    titles: recommended.map((p) => p.title),
-    categories: recommended.map((p) => p.category),
+    products: recommended.map((p) => ({
+      title: p.title.substring(0, 60),
+      price: p.price ?? null,
+      category: p.category ?? null,
+    })),
+  });
+
+  // Bestimme effectiveCategorySlug für nextContext
+  // (muss aus filterProducts extrahiert werden, hier vereinfacht: aus recommended ableiten)
+  let effectiveCategorySlug: string | null = null;
+  if (recommended.length > 0 && recommended[0].category) {
+    effectiveCategorySlug = normalize(recommended[0].category);
+  } else if (context?.activeCategorySlug) {
+    // Wenn keine Produkte gefunden, aber Kontext vorhanden, behalte Kontext
+    effectiveCategorySlug = normalize(context.activeCategorySlug);
+  }
+
+  const nextContext: SellerBrainContext | undefined = effectiveCategorySlug
+    ? { activeCategorySlug: effectiveCategorySlug }
+    : undefined;
+
+  console.log("[EFRO SB Context] Outgoing nextContext", {
+    activeCategorySlug: nextContext?.activeCategorySlug ?? null,
   });
 
   return {
     intent: nextIntent,
     recommended,
     replyText,
+    nextContext,
   };
 }
 

@@ -2,8 +2,10 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MascotProvider } from "@mascotbot-sdk/react";
 import { AvatarPreview } from "@/components/efro/AvatarPreview";
+import { VOICES as VOICE_CATALOG, type VoiceKey } from "@/lib/voices/voiceCatalog";
+import { getRandomDemoPhrase } from "@/lib/voices/demoPhrases";
+import type { EfroAvatarId } from "@/lib/efro/mascotConfig";
 
 // -------------------- Avatar-Optionen --------------------
 
@@ -63,44 +65,60 @@ const AVATARS: AvatarOption[] = [
 // -------------------- ElevenLabs-Optionen --------------------
 
 type VoiceOption = {
-  id: string;
+  key: VoiceKey;
   name: string;
   description: string;
 };
 
-// IDs sind Platzhalter – bitte später mit deinen echten ElevenLabs-Voice-IDs ersetzen.
+// Nutze echte VoiceKeys aus voiceCatalog.ts
 const VOICES: VoiceOption[] = [
   {
-    id: "de-female-1",
-    name: "Deutsch – Weiblich 1",
-    description: "Klar, freundlich, standard",
+    key: "de_female_soft_1",
+    name: "Deutsch – weiblich – soft 1",
+    description: "Weich, freundlich, standard",
   },
   {
-    id: "de-male-1",
-    name: "Deutsch – Männlich 1",
-    description: "Ruhig, seriös, neutral",
+    key: "de_female_soft_2",
+    name: "Deutsch – weiblich – soft 2",
+    description: "Weich, freundlich, alternative",
   },
   {
-    id: "de-female-2",
-    name: "Deutsch – Weiblich 2",
-    description: "Etwas dynamischer, werblich",
+    key: "de_male_confident_1",
+    name: "Deutsch – männlich – klar 1",
+    description: "Klar, ruhig, seriös",
   },
-];
+  {
+    key: "de_male_confident_2",
+    name: "Deutsch – männlich – klar 2",
+    description: "Klar, ruhig, alternative",
+  },
+].filter((v): v is VoiceOption => {
+  // Nur Voices anzeigen, die auch in voiceCatalog.ts existieren und eine agentId haben
+  const catalogVoice = VOICE_CATALOG.find((c) => c.key === v.key);
+  return !!(catalogVoice && catalogVoice.agentId);
+});
 
 export default function EfroOnboardingPage() {
   const router = useRouter();
 
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string>("bear");
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(VOICES[0]?.id ?? "de-female-1");
+  const [selectedAvatarId, setSelectedAvatarId] = useState<EfroAvatarId>("bear");
+  const [selectedVoiceKey, setSelectedVoiceKey] = useState<VoiceKey | null>(
+    VOICES[0]?.key ?? null
+  );
   const [isSaving, setIsSaving] = useState(false);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
+  // TODO: Onboarding Lipsync-Preview später über sicheren Golden-Flow anbinden
+  // Aktuell entfernt, um Fehler "useMascotClient hook must be used within <MascotClient />" zu vermeiden
 
   const selectedAvatar = useMemo(() => {
     return AVATARS.find((a) => a.id === selectedAvatarId) ?? AVATARS[0];
   }, [selectedAvatarId]);
 
   const selectedVoice = useMemo(() => {
-    return VOICES.find((v) => v.id === selectedVoiceId) ?? VOICES[0];
-  }, [selectedVoiceId]);
+    if (!selectedVoiceKey) return VOICES[0] ?? null;
+    return VOICES.find((v) => v.key === selectedVoiceKey) ?? VOICES[0] ?? null;
+  }, [selectedVoiceKey]);
 
   useEffect(() => {
     console.log("[EFRO Onboarding] selectedAvatar changed", {
@@ -108,6 +126,69 @@ export default function EfroOnboardingPage() {
       selectedAvatarSrc: selectedAvatar?.src,
     });
   }, [selectedAvatarId, selectedAvatar]);
+
+  // Voice-Preview-Funktion (nutzt API-Route ohne Mascot-Hooks)
+  const playVoicePreview = async (voiceKey: VoiceKey) => {
+    if (!voiceKey) {
+      console.warn("[EFRO Onboarding] Voice preview requested but no voice selected");
+      return;
+    }
+
+    const avatarId = selectedAvatarId ?? "bear";
+    console.log("[EFRO Onboarding] Voice preview requested", {
+      avatarId,
+      voiceKey,
+    });
+
+    try {
+      setIsPlayingPreview(true);
+
+      const text = getRandomDemoPhrase("intro");
+
+      const res = await fetch("/api/efro/voice-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          avatarId,
+          preferredVoiceKey: voiceKey,
+        }),
+      });
+
+      console.log("[EFRO Onboarding] Voice preview response status", res.status);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.warn("[EFRO Onboarding] Voice preview failed", {
+          status: res.status,
+          error: errorText,
+        });
+        return;
+      }
+
+      const data = await res.json();
+      const audioUrl = data?.audioUrl;
+
+      if (!audioUrl) {
+        console.warn("[EFRO Onboarding] No audioUrl returned from voice-preview");
+        return;
+      }
+
+      const audio = new Audio(audioUrl);
+      audio.onended = () => {
+        setIsPlayingPreview(false);
+      };
+      audio.onerror = (err) => {
+        console.error("[EFRO Onboarding] Audio playback error", err);
+        setIsPlayingPreview(false);
+      };
+
+      await audio.play();
+    } catch (err) {
+      console.error("[EFRO Onboarding] Voice preview error", err);
+      setIsPlayingPreview(false);
+    }
+  };
 
   // Hier kannst du später z. B. in Supabase speichern oder in localStorage
   async function handleContinue() {
@@ -121,7 +202,7 @@ export default function EfroOnboardingPage() {
           JSON.stringify({
             avatarId: selectedAvatarId,
             avatarSrc: selectedAvatar.src,
-            voiceId: selectedVoiceId,
+            voiceKey: selectedVoiceKey,
           })
         );
       }
@@ -134,8 +215,7 @@ export default function EfroOnboardingPage() {
   }
 
   return (
-    <MascotProvider>
-      <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
         {/* Header */}
         <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -183,7 +263,7 @@ export default function EfroOnboardingPage() {
                     <button
                       key={avatar.id}
                       type="button"
-                      onClick={() => setSelectedAvatarId(avatar.id)}
+                      onClick={() => setSelectedAvatarId(avatar.id as EfroAvatarId)}
                       className={[
                         "w-full text-left rounded-xl border px-3 py-3 transition-all",
                         "bg-slate-900/70 hover:bg-slate-800/70",
@@ -234,17 +314,41 @@ export default function EfroOnboardingPage() {
               </div>
 
               <div className="space-y-2">
-                <select
-                  value={selectedVoiceId}
-                  onChange={(e) => setSelectedVoiceId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400"
-                >
-                  {VOICES.map((voice) => (
-                    <option key={voice.id} value={voice.id}>
-                      {voice.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    value={selectedVoiceKey ?? ""}
+                    onChange={(e) => {
+                      const voiceKey = e.target.value as VoiceKey;
+                      setSelectedVoiceKey(voiceKey);
+                      console.log("[EFRO Onboarding] Voice selected", voiceKey);
+                    }}
+                    className="flex-1 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400"
+                  >
+                    {VOICES.map((voice) => (
+                      <option key={voice.key} value={voice.key}>
+                        {voice.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedVoiceKey) {
+                        playVoicePreview(selectedVoiceKey);
+                      }
+                    }}
+                    disabled={!selectedVoiceKey || isPlayingPreview}
+                    className={[
+                      "px-4 py-2 rounded-lg text-xs font-semibold",
+                      "border border-sky-500/50 bg-sky-500/10 text-sky-300",
+                      "hover:bg-sky-500/20 hover:border-sky-400/70",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      "transition-all",
+                    ].join(" ")}
+                  >
+                    {isPlayingPreview ? "▶ Abspielen..." : "▶ Preview"}
+                  </button>
+                </div>
                 {selectedVoice && (
                   <p className="text-[11px] text-slate-400">
                     {selectedVoice.description}
@@ -309,7 +413,7 @@ export default function EfroOnboardingPage() {
                 <li>
                   • Stimme:{" "}
                   <span className="font-semibold text-sky-300">
-                    {selectedVoice?.name}
+                    {selectedVoice?.name ?? "Nicht ausgewählt"}
                   </span>
                 </li>
                 <li>• Modus: Produktberatung + Verkauf (v1)</li>
@@ -336,6 +440,5 @@ export default function EfroOnboardingPage() {
           </section>
         </main>
       </div>
-    </MascotProvider>
   );
 }
