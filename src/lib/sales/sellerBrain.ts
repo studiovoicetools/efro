@@ -3971,6 +3971,11 @@ export function runSellerBrain(
 
   const nextIntent = detectIntentFromText(cleaned, currentIntent);
 
+  // --- PREMIUM: "teuersten Produkte" Sonderfall ---
+  // verhindert, dass CodeDetect unsere Empfehlungen bei Premium-Anfragen wegfiltert
+  // ZENTRALE Definition für den gesamten runSellerBrain-Scope
+  const wantsMostExpensive = detectMostExpensiveRequest(cleaned);
+
   console.log("[EFRO SB Context] Incoming context", {
     activeCategorySlug: context?.activeCategorySlug ?? null,
   });
@@ -4671,10 +4676,18 @@ export function runSellerBrain(
       });
     }
 
+    const isMostExpensiveRequest =
+      wantsMostExpensive ||
+      /\bteuersten?\b/i.test(cleaned) ||
+      /\bmost\s+expensive\b/i.test(cleaned);
+
     if (unknownProductCodeOnly) {
       // In diesem Fall wollen wir KEINE Produktkarten anzeigen
       // WICHTIG: Nur wenn KEIN erfolgreicher AliasMatch vorhanden ist
-      if (!aliasMatchSuccessful || candidateCountAfterAlias === 0) {
+      const shouldKeepRecommendations =
+        aliasMatchSuccessful || hasRecommendations || isMostExpensiveRequest;
+
+      if (!shouldKeepRecommendations) {
         recommended = [];
         console.log("[EFRO CodeDetect] Produkte verworfen (unknownProductCodeOnly = true)", {
           text: cleaned,
@@ -4690,6 +4703,7 @@ export function runSellerBrain(
           aliasMatchSuccessful,
           candidateCountAfterAlias,
           recommendedCount: recommended.length,
+          isMostExpensiveRequest,
         });
       }
     }
@@ -4794,7 +4808,17 @@ export function runSellerBrain(
     // oder ehrlich kommuniziert, dass keine Beschreibung vorhanden ist (ohne AI)
     const isExplanationIntent = effectiveExplanationMode !== null;
     
-    if (isExplanationIntent && hasRecommendations) {
+    if (wantsMostExpensive && hasRecommendations) {
+      needsAiHelp = false;
+      reason = "";
+      console.log("[EFRO SB AI-Trigger] Skipped for most-expensive request with recommendations", {
+        text: cleaned.substring(0, 100),
+        finalCount,
+        hasRecommendations,
+        wantsMostExpensive,
+        note: "Most-expensive intent hat Ergebnisse → keine AI nötig",
+      });
+    } else if (isExplanationIntent && hasRecommendations) {
       // Erklärung + Produkt gefunden → KEINE AI
       needsAiHelp = false;
       reason = "";
@@ -5041,7 +5065,9 @@ export function runSellerBrain(
     aiTrigger?.reason === "unknown_product_code_only" && 
     !hasBudgetWord && 
     !isBudgetOnly &&
-    !aliasMatchSuccessful
+    !aliasMatchSuccessful &&
+    recommended.length === 0 &&
+    !wantsMostExpensive
   ) {
     recommended = [];
     console.log("[EFRO SB] Produkte verworfen (unknown_product_code_only, kein AliasMatch)", {
@@ -5158,4 +5184,3 @@ function isMoldProduct(product: EfroProduct): boolean {
   // Importiert aus languageRules.de.ts
   return MOLD_KEYWORDS.some((kw) => full.includes(kw));
 }
-

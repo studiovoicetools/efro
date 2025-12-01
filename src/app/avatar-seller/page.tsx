@@ -22,6 +22,7 @@ import {
   mockCatalog,
 } from "@/lib/products/mockCatalog";
 import { efroAttributeTestProducts } from "@/lib/catalog/efro-attribute-test-products";
+import type { LoadProductsResult } from "@/lib/products/efroProductLoader";
 import {
   runSellerBrain,
   SellerBrainResult,
@@ -660,61 +661,76 @@ export default function Home({ searchParams }: HomeProps) {
 
   const fetchProducts = useCallback(async () => {
     try {
-      // 1) Primär: Shopify-Admin-Route
-      const res = await fetch(`/api/shopify-products`, {
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status}: ${text}`);
-      }
-
-      const data = await res.json();
-
-      const shopifyProducts: ShopifyProduct[] = Array.isArray(data?.products)
-        ? data.products
-        : Array.isArray(data)
-        ? data
-        : [];
-
-      if (!shopifyProducts.length) {
-        throw new Error("Keine Shopify-Produkte im Response");
-      }
-
-      let products = mapShopifyToEfro(shopifyProducts);
-
-      // Optionale Test-Produkte für Attribut-Engine hinzufügen
-      const enableAttributeDemo =
-        process.env.NEXT_PUBLIC_EFRO_ATTRIBUTE_DEMO === "1" &&
-        shopDomain === "local-dev";
-
-      if (enableAttributeDemo) {
-        products = [...products, ...efroAttributeTestProducts];
-      }
-
-      const sources = Array.from(
-        new Set(
-          products.map((p) => (p as any).source || "shopify-admin")
-        )
+      // Nutze die neue API-Route statt direkt loadProductsForShop
+      const res = await fetch(
+        `/api/efro/products?shop=${encodeURIComponent(shopDomain)}`,
+        { cache: "no-store" }
       );
 
-      console.log("[EFRO AllProducts]", {
-        count: products.length,
-        shopDomain,
-        sources,
-        sample: products.slice(0, 10).map((p) => p.title),
-      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: Failed to load products`);
+      }
 
-      setAllProducts(products);
-      allProductsRef.current = products; // Ref synchron aktualisieren
-      debugCatalogOverview(products);
+      const result: LoadProductsResult = await res.json();
+
+      // Wenn erfolgreich, verwende result.products
+      if (result.success === true) {
+        console.log("[EFRO AllProducts]", {
+          count: result.products.length,
+          shopDomain,
+          source: result.source,
+          sample: result.products.slice(0, 10).map((p) => p.title),
+        });
+
+        if (result.error) {
+          console.warn("[EFRO AllProducts] API reported error but success=true", {
+            shopDomain,
+            source: result.source,
+            error: result.error,
+          });
+        }
+
+        setAllProducts(result.products);
+        allProductsRef.current = result.products; // Ref synchron aktualisieren
+        debugCatalogOverview(result.products);
+      } else {
+        // !result.success → Fehler und Fallback auf mockCatalog
+        console.error(
+          "[EFRO AllProducts] API returned success=false, Fallback auf mockCatalog",
+          {
+            shopDomain,
+            source: result.source,
+            error: result.error,
+          }
+        );
+
+        let products = mockCatalog;
+
+        // Optionale Test-Produkte für Attribut-Engine hinzufügen
+        const enableAttributeDemo =
+          process.env.NEXT_PUBLIC_EFRO_ATTRIBUTE_DEMO === "1" &&
+          shopDomain === "local-dev";
+
+        if (enableAttributeDemo) {
+          products = [...products, ...efroAttributeTestProducts];
+        }
+
+        console.log("[EFRO AllProducts] Using mockCatalog fallback", {
+          count: products.length,
+          shopDomain,
+        });
+
+        setAllProducts(products);
+        allProductsRef.current = products; // Ref synchron aktualisieren
+        debugCatalogOverview(products);
+      }
     } catch (err) {
       console.error(
-        "[EFRO AllProducts] Shopify-Route fehlgeschlagen, Fallback auf mockCatalog",
+        "[EFRO AllProducts] Fehler beim Laden der Produkte, Fallback auf mockCatalog",
         err
       );
 
+      // Defensiver Fallback: Falls API-Call selbst fehlschlägt
       let products = mockCatalog;
 
       // Optionale Test-Produkte für Attribut-Engine hinzufügen
@@ -726,24 +742,16 @@ export default function Home({ searchParams }: HomeProps) {
         products = [...products, ...efroAttributeTestProducts];
       }
 
-      const sources = Array.from(
-        new Set(
-          products.map((p) => (p as any).source || "mockCatalog")
-        )
-      );
-
-      console.log("[EFRO AllProducts]", {
+      console.log("[EFRO AllProducts] Using mockCatalog fallback", {
         count: products.length,
         shopDomain,
-        sources,
-        sample: products.slice(0, 10).map((p) => p.title),
       });
 
       setAllProducts(products);
       allProductsRef.current = products; // Ref synchron aktualisieren
       debugCatalogOverview(products);
     }
-  }, [debugCatalogOverview]);
+  }, [shopDomain, debugCatalogOverview]);
 
   useEffect(() => {
     fetchProducts();

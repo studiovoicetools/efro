@@ -6,9 +6,9 @@ export type EfroProduct = {
   title: string;
   description: string;
   price: number;            // in EUR
-  imageUrl: string;
-  tags: string[];           // z.B. ["dog", "gift", "premium"]
-  category: string;         // z.B. "pet", "fashion", "electronics"
+  imageUrl?: string;
+  tags?: string[];
+  category?: string;
   rating?: number;          // optional: 0–5
   popularityScore?: number; // optional: fuer „Bestseller“-Logik
 };

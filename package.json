@@ -14,7 +14,8 @@
     "prebuild": "node prebuild.cjs",
     "test:efro": "tsx tests/efro-sellerBrain-tests.ts",
     "sellerbrain:test": "tsx scripts/test-sellerBrain-budget.ts",
-    "sellerbrain:scenarios": "tsx scripts/test-sellerBrain-scenarios.ts"
+    "sellerbrain:scenarios": "tsx scripts/test-sellerBrain-scenarios.ts",
+    "test:loadProducts": "tsx scripts/test-loadProducts-scenarios.ts"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
