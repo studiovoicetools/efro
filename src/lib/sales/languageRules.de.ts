@@ -695,6 +695,10 @@ export type DynamicSynonymEntry = {
   term: string;              // z. B. ein vom Nutzer verwendeter Begriff
   canonicalCategory?: string; // z. B. "haustier" oder "pet"
   extraKeywords?: string[];   // z. B. ["napf", "napfset"]
+  // EFRO: Erweitert für LanguageRule-Kompatibilität
+  canonical?: string;        // z. B. "napf" (synonym zu canonicalCategory)
+  keywords?: string[];       // Synonyme / Schlüsselwörter (synonym zu extraKeywords)
+  categoryHints?: string[];  // Kategorie-Hints (z. B. ["pets", "dogs", "cats"])
 };
 
 const dynamicSynonyms: DynamicSynonymEntry[] = [];
@@ -713,16 +717,37 @@ export function registerDynamicSynonym(entry: DynamicSynonymEntry) {
   );
 
   if (existing) {
-    existing.canonicalCategory = entry.canonicalCategory ?? existing.canonicalCategory;
-    if (entry.extraKeywords?.length) {
-      const merged = new Set([...(existing.extraKeywords ?? []), ...entry.extraKeywords]);
+    existing.canonicalCategory = entry.canonicalCategory ?? entry.canonical ?? existing.canonicalCategory;
+    existing.canonical = entry.canonical ?? entry.canonicalCategory ?? existing.canonical;
+    
+    // Merge keywords
+    if (entry.extraKeywords?.length || entry.keywords?.length) {
+      const merged = new Set([
+        ...(existing.extraKeywords ?? []),
+        ...(existing.keywords ?? []),
+        ...(entry.extraKeywords ?? []),
+        ...(entry.keywords ?? []),
+      ]);
       existing.extraKeywords = Array.from(merged);
+      existing.keywords = Array.from(merged);
+    }
+    
+    // Merge categoryHints
+    if (entry.categoryHints?.length) {
+      const merged = new Set([
+        ...(existing.categoryHints ?? []),
+        ...entry.categoryHints,
+      ]);
+      existing.categoryHints = Array.from(merged);
     }
   } else {
     dynamicSynonyms.push({
       term,
-      canonicalCategory: entry.canonicalCategory,
-      extraKeywords: entry.extraKeywords ?? [],
+      canonicalCategory: entry.canonicalCategory ?? entry.canonical,
+      canonical: entry.canonical ?? entry.canonicalCategory,
+      extraKeywords: entry.extraKeywords ?? entry.keywords ?? [],
+      keywords: entry.keywords ?? entry.extraKeywords ?? [],
+      categoryHints: entry.categoryHints ?? [],
     });
   }
 }

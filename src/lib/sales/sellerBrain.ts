@@ -183,6 +183,8 @@ import {
   WAX_HAIR_KEYWORDS,
   WAX_SNOWBOARD_KEYWORDS,
 } from "./languageRules.de";
+import type { LanguageRule } from "./types";
+import { resolveTermWithLanguageRules } from "./resolveLanguageRule";
 
 /**
  * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
@@ -2675,19 +2677,47 @@ function filterProducts(
         ].join(" ")
       );
 
-      // Core-Match: Mindestens 1 coreTerm oder expandedWord muss vorkommen
-      // (erweiterte Wörter werden auch für Core-Matching verwendet)
+      // EFRO: Erweitere Core-Match um LanguageRule-Keywords
+      // Prüfe, ob einer der coreTerms eine LanguageRule hat (dynamisch gelernt)
+      const languageRuleKeywords: string[] = [];
+      for (const coreTerm of coreTerms) {
+        const dynEntries = getDynamicSynonyms();
+        const dyn = dynEntries.find((e) => 
+          e.term.toLowerCase() === coreTerm.toLowerCase() ||
+          coreTerm.toLowerCase().includes(e.term.toLowerCase())
+        );
+        if (dyn) {
+          // Füge canonical und keywords zur Suche hinzu
+          if (dyn.canonical) {
+            languageRuleKeywords.push(dyn.canonical);
+          }
+          if (dyn.keywords?.length) {
+            languageRuleKeywords.push(...dyn.keywords);
+          }
+          if (dyn.extraKeywords?.length) {
+            languageRuleKeywords.push(...dyn.extraKeywords);
+          }
+        }
+      }
+      
+      // Core-Match: Mindestens 1 coreTerm, expandedWord oder LanguageRule-Keyword muss vorkommen
       const hasCoreMatch =
-        (coreTerms.length === 0 && expandedWords.length === 0) ||
+        (coreTerms.length === 0 && expandedWords.length === 0 && languageRuleKeywords.length === 0) ||
         coreTerms.some((term) => searchText.includes(term)) ||
-        expandedWords.some((word) => searchText.includes(word));
+        expandedWords.some((word) => searchText.includes(word)) ||
+        languageRuleKeywords.some((keyword) => searchText.includes(keyword.toLowerCase()));
 
-      if (!hasCoreMatch && (coreTerms.length > 0 || expandedWords.length > 0)) {
+      if (!hasCoreMatch && (coreTerms.length > 0 || expandedWords.length > 0 || languageRuleKeywords.length > 0)) {
         return { product: p, score: 0, attributeScore: 0 };
       }
 
       // Keyword-Score mit erweiterten Wörtern (inkl. aufgebrochene Komposita)
-      const keywordScore = scoreProductForWords(p, expandedWords);
+      // EFRO: Erweitere expandedWords um LanguageRule-Keywords für besseres Matching
+      const expandedWordsWithLanguageRules = [
+        ...expandedWords,
+        ...languageRuleKeywords.map((kw) => kw.toLowerCase()),
+      ];
+      const keywordScore = scoreProductForWords(p, expandedWordsWithLanguageRules);
 
       // Attribute-Score: Zähle, wie viele attributeTerms im Text vorkommen
       let attributeScore = 0;
@@ -2713,9 +2743,38 @@ function filterProducts(
         }
       }
 
-      // Gesamt-Score: Keywords + Text-Attribute + strukturierte Attribute
+      // EFRO: Bonus für LanguageRule-CategoryHints-Matching
+      let languageRuleBonus = 0;
+      if (languageRuleKeywords.length > 0) {
+        const dynEntries = getDynamicSynonyms();
+        for (const coreTerm of coreTerms) {
+          const dyn = dynEntries.find((e) => 
+            e.term.toLowerCase() === coreTerm.toLowerCase() ||
+            coreTerm.toLowerCase().includes(e.term.toLowerCase())
+          );
+          if (dyn?.categoryHints?.length) {
+            // Prüfe, ob Produkt-Kategorie oder Tags zu categoryHints passen
+            const productCategory = normalize(p.category || "");
+            const productTags = Array.isArray((p as any).tags) 
+              ? (p as any).tags.map((t: string) => normalize(t))
+              : [];
+            
+            const matchesCategoryHint = dyn.categoryHints.some((hint) => {
+              const normalizedHint = normalize(hint);
+              return productCategory.includes(normalizedHint) ||
+                     productTags.some((tag: string) => tag.includes(normalizedHint));
+            });
+            
+            if (matchesCategoryHint) {
+              languageRuleBonus += 2; // Bonus für Kategorie-Match
+            }
+          }
+        }
+      }
+      
+      // Gesamt-Score: Keywords + Text-Attribute + strukturierte Attribute + LanguageRule-Bonus
       let totalScore =
-        keywordScore + attributeScore * 2 + structuredAttributeScore * 3;
+        keywordScore + attributeScore * 2 + structuredAttributeScore * 3 + languageRuleBonus;
 
       // Spezielle Ranking-Regel für "Schimmel": Bevorzuge Reiniger/Sprays, benachteilige Tücher
       // Testfälle:
@@ -4067,8 +4126,8 @@ export function runSellerBrain(
       }
     } else {
       replyText = "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
-        "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
-        "dann kann ich dir die Details dazu erklären.";
+          "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
+          "dann kann ich dir die Details dazu erklären.";
     }
 
     console.log("[EFRO SellerBrain] Explanation mode – Direkt aus Beschreibung", {
