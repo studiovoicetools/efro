@@ -25,8 +25,11 @@ import { efroAttributeTestProducts } from "@/lib/catalog/efro-attribute-test-pro
 import type { LoadProductsResult } from "@/lib/products/efroProductLoader";
 import {
   runSellerBrain,
+  runSellerBrainV2,
   SellerBrainResult,
   type SellerBrainContext,
+  type SellerBrainV2Result,
+  type RunSellerBrainV2Options,
 } from "@/lib/sales/sellerBrain";
 import { analyzeCatalogKeywords } from "@/lib/sales/catalogKeywordAnalyzer";
 import { buildMascotUrl } from "@/lib/efro/mascotConfig";
@@ -243,6 +246,8 @@ function ElevenLabsAvatar({
         console.log("USER (Voice or Text):", cleanText);
 
         // Produktempfehlungen nur für ECHTEN User-Text
+        // EFRO Fix: User-Message wird in createRecommendations hinzugefügt (nach Cleaning)
+        // Hier NICHT mehr hinzufügen, um Duplikate zu vermeiden
         if (typeof createRecommendations === "function") {
           createRecommendations(cleanText);
         } else {
@@ -250,24 +255,6 @@ function ElevenLabsAvatar({
             "[EFRO] createRecommendations nicht gesetzt – Katalog-Logik wird übersprungen."
           );
         }
-
-        const targetSetChatMessages = externalSetChatMessages ?? setChatMessages;
-
-        targetSetChatMessages((prev) => {
-          const msg = {
-            id: `user-${Date.now()}`,
-            text: cleanText,
-            sender: "user" as const,
-          };
-          const next = [...prev, msg];
-          console.log("[EFRO Chat] append", {
-            msg,
-            countBefore: prev.length,
-            countAfter: next.length,
-          });
-          console.log("[EFRO Chat] user message", { text: cleanText });
-          return next;
-        });
 
         return;
       }
@@ -567,6 +554,20 @@ export default function Home({ searchParams }: HomeProps) {
     });
   }
 
+  // Helper-Funktionen für SellerBrain v2 (Shop-Domain & Locale)
+  function resolveShopDomain(): string {
+    // 1) URL-Query ?shop=... (wird bereits in shopDomain State verwendet)
+    // 2) sellerContext hat kein shopDomain-Feld, also nur shopDomain State
+    // 3) Fallback: "demo"
+    return shopDomain || "demo";
+  }
+
+  function resolveLocale(): string {
+    // 1) sellerContext hat kein locale-Feld
+    // 2) Fallback: "de"
+    return "de";
+  }
+
   // 🔹 Produkt- und SellerBrain-State
   const [allProducts, setAllProducts] = useState<EfroProduct[]>([]);
   // Ref für synchronen Zugriff auf Produkte (verhindert Race Conditions)
@@ -679,7 +680,11 @@ export default function Home({ searchParams }: HomeProps) {
           count: result.products.length,
           shopDomain,
           source: result.source,
-          sample: result.products.slice(0, 10).map((p) => p.title),
+          sample: result.products.slice(0, 5).map((p) => ({
+            id: p.id,
+            title: p.title,
+            category: p.category,
+          })),
         });
 
         if (result.error) {
@@ -960,7 +965,7 @@ export default function Home({ searchParams }: HomeProps) {
   ============================================================ */
 
   const createRecommendations = useCallback(
-    (userText: string) => {
+    async (userText: string) => {
       // Verwende Ref für synchronen Zugriff (verhindert Race Conditions)
       const sellerProducts = allProductsRef.current;
       
@@ -1150,14 +1155,76 @@ export default function Home({ searchParams }: HomeProps) {
           sellerContext,
         });
 
-        const result: SellerBrainResult = runSellerBrain(
-          cleanedText,
-          sellerIntent,
-          sellerProducts,
-          shopPlan,
-          sellerRecommended,
-          context
-        );
+        // SellerBrain v2 (mit Supabase + Cache) für Demo-Shop
+        const resolvedShopDomain = resolveShopDomain();
+        const resolvedLocale = resolveLocale();
+
+        // Nur für Demo-Shop v2 verwenden
+        const isDemoDomain =
+          resolvedShopDomain === "demo" ||
+          resolvedShopDomain === "test-shop.myshopify.com" ||
+          resolvedShopDomain.includes("demo");
+
+        const useV2 = isDemoDomain;
+
+        let result: SellerBrainResult | SellerBrainV2Result;
+
+        if (useV2) {
+          console.log("[EFRO SB V2] Calling runSellerBrainV2", {
+            shopDomain: resolvedShopDomain,
+            locale: resolvedLocale,
+            text: cleanedText,
+          });
+
+          try {
+            result = await runSellerBrainV2(
+              cleanedText,
+              sellerProducts,
+              context,
+              {
+                shopDomain: resolvedShopDomain,
+                locale: resolvedLocale,
+                useCache: true,
+              }
+            );
+
+            console.log("[EFRO SB V2] Result", {
+              fromCache: (result as SellerBrainV2Result).fromCache,
+              replyTextLength: result.replyText?.length ?? 0,
+              recommendedCount: result.recommended?.length ?? 0,
+            });
+          } catch (err: any) {
+            console.error("[EFRO SB V2] Error, falling back to v1", {
+              error: err?.message || String(err),
+              text: cleanedText,
+            });
+
+            // Fallback zu v1 bei Fehler
+            result = runSellerBrain(
+              cleanedText,
+              sellerIntent,
+              sellerProducts,
+              shopPlan,
+              sellerRecommended,
+              context
+            );
+          }
+        } else {
+          console.log("[EFRO SB V2] Fallback to runSellerBrain v1", {
+            reason: "not demo domain",
+            shopDomain: resolvedShopDomain,
+            text: cleanedText,
+          });
+
+          result = runSellerBrain(
+            cleanedText,
+            sellerIntent,
+            sellerProducts,
+            shopPlan,
+            sellerRecommended,
+            context
+          );
+        }
 
         console.log("[EFRO Pipeline] AFTER runSellerBrain", {
           userText: cleanedText,

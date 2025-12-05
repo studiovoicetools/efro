@@ -57,6 +57,39 @@ export const BUDGET_AROUND_WORDS = [
 
 // Kategorie-Keywords: Mapping von Kategorie-Slug zu Suchbegriffen
 export const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  // EFRO Category-Fix 2025-12-03: Elektronik & Mode allgemeiner abdecken
+  elektronik: [
+    "elektronik",
+    "elektrische geräte",
+    "elektrisches gerät",
+    "smartphone",
+    "smartphones",
+    "handy",
+    "handys",
+    "phone",
+    "phones",
+    "telefon",
+    "mobiltelefon",
+    "mobiles gerät",
+  ],
+  mode: [
+    "mode",
+    "fashion",
+    "kleidung",
+    "bekleidung",
+    "oberteil",
+    "oberteile",
+    "t-shirt",
+    "tshirts",
+    "shirt",
+    "shirts",
+    "pullover",
+    "hoodie",
+    "hoodies",
+    "sweatshirt",
+    "jacke",
+    "jacken",
+  ],
   snowboard: ["snowboard", "snowboards", "board"],
   // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
   bindungen: ["bindungen", "bindung", "binding", "bindings", "snowboard-bindungen", "snowboard-bindung", "snowboardbindungen", "snowboardbindung"],

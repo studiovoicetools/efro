@@ -120,3 +120,9 @@ if (result.aiTrigger?.reason === "synonym_lookup" && result.aiTrigger.unknownTer
 Alle bestehenden Szenario-Tests (S1-S26) müssen weiterhin PASS sein.
 
 
+
+
+
+
+
+

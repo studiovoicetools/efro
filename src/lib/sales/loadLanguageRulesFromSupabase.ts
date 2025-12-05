@@ -63,3 +63,9 @@ export async function loadLanguageRulesFromSupabase(): Promise<number> {
 }
 
 
+
+
+
+
+
+

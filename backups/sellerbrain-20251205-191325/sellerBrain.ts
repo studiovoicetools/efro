@@ -194,12 +194,7 @@ import {
 } from "./languageRules.de";
 import type { LanguageRule } from "./types";
 import { resolveTermWithLanguageRules } from "./resolveLanguageRule";
-import {
-  extractNumbersForBudget,
-  extractUserPriceRange,
-  UserPriceRange,
-  analyzeBudget,
-} from "./budget";
+import { extractNumbersForBudget, extractUserPriceRange, UserPriceRange } from "./budget";
 import { isPerfumeProduct, isMoldProduct } from "./categories";
 
 /**
@@ -1790,9 +1785,31 @@ function filterProducts(
     return [];
   }
 
-  const budgetAnalysis = analyzeBudget(text);
-  let userMinPrice = budgetAnalysis.userMinPrice;
-  let userMaxPrice = budgetAnalysis.userMaxPrice;
+  const budgetResult = extractUserPriceRange(text);
+  let userMinPrice = budgetResult.minPrice ?? null;
+  let userMaxPrice = budgetResult.maxPrice ?? null;
+
+  // Korrektur-Schicht für Klartext-Budgetwörter (über/unter/bis/höchstens)
+  const textLowerForBudget = text.toLowerCase();
+
+  const explicitOver =
+    /\b(über|ueber|uber)\b/.test(textLowerForBudget);
+  const explicitUnder =
+    /\b(unter|bis|höchstens|hochstens|hoechstens|max(?:imal)?)\b/.test(textLowerForBudget);
+
+  // Fall 1: User sagt explizit "über ..." und Budget-Parser hat nur eine Obergrenze gesetzt
+  // → minPrice = maxPrice, maxPrice wird zurückgesetzt
+  if (explicitOver && !explicitUnder && userMinPrice == null && userMaxPrice != null) {
+    userMinPrice = userMaxPrice;
+    userMaxPrice = null;
+  }
+
+  // Fall 2: User sagt explizit "unter/bis ..." und Budget-Parser hat nur eine Untergrenze gesetzt
+  // → maxPrice = minPrice, minPrice wird zurückgesetzt
+  if (explicitUnder && !explicitOver && userMaxPrice == null && userMinPrice != null) {
+    userMaxPrice = userMinPrice;
+    userMinPrice = null;
+  }
 
   // Log nach Preis-Extraktion (noch vor Anwendung)
   console.log("[EFRO SB] PRICE EXTRACTED", {
@@ -3047,41 +3064,6 @@ function filterProducts(
         } else {
           // Normale Fallback-Logik für Nicht-Parfüm-Anfragen
           // EFRO Fix: Bei priceRangeNoMatch nutze Kontext-Kategorie bevorzugt
-
-          // EFRO Budget-Fix: Bei moderatem Budget-Mismatch KEIN Fallback,
-          // sondern wirklich "kein Produkt im Preisbereich".
-          if (
-            priceRangeNoMatch &&
-            priceRangeInfo &&
-            priceRangeInfo.userMaxPrice !== null &&
-            priceRangeInfo.categoryMinPrice !== null
-          ) {
-            const ratio =
-              priceRangeInfo.categoryMinPrice / priceRangeInfo.userMaxPrice;
-
-            // Beispiel:
-            // - Haushalt 30 € vs. Kategorie-Min 34,5 € → ratio ≈ 1,15 (moderat)
-            // - Wasserkocher 25 € vs. Kategorie-Min 34,5 € → ratio ≈ 1,38 (moderat)
-            // - Jeans 6 € vs. Kategorie-Min ~40 € → ratio > 6 (extrem niedriges Budget)
-            const isModeratelyLowBudget = ratio < 3; // alles <3 = "realistisch knapp drunter"
-
-            if (isModeratelyLowBudget) {
-              console.log(
-                "[EFRO SB] Skipping product fallback due to moderate budget mismatch",
-                {
-                  text: text.substring(0, 80),
-                  priceRangeInfo,
-                  ratio,
-                }
-              );
-
-              // In diesen Fällen (z. B. Haushalt bis 30 €, Wasserkocher bis 25 €)
-              // sollen KEINE Produkte gezeigt werden – nur der spezielle Budget-Hinweis.
-              return [];
-            }
-          }
-
-          // Bisheriges Fallback-Verhalten:
           candidates = [...allProducts];
 
           // EFRO Fix: Bevorzuge effectiveCategorySlug (aus Kontext) für Fallback
@@ -3110,8 +3092,8 @@ function filterProducts(
           if (userMinPrice !== null || userMaxPrice !== null) {
             let tmp = candidates.filter((p) => {
               const price = p.price ?? 0;
-              if (userMinPrice !== null && price < userMinPrice) return false;
-              if (userMaxPrice !== null && price > userMaxPrice) return false;
+              if (userMinPrice !== undefined && price < userMinPrice) return false;
+              if (userMaxPrice !== undefined && price > userMaxPrice) return false;
               return true;
             });
 
@@ -3198,38 +3180,6 @@ function filterProducts(
   // EFRO Fix: Wenn genau 1 Produkt gefunden wurde, KEINE Fallback-Produkte beimischen
   // Nur wenn candidateCount == 0: Fallback verwenden
   let finalProducts: EfroProduct[] = [];
-
-  // Spezieller Fall: "günstigstes/billigstes Snowboard"
-  // → Nur das preislich günstigste Produkt zurückgeben.
-  const normalizedText = cleaned.toLowerCase();
-  const wantsCheapestSnowboard =
-    normalizedText.includes("snowboard") &&
-    /\b(günstigstes|günstigste|günstigsten|billigste|billigsten|preiswerteste)\b/.test(
-      normalizedText
-    );
-
-  if (wantsCheapestSnowboard && candidates.length > 0) {
-    // Fokussiere zuerst auf Kategorie "snowboard", falls vorhanden
-    const snowboardCandidates = candidates.filter(
-      (p) => normalize(p.category || "") === "snowboard"
-    );
-
-    const baseList =
-      snowboardCandidates.length > 0 ? snowboardCandidates : candidates;
-
-    // Nach Preis aufsteigend sortieren und nur das günstigste Produkt zurückgeben
-    baseList.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    const cheapest = baseList[0] ? [baseList[0]] : [];
-
-    console.log("[EFRO SB] FINAL products (cheapest snowboard)", {
-      text: text.substring(0, 80),
-      candidateCount: candidates.length,
-      cheapestPrice: cheapest[0]?.price ?? null,
-      cheapestTitle: cheapest[0]?.title ?? null,
-    });
-
-    return cheapest;
-  }
   
   if (candidates.length === 1) {
     // Genau 1 Treffer: Direkt verwenden, kein Fallback
@@ -4308,27 +4258,13 @@ export function runSellerBrain(
   }
 
   // Normale Such-/Kaufanfrage -> filtern
-  const filterResult = filterProducts(
-    cleaned,
-    nextIntent,
-    allProducts,
-    context?.activeCategorySlug
-  );
+  const filterResult = filterProducts(cleaned, nextIntent, allProducts, context?.activeCategorySlug);
   const candidateCount = filterResult.length;
-
-  // EFRO Budget-Fix 2025-11-30: Prüfe, ob nach Price-Filter keine Produkte
-  // im gewünschten Preisbereich gefunden wurden – Budget-Parsing jetzt
-  // zentral über analyzeBudget (gemeinsam mit filterProducts).
-  const budgetAnalysis = analyzeBudget(cleaned);
-  const {
-    userMinPrice,
-    userMaxPrice,
-    hasBudgetWord,
-    isBudgetAmbiguous,
-  } = budgetAnalysis;
-
-  const hasUserPriceRange =
-    userMinPrice !== null || userMaxPrice !== null;
+  
+  // EFRO Budget-Fix 2025-11-30: Prüfe, ob nach Price-Filter keine Produkte im gewünschten Preisbereich gefunden wurden
+  const budgetInfo = extractUserPriceRange(cleaned);
+  const { minPrice: userMinPrice, maxPrice: userMaxPrice, hasBudgetWord, isBudgetAmbiguous } = budgetInfo;
+  const hasUserPriceRange = userMinPrice !== undefined || userMaxPrice !== undefined;
   
   // EFRO Budget-Fix 2025-01-XX: Bestimme effectiveCategorySlug für Budget-Prüfung
   let effectiveCategorySlug: string | null = null;
@@ -4421,8 +4357,8 @@ export function runSellerBrain(
     // Prüfe, ob die gefundenen Produkte wirklich im Preisbereich liegen
     const productsInPriceRange = filterResult.filter((p) => {
       const price = p.price ?? 0;
-      if (userMinPrice !== null && price < userMinPrice) return false;
-      if (userMaxPrice !== null && price > userMaxPrice) return false;
+      if (userMinPrice !== undefined && price < userMinPrice) return false;
+      if (userMaxPrice !== undefined && price > userMaxPrice) return false;
       return true;
     });
     
@@ -5055,10 +4991,8 @@ export function runSellerBrain(
   const hasNoNumber = userMinPrice === undefined && userMaxPrice === undefined;
   const isPureBudgetQuery = hasBudgetWord && hasNoNumber && !isProductRelated(cleaned);
 
-  const hasContextCategory = !!(context && context.activeCategorySlug);
-
   // 1. Budget-Only-Queries: kein AI-Trigger, AUSSER es gibt unbekannte Produktcodes/Marken
-  if (isBudgetOnly && hasContextCategory && !hasUnknownBrandOrCode && filteredUnknownCount === 0) {
+  if (isBudgetOnly && !hasUnknownBrandOrCode && filteredUnknownCount === 0) {
     console.log("[EFRO SB AI-Trigger] Skipped for budget-only query (no unknown codes/brands)", {
       text: cleaned.substring(0, 100),
       finalCount,
@@ -5068,7 +5002,6 @@ export function runSellerBrain(
       filteredUnknownCount,
       hasUnknownProductCode,
       hasFressnapf,
-      hasContextCategory,
     });
     // KEIN AI-Trigger → aiTrigger bleibt undefined
   } else if (isPureBudgetQuery) {
@@ -5087,233 +5020,223 @@ export function runSellerBrain(
     let needsAiHelp = false;
     let reason = "";
 
-    const isGlobalBudgetOnly =
-      isBudgetOnly &&
-      !hasContextCategory &&
-      !hasUnknownBrandOrCode &&
-      filteredUnknownCount === 0;
-
-    if (isGlobalBudgetOnly) {
-      needsAiHelp = true;
-      reason = "budget_only";
-    } else {
-      // Hilfsflags für AI-Trigger (wiederverwenden, falls bereits berechnet)
-      const hasRecommendations = finalCount > 0;
-      const hasEffectiveCategory =
-        !!effectiveCategorySlugForCodeDetect ||
-        (matchedCategories && matchedCategories.length > 0) ||
-        (categoryHintsInText && categoryHintsInText.length > 0);
-      // EFRO Fix: Erklärungs-Intent mit Produkt → KEINE AI
-      // Die Antwort wird direkt aus der Produktbeschreibung generiert (wenn vorhanden)
-      // oder ehrlich kommuniziert, dass keine Beschreibung vorhanden ist (ohne AI)
-      const isExplanationIntent = effectiveExplanationMode !== null;
+    // Hilfsflags für AI-Trigger (wiederverwenden, falls bereits berechnet)
+    const hasRecommendations = finalCount > 0;
+    const hasEffectiveCategory =
+      !!effectiveCategorySlugForCodeDetect ||
+      (matchedCategories && matchedCategories.length > 0) ||
+      (categoryHintsInText && categoryHintsInText.length > 0);
     
-      if (isExplanationIntent && hasRecommendations) {
-        // Erklärung + Produkt gefunden → KEINE AI
+    // EFRO Fix: Erklärungs-Intent mit Produkt → KEINE AI
+    // Die Antwort wird direkt aus der Produktbeschreibung generiert (wenn vorhanden)
+    // oder ehrlich kommuniziert, dass keine Beschreibung vorhanden ist (ohne AI)
+    const isExplanationIntent = effectiveExplanationMode !== null;
+    
+    if (isExplanationIntent && hasRecommendations) {
+      // Erklärung + Produkt gefunden → KEINE AI
+      needsAiHelp = false;
+      reason = "";
+      console.log("[EFRO SB AI-Trigger] Skipped for explanation with product match", {
+        text: cleaned.substring(0, 100),
+        explanationMode: effectiveExplanationMode,
+        finalCount,
+        hasRecommendations,
+        note: "Antwort wird direkt aus Produktbeschreibung generiert, keine AI nötig",
+      });
+    } else {
+      // Standard AI-Trigger-Logik für alle anderen Fälle
+      
+    // a) Code-Only-Unknown-Fall (soll bleiben)
+    // 1.3) AI-Trigger „unknown_product_code_only“ nur im echten Code-Only-Fall erlauben
+    // WICHTIG: Wenn ein erfolgreicher AliasMatch vorhanden ist, darf unknown_product_code_only NICHT gesetzt werden
+    if (
+      unknownProductCodeOnly &&
+      detectedCodeTerm &&
+      !hasRecommendations &&       // also finalCount === 0
+      !isBudgetOnly &&             // Budget-Only wird schon vorher geblockt
+      !hasEffectiveCategory &&      // keine Kategorie im Spiel
+      !aliasMatchSuccessful         // KEIN erfolgreicher AliasMatch vorhanden
+    ) {
+      needsAiHelp = true;
+      reason = "unknown_product_code_only";
+    } else if (
+      onlyUnknownProductCode &&
+      !hasRecommendations &&
+      !hasBudgetWord &&
+      !isBudgetOnly &&
+      !hasEffectiveCategory &&
+      !aliasMatchSuccessful         // KEIN erfolgreicher AliasMatch vorhanden
+    ) {
+      needsAiHelp = true;
+      reason = "unknown_product_code_only";
+    } else if (finalCount === 0) {
+      // EFRO Fix: Nur AI, wenn auch unbekannte Keywords vorhanden sind
+      // synonymLookupTerms wird weiter unten definiert, daher hier nur filteredUnknownCount prüfen
+      const hasUnknownKeywords = filteredUnknownCount > 0;
+      if (hasUnknownKeywords) {
+        needsAiHelp = true;
+        reason = "no_results_with_unknown_keywords";
+      } else {
         needsAiHelp = false;
         reason = "";
-        console.log("[EFRO SB AI-Trigger] Skipped for explanation with product match", {
+        console.log("[EFRO SB AI-Trigger] Skipped for no results without unknown keywords", {
           text: cleaned.substring(0, 100),
-          explanationMode: effectiveExplanationMode,
           finalCount,
-          hasRecommendations,
-          note: "Antwort wird direkt aus Produktbeschreibung generiert, keine AI nötig",
+          filteredUnknownCount,
+          note: "Keine Produkte gefunden, aber auch keine unbekannten Keywords → keine AI",
         });
+      }
+    } else if (filteredUnknownCount > 0 && finalCount > 0) {
+      // b) Low-Confidence-Unknown-Terms-Fall: Nur wenn gefilterte Unknown-Terms vorhanden
+      needsAiHelp = true;
+      reason = "low_confidence_unknown_terms";
+    } else if (filteredUnknownCount >= 3) {
+      needsAiHelp = true;
+      reason = "many_unknown_terms";
+    }
+    }
+
+    // EFRO: Verwende bereits berechnete unknownProductCodesForTrigger
+    const unknownProductCodes = unknownProductCodesForTrigger.length > 0 
+      ? unknownProductCodesForTrigger 
+      : [];
+    
+    // EFRO: Prüfe auf unbekannte Begriffe für Synonym-Lookup (z. B. "fressnapf")
+    // Diese Begriffe sind nicht in CATEGORY_KEYWORDS, nicht in statischen Synonym-Maps,
+    // und nicht in Tag-/Titel-Treffern gefunden
+    const synonymLookupTerms: string[] = [];
+    if (filteredUnknownTerms.length > 0) {
+      // Prüfe, ob Begriffe in dynamischen Synonymen vorhanden sind
+      const dynamicSynonyms = getDynamicSynonyms();
+      const dynamicSynonymTerms = new Set(dynamicSynonyms.map((s) => s.term.toLowerCase()));
+      
+      for (const term of filteredUnknownTerms) {
+        // Wenn Begriff nicht in dynamischen Synonymen und nicht wie ein Produktcode aussieht
+        if (!dynamicSynonymTerms.has(term) && !looksLikeProductCode(term)) {
+          // Prüfe, ob Begriff in Produkten gefunden wurde
+          const foundInProducts = allProducts.some((p) => {
+            const searchText = `${p.title} ${p.description} ${(p.tags || []).join(" ")}`.toLowerCase();
+            return searchText.includes(term);
+          });
+          
+          if (!foundInProducts) {
+            synonymLookupTerms.push(term);
+          }
+        }
+      }
+    }
+    
+       // EFRO: Setze AI-Trigger für unknown_product_code / unknown_product_code_with_budget, wenn Codes gefunden wurden
+    if (unknownProductCodes.length > 0 && !needsAiHelp) {
+      needsAiHelp = true;
+
+      // Prüfe, ob der Nutzer tatsächlich ein Budget angegeben hat
+      const hasUserBudget =
+        (userMinPrice !== undefined && !Number.isNaN(userMinPrice)) ||
+        (userMaxPrice !== undefined && !Number.isNaN(userMaxPrice));
+
+      if (!isBudgetOnly && hasUserBudget) {
+        // Spezialfall S14: Kombination aus unbekanntem Code + Budget
+        reason = "unknown_product_code_with_budget";
       } else {
-        // Standard AI-Trigger-Logik für alle anderen Fälle
-        
-        // a) Code-Only-Unknown-Fall (soll bleiben)
-        // 1.3) AI-Trigger „unknown_product_code_only" nur im echten Code-Only-Fall erlauben
-        // WICHTIG: Wenn ein erfolgreicher AliasMatch vorhanden ist, darf unknown_product_code_only NICHT gesetzt werden
-        if (
-          unknownProductCodeOnly &&
-          detectedCodeTerm &&
-          !hasRecommendations &&       // also finalCount === 0
-          !isBudgetOnly &&             // Budget-Only wird schon vorher geblockt
-          !hasEffectiveCategory &&      // keine Kategorie im Spiel
-          !aliasMatchSuccessful         // KEIN erfolgreicher AliasMatch vorhanden
-        ) {
-          needsAiHelp = true;
-          reason = "unknown_product_code_only";
-        } else if (
-          onlyUnknownProductCode &&
-          !hasRecommendations &&
-          !hasBudgetWord &&
-          !isBudgetOnly &&
-          !hasEffectiveCategory &&
-          !aliasMatchSuccessful         // KEIN erfolgreicher AliasMatch vorhanden
-        ) {
-          needsAiHelp = true;
-          reason = "unknown_product_code_only";
-        } else if (finalCount === 0) {
-          // EFRO Fix: Nur AI, wenn auch unbekannte Keywords vorhanden sind
-          // synonymLookupTerms wird weiter unten definiert, daher hier nur filteredUnknownCount prüfen
-          const hasUnknownKeywords = filteredUnknownCount > 0;
-          if (hasUnknownKeywords) {
-            needsAiHelp = true;
-            reason = "no_results_with_unknown_keywords";
-          } else {
-            needsAiHelp = false;
-            reason = "";
-            console.log("[EFRO SB AI-Trigger] Skipped for no results without unknown keywords", {
-              text: cleaned.substring(0, 100),
-              finalCount,
-              filteredUnknownCount,
-              note: "Keine Produkte gefunden, aber auch keine unbekannten Keywords → keine AI",
-            });
-          }
-        } else if (filteredUnknownCount > 0 && finalCount > 0) {
-          // b) Low-Confidence-Unknown-Terms-Fall: Nur wenn gefilterte Unknown-Terms vorhanden
-          needsAiHelp = true;
-          reason = "low_confidence_unknown_terms";
-        } else if (filteredUnknownCount >= 3) {
-          needsAiHelp = true;
-          reason = "many_unknown_terms";
-        }
+        reason = "unknown_product_code";
       }
+    }
+    
+    // EFRO: Setze AI-Trigger für synonym_lookup, wenn unbekannte Begriffe gefunden wurden
+    if (synonymLookupTerms.length > 0 && !needsAiHelp && finalCount === 0) {
+      needsAiHelp = true;
+      reason = "synonym_lookup";
+    }
 
-      // EFRO: Verwende bereits berechnete unknownProductCodesForTrigger
-      const unknownProductCodes = unknownProductCodesForTrigger.length > 0 
-        ? unknownProductCodesForTrigger 
-        : [];
-      
-      // EFRO: Prüfe auf unbekannte Begriffe für Synonym-Lookup (z. B. "fressnapf")
-      // Diese Begriffe sind nicht in CATEGORY_KEYWORDS, nicht in statischen Synonym-Maps,
-      // und nicht in Tag-/Titel-Treffern gefunden
-      const synonymLookupTerms: string[] = [];
-      if (filteredUnknownTerms.length > 0) {
-        // Prüfe, ob Begriffe in dynamischen Synonymen vorhanden sind
-        const dynamicSynonyms = getDynamicSynonyms();
-        const dynamicSynonymTerms = new Set(dynamicSynonyms.map((s) => s.term.toLowerCase()));
-        
-        for (const term of filteredUnknownTerms) {
-          // Wenn Begriff nicht in dynamischen Synonymen und nicht wie ein Produktcode aussieht
-          if (!dynamicSynonymTerms.has(term) && !looksLikeProductCode(term)) {
-            // Prüfe, ob Begriff in Produkten gefunden wurde
-            const foundInProducts = allProducts.some((p) => {
-              const searchText = `${p.title} ${p.description} ${(p.tags || []).join(" ")}`.toLowerCase();
-              return searchText.includes(term);
-            });
-            
-            if (!foundInProducts) {
-              synonymLookupTerms.push(term);
-            }
-          }
+
+    if (needsAiHelp) {
+      aiTrigger = {
+        needsAiHelp: true,
+        reason,
+        unknownTerms: reason === "unknown_product_code_only" || reason === "unknown_product_code" ? [] : filteredUnknownTerms,
+        queryForAi: cleaned,
+      };
+
+      // Code-Term setzen, falls vorhanden
+      if (unknownProductCodeOnly && detectedCodeTerm) {
+        aiTrigger.codeTerm = detectedCodeTerm;
+      } else if (onlyUnknownProductCode) {
+        // Versuche Code-Term aus unknownTerms zu extrahieren
+        const codeFromTerms = aiUnknownTerms.find((t) => looksLikeProductCode(t));
+        if (codeFromTerms) {
+          aiTrigger.codeTerm = codeFromTerms;
         }
       }
       
-      // EFRO: Setze AI-Trigger für unknown_product_code / unknown_product_code_with_budget, wenn Codes gefunden wurden
-      if (unknownProductCodes.length > 0 && !needsAiHelp) {
-        needsAiHelp = true;
-
-        // Prüfe, ob der Nutzer tatsächlich ein Budget angegeben hat
-        const hasUserBudget =
-          (userMinPrice !== undefined && !Number.isNaN(userMinPrice)) ||
-          (userMaxPrice !== undefined && !Number.isNaN(userMaxPrice));
-
-        if (!isBudgetOnly && hasUserBudget) {
-          // Spezialfall S14: Kombination aus unbekanntem Code + Budget
-          reason = "unknown_product_code_with_budget";
-        } else {
-          reason = "unknown_product_code";
+      // EFRO: Setze unknownProductCodes, falls vorhanden
+      if (unknownProductCodesForTrigger.length > 0) {
+        aiTrigger.unknownProductCodes = unknownProductCodesForTrigger;
+      }
+      
+      // EFRO Fressnapf-Fix: Setze unknownTerms für "fressnapf" als unbekannte Marke
+      if (hasFressnapf) {
+        const fressnapfTerms = filteredUnknownTerms.filter((t) => 
+          normalizeAliasKey(t) === "fressnapf" || t.toLowerCase().includes("fressnapf")
+        );
+        if (fressnapfTerms.length > 0) {
+          aiTrigger.unknownTerms = [...(aiTrigger.unknownTerms || []), ...fressnapfTerms];
         }
       }
       
-      // EFRO: Setze AI-Trigger für synonym_lookup, wenn unbekannte Begriffe gefunden wurden
-      if (synonymLookupTerms.length > 0 && !needsAiHelp && finalCount === 0) {
-        needsAiHelp = true;
-        reason = "synonym_lookup";
+      // EFRO S14 Fix: Bei Budget + unbekanntem Code, füge Code zu unknownTerms hinzu
+      if ((reason === "unknown_product_code_with_budget" || reason === "unknown_product_code") && 
+          unknownProductCodesForTrigger.length > 0) {
+        aiTrigger.unknownTerms = [...(aiTrigger.unknownTerms || []), ...unknownProductCodesForTrigger];
       }
-
-
-      if (needsAiHelp) {
-        aiTrigger = {
-          needsAiHelp: true,
-          reason,
-          unknownTerms: reason === "unknown_product_code_only" || reason === "unknown_product_code" ? [] : filteredUnknownTerms,
-          queryForAi: cleaned,
-        };
-
-        // Code-Term setzen, falls vorhanden
-        if (unknownProductCodeOnly && detectedCodeTerm) {
-          aiTrigger.codeTerm = detectedCodeTerm;
-        } else if (onlyUnknownProductCode) {
-          // Versuche Code-Term aus unknownTerms zu extrahieren
-          const codeFromTerms = aiUnknownTerms.find((t) => looksLikeProductCode(t));
-          if (codeFromTerms) {
-            aiTrigger.codeTerm = codeFromTerms;
-          }
-        }
-        
-        // EFRO: Setze unknownProductCodes, falls vorhanden
-        if (unknownProductCodesForTrigger.length > 0) {
-          aiTrigger.unknownProductCodes = unknownProductCodesForTrigger;
-        }
-        
-        // EFRO Fressnapf-Fix: Setze unknownTerms für "fressnapf" als unbekannte Marke
-        if (hasFressnapf) {
-          const fressnapfTerms = filteredUnknownTerms.filter((t) => 
-            normalizeAliasKey(t) === "fressnapf" || t.toLowerCase().includes("fressnapf")
-          );
-          if (fressnapfTerms.length > 0) {
-            aiTrigger.unknownTerms = [...(aiTrigger.unknownTerms || []), ...fressnapfTerms];
-          }
-        }
-        
-        // EFRO S14 Fix: Bei Budget + unbekanntem Code, füge Code zu unknownTerms hinzu
-        if ((reason === "unknown_product_code_with_budget" || reason === "unknown_product_code") && 
-            unknownProductCodesForTrigger.length > 0) {
-          aiTrigger.unknownTerms = [...(aiTrigger.unknownTerms || []), ...unknownProductCodesForTrigger];
-        }
-        
-        // EFRO: Setze unknownTerms für synonym_lookup
-        if (reason === "synonym_lookup" && synonymLookupTerms.length > 0) {
-          aiTrigger.unknownTerms = synonymLookupTerms;
-        }
-        
-        // EFRO Fressnapf-Fix: Setze termExplainRequests für unbekannte Begriffe
-        if (filteredUnknownTerms.length > 0 && (reason === "unknown_term_expansion" || reason === "low_confidence_unknown_terms" || reason === "synonym_lookup")) {
-          aiTrigger.termExplainRequests = filteredUnknownTerms.map((term) => ({
-            term,
-            purpose: "category_guess" as const,
-          }));
-        }
-        
-        console.log("[EFRO SB AI-Trigger] Set", {
-          text: cleaned.substring(0, 100),
-          reason,
-          needsAiHelp,
-          unknownProductCodeOnly,
-          aliasMatchSuccessful,
-          candidateCountAfterAlias,
-          detectedCodeTerm,
-          finalCount,
-          note: aliasMatchSuccessful 
-            ? "AliasMatch erfolgreich → unknown_product_code_only NICHT gesetzt"
-            : "Kein AliasMatch → unknown_product_code_only kann gesetzt werden",
-        });
+      
+      // EFRO: Setze unknownTerms für synonym_lookup
+      if (reason === "synonym_lookup" && synonymLookupTerms.length > 0) {
+        aiTrigger.unknownTerms = synonymLookupTerms;
       }
+      
+      // EFRO Fressnapf-Fix: Setze termExplainRequests für unbekannte Begriffe
+      if (filteredUnknownTerms.length > 0 && (reason === "unknown_term_expansion" || reason === "low_confidence_unknown_terms" || reason === "synonym_lookup")) {
+        aiTrigger.termExplainRequests = filteredUnknownTerms.map((term) => ({
+          term,
+          purpose: "category_guess" as const,
+        }));
+      }
+      
+      console.log("[EFRO SB AI-Trigger] Set", {
+        text: cleaned.substring(0, 100),
+        reason,
+        needsAiHelp,
+        unknownProductCodeOnly,
+        aliasMatchSuccessful,
+        candidateCountAfterAlias,
+        detectedCodeTerm,
+        finalCount,
+        note: aliasMatchSuccessful 
+          ? "AliasMatch erfolgreich → unknown_product_code_only NICHT gesetzt"
+          : "Kein AliasMatch → unknown_product_code_only kann gesetzt werden",
+      });
+    }
 	
-      // EFRO Budget-Fix 2025-12-XX: AI-Trigger für unrealistische Budgets / keinen Treffer im Preisbereich
-      // Falls priceRangeNoMatch gesetzt ist, aber bisher kein anderer AI-Trigger existiert,
-      // signalisieren wir der AI, dass sie helfen soll, das Budget sinnvoll einzuordnen.
-      if (!aiTrigger && priceRangeNoMatch) {
-        aiTrigger = {
-          needsAiHelp: true,
-          reason: "price_range_no_match",
-          queryForAi: cleaned,
-        };
+	    // EFRO Budget-Fix 2025-12-XX: AI-Trigger für unrealistische Budgets / keinen Treffer im Preisbereich
+    // Falls priceRangeNoMatch gesetzt ist, aber bisher kein anderer AI-Trigger existiert,
+    // signalisieren wir der AI, dass sie helfen soll, das Budget sinnvoll einzuordnen.
+    if (!aiTrigger && priceRangeNoMatch) {
+      aiTrigger = {
+        needsAiHelp: true,
+        reason: "price_range_no_match",
+        queryForAi: cleaned,
+      };
 
-        console.log("[EFRO SB AI-Trigger] Set for price_range_no_match", {
-          text: cleaned.substring(0, 100),
-          priceRangeNoMatch,
-          priceRangeInfo,
-          userMinPrice,
-          userMaxPrice,
-          finalCount,
-          note: "Unrealistischer oder leerer Preisbereich → AI soll Budget erklären/helfen",
-        });
-      }
+      console.log("[EFRO SB AI-Trigger] Set for price_range_no_match", {
+        text: cleaned.substring(0, 100),
+        priceRangeNoMatch,
+        priceRangeInfo,
+        userMinPrice,
+        userMaxPrice,
+        finalCount,
+        note: "Unrealistischer oder leerer Preisbereich → AI soll Budget erklären/helfen",
+      });
     }
 		
   }

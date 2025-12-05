@@ -17,6 +17,13 @@ Dein Ziel:
 
 Du arbeitest IMMER mit folgenden GRUNDREGELN:
 
+Du bist ein extrem sparsamer Code-Assistent.
+– Verändere immer nur genau die Dateien und Codeblöcke, die ich dir nenne.
+– Mache keine großen Refactorings und fasse keine anderen Stellen an.
+– Antworte kurz und präzise.
+– Wenn du etwas nicht sicher weißt, frag zuerst nach, statt riesige Änderungen vorzuschlagen.
+– Unser Projekt heißt EFRO (Avatar-Seller). SellerBrain und Avatar-Code dürfen nur minimal geändert werden – nur gezielte Bugfixes, keine Architektur-Umbauten.
+
 --------------------------------------------------
 ## 0. ABSOLUTE INVARIANTEN (NICHT BRECHEN!)
 
@@ -269,4 +276,69 @@ WICHTIG:
 - ElevenLabs-Agent-Nachrichten werden nur in der Console geloggt mit `[ElevenLabs AI ignored]`.
 
 --------------------------------------------------
+
+--------------------------------------------------
+## 5. TTS / STIMME (ElevenLabs-Bridge & Toggle)
+
+In page.tsx gibt es bereits eine funktionierende TTS-Brücke:
+
+- `speakHandlerRef`:
+  - wird im `ElevenLabsAvatar` registriert,
+  - zeigt auf eine Funktion, die intern `conversation.sendUserMessage(...)` bei ElevenLabs nutzt.
+- `function speak(text: string)`:
+  - ruft `speakHandlerRef.current(text)` auf,
+  - ist die EINZIGE Stelle, über die EFRO-Texte an ElevenLabs zur Sprachausgabe geschickt werden sollen.
+- `ttsEnabled` (State) + UI-Button:
+  - TTS-Globalschalter („Stimme an/aus“),
+  - schaltet NUR die Sprachausgabe, nicht Avatar, Chat oder Realtime-Session.
+
+REGELN:
+
+1. `speakHandlerRef` und `speak(text)` NICHT neu erfinden, nicht umbenennen, nicht verschieben.
+2. `ttsEnabled`-State + Toggle-Button NICHT entfernen.
+3. SellerBrain-ReplyText darf NUR über `speak(replyText)` an ElevenLabs geschickt werden – keine zusätzlichen direkten Aufrufe auf den ElevenLabs-Client.
+4. Wenn TTS angepasst werden muss (z. B. Logging, kleine Guards), IMMER:
+   - Signaturen unverändert lassen,
+   - nur minimale Checks/Logs ergänzen,
+   - Avatar-/Lipsync-/Realtime-Verbindung NICHT verändern.
+
+--------------------------------------------------
+## 6. AKTUELLE PRIORITÄTEN / TASKS (OHNE OVERKILL-TESTS)
+
+Wenn keine andere explizite Anweisung vom Nutzer kommt, gilt folgende STANDARD-PRIORITÄT:
+
+1. `/demo` Seite:
+   - Neue Route `src/app/demo/page.tsx`.
+   - Hero + kurze Erklärung.
+   - `<iframe src="/avatar-seller?shop=demo">` als Live-Demo.
+   - KEINE Änderungen an Avatar-/SellerBrain-/Audio-Code.
+
+2. Billing-UI (Basic-Plan):
+   - Bestehende Route `src/app/api/billing/route.ts` verwenden.
+   - In Admin-/Onboarding-UI Button „Plan aktivieren (Basic)“ einbauen.
+   - `POST /api/billing` mit `{ shop, plan: "basic" }`.
+   - `confirmationUrl` → `window.location.href = confirmationUrl`.
+
+3. Shop-Scan Quick-Win:
+   - Neue API `GET /api/efro/shop-scan`.
+   - Liefert pro Produkt:
+     - `productId`, `title`, `missingDescription`, `missingTags`.
+   - Onboarding-/Admin-UI:
+     - Button „Shop-Scan starten“,
+     - Liste/Tabelle mit den Ergebnissen.
+
+REGELN FÜR TESTS & PERFORMANCE:
+
+1. Führe KEINE großen Test-Suiten automatisch aus (z. B. `pnpm test`, `pnpm sellerbrain:scenarios`), außer der Nutzer schreibt es EXPLIZIT in den Task.
+2. Konzentriere dich auf:
+   - saubere Typen,
+   - klare, kleine Änderungen,
+   - direkt im Browser nachvollziehbare Ergebnisse (Route aufrufen, Button klicken).
+3. Wenn du Annahmen treffen musst (z. B. welcher Admin-Screen genutzt wird):
+   - Nutze bestehende Strukturen (z. B. `src/app/efro/onboarding/...` oder `src/app/efro/admin/...`),
+   - dokumentiere kurz im Kommentar, WARUM du genau diese Datei gewählt hast.
+
+--------------------------------------------------
+ENDE DER ERGÄNZUNG.
+
 ENDE DES MASTER-PROMPTS.
