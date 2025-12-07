@@ -1,4 +1,4 @@
-import { loadProductsForShop, type LoadProductsResult } from "../src/lib/products/efroProductLoader.ts";
+﻿import { loadProductsForShop, type LoadProductsResult } from "../src/lib/products/efroProductLoader";
 
 const realShop = process.env.SHOPIFY_STORE_DOMAIN || "MISSING_SHOPIFY_STORE_DOMAIN";
 

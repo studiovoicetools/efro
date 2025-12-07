@@ -261,6 +261,40 @@ export function extractUserPriceRange(text: string): UserPriceRange {
     return result;
   }
 
+  // Spezialfall: sehr kleines Budget mit klarer Budget-/Währungsangabe → als vage/zu niedrig markieren
+  if (numbers.length > 0) {
+    const maxNumber = Math.max(...numbers);
+
+    // Sehr kleines Budget (< 20) mit klarem Budget-/ oder Währungskontext
+    if (
+      maxNumber < 20 &&
+      (hasBudgetWord || hasCurrencyWord || hasUnder || hasBetween || hasCheapWord || isSmallBudgetPhrase)
+    ) {
+      // Obergrenze setzen, aber als vage markieren → AI-Hilfe erlaubt
+      if (result.maxPrice === undefined) {
+        result.maxPrice = maxNumber;
+      }
+      result.isBudgetAmbiguous = true;
+      notes.push(
+        `Budget (DE): sehr kleines Budget (${maxNumber}) mit klarer Budget-/Währungsangabe – als vage/zu niedrig markiert.`
+      );
+      return result;
+    }
+
+    // Sehr hohes Budget (≥ 500) soll NICHT als vage gelten → Premium explizit erlaubt
+    if (maxNumber >= 500) {
+      if (result.maxPrice === undefined && result.minPrice === undefined) {
+        result.maxPrice = maxNumber;
+      }
+      result.isBudgetAmbiguous = false;
+      notes.push(
+        `Budget (DE): sehr hohes Budget (${maxNumber}) – nicht als vage markiert (Premium-Empfehlungen erlaubt).`
+      );
+      // Kein return hier: min/max können bereits sinnvoll gesetzt sein,
+      // wir wollen nur die Ambiguität zurücksetzen.
+    }
+  }
+
   // 9) Nur Zahlen ohne klaren Kontext → vage
   result.isBudgetAmbiguous = true;
   notes.push(
@@ -316,6 +350,45 @@ export function analyzeBudget(text: string): BudgetAnalysis {
     hasBudgetWord: userRange.hasBudgetWord,
     isBudgetAmbiguous: userRange.isBudgetAmbiguous,
     notes: userRange.notes,
+  };
+}
+
+/**
+ * EFRO Modularization Phase 2: computePriceRangeInfo ausgelagert
+ * 
+ * Berechnet Preisbereich-Informationen für ehrliche Kommunikation.
+ * Wird verwendet, wenn keine Produkte im gewünschten Preisbereich gefunden wurden.
+ */
+import type { PriceRangeInfo } from "./modules/types/index";
+import type { EfroProduct } from "@/lib/products/mockCatalog";
+
+export function computePriceRangeInfo(params: {
+  userMinPrice: number | null;
+  userMaxPrice: number | null;
+  allProducts: EfroProduct[];
+  effectiveCategorySlug: string | null;
+  normalize: (text: string) => string;
+}): PriceRangeInfo {
+  const { userMinPrice, userMaxPrice, allProducts, effectiveCategorySlug, normalize } = params;
+  
+  const productsInCategory = effectiveCategorySlug
+    ? allProducts.filter((p) => normalize(p.category || "") === effectiveCategorySlug)
+    : allProducts;
+  
+  const pricesInCategory = productsInCategory
+    .map((p) => p.price ?? 0)
+    .filter((p) => p > 0)
+    .sort((a, b) => a - b);
+  
+  const categoryMinPrice = pricesInCategory.length > 0 ? pricesInCategory[0] : null;
+  const categoryMaxPrice = pricesInCategory.length > 0 ? pricesInCategory[pricesInCategory.length - 1] : null;
+  
+  return {
+    userMinPrice: userMinPrice ?? null,
+    userMaxPrice: userMaxPrice ?? null,
+    categoryMinPrice,
+    categoryMaxPrice,
+    category: effectiveCategorySlug,
   };
 }
 

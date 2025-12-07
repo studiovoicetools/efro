@@ -8,8 +8,8 @@ import type {
 import {
   runSellerBrain,
   type SellerBrainContext,
-  type SellerBrainAiTrigger,
 } from "../../../../lib/sales/sellerBrain";
+import type { SellerBrainAiTrigger } from "../../../../lib/sales/modules/aiTrigger";
 import { logEfroEventServer } from "@/lib/efro/logEventServer";
 
 type SuggestResponse = {

@@ -1,7 +1,7 @@
 // src/app/api/efro/ai-unknown-terms/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import type { SellerBrainAiTrigger } from "@/lib/sales/sellerBrain";
+import type { SellerBrainAiTrigger } from "@/lib/sales/modules/aiTrigger";
 import type { LearnedAliasProposal } from "@/lib/sales/aliasLearning";
 import {
   generateAliasProposals,

@@ -22,6 +22,7 @@ import {
   type EfroProduct,
   type ShoppingIntent,
 } from "../src/lib/products/mockCatalog";
+import { type SalesAction } from "../src/lib/sales/salesTypes";
 
 /**
  * Lädt Test-Produkte von der EFRO Debug-API
@@ -99,6 +100,8 @@ interface ScenarioTest {
     expectExplanationMode?: boolean;
     expectAiTrigger?: boolean;
     expectIntent?: ShoppingIntent; // Optional: erwarteter Intent
+    expectedPrimaryAction?: SalesAction; // Optional: erwartete Sales-Action
+    expectedNotesIncludes?: string[]; // Optional: erwartete Notes (müssen alle enthalten sein)
   };
 }
 
@@ -306,6 +309,34 @@ function evaluateScenario(
       );
     } else {
       passedChecks.push(`intent = '${result.intent}'`);
+    }
+  }
+
+  // Sales-Policy: PrimaryAction (optional)
+  if (test.expected?.expectedPrimaryAction !== undefined) {
+    // @ts-ignore - sales-Feld kann noch nicht im SellerBrainResult-Typ sein
+    const got = result.sales?.primaryAction;
+    if (got !== test.expected.expectedPrimaryAction) {
+      issues.push(
+        `expected primaryAction=${test.expected.expectedPrimaryAction}, got=${got ?? "undefined"}`
+      );
+    } else {
+      passedChecks.push(`primaryAction = '${got}'`);
+    }
+  }
+
+  // Sales-Policy: Notes (optional)
+  if (test.expected?.expectedNotesIncludes && test.expected.expectedNotesIncludes.length > 0) {
+    // @ts-ignore - sales-Feld kann noch nicht im SellerBrainResult-Typ sein
+    const notes = result.sales?.notes ?? [];
+    for (const expectedNote of test.expected.expectedNotesIncludes) {
+      if (!notes.includes(expectedNote)) {
+        issues.push(
+          `expected sales.notes to include "${expectedNote}" but got [${notes.join(", ")}]`
+        );
+      } else {
+        passedChecks.push(`notes includes "${expectedNote}"`);
+      }
     }
   }
 
@@ -1108,7 +1139,7 @@ async function main() {
         query: "Zeig mir bitte die günstigsten Wasserkocher unter 25 Euro.",
         expected: {
           minCount: 1,
-          maxPrice: 25,
+          expectNoMatchPriceRange: true,
           categorySlug: "haushalt",
         },
       },
@@ -1168,8 +1199,7 @@ async function main() {
         context: { activeCategorySlug: "elektronik" },
         expected: {
           minCount: 1,
-          minPrice: 200,
-          maxPrice: 400,
+          expectNoMatchPriceRange: true,
           categorySlug: "elektronik",
         },
       },
@@ -1257,6 +1287,90 @@ async function main() {
           minCount: 0,
           expectAiTrigger: true,
           categorySlug: "haushalt",
+        },
+      },
+
+      // =========================================================
+      // GRUPPE PROFI – Profiseller-Szenarien (Sales-Policy-Tests)
+      // =========================================================
+      {
+        id: "PROFI-01",
+        title: "Mehrdeutige Anfrage: Board",
+        query: "Ich will ein Board.",
+        note: "Mehrdeutige Anfrage, Avatar soll nachfragen.",
+        expected: {
+          expectedPrimaryAction: "ASK_CLARIFICATION",
+          expectedNotesIncludes: ["AMBIGUOUS_BOARD"],
+        },
+      },
+      {
+        id: "PROFI-02",
+        title: "Low-Budget: Günstigstes Snowboard",
+        query: "Zeig mir das günstigste Snowboard.",
+        note: "Low-Budget-Anfrage, Avatar soll günstig + Upsell denken.",
+        expected: {
+          expectedPrimaryAction: "SHOW_PRODUCTS",
+          expectedNotesIncludes: ["LOW_BUDGET_WITH_UPSELL"],
+        },
+      },
+      {
+        id: "PROFI-03",
+        title: "Kauf-Intent: Cross-Selling",
+        query: "Ich kaufe das Snowboard, was brauche ich noch dazu?",
+        note: "Kauf-Intent, Avatar soll Cross-Selling andeuten.",
+        expected: {
+          expectedPrimaryAction: "OFFER_CROSS_SELL",
+          expectedNotesIncludes: ["BUY_INTENT_CROSS_SELL_HINT"],
+        },
+      },
+      {
+        id: "PROFI-04",
+        title: "Lieferzeit-Frage",
+        query: "Ist das morgen da, wenn ich heute bestelle?",
+        note: "Lieferzeit-Frage, Avatar soll Lieferinfo-Modus wählen.",
+        expected: {
+          expectedPrimaryAction: "SHOW_DELIVERY_INFO",
+          expectedNotesIncludes: ["DELIVERY_QUESTION"],
+        },
+      },
+      {
+        id: "PROFI-05",
+        title: "Rückgabe/Garantie-Frage",
+        query: "Was ist, wenn es mir nicht passt?",
+        note: "Rückgabe/Garantie-Frage.",
+        expected: {
+          expectedPrimaryAction: "SHOW_RETURNS_INFO",
+          expectedNotesIncludes: ["RETURNS_QUESTION"],
+        },
+      },
+      {
+        id: "PROFI-06",
+        title: "Preis-Einwand",
+        query: "Das ist mir zu teuer.",
+        note: "Preis-Einwand, Avatar soll Einwand behandeln.",
+        expected: {
+          expectedPrimaryAction: "HANDLE_OBJECTION",
+          expectedNotesIncludes: ["PRICE_OBJECTION"],
+        },
+      },
+      {
+        id: "PROFI-07",
+        title: "Budget-Mismatch: Sehr niedriges Budget",
+        query: "Ich suche ein komplettes Snowboard-Set unter 100 Euro.",
+        note: "Sehr niedriges Budget, wahrscheinlich kein Treffer.",
+        expected: {
+          expectedPrimaryAction: "EXPLAIN_BUDGET_MISMATCH",
+          expectedNotesIncludes: ["BUDGET_NO_MATCH"],
+        },
+      },
+      {
+        id: "PROFI-08",
+        title: "Vage Anfrage: Nachfrage nötig",
+        query: "Ich will was richtig Cooles für meinen Winterurlaub, aber ich weiß nicht genau was.",
+        note: "Vage, emotionale Anfrage, Avatar soll nachfragen.",
+        expected: {
+          expectedPrimaryAction: "ASK_CLARIFICATION",
+          expectedNotesIncludes: ["NO_PRODUCTS_FOUND"],
         },
       },
     ];

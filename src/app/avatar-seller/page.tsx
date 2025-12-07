@@ -1380,7 +1380,7 @@ export default function Home({ searchParams }: HomeProps) {
 
         // AI-Trigger: Unbekannte Begriffe an Backend senden (fire-and-forget)
         const aiTrigger = result.aiTrigger;
-        if (aiTrigger && aiTrigger.needsAiHelp && aiTrigger.unknownTerms?.length > 0) {
+        if (aiTrigger?.needsAiHelp && Array.isArray(aiTrigger.unknownTerms) && aiTrigger.unknownTerms.length > 0) {
           console.log("[EFRO Client AI-Trigger] Sending unknown terms to backend", {
             userText: cleanedText,
             aiTrigger,

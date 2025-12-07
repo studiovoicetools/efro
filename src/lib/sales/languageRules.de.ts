@@ -93,7 +93,7 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   snowboard: ["snowboard", "snowboards", "board"],
   // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
   bindungen: ["bindungen", "bindung", "binding", "bindings", "snowboard-bindungen", "snowboard-bindung", "snowboardbindungen", "snowboardbindung"],
-  haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad"],
+  haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad", "wasserkocher", "electric kettle", "kettle", "haushaltsgeräte"],
   pflege: ["pflege", "shampoo", "duschgel", "seife", "creme", "öl", "oel", "lotion"],
   tierbedarf: ["tier", "tierbedarf", "hund", "hunde", "welpe", "welpen", "katze", "katzen", "kater", "hündin", "futter", "leckerli"],
   // hier können später weitere Kategorien ergänzt werden
