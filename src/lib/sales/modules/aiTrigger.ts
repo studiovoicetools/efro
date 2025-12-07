@@ -25,6 +25,15 @@ function isBudgetSmalltalk(text: string): boolean {
     /\bich\s+bin\s+knapp\s+bei\s+kasse\b/i,
     /\bmein\s+budget\s+ist\s+klein\b/i,
     /\bich\s+habe\s+wenig\s+geld\b/i,
+    // J3v2 Fix: Erweiterte Patterns für vage Budget-Aussagen
+    /\bich\s+habe\s+nicht\s+viel\s+geld\b/i,
+    /\bich\s+habe\s+kaum\s+geld\b/i,
+    /\bich\s+habe\s+nur\s+wenig\s+geld\b/i,
+    /\bmein\s+budget\s+ist\s+sehr\s+klein\b/i,
+    /\bmein\s+budget\s+ist\s+begrenzt\b/i,
+    /\bich\s+habe\s+ein\s+kleines\s+budget\b/i,
+    /\bich\s+habe\s+ein\s+begrenztes\s+budget\b/i,
+    /\bich\s+habe\s+nicht\s+genug\s+geld\b/i,
   ];
   return smalltalkPatterns.some((pattern) => pattern.test(normalized));
 }

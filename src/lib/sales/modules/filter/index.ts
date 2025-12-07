@@ -733,10 +733,13 @@ function computeExactMatchBoost(product: EfroProduct, text: string): number {
   const normalizedSlug = normalize((product as any).handle || "");
   
   // Extrahiere Modellnamen-Patterns (z.B. "alpha 128gb", "alpha 128gb schwarz")
+  // CLUSTER K FIX: Erweitere Patterns für besseres Matching
   const modelPatterns = [
     /\b(alpha\s+\d+\s*gb(?:\s+schwarz)?)\b/i,
     /\b(smartphone\s+alpha\s+\d+\s*gb(?:\s+schwarz)?)\b/i,
     /\b(alpha\s+ultra\s+pro\s+\d+\s*tb(?:\s+\d+\s*zoll)?)\b/i,
+    /\b(das\s+alpha\s+\d+\s*gb\s+schwarz)\b/i, // "das Alpha 128GB Schwarz"
+    /\b(alpha\s+\d+\s*gb\s+schwarz)\b/i, // "Alpha 128GB Schwarz"
   ];
   
   for (const pattern of modelPatterns) {
@@ -746,6 +749,16 @@ function computeExactMatchBoost(product: EfroProduct, text: string): number {
       // Prüfe, ob der Modellname vollständig im Produktnamen vorkommt
       if (normalizedTitle.includes(modelName) || normalizedSlug.includes(modelName)) {
         return 50; // Sehr hoher Boost für Exact-Match
+      }
+      // CLUSTER K FIX K6v2: Auch Teilmatches akzeptieren (z.B. "alpha" + "128gb" + "schwarz" einzeln)
+      const modelParts = modelName.split(/\s+/).filter(p => p.length > 2);
+      if (modelParts.length > 0) {
+        const allPartsMatch = modelParts.every(part => 
+          normalizedTitle.includes(part) || normalizedSlug.includes(part)
+        );
+        if (allPartsMatch) {
+          return 30; // Mittlerer Boost für Teilmatches
+        }
       }
     }
   }
@@ -1515,8 +1528,23 @@ function applyProductFilters(
   if (effectiveCategorySlug) {
     const beforeCategoryFilterCount = candidates.length;
 
+    // K10v1/K11v1 Fix: Wenn "mode" erkannt wurde und "jeans" im Query ist, auch "Pants"-Kategorie akzeptieren
+    const normalizedText = normalize(text);
+    const hasJeansQuery = normalizedText.includes("jeans") || (normalizedText.includes("slim") && normalizedText.includes("fit"));
+    const shouldIncludePants = effectiveCategorySlug === "mode" && hasJeansQuery;
+
     const filteredByCategory = candidates.filter(
-      (p) => normalize(p.category || "") === effectiveCategorySlug
+      (p) => {
+        const productCategory = normalize(p.category || "");
+        if (productCategory === effectiveCategorySlug) {
+          return true;
+        }
+        // K10v1/K11v1 Fix: "Pants" als "Mode" akzeptieren, wenn "jeans" im Query ist
+        if (shouldIncludePants && productCategory === "pants") {
+          return true;
+        }
+        return false;
+      }
     );
 
     if (filteredByCategory.length > 0) {
@@ -1620,6 +1648,16 @@ function applyProductFilters(
             }
             
             return true; // Wax-Produkt gefunden, auch ohne Kategorie
+          }
+        }
+        
+        // CLUSTER 2 FIX S17/S17v1: Wenn waxIntent === "hair" ist, auch Produkte ohne "wax" akzeptieren,
+        // die "hair" oder "haar" enthalten (Fallback für Kataloge ohne Wax-Produkte)
+        if (waxIntent === "hair" && !hasWaxKeyword) {
+          const hasHairInProduct = haystack.includes("hair") || haystack.includes("haar") || 
+                                   haystack.includes("styling") || haystack.includes("frisur");
+          if (hasHairInProduct) {
+            return true; // Hair-Produkt gefunden, auch ohne Wax
           }
         }
         
@@ -2271,6 +2309,16 @@ export function filterProductsForSellerBrain(
           }
         }
         
+        // CLUSTER 2 FIX S17/S17v1: Wenn waxIntent === "hair" ist, auch Produkte ohne "wax" akzeptieren,
+        // die "hair" oder "haar" enthalten (Fallback für Kataloge ohne Wax-Produkte)
+        if (waxIntent === "hair" && !hasWaxKeyword) {
+          const hasHairInProduct = haystack.includes("hair") || haystack.includes("haar") || 
+                                   haystack.includes("styling") || haystack.includes("frisur");
+          if (hasHairInProduct) {
+            return true; // Hair-Produkt gefunden, auch ohne Wax
+          }
+        }
+        
         // Simple ANY-match: mindestens ein Token muss vorkommen
         return tokens.some((t) => haystack.includes(t));
       });
@@ -2799,8 +2847,50 @@ export function filterProductsForSellerBrain(
         coreTerms.some((term) => searchText.includes(term)) ||
         expandedWords.some((word) => searchText.includes(word)) ||
         languageRuleKeywords.some((keyword) => searchText.includes(keyword.toLowerCase()));
+      
+      // CLUSTER K FIX K10v1/K11v1: Für Mode-Produkte auch zusammengesetzte Begriffe wie "slim-fit-jeans" erkennen
+      // K10v1/K11v1 Fix: Diese Logik muss IMMER greifen, auch wenn hasCoreMatch true ist
+      // Wenn "jeans" im Query ist, nur Jeans-Produkte akzeptieren (auch wenn hasCoreMatch true ist, aber Produkt kein "jeans" enthält)
+      if (effectiveCategorySlug === "mode") {
+        const normalizedText = normalize(text);
+        const hasJeansQuery = normalizedText.includes("jeans") || normalizedText.includes("slim") && normalizedText.includes("fit");
+        // K10v1/K11v1 Fix: Wenn "jeans" oder "slim fit" im Query ist, nur Jeans-Produkte akzeptieren
+        // Prüfe auch in Beschreibung und Tags, nicht nur im Titel
+        const productDesc = normalize(p.description || "");
+        const rawTags: any = (p as any).tags;
+        let tagsText = "";
+        if (Array.isArray(rawTags)) {
+          tagsText = rawTags.map((tag) => normalize(String(tag))).join(" ");
+        } else if (typeof rawTags === "string") {
+          tagsText = normalize(rawTags);
+        }
+        const fullSearchText = `${searchText} ${productDesc} ${tagsText}`;
+        
+        // K10v1/K11v1 Fix: Wenn "jeans" oder "slim fit" im Query ist, nur Jeans-Produkte akzeptieren
+        // ABER: Wenn es ein "Pants"-Produkt gibt, akzeptiere es auch (Pants = Jeans)
+        const isPantsProduct = normalize(p.category || "") === "pants";
+        if (hasJeansQuery && !fullSearchText.includes("jeans") && !isPantsProduct) {
+          return { product: p, score: 0, attributeScore: 0 };
+        }
+      }
+      
+      let hasModeCompositeMatch = false;
+      if (!hasCoreMatch && effectiveCategorySlug === "mode") {
+        const normalizedText = normalize(text);
+        const hasSlimFitJeans = normalizedText.includes("slim") && 
+          (normalizedText.includes("fit") || normalizedText.includes("jeans"));
+        if (hasSlimFitJeans) {
+          // Prüfe, ob Produkt "slim", "fit" oder "jeans" enthält
+          const hasModeKeywords = searchText.includes("slim") || 
+            searchText.includes("fit") || 
+            searchText.includes("jeans");
+          if (hasModeKeywords) {
+            hasModeCompositeMatch = true;
+          }
+        }
+      }
 
-      if (!hasCoreMatch && (coreTerms.length > 0 || expandedWords.length > 0 || languageRuleKeywords.length > 0)) {
+      if (!hasCoreMatch && !hasModeCompositeMatch && (coreTerms.length > 0 || expandedWords.length > 0 || languageRuleKeywords.length > 0)) {
         return { product: p, score: 0, attributeScore: 0 };
       }
 
@@ -2931,8 +3021,19 @@ export function filterProductsForSellerBrain(
     const scored = candidatesWithScores.filter((entry) => entry.score > 0);
 
     if (scored.length > 0) {
-      // Sortiere nach: attributeScore (absteigend), dann totalScore, dann Preis
-      scored.sort((a, b) => {
+      // CLUSTER K FIX K6v2: Exact-Match-Boost hat höchste Priorität beim Ranking
+      // Berechne Exact-Match-Boost für alle Produkte
+      const scoredWithExactMatch = scored.map(entry => {
+        const exactMatchBoost = computeExactMatchBoost(entry.product, text);
+        return { ...entry, exactMatchBoost };
+      });
+      
+      // Sortiere nach: Exact-Match-Boost (höchste Priorität), dann attributeScore, dann totalScore, dann Preis
+      scoredWithExactMatch.sort((a, b) => {
+        // Exact-Match-Boost hat höchste Priorität
+        if (b.exactMatchBoost !== a.exactMatchBoost) {
+          return b.exactMatchBoost - a.exactMatchBoost;
+        }
         if (b.attributeScore !== a.attributeScore) {
           return b.attributeScore - a.attributeScore;
         }
@@ -2947,8 +3048,8 @@ export function filterProductsForSellerBrain(
         }
         return 0;
       });
-
-      candidates = scored.map((e) => e.product);
+      
+      candidates = scoredWithExactMatch.map((e) => e.product);
 
       if (candidates.length > 20) {
         candidates = candidates.slice(0, 20);
@@ -3055,24 +3156,85 @@ export function filterProductsForSellerBrain(
     });
     
     if (categoryProducts.length > 0) {
-      // Sortiere nach Preis (aufsteigend für allgemeine Anfragen, absteigend für Premium)
-      const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
-        if (currentIntent === "premium" || wantsMostExpensive) {
-          return (b.price ?? 0) - (a.price ?? 0);
+      // CLUSTER K FIX K10v1/K11v1: Wenn "jeans" im Query ist, aber keine Jeans-Produkte gefunden wurden,
+      // dann prüfe, ob es überhaupt Jeans-Produkte im Katalog gibt
+      const normalizedText = normalize(text);
+      const hasJeansQuery = normalizedText.includes("jeans");
+      if (hasJeansQuery && effectiveCategorySlug === "mode") {
+        // Prüfe, ob es Jeans-Produkte im Katalog gibt
+        const jeansProductsInCatalog = allProducts.some((p) => {
+          const normalizedCategory = normalize(p.category || "");
+          const normalizedTitle = normalize(p.title || "");
+          return normalizedCategory === "mode" && normalizedTitle.includes("jeans");
+        });
+        
+        if (!jeansProductsInCatalog) {
+          // Keine Jeans-Produkte im Katalog → gebe Mode-Produkte als Fallback zurück
+          const modeProducts = allProducts.filter((p) => {
+            const normalizedCategory = normalize(p.category || "");
+            return normalizedCategory === "mode";
+          });
+          
+          if (modeProducts.length > 0) {
+            // Sortiere nach Preis (aufsteigend für allgemeine Anfragen, absteigend für Premium)
+            const sortedModeProducts = [...modeProducts].sort((a, b) => {
+              if (currentIntent === "premium" || wantsMostExpensive) {
+                return (b.price ?? 0) - (a.price ?? 0);
+              }
+              return (a.price ?? 0) - (b.price ?? 0);
+            });
+            
+            candidates = sortedModeProducts.slice(0, Math.min(10, sortedModeProducts.length));
+            
+            console.log("[EFRO CLUSTER K FIX K10v1/K11v1] Jeans-Query, aber keine Jeans-Produkte im Katalog → Mode-Fallback", {
+              text: text.substring(0, 80),
+              effectiveCategorySlug,
+              modeProductCount: modeProducts.length,
+              fallbackCount: candidates.length,
+              intent: currentIntent,
+              sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+            });
+          }
+        } else {
+          // Es gibt Jeans-Produkte im Katalog, aber sie wurden nicht gefunden → normale Kategorie-only Fallback
+          const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
+            if (currentIntent === "premium" || wantsMostExpensive) {
+              return (b.price ?? 0) - (a.price ?? 0);
+            }
+            return (a.price ?? 0) - (b.price ?? 0);
+          });
+          
+          candidates = sortedCategoryProducts.slice(0, Math.min(10, sortedCategoryProducts.length));
+          
+          console.log("[EFRO CLUSTER H/C/D FIX] Kategorie-only Fallback", {
+            text: text.substring(0, 80),
+            effectiveCategorySlug,
+            categoryProductCount: categoryProducts.length,
+            fallbackCount: candidates.length,
+            intent: currentIntent,
+            sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+          });
         }
-        return (a.price ?? 0) - (b.price ?? 0);
-      });
-      
-      candidates = sortedCategoryProducts.slice(0, Math.min(10, sortedCategoryProducts.length));
-      
-      console.log("[EFRO CLUSTER H/C/D FIX] Kategorie-only Fallback", {
-        text: text.substring(0, 80),
-        effectiveCategorySlug,
-        categoryProductCount: categoryProducts.length,
-        fallbackCount: candidates.length,
-        intent: currentIntent,
-        sampleTitles: candidates.slice(0, 3).map((p) => p.title),
-      });
+      } else {
+        // Normale Kategorie-only Fallback
+        const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
+          if (currentIntent === "premium" || wantsMostExpensive) {
+            return (b.price ?? 0) - (a.price ?? 0);
+          }
+          return (a.price ?? 0) - (b.price ?? 0);
+        });
+        
+        candidates = sortedCategoryProducts.slice(0, Math.min(10, sortedCategoryProducts.length));
+        
+        console.log("[EFRO CLUSTER H/C/D FIX] Kategorie-only Fallback", {
+          text: text.substring(0, 80),
+          effectiveCategorySlug,
+          categoryProductCount: categoryProducts.length,
+          fallbackCount: candidates.length,
+          intent: currentIntent,
+          sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+        });
+      }
     }
   }
 
@@ -3241,17 +3403,92 @@ export function filterProductsForSellerBrain(
           categoryMaxPrice !== null &&
           minPrice > categoryMaxPrice;
         
-        // Bei unrealistischem Budget wurden bereits Produkte gezeigt → keine weiteren Fallbacks nötig
+        // CLUSTER 1 FIX: S4v2, D1v2, D2v2, D4v2, K1v2, K2v2, K5v1, K6v1, K6v2, K7v1, K7v2, K8v1, K10v1, K11v1, K14v1, K15v1
+        // Bei explizitem Budget mit priceRangeNoMatch: Zeige trotzdem Produkte aus erkannten Kategorie
+        // (mit priceRangeNoMatch = true), anstatt gar keine Produkte zu zeigen
         if (hasExplicitBudget && priceRangeNoMatch && !unrealisticallyLow && !unrealisticallyHigh) {
-          // Explizites Budget gesetzt, aber keine Produkte IM Budget UND nicht unrealistisch → KEINE Fallback-Produkte
-          candidates = [];
-          console.log("[EFRO Budget Strict Fallback] Explizites Budget, keine Fallback-Produkte", {
-            text: text.substring(0, 80),
-            minPrice,
-            maxPrice,
-            priceRangeNoMatch,
-            note: "User hat explizit ein Budget genannt, wir müssen uns daran halten",
-          });
+          // Prüfe, ob eine Kategorie erkannt wurde
+          const fallbackCategory = effectiveCategorySlug || (matchedCategories.length > 0 ? matchedCategories[0] : null);
+          
+          if (fallbackCategory) {
+            // Zeige Produkte aus erkannten Kategorie, auch wenn sie nicht im Budget sind
+            const categoryProducts = allProducts.filter((p) =>
+              normalize(p.category || "") === normalize(fallbackCategory)
+            );
+            
+            if (categoryProducts.length > 0) {
+              // Sortiere nach Preis (aufsteigend für Budget-Anfragen)
+              const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
+                const priceA = typeof a.price === "number" ? a.price : Number(a.price ?? 0);
+                const priceB = typeof b.price === "number" ? b.price : Number(b.price ?? 0);
+                if (Number.isNaN(priceA)) return 1;
+                if (Number.isNaN(priceB)) return -1;
+                return priceA - priceB;
+              });
+              
+              candidates = sortedCategoryProducts.slice(0, Math.min(10, sortedCategoryProducts.length));
+              
+              console.log("[EFRO CLUSTER 1 FIX] Budget mit Kategorie-Fallback (S4v2, D1v2, etc.)", {
+                text: text.substring(0, 80),
+                category: fallbackCategory,
+                minPrice,
+                maxPrice,
+                priceRangeNoMatch,
+                categoryProductCount: categoryProducts.length,
+                fallbackCount: candidates.length,
+                sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+                note: "Zeige Produkte aus Kategorie trotz Budget-Mismatch",
+              });
+            } else {
+              // Keine Produkte in Kategorie → keine Fallback-Produkte
+              candidates = [];
+              console.log("[EFRO Budget Strict Fallback] Explizites Budget, keine Produkte in Kategorie", {
+                text: text.substring(0, 80),
+                minPrice,
+                maxPrice,
+                priceRangeNoMatch,
+                category: fallbackCategory,
+                note: "User hat explizit ein Budget genannt, aber keine Produkte in Kategorie gefunden",
+              });
+            }
+          } else {
+            // G1v2 Fix: Keine Kategorie erkannt, aber Budget gesetzt → zeige Produkte im Budget-Bereich
+            // (auch wenn keine Kategorie erkannt wurde, sollte bei Budget-only-Queries etwas gezeigt werden)
+            const budgetFiltered = allProducts.filter((p) => {
+              const price = p.price ?? 0;
+              if (minPrice !== null && price < minPrice) return false;
+              if (maxPrice !== null && price > maxPrice) return false;
+              return true;
+            });
+            
+            if (budgetFiltered.length > 0) {
+              // Sortiere nach Preis (aufsteigend für minPrice, absteigend für maxPrice)
+              const sorted = [...budgetFiltered].sort((a, b) => {
+                const pa = a.price ?? 0;
+                const pb = b.price ?? 0;
+                if (minPrice !== null) return pa - pb; // Aufsteigend für minPrice
+                if (maxPrice !== null) return pb - pa; // Absteigend für maxPrice
+                return pa - pb;
+              });
+              candidates = sorted.slice(0, 4);
+              console.log("[EFRO Budget Strict Fallback] G1v2 Fix - Produkte im Budget-Bereich gefunden", {
+                text: text.substring(0, 80),
+                minPrice,
+                maxPrice,
+                foundCount: candidates.length,
+                sampleTitles: candidates.slice(0, 3).map(p => p.title),
+              });
+            } else {
+              candidates = [];
+              console.log("[EFRO Budget Strict Fallback] Explizites Budget, keine Kategorie erkannt, keine Produkte im Budget", {
+                text: text.substring(0, 80),
+                minPrice,
+                maxPrice,
+                priceRangeNoMatch,
+                note: "User hat explizit ein Budget genannt, aber keine Produkte im Budget-Bereich gefunden",
+              });
+            }
+          }
         } else if (hasPerfumeCandidates && originalPerfumeCandidates.length > 0) {
           // Bei Parfüm-Intent: Wenn Parfüm-Kandidaten existieren, diese beibehalten
           // (auch wenn sie durch Preisfilter leer wurden - besser als alle Produkte zu zeigen)

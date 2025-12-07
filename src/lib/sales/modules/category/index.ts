@@ -245,6 +245,58 @@ export function determineEffectiveCategory(params: {
   // Dies verhindert, dass "modern" zu "mode" führt, wenn Smartphone-Keywords vorhanden sind
   let strongOverrideCategory: string | null = null;
   
+  // CLUSTER 1 FIX S4v2: "board" + Budget → "snowboard" (Budget ist ein starker Hinweis auf Snowboard)
+  const mentionsBoard = normalizedText.includes("board") || normalizedText.includes("boards");
+  const hasBudgetInText = /\b(\d+)\s*(euro|eur|€|dollar|\$)\b/i.test(text) || 
+    /\b(unter|über|bis|ab|zwischen|von|bis zu|maximal|mindestens|höchstens)\s*\d+/i.test(text);
+  
+  if (mentionsBoard && hasBudgetInText && !normalizedText.includes("snowboard")) {
+    // "board" + Budget → wahrscheinlich Snowboard (nicht Mode)
+    const hasSnowboardCategory = allCategories.some((cat) => normalize(cat) === "snowboard");
+    if (hasSnowboardCategory) {
+      const snowboardCount = allProducts.filter(
+        (p) => normalize(p.category || "") === "snowboard"
+      ).length;
+      if (snowboardCount > 0) {
+        strongOverrideCategory = "snowboard";
+        console.log("[EFRO Category] CLUSTER 1 FIX S4v2 - Board + Budget → Snowboard", {
+          text: text.substring(0, 80),
+          hasBudgetInText,
+          strongOverrideCategory,
+          productCount: snowboardCount,
+        });
+      }
+    }
+  }
+
+  // CLUSTER 3 FIX S6v2: "Premium-Modell" + "höchsten Preis" → "snowboard" (nicht "mode")
+  // Wenn "Premium-Modell" oder "Premium-Modell" + "höchsten Preis" im Text ist, aber keine explizite Kategorie,
+  // dann prüfe, ob "snowboard" im Katalog vorhanden ist und priorisiere es über "mode"
+  const mentionsPremiumModell = /\bpremium[\s-]?modell\b/i.test(normalizedText) || 
+    (normalizedText.includes("premium") && normalizedText.includes("modell"));
+  const mentionsHoechstenPreis = /\bhöchsten\s+preis\b/i.test(normalizedText) || 
+    /\bhöchste\s+preis\b/i.test(normalizedText) ||
+    /\bteuerste\b/i.test(normalizedText);
+  
+  if (mentionsPremiumModell && mentionsHoechstenPreis && !strongOverrideCategory) {
+    const hasSnowboardCategory = allCategories.some((cat) => normalize(cat) === "snowboard");
+    if (hasSnowboardCategory) {
+      const snowboardCount = allProducts.filter(
+        (p) => normalize(p.category || "") === "snowboard"
+      ).length;
+      if (snowboardCount > 0) {
+        strongOverrideCategory = "snowboard";
+        console.log("[EFRO Category] CLUSTER 3 FIX S6v2 - Premium-Modell + höchsten Preis → Snowboard", {
+          text: text.substring(0, 80),
+          mentionsPremiumModell,
+          mentionsHoechstenPreis,
+          strongOverrideCategory,
+          productCount: snowboardCount,
+        });
+      }
+    }
+  }
+  
   const mentionsSmartphoneEarly =
     normalizedText.includes("smartphone") ||
     normalizedText.includes("smartphones") ||
@@ -255,7 +307,8 @@ export function determineEffectiveCategory(params: {
     (normalizedText.includes("phone") && !normalizedText.includes("handyvertrag"));
   
   // Prüfe auch auf konkrete Modellnamen wie "Smartphone Alpha", "Alpha 128GB", etc.
-  const hasSmartphoneModelName = /\b(smartphone\s+alpha|alpha\s+smartphone|phone\s+alpha|alpha\s+phone|alpha\s+\d+gb|alpha\s+\d+\s*gb)\b/i.test(text);
+  // CLUSTER K FIX: Erweitere Pattern für besseres Matching (z.B. "das Alpha 128GB Schwarz")
+  const hasSmartphoneModelName = /\b(smartphone\s+alpha|alpha\s+smartphone|phone\s+alpha|alpha\s+phone|alpha\s+\d+gb|alpha\s+\d+\s*gb|das\s+alpha\s+\d+\s*gb|alpha\s+\d+\s*gb\s+schwarz)\b/i.test(text);
   
   if (mentionsSmartphoneEarly || hasSmartphoneModelName) {
     const hasElektronikCategory = allCategories.some(
@@ -390,6 +443,7 @@ export function determineEffectiveCategory(params: {
     filteredHints.some((hint) => normalize(hint) === "tierbedarf");
   
   // CLUSTER D FIX: I3v2 - Prüfe auch auf direkte Haustier-Keywords im Text
+  // CLUSTER 3 FIX: "Vierbeiner" hinzugefügt für I3v2
   const mentionsHaustierKeywords = 
     normalizedText.includes("hund") ||
     normalizedText.includes("dog") ||
@@ -399,7 +453,8 @@ export function determineEffectiveCategory(params: {
     normalizedText.includes("pet") ||
     normalizedText.includes("pets") ||
     normalizedText.includes("tier") ||
-    normalizedText.includes("animal");
+    normalizedText.includes("animal") ||
+    normalizedText.includes("vierbeiner");
 
   if (hasHaustierCategory && (hasTierbedarfHint || mentionsHaustierKeywords)) {
     const haustierCategory = allCategories.find(
@@ -496,6 +551,33 @@ export function determineEffectiveCategory(params: {
     }
   }
   
+  // CLUSTER 3 FIX: Wenn contextCategory gesetzt ist und keine neue Kategorie im Text erkannt wurde,
+  // dann verwende contextCategory als effectiveCategorySlug
+  // Dies stellt sicher, dass Kontext-Kategorien (z.B. "haustier", "perfume", "snowboard") beibehalten werden,
+  // auch wenn der Text keine Kategorie-Keywords enthält (z.B. "Zeig mir Premium")
+  // WICHTIG: Diese Logik muss VOR selectEffectiveCategory greifen, damit matchedCategories korrekt gesetzt wird
+  if (contextCategory && matchedCategories.length === 0 && !strongOverrideCategory) {
+    const normalizedContextCategory = normalize(contextCategory);
+    const contextCategoryCount = allProducts.filter(
+      (p) => normalize(p.category || "") === normalizedContextCategory
+    ).length;
+    if (contextCategoryCount > 0) {
+      // Füge contextCategory zu matchedCategories hinzu, damit selectEffectiveCategory sie berücksichtigt
+      const contextCategoryInCatalog = allCategories.find(
+        (cat) => normalize(cat) === normalizedContextCategory
+      );
+      if (contextCategoryInCatalog) {
+        matchedCategories.push(contextCategoryInCatalog);
+        console.log("[EFRO Category] CLUSTER 3 FIX - Kontext-Kategorie zu matchedCategories hinzugefügt", {
+          text: normalizedText,
+          contextCategory,
+          matchedCategories,
+          productCount: contextCategoryCount,
+        });
+      }
+    }
+  }
+
   // EFRO Kategorie-Optimierung: Filtere matchedCategories auf Kategorien mit tatsächlichen Produkten
   const categorySelection = selectEffectiveCategory({
     matchedCategories,
@@ -563,6 +645,7 @@ export function determineEffectiveCategory(params: {
       });
     }
   }
+
 
   // CLUSTER I/B/A FIX: I3v2, B1v1, A2v2 - Haustier-Begriffe überschreiben Mode/Kosmetik
   // High-Priority-Regel: Wenn Haustier-Begriffe im Text sind, überschreibe effectiveCategorySlug

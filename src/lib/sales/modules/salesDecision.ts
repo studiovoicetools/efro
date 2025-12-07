@@ -4,6 +4,7 @@
 import type { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
 import type { PriceRangeInfo } from "@/lib/sales/modules/types";
 import type { SalesAction } from "@/lib/sales/salesTypes";
+import { normalize } from "@/lib/sales/modules/utils";
 
 export type SalesDecisionInput = {
   text: string;
@@ -306,6 +307,32 @@ export function computeSalesDecision(
   
   // CLUSTER E FIX: PROFI-07v2 - Auch wenn Produkte vorhanden sind, aber priceRangeNoMatch = true
   // (z. B. Snowboard-Set unter 100 Euro, aber Produkte kosten mehr)
+  // CLUSTER 2 FIX PROFI-07v2: Auch bei sehr niedrigem Budget (z. B. "komplettes Set, maximal 100 Euro")
+  // → EXPLAIN_BUDGET_MISMATCH setzen (auch mit Kategorie, wenn Budget zu niedrig für "Set")
+  const mentionsSet = normalized.includes("set") || normalized.includes("komplett");
+  const hasVeryLowBudgetForSet = userMaxPrice !== null && userMaxPrice <= 100 && mentionsSet;
+  
+  // PROFI-07v2 Fix: Bei "komplettes Set" + sehr niedrigem Budget immer EXPLAIN_BUDGET_MISMATCH
+  // (auch wenn Produkte vorhanden sind, da "Set" impliziert mehrere Produkte zusammen)
+  // WICHTIG: "komplettes Set" bedeutet normalerweise mehrere Produkte zusammen, daher ist Budget <= 100 Euro
+  // für ein komplettes Set realistisch nicht erfüllbar, auch wenn einzelne Produkte unter dem Budget liegen
+  if (!primaryAction && hasVeryLowBudgetForSet) {
+    // Prüfe, ob alle Kandidaten über dem Budget liegen oder ob ein "Set" realistisch nicht möglich ist
+    const allCandidatesAboveBudget = candidates.length > 0 && candidates.every(c => {
+      const price = typeof c.price === "number" ? c.price : Number(c.price) || 0;
+      return price > (userMaxPrice ?? 0);
+    });
+    
+    // PROFI-07v2 Fix: Bei "komplettes Set" + Budget <= 100 Euro IMMER EXPLAIN_BUDGET_MISMATCH,
+    // auch wenn einzelne Produkte unter dem Budget liegen, da ein "komplettes Set" mehrere Produkte bedeutet
+    // und die Summe wahrscheinlich über dem Budget liegt
+    if (allCandidatesAboveBudget || priceRangeNoMatch || (mentionsSet && userMaxPrice !== null && userMaxPrice <= 100)) {
+      primaryAction = "EXPLAIN_BUDGET_MISMATCH";
+      notes.push("BUDGET_NO_MATCH");
+      debugSalesFlags.push("budget_no_match_set");
+    }
+  }
+  
   if (!primaryAction && (hasBudgetMismatch || (priceRangeNoMatch && effectiveCategorySlug && candidates.length > 0))) {
     primaryAction = "EXPLAIN_BUDGET_MISMATCH";
     notes.push("BUDGET_NO_MATCH");
@@ -389,15 +416,43 @@ export function computeSalesDecision(
   const hasWeakCategories =
     !effectiveCategorySlug ||
     (candidates.length > 0 && normalizedCategories.size > 1);
+  
+  // C1v2/F6v2/F1v1 Fix: Premium-Intent ausschließen (z. B. "Premium-Produkte mit dem höchsten Preis")
+  const isPremiumIntent = intent === "premium";
+  const mentionsPremiumWithPrice = normalized.includes("premium") && 
+    (normalized.includes("höchsten") || normalized.includes("teuersten") || normalized.includes("höchster") || normalized.includes("teuerster"));
+  const isPremiumRequest = isPremiumIntent || mentionsPremiumWithPrice;
+  
+  // S17/S17v1 Fix: Wax-Anfragen ausschließen (z. B. "Wax für Haare")
+  const mentionsWax = normalized.includes("wax") || normalized.includes("wachs");
+  const mentionsHair = normalized.includes("haare") || normalized.includes("hair");
+  const isWaxRequest = mentionsWax && mentionsHair;
+  
+  // K10v1/K11v1 Fix: Jeans-Anfragen ausschließen (z. B. "Slim Fit Jeans")
+  const mentionsJeans = normalized.includes("jeans") || normalized.includes("hose");
+  const mentionsSlimFit = normalized.includes("slim") && (normalized.includes("fit") || normalized.includes("jeans"));
+  const isJeansRequest = mentionsJeans || mentionsSlimFit;
+  
+  // K6v2 Fix: Smartphone-Modellnamen-Anfragen ausschließen (z. B. "Alpha 128GB Schwarz")
+  const mentionsAlphaModel = /\b(alpha\s+\d+\s*gb|alpha\s+\d+\s*gb\s+schwarz|das\s+alpha\s+\d+\s*gb)\b/i.test(text);
+  const isSmartphoneModelRequest = mentionsAlphaModel && (effectiveCategorySlug === "elektronik" || candidates.some((p) => normalize(p.category || "") === "elektronik"));
+  
   const isVeryVagueLifestyle = 
     unknownTerms.length > 0 && 
     hasNoBudget && 
     hasWeakCategories && 
-    candidates.length > 0;
+    candidates.length > 0 &&
+    !isPremiumRequest &&      // C1v2/F6v2/F1v1: Premium-Intent ausschließen
+    !isWaxRequest &&           // S17/S17v1: Wax-Anfragen ausschließen
+    !isJeansRequest &&         // K10v1/K11v1: Jeans-Anfragen ausschließen
+    !isSmartphoneModelRequest; // K6v2: Smartphone-Modellnamen-Anfragen ausschließen
 
   // CLUSTER E FIX: PROFI-08v1 - Vage Anfrage → NO_PRODUCTS_FOUND statt AMBIGUOUS_BOARD
   // Prüfe zuerst auf vage Lifestyle-Anfrage (PROFI-08v1)
-  if (!primaryAction && isVeryVagueLifestyle) {
+  // CLUSTER 2 FIX PROFI-08v1: Wenn "Board" vorkommt, aber keine Produkte gefunden wurden → NO_PRODUCTS_FOUND
+  const hasBoardButNoProducts = mentionsBoardGeneric && candidates.length === 0;
+  
+  if (!primaryAction && (isVeryVagueLifestyle || hasBoardButNoProducts)) {
     // SCHRITT 4 FIX: Vage Lifestyle-Anfrage → ASK_CLARIFICATION + NO_PRODUCTS_FOUND
     primaryAction = "ASK_CLARIFICATION";
     notes.push("NO_PRODUCTS_FOUND");
@@ -409,6 +464,7 @@ export function computeSalesDecision(
       hasWeakCategories,
       candidatesCount: candidates.length,
       effectiveCategorySlug,
+      hasBoardButNoProducts,
       note: "ASK_CLARIFICATION + NO_PRODUCTS_FOUND gesetzt",
     });
   } else if (!primaryAction && isVagueQuery) {
@@ -416,8 +472,8 @@ export function computeSalesDecision(
     primaryAction = "ASK_CLARIFICATION";
     notes.push("NO_PRODUCTS_FOUND");
     debugSalesFlags.push("vague_query");
-  } else if (!primaryAction && mentionsBoardGeneric && !hasSnowboardContext) {
-    // CLUSTER E FIX: AMBIGUOUS_BOARD nur wenn KEIN Snowboard-Kontext
+  } else if (!primaryAction && mentionsBoardGeneric && !hasSnowboardContext && candidates.length > 0) {
+    // CLUSTER E FIX: AMBIGUOUS_BOARD nur wenn KEIN Snowboard-Kontext UND Produkte gefunden
     primaryAction = "ASK_CLARIFICATION";
     notes.push("AMBIGUOUS_BOARD");
     debugSalesFlags.push("ambiguous_board_detected");

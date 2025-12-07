@@ -97,7 +97,7 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   snowboard: ["snowboard", "snowboards"],
   // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
   bindungen: ["bindungen", "bindung", "binding", "bindings", "snowboard-bindungen", "snowboard-bindung", "snowboardbindungen", "snowboardbindung"],
-  haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad", "wasserkocher", "electric kettle", "kettle", "haushaltsgeräte", "küchengerät", "haushaltsgerät", "kochendes wasser", "wasser erhitzen"],
+  haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad", "wasserkocher", "electric kettle", "kettle", "haushaltsgeräte", "küchengerät", "haushaltsgerät", "kochendes wasser", "wasser erhitzen", "kocher"],
   pflege: ["pflege", "shampoo", "duschgel", "seife", "creme", "öl", "oel", "lotion"],
   tierbedarf: ["tier", "tierbedarf", "hund", "hunde", "welpe", "welpen", "katze", "katzen", "kater", "hündin", "futter", "leckerli", "haustier", "haustiere", "pets", "pet", "dog", "cat", "animal", "napf", "fressnapf"],
   perfume: ["perfume", "parfum", "parfüm", "duft", "eau de parfum", "eau de toilette"],
@@ -562,6 +562,17 @@ export const CORE_PRODUCT_KEYWORDS = [
   // WICHTIG: "fressnapf" wurde entfernt - soll dynamisch über AI gelernt werden
   "napf",
   "futternapf",
+  // CLUSTER 2 FIX: Bindungen als produktbezogen erkennen
+  "bindungen",
+  "bindung",
+  "binding",
+  "bindings",
+  // CLUSTER K FIX: Smartphone- und Mode-Keywords als produktbezogen erkennen
+  "smartphone",
+  "smartphones",
+  "handy",
+  "handys",
+  "jeans",
   // Reinigungs-/Verschmutzungsbegriffe
   "schmutz",
   "verschmutz",
@@ -667,6 +678,8 @@ export const EXPLORE_WORDS = [
 // Most-Expensive-Patterns: Erkennung von "teuerstes Produkt"
 export const MOST_EXPENSIVE_PATTERNS = [
   /\b(teuerste|teuersten|teuerster)\s+(produkt|produkte|artikel)\b/,
+  /\b(premium|premium-)?(produkt|produkte|artikel)\s+mit\s+dem\s+(höchsten|höchste|höchster)\s+preis\b/i,
+  /\b(höchsten|höchste|höchster)\s+preis\b/i,
   "most expensive",
 ];
 

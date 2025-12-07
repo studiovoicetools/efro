@@ -43,3 +43,4 @@ export function debugCatalogOverview(products: EfroProduct[]): void {
   console.log("[EFRO Catalog Debug] sample products:", sampleProducts);
 }
 
+

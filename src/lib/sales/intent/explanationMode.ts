@@ -25,6 +25,7 @@ export function detectExplanationModeBoolean(
   const normalized = normalize(query);
 
   // 1) Starke Erklärungs-Indikatoren am Anfang (bevorzugen Explanation)
+  // CLUSTER 1 FIX: Erweitert um "Erklär mir bitte" und "Kannst du mir erklären"
   const strongExplanationStarters = [
     "warum",
     "wieso",
@@ -36,6 +37,9 @@ export function detectExplanationModeBoolean(
     "erklär mir",
     "erkläre mir",
     "erklären mir",
+    "erklär mir bitte", // CLUSTER 1 FIX: S12
+    "kannst du mir erklären", // CLUSTER 1 FIX: S12v2, S18v1
+    "kannst du mir erkläre",
     "explain",
     "was ist der unterschied",
     "was ist der unterschied zwischen",
@@ -75,9 +79,11 @@ export function detectExplanationModeBoolean(
   });
   
   // Zusätzlich: Prüfe auf "erklär mir" / "erkläre mir" direkt (auch mit "bitte" dazwischen)
+  // CLUSTER 1 FIX: Erkenne auch "Kannst du mir erklären" / "Kannst du mir erkläre"
   if (!startsWithExplanation) {
     const erklarMirPattern = /erklär(?:e|en)?\s+mir\s+(?:bitte\s+)?/i;
-    if (erklarMirPattern.test(lowerQuery)) {
+    const kannstDuMirErklarenPattern = /kannst\s+du\s+mir\s+erkl(?:ä|ae|a)r(?:e|en)?/i;
+    if (erklarMirPattern.test(lowerQuery) || kannstDuMirErklarenPattern.test(lowerQuery)) {
       startsWithExplanation = true;
     }
   }
@@ -89,12 +95,14 @@ export function detectExplanationModeBoolean(
   }
 
   // 2) Erklärungs-Patterns im Query (deutsch + englisch)
+  // CLUSTER 1 FIX: Erkenne auch "Kannst du mir erklären" (mir kommt VOR erklären)
   const explanationPatterns: RegExp[] = [
     /\b(warum|wieso|weshalb)\b/i,
     /\b(erkl(?:ä|ae|a)r(?:e|st|en)?)\s+(?:mir\s+)?(?:bitte\s+)?(?:mal\s+)?(?:genau\s+)?(?:wie|was|wieso|warum)?\b/i,
     /\berklär\s+mir\b/i,
     /\berkläre\s+mir\b/i,
     /\berklären\s+mir\b/i,
+    /\bkannst\s+du\s+mir\s+erkl(?:ä|ae|a)r(?:e|en)?/i, // CLUSTER 1 FIX: "Kannst du mir erklären"
     /\b(unterschied|difference)\s+(zwischen|between)\b/i,
     /\bwie\s+(funktioniert|benutze|verwende|nutze|wende|genau)\b/i,
     /\bwie\s+ich\s+(benutze|verwende|nutze|wende|richtig)\b/i,

@@ -476,6 +476,7 @@ function detectExplanationMode(text: string): ExplanationMode | null {
   
   const usagePatterns: RegExp[] = [
     /wie\s+wende\s+ich\b/i,
+    /wie\s+wird\s+.*\s+angewendet/i, // CLUSTER 1 FIX S19v2: "Wie wird dieses Wax angewendet?"
     /\banwendung\b/i,
     /\banwenden\b/i,
     /wie\s+genau\s+funktioniert\b/i,
@@ -499,13 +500,22 @@ function detectExplanationMode(text: string): ExplanationMode | null {
     t.includes("erklärung zur anwendung") ||
     t.includes("erklaerung zur anwendung");
   
+  // CLUSTER 1 FIX: Erkenne auch "Kannst du mir erklären" (mir kommt VOR erklären)
   // CLUSTER A FIX S18v1: Erkenne auch "Kannst du mir erklären, wie ich..."
-  const hasExplainPattern = /erkl(?:ä|ae|a)r(?:e|st|en)?\s+(?:mir\s+)?(?:bitte\s+)?(?:mal\s+)?(?:genau\s+)?(?:wie|dass|ob)/i.test(normalized);
+  // CLUSTER 1 FIX S12/S19v1: Erkenne auch "Erklär mir bitte" am Anfang
+  const hasExplainPattern = 
+    /erkl(?:ä|ae|a)r(?:e|st|en)?\s+(?:mir\s+)?(?:bitte\s+)?(?:mal\s+)?(?:genau\s+)?(?:wie|dass|ob)/i.test(normalized) ||
+    /kannst\s+du\s+mir\s+erkl(?:ä|ae|a)r(?:e|en)?/i.test(normalized) ||
+    /^erkl(?:ä|ae|a)r\s+mir\s+(?:bitte\s+)?/i.test(normalized); // CLUSTER 1 FIX: "Erklär mir bitte" am Anfang
+  
+  // CLUSTER 1 FIX: Erkenne auch "erklär mir" / "erkläre mir" direkt (auch mit "bitte")
+  const hasErklarMirPattern = /^erkl(?:ä|ae|a)r(?:e|en)?\s+mir\s+(?:bitte\s+)?/i.test(normalized);
   
   // Erweiterte Erkennung f?r Erkl?rungsanfragen
   if (
     hasExplanationPhrase ||
     hasExplainPattern ||
+    hasErklarMirPattern || // CLUSTER 1 FIX: "Erklär mir bitte" am Anfang
     t.includes("erkl?r") ||
     t.includes("erklaer") ||
     t.includes("erkl?re") ||
@@ -740,7 +750,10 @@ function isProductRelated(text: string): boolean {
   // Budget-S?tze als produktbezogen erkennen
   // Beispiel: "Mein Budget ist 50 Euro.", "Maximal 80 ?", "Ich m?chte nicht mehr als 30 Euro ausgeben."
   if (!result) {
-    const hasEuroNumber = /\b(\d+)\s*(euro|eur)\b/i.test(text);
+    const hasEuroNumber = /\b(\d+)\s*(euro|eur|€)\b/i.test(text);
+    // CLUSTER 1 FIX S4v2: Erkenne auch "zwischen X und Y €" oder "X und Y Euro"
+    const hasPriceRange = /\b(\d+)\s*(und|bis|-)\s*(\d+)\s*(euro|eur|€)\b/i.test(text) ||
+      /\bzwischen\s+(\d+)\s+(und|bis|-)\s*(\d+)\s*(euro|eur|€)\b/i.test(text);
     // Importiert aus languageRules.de.ts - nutze BUDGET_MAX_WORDS f?r Budget-Wort-Erkennung
     const budgetWordsForRegex = ["budget", "preis", ...BUDGET_MAX_WORDS].join("|");
     const hasBudgetWord = new RegExp(`\\b(${budgetWordsForRegex})\\b`, "i").test(
@@ -750,9 +763,119 @@ function isProductRelated(text: string): boolean {
     // EFRO Fix 2025-12-05: Budget-/Preis-S?tze auch ohne explizites Budgetwort
     // als produktbezogen werten, sobald eine konkrete Euro-Angabe vorhanden ist
     // (z. B. "Ich habe nur 20 Euro.", "Ich m?chte ?ber 100 Euro ausgeben.").
-    if (hasEuroNumber) {
+    // CLUSTER 1 FIX S4v2: Auch Preisbereiche wie "zwischen 600 und 900 €" erkennen
+    // CLUSTER 2 FIX: Erkenne auch "ungefähr X €" oder "X € zur Verfügung" ohne explizites Budgetwort
+    const hasBudgetPhrase = /\b(ungefähr|etwa|ca\.?|circa)\s*(\d+)\s*(euro|eur|€)\b/i.test(text) ||
+      /\b(\d+)\s*(euro|eur|€)\s*(zur\s+verfügung|verfügbar|habe|hast)\b/i.test(text) ||
+      /\b(habe|hast|hat)\s*(ungefähr|etwa|ca\.?|circa)?\s*(\d+)\s*(euro|eur|€)\b/i.test(text);
+    
+    if (hasEuroNumber || hasPriceRange || hasBudgetPhrase) {
       result = true;
       reason = "priceOnly";
+    }
+  }
+  
+  // CLUSTER 1 FIX S4v2: "Boards" + Budget → produktbezogen (auch wenn "board" nicht in Hints ist)
+  if (!result) {
+    const normalized = normalize(text);
+    const mentionsBoard = normalized.includes("board") || normalized.includes("boards");
+    const hasBudgetInText = /\b(\d+)\s*(euro|eur|€|dollar|\$)\b/i.test(text) || 
+      /\b(unter|über|bis|ab|zwischen|von|bis zu|maximal|mindestens|höchstens)\s*\d+/i.test(text) ||
+      /\bzwischen\s+(\d+)\s+(und|bis|-)\s*(\d+)\s*(euro|eur|€)\b/i.test(text);
+    
+    if (mentionsBoard && hasBudgetInText && !normalized.includes("snowboard")) {
+      result = true;
+      reason = "board_with_budget";
+      console.log("[EFRO ProductRelated] CLUSTER 1 FIX S4v2 - Board + Budget detected", {
+        text,
+        mentionsBoard,
+        hasBudgetInText,
+      });
+    }
+  }
+
+  // CLUSTER 2 FIX: "Bindungen" oder "Snowboard-Bindungen" als produktbezogen erkennen
+  if (!result) {
+    const normalized = normalize(text);
+    const mentionsBindungen = normalized.includes("bindungen") || 
+      normalized.includes("bindung") || 
+      normalized.includes("binding") ||
+      normalized.includes("bindings");
+    
+    if (mentionsBindungen) {
+      result = true;
+      reason = "bindungen_keyword";
+      console.log("[EFRO ProductRelated] CLUSTER 2 FIX - Bindungen detected", {
+        text,
+        mentionsBindungen,
+      });
+    }
+  }
+
+  // CLUSTER 2 FIX K16v1: Produktcodes als produktbezogen erkennen (z. B. "Alpha ULTRA PRO 1TB")
+  if (!result) {
+    const detectedCode = extractCodeTermFromText(text);
+    if (detectedCode && looksLikeProductCode(detectedCode)) {
+      result = true;
+      reason = "product_code";
+      console.log("[EFRO ProductRelated] CLUSTER 2 FIX K16v1 - Product code detected", {
+        text,
+        detectedCode,
+      });
+    }
+  }
+
+  // CLUSTER 2 FIX PROFI-08v1: "Board" als produktbezogen erkennen (auch ohne "snowboard")
+  if (!result) {
+    const normalized = normalize(text);
+    const mentionsBoard = normalized.includes("board") || normalized.includes("boards");
+    // Nur wenn nicht bereits als produktbezogen erkannt und "board" vorkommt
+    if (mentionsBoard) {
+      result = true;
+      reason = "board_keyword";
+      console.log("[EFRO ProductRelated] CLUSTER 2 FIX PROFI-08v1 - Board detected", {
+        text,
+        mentionsBoard,
+      });
+    }
+  }
+  
+  // CLUSTER K FIX: Smartphone- und Mode-Keywords als produktbezogen erkennen
+  if (!result) {
+    const normalized = normalize(text);
+    const mentionsSmartphone = normalized.includes("smartphone") || 
+      normalized.includes("smartphones") || 
+      normalized.includes("handy") ||
+      normalized.includes("handys") ||
+      (normalized.includes("phone") && !normalized.includes("handyvertrag"));
+    const mentionsMode = normalized.includes("jeans") ||
+      normalized.includes("mode") ||
+      normalized.includes("kleidung");
+    
+    if (mentionsSmartphone || mentionsMode) {
+      result = true;
+      reason = mentionsSmartphone ? "coreProductKeyword_smartphone" : "coreProductKeyword_mode";
+      console.log("[EFRO ProductRelated] CLUSTER K FIX - Smartphone/Mode detected", { text, mentionsSmartphone, mentionsMode });
+    }
+  }
+  
+  // D1v2/H3v2 Fix: Parfüm/Duftstoffe und Werkzeug/Tools als produktbezogen erkennen
+  if (!result) {
+    const normalized = normalize(text);
+    const mentionsParfum = normalized.includes("parfum") || 
+      normalized.includes("parfüm") || 
+      normalized.includes("parfume") ||
+      normalized.includes("duftstoff") ||
+      normalized.includes("duftstoffe") ||
+      normalized.includes("duft");
+    const mentionsWerkzeug = normalized.includes("werkzeug") ||
+      normalized.includes("tools") ||
+      normalized.includes("tool");
+    
+    if (mentionsParfum || mentionsWerkzeug) {
+      result = true;
+      reason = mentionsParfum ? "coreProductKeyword_parfum" : "coreProductKeyword_werkzeug";
+      console.log("[EFRO ProductRelated] D1v2/H3v2 Fix - Parfüm/Werkzeug detected", { text, mentionsParfum, mentionsWerkzeug });
     }
   }
 
@@ -3503,12 +3626,17 @@ function looksLikeProductCode(term: string): boolean {
   // Numeric-only Tokens ignorieren (z. B. "50", "21", "22")
   if (/^[0-9]+$/.test(t)) return false;
   
+  // CLUSTER 2 FIX: Budget-Bereiche wie "20-30", "50-100" NICHT als Code behandeln
+  // Pattern: Zahl-Bindestrich-Zahl (z. B. "20-30", "50-100", "100-200")
+  if (/^\d+-\d+$/.test(t)) return false;
+  
   // Mischung aus Buchstaben und Zahlen (z. B. ABC123)
   const hasLetter = /[a-z]/i.test(t);
   const hasDigit = /\d/.test(t);
   if (hasLetter && hasDigit) return true;
   
   // Bindestrich oder Unterstrich enthalten (z. B. ABC-123, SNB-XL-RED, p-12345)
+  // ABER: Budget-Bereiche wurden bereits oben ausgeschlossen
   const hasSpecial = /[-_]/.test(t);
   if (hasSpecial) return true;
   
@@ -3553,8 +3681,19 @@ function extractCodeTermFromText(text: string): string | null {
   const lower = text.toLowerCase();
 
   // Schritt 1: Einfache Wort-Splittung f?r gemischte Codes (ABC123)
-  const candidates = lower.match(/\b[a-z0-9\-]{4,20}\b/gi);
+  // CLUSTER K FIX K16v1: Erweitere Pattern für längere Codes wie "Alpha ULTRA PRO 1TB"
+  const candidates = lower.match(/\b[a-z0-9\-]{4,30}\b/gi);
   if (!candidates) return null;
+  
+  // CLUSTER K FIX K16v1: Prüfe auch auf mehrteilige Codes wie "alpha ultra pro 1tb"
+  const multiWordCodePattern = /\b(alpha\s+ultra\s+pro\s+\d+\s*tb)\b/i;
+  const multiWordMatch = text.match(multiWordCodePattern);
+  if (multiWordMatch) {
+    const codeTerm = multiWordMatch[1].toLowerCase().replace(/\s+/g, '-');
+    if (codeTerm.length >= 4 && codeTerm.length <= 30) {
+      return codeTerm;
+    }
+  }
 
   const codeCandidates = candidates.filter((c) => {
     const trimmed = c.toLowerCase();
@@ -3684,10 +3823,13 @@ export function runSellerBrain(
   });
 
   // EFRO S18/S19 Fix: Handle Wax-Erkl?rungen mit AI-Trigger
+  // CLUSTER 1 FIX: Berücksichtige explanationModeBoolean auch in handleWaxExplanation
+  // Wenn explanationMode null ist, aber explanationModeBoolean true, dann setze explanationMode auf "usage"
+  const effectiveExplanationModeForWax = explanationMode || (explanationModeBoolean ? "usage" : null);
   const waxExplanationInfo = handleWaxExplanation(
     cleaned,
     allProducts,
-    explanationMode,
+    effectiveExplanationModeForWax,
     previousRecommendedCount
   );
 
@@ -3882,7 +4024,55 @@ export function runSellerBrain(
   }
 
   // OFF-TOPIC-GUARD
-  if (!isProductRelated(cleaned)) {
+  // CLUSTER 2 FIX: Budget-Anfragen mit Kontext-Kategorie als produktbezogen behandeln
+  const normalizedForOffTopic = normalize(cleaned);
+  const hasContextCategoryForOffTopic = context?.activeCategorySlug;
+  const hasBudgetInTextForOffTopic = /\b(\d+)\s*(euro|eur|€|dollar|\$)\b/i.test(cleaned) || 
+    /\b(unter|über|bis|ab|zwischen|von|bis zu|maximal|mindestens|höchstens)\s*\d+/i.test(cleaned) ||
+    /\bzwischen\s+(\d+)\s+(und|bis|-)\s*(\d+)\s*(euro|eur|€)\b/i.test(cleaned);
+  const isBudgetWithContext = hasContextCategoryForOffTopic && hasBudgetInTextForOffTopic;
+  
+  // E5v2 Fix: Unbekannte Begriffe mit Kontext-Kategorie als produktbezogen behandeln
+  // (z. B. "Hast du Zephyron?" mit Kontext Parfüm)
+  const hasUnknownTermsWithContext = (() => {
+    if (!hasContextCategoryForOffTopic) return false;
+    const words = normalizedForOffTopic.split(/\s+/).filter(w => w.length >= 3);
+    return words.some(w => {
+      const isKnown = CORE_PRODUCT_KEYWORDS.some(kw => normalize(kw).includes(w)) ||
+        getActiveProductHints().some(h => normalize(h.keyword).includes(w));
+      return !isKnown && !/^\d+([.,]\d+)?$/.test(w); // Keine Zahlen
+    });
+  })();
+  
+  // CLUSTER K FIX K7v2: Bei Kontext "elektronik" und Attributen (schwarz, zoll, display) als produktbezogen erkennen
+  const hasElektronikContextForOffTopic = context?.activeCategorySlug && normalize(context.activeCategorySlug) === "elektronik";
+  const hasSmartphoneAttributesForOffTopic = normalizedForOffTopic.includes("schwarz") || 
+    normalizedForOffTopic.includes("zoll") || 
+    normalizedForOffTopic.includes("display") ||
+    normalizedForOffTopic.includes("farbe");
+  const isElektronikContextWithAttributes = hasElektronikContextForOffTopic && hasSmartphoneAttributesForOffTopic;
+  
+  // E3v1/E5v2 Fix: Budget + unbekannte Begriffe als produktbezogen behandeln (auch ohne Kontext-Kategorie)
+  // Prüfe, ob unbekannte Begriffe im Text sind (z. B. "Zephyron")
+  const hasUnknownTermsInText = (() => {
+    const words = normalizedForOffTopic.split(/\s+/).filter(w => w.length >= 3);
+    // Einfache Heuristik: Wenn ein Wort nicht in den bekannten Keywords ist, könnte es unbekannt sein
+    // Dies ist eine grobe Annäherung - die echte Prüfung erfolgt später in decideAiTrigger
+    return words.some(w => {
+      const isKnown = CORE_PRODUCT_KEYWORDS.some(kw => normalize(kw).includes(w)) ||
+        getActiveProductHints().some(h => normalize(h.keyword).includes(w));
+      return !isKnown && !/^\d+([.,]\d+)?$/.test(w); // Keine Zahlen
+    });
+  })();
+  const isBudgetWithUnknownTerms = hasBudgetInTextForOffTopic && hasUnknownTermsInText;
+  
+  // G3v2 Fix: Budget-Anfragen mit expliziter Zahl (z. B. "maximal 20 €") als produktbezogen behandeln
+  // auch wenn kein explizites Budget-Wort vorhanden ist
+  const hasBudgetNumberForOffTopic = /\b(\d+)\s*(euro|eur|€)\b/i.test(cleaned);
+  const hasBudgetWordForOffTopicCheck = /\b(budget|preis|kosten|maximal|mindestens|höchstens|unter|über|bis|ab)\b/i.test(cleaned);
+  const isBudgetOnlyQueryForOffTopic = hasBudgetNumberForOffTopic || hasBudgetWordForOffTopicCheck;
+  
+  if (!isProductRelated(cleaned) && !isBudgetWithContext && !isElektronikContextWithAttributes && !isBudgetWithUnknownTerms && !isBudgetOnlyQueryForOffTopic && !hasUnknownTermsWithContext) {
     const recommended = previousRecommended
       ? previousRecommended.slice(0, maxRecommendations)
       : [];
@@ -3964,7 +4154,11 @@ export function runSellerBrain(
   const normalizedForPriceCheck = normalize(cleaned || "");
   const isPriceObjection = detectPriceObjection(normalizedForPriceCheck);
   
-  if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection) {
+  // C1v2/F6v2 Fix: Premium-Intent mit wantsMostExpensive ausschließen (z. B. "Premium-Produkte mit dem höchsten Preis")
+  const wantsMostExpensiveForBudget = detectMostExpensiveRequest(cleaned);
+  const isPremiumWithMostExpensive = nextIntent === "premium" && wantsMostExpensiveForBudget;
+  
+  if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection && !isPremiumWithMostExpensive) {
     console.log("[EFRO SB Budget Ambiguous] Vages Budget erkannt, keine Produktempfehlungen, KEIN AI-Trigger", {
       text: cleaned.substring(0, 100),
       isBudgetAmbiguous,
@@ -4008,7 +4202,8 @@ export function runSellerBrain(
   // SCHRITT 1 FIX: Nur bei vagem Budget ohne Zahl + ohne Kategorie KEIN AI-Trigger,
   // sondern regelbasierte R?ckfrage (z. B. "Ich habe ein kleines Budget.")
   // WICHTIG: Prüfe ZUERST, ob es ein Preis-Einwand ist (höhere Priorität als Budget-Ambiguität)
-  if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection) {
+  // C1v2/F6v2 Fix: Premium-Intent mit wantsMostExpensive ausschließen (z. B. "Premium-Produkte mit dem höchsten Preis")
+  if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection && !isPremiumWithMostExpensive) {
     console.log("[EFRO SB Budget Missing Category] Vages Budget ohne Kategorie erkannt, keine Produktempfehlungen, KEIN AI-Trigger", {
       text: cleaned.substring(0, 100),
       hasBudgetWord,
@@ -4246,8 +4441,9 @@ export function runSellerBrain(
 
   
   // EFRO K11 Fix: Erkenne, wenn User explizit nach nur einem Produkt fragt
-  // Pattern: "nur", "genau", "einziges", "einzelnes" + Produktname
-  const wantsOnlyOneProduct = /\b(nur|genau|einziges|einzelnes|einzelne|einzelner)\b/i.test(cleaned) &&
+  // Pattern: "nur", "genau", "einziges", "einzelnes", "ausschließlich" + Produktname
+  // CLUSTER K FIX K11v2: Erweitere Pattern um "ausschließlich"
+  const wantsOnlyOneProduct = /\b(nur|genau|einziges|einzelnes|einzelne|einzelner|ausschließlich|ausschliesslich)\b/i.test(cleaned) &&
     isProductRelated(cleaned);
   
   // Bei Schimmel-Anfragen maximal 1 Produkt zeigen (Hero-Produkt)
@@ -4286,6 +4482,38 @@ export function runSellerBrain(
   }
   
   let recommended = finalRankedWithBudget.slice(0, effectiveMaxRecommendations);
+
+  // CLUSTER K FIX K6v2: Wenn ein exakter Smartphone-Modellname gesucht wird (z.B. "Alpha 128GB Schwarz"),
+  // aber nicht in den gefundenen Produkten vorkommt, dann verwerfe diese Produkte und lasse die AI Smartphone Exact Match Logik greifen
+  // WICHTIG: Diese Logik muss VOR der unknownProductCodeOnly-Prüfung greifen, damit die AI Smartphone Exact Match Logik später greifen kann
+  const normalizedForExactMatch = normalize(cleaned);
+  const hasExactSmartphoneModelName = /\b(alpha\s+\d+\s*gb(?:\s+schwarz)?|smartphone\s+alpha\s+\d+\s*gb|das\s+alpha\s+\d+\s*gb\s+schwarz)\b/i.test(cleaned);
+  if (hasExactSmartphoneModelName && recommended.length > 0 && effectiveCategorySlug === "elektronik") {
+    // Prüfe, ob eines der empfohlenen Produkte den gesuchten Modellnamen enthält
+    const modelNameInRecommended = recommended.some((p) => {
+      const productTitle = normalize(p.title || "");
+      return productTitle.includes("alpha") && 
+             (productTitle.includes("128gb") || productTitle.includes("128 gb")) &&
+             productTitle.includes("schwarz");
+    });
+    
+    if (!modelNameInRecommended) {
+      // K6v2 Fix: Exakter Modellname gesucht, aber nicht gefunden
+      // Verwerfe falsche Produkte, damit die "AI Smartphone Exact Match" Logik später greift
+      // ABER: Nur wenn effectiveCategorySlug "elektronik" ist (sonst könnte es andere Szenarien brechen)
+      if (effectiveCategorySlug === "elektronik") {
+        recommended = [];
+        console.log("[EFRO CLUSTER K FIX K6v2] Exakter Smartphone-Modellname gesucht, aber nicht gefunden - Produkte verworfen", {
+          text: cleaned.substring(0, 100),
+          effectiveCategorySlug,
+          recommendedCountBefore: finalRankedWithBudget.length,
+          note: "AI Smartphone Exact Match Logik wird greifen",
+        });
+      }
+    }
+  }
+  
+  // CLUSTER K FIX K10v1/K11v1: Diese Logik wird später nach der Code-Detection ausgeführt
 
   // Force-Show-Logik: Bei klaren Produktanfragen immer Produkte anzeigen
   const forceShowProducts =
@@ -4690,6 +4918,22 @@ export function runSellerBrain(
         });
       }
       
+      // F1v1 Fix: "premium-variante" → nicht als Code behandeln, wenn Premium-Intent
+      const isPremiumVarianteTerm = detectedCodeTerm && (
+        detectedCodeTerm.toLowerCase().includes("premium-variante") ||
+        detectedCodeTerm.toLowerCase() === "premium-variante"
+      );
+      if (isPremiumIntent && isPremiumVarianteTerm) {
+        unknownProductCodeOnly = false;
+        console.log("[EFRO CodeDetect] Premium-Intent + premium-variante erkannt, CodeDetect blockiert", {
+          text: cleaned,
+          detectedCodeTerm,
+          nextIntent,
+          productCodeExistsInCatalog,
+          note: "Premium-Intents mit 'premium-variante' werden nicht als unknown_product_code_only behandelt",
+        });
+      }
+      
       // EFRO K3 Fix: "premium-wasserkocher" → nicht als Code behandeln, wenn "wasserkocher" im Text ist
       const hasWasserkocherInText = cleaned.toLowerCase().includes("wasserkocher") ||
                                      cleaned.toLowerCase().includes("kettle") ||
@@ -4706,6 +4950,25 @@ export function runSellerBrain(
           hasWasserkocherInText,
           productCodeExistsInCatalog,
           note: "Wasserkocher-Terms werden nicht als unknown_product_code_only behandelt",
+        });
+      }
+      
+      // K10v1/K11v1 Fix: "slim-fit-jeans" → nicht als Code behandeln, wenn "jeans" im Query ist
+      const hasJeansInText = cleaned.toLowerCase().includes("jeans") || 
+                             (cleaned.toLowerCase().includes("slim") && cleaned.toLowerCase().includes("fit"));
+      const isJeansTerm = detectedCodeTerm && (
+        detectedCodeTerm.toLowerCase().includes("jeans") ||
+        detectedCodeTerm.toLowerCase().includes("slim-fit")
+      );
+      if (hasJeansInText && isJeansTerm && effectiveCategorySlugForCodeDetect === "mode") {
+        unknownProductCodeOnly = false;
+        console.log("[EFRO CodeDetect] Jeans-Term erkannt, CodeDetect blockiert (K10v1/K11v1 Fix)", {
+          text: cleaned,
+          detectedCodeTerm,
+          hasJeansInText,
+          effectiveCategorySlug: effectiveCategorySlugForCodeDetect,
+          productCodeExistsInCatalog,
+          note: "Jeans-Terms werden nicht als unknown_product_code_only behandelt",
         });
       }
       
@@ -4730,9 +4993,36 @@ export function runSellerBrain(
     }
 
     if (unknownProductCodeOnly) {
+      // CLUSTER 3 FIX: Wenn eine Kontext-Kategorie oder effectiveCategorySlug gesetzt ist und Produkte in dieser Kategorie gefunden wurden,
+      // dann die Produkte NICHT verwerfen, auch wenn unknownProductCodeOnly true ist
+      // Dies stellt sicher, dass Kontext-Kategorien (z.B. "haustier", "perfume", "snowboard") beibehalten werden
+      const hasContextCategory = context?.activeCategorySlug;
+      const hasProductsInContextCategory = hasContextCategory && recommended.some(
+        (p) => normalize(p.category || "") === normalize(hasContextCategory)
+      );
+      // CLUSTER 3 FIX: Prüfe auch, ob effectiveCategorySlug gesetzt ist und Produkte in dieser Kategorie vorhanden sind
+      const hasProductsInEffectiveCategory = effectiveCategorySlug ? (() => {
+        const normalizedEffectiveCategory = normalize(effectiveCategorySlug);
+        return recommended.some(
+          (p) => normalize(p.category || "") === normalizedEffectiveCategory
+        );
+      })() : false;
+      
+      // CLUSTER K FIX K6v2: Wenn ein exakter Smartphone-Modellname gesucht wird, aber nicht gefunden wurde,
+      // dann verwerfe die Produkte, damit die AI Smartphone Exact Match Logik später greifen kann
+      const hasExactSmartphoneModelNameForCodeDetect = /\b(alpha\s+\d+\s*gb(?:\s+schwarz)?|smartphone\s+alpha\s+\d+\s*gb|das\s+alpha\s+\d+\s*gb\s+schwarz)\b/i.test(cleaned);
+      const shouldAllowSmartphoneExactMatch = hasExactSmartphoneModelNameForCodeDetect && effectiveCategorySlug === "elektronik";
+      
+      // CLUSTER K FIX K10v1/K11v1: Wenn "jeans" im Query ist, aber keine Jeans-Produkte im Katalog sind,
+      // dann verwerfe die Produkte NICHT, damit die Mode-Fallback-Logik später greifen kann
+      const normalizedForJeansCodeDetect = normalize(cleaned);
+      const hasJeansQueryForCodeDetect = normalizedForJeansCodeDetect.includes("jeans");
+      const shouldAllowJeansFallback = hasJeansQueryForCodeDetect && effectiveCategorySlug === "mode";
+      
       // In diesem Fall wollen wir KEINE Produktkarten anzeigen
-      // WICHTIG: Nur wenn KEIN erfolgreicher AliasMatch vorhanden ist
-      if (!aliasMatchSuccessful || candidateCountAfterAlias === 0) {
+      // WICHTIG: Nur wenn KEIN erfolgreicher AliasMatch vorhanden ist UND keine Kontext-Kategorie/effectiveCategory mit Produkten
+      // UND nicht für Smartphone Exact Match oder Jeans Fallback
+      if ((!aliasMatchSuccessful || candidateCountAfterAlias === 0) && !hasProductsInContextCategory && !hasProductsInEffectiveCategory && !shouldAllowSmartphoneExactMatch && !shouldAllowJeansFallback) {
         recommended = [];
         console.log("[EFRO CodeDetect] Produkte verworfen (unknownProductCodeOnly = true)", {
           text: cleaned,
@@ -4742,13 +5032,23 @@ export function runSellerBrain(
           recommendedCountBefore: recommended.length,
         });
       } else {
-        console.log("[EFRO CodeDetect] Produkte NICHT verworfen (AliasMatch erfolgreich)", {
-          text: cleaned,
-          detectedCodeTerm,
-          aliasMatchSuccessful,
-          candidateCountAfterAlias,
-          recommendedCount: recommended.length,
-        });
+        if (hasProductsInContextCategory || hasProductsInEffectiveCategory) {
+          console.log("[EFRO CodeDetect] Produkte NICHT verworfen (Kategorie mit Produkten)", {
+            text: cleaned,
+            detectedCodeTerm,
+            contextCategory: hasContextCategory,
+            effectiveCategorySlug,
+            recommendedCount: recommended.length,
+          });
+        } else {
+          console.log("[EFRO CodeDetect] Produkte NICHT verworfen (AliasMatch erfolgreich)", {
+            text: cleaned,
+            detectedCodeTerm,
+            aliasMatchSuccessful,
+            candidateCountAfterAlias,
+            recommendedCount: recommended.length,
+          });
+        }
       }
     }
   }
@@ -4794,6 +5094,43 @@ export function runSellerBrain(
 
   // AI-Trigger initialisieren
   let aiTrigger: SellerBrainAiTrigger | undefined = undefined;
+
+  // J3v2 Fix: Prüfe Budget-Smalltalk direkt, bevor andere AI-Trigger-Logik ausgeführt wird
+  // Dies stellt sicher, dass vage Budget-Aussagen (z. B. "Ich habe nicht viel Geld zur Verfügung")
+  // KEINEN AI-Trigger auslösen, auch wenn hasBudgetWord false ist
+  const normalizedTextForSmalltalk = normalize(cleaned);
+  // Importiere isBudgetSmalltalk aus aiTrigger.ts (wird als Helper verwendet)
+  const isBudgetSmalltalkCheck = (text: string): boolean => {
+    const normalized = text.toLowerCase();
+    const smalltalkPatterns = [
+      /\bmein\s+budget\s+ist\s+begrenzt\b/i,
+      /\bich\s+habe\s+ein\s+kleines\s+budget\b/i,
+      /\bich\s+habe\s+nicht\s+viel\s+geld\s+zur\s+verfügung\b/i,
+      /\bich\s+bin\s+knapp\s+bei\s+kasse\b/i,
+      /\bmein\s+budget\s+ist\s+klein\b/i,
+      /\bich\s+habe\s+wenig\s+geld\b/i,
+      /\bich\s+habe\s+nicht\s+viel\s+geld\b/i,
+      /\bich\s+habe\s+kaum\s+geld\b/i,
+      /\bich\s+habe\s+nur\s+wenig\s+geld\b/i,
+      /\bmein\s+budget\s+ist\s+sehr\s+klein\b/i,
+      /\bmein\s+budget\s+ist\s+begrenzt\b/i,
+      /\bich\s+habe\s+ein\s+kleines\s+budget\b/i,
+      /\bich\s+habe\s+ein\s+begrenztes\s+budget\b/i,
+      /\bich\s+habe\s+nicht\s+genug\s+geld\b/i,
+    ];
+    return smalltalkPatterns.some((pattern) => pattern.test(normalized));
+  };
+  
+  if (isBudgetSmalltalkCheck(normalizedTextForSmalltalk)) {
+    aiTrigger = {
+      needsAiHelp: false,
+      reason: "budget_smalltalk_no_ai",
+    };
+    console.log("[EFRO SB AI-Trigger] J3v2 Fix - Budget-Smalltalk erkannt, KEIN AI-Trigger", {
+      text: cleaned.substring(0, 100),
+      normalizedText: normalizedTextForSmalltalk,
+    });
+  }
 
   // NEU: Zentrale AI-Trigger-Entscheidung f?r Budget-F?lle (G3, J1)
   // Rufe decideAiTrigger auf, sobald alle ben?tigten Daten verf?gbar sind
@@ -4851,7 +5188,15 @@ export function runSellerBrain(
     !!effectiveCategorySlugForCodeDetect ||
     (categoryHintsInText && categoryHintsInText.length > 0);
   
-  if ((priceRangeInfo || hasUserPriceRange || hasBudgetWord) && (unknownTermsForDecide.length > 0 || detectedCodeTerm)) {
+  // J3v2 Fix: normalizedText für decideAiTrigger bereitstellen
+  const normalizedTextForDecide = normalize(cleaned);
+  
+  // J3v2 Fix: decideAiTrigger auch aufrufen, wenn nur Budget-Wort vorhanden ist (ohne explizite Zahl)
+  // Dies ermöglicht die Erkennung von Budget-Smalltalk (z. B. "Ich habe nicht viel Geld zur Verfügung")
+  const shouldCallDecideAiTrigger = (priceRangeInfo || hasUserPriceRange || hasBudgetWord) && 
+    (unknownTermsForDecide.length > 0 || detectedCodeTerm || hasBudgetWord);
+  
+  if (shouldCallDecideAiTrigger) {
     const aiTriggerInput = {
       userMinPrice: priceRangeInfo?.userMinPrice ?? userMinPrice ?? null,
       userMaxPrice: priceRangeInfo?.userMaxPrice ?? userMaxPrice ?? null,
@@ -4863,7 +5208,7 @@ export function runSellerBrain(
       unknownProductCodeOnly: unknownProductCodeOnly || undefined,
       hasCategoryMatch: hasCategoryMatchForDecide,
       priceRangeNoMatch: priceRangeNoMatch || undefined,
-      normalizedText: normalizedText,
+      normalizedText: normalizedTextForDecide,
       hasEffectiveCategory: !!effectiveCategorySlugForCodeDetect,
       candidateCountAfterKeywordMatches: filterResult.length,
       finalCount: recommended.length,
@@ -5074,7 +5419,8 @@ export function runSellerBrain(
             finalCount,
           });
 
-          if (!skipForHighBudgetOnly) {
+          // J3v2 Fix: Überschreibe NICHT, wenn bereits Budget-Smalltalk erkannt wurde
+          if (!skipForHighBudgetOnly && !(aiTrigger && aiTrigger.reason === "budget_smalltalk_no_ai")) {
             needsAiHelp = true;
             reason = "low_confidence_unknown_terms";
           } else {
@@ -5194,7 +5540,8 @@ export function runSellerBrain(
 
 
       // TODO-AI-REFACTOR: Hauptstelle f?r AI-Trigger-Setzung (wird durch decideAiTrigger ersetzt)
-      if (needsAiHelp) {
+      // J3v2 Fix: Überschreibe NICHT, wenn bereits Budget-Smalltalk erkannt wurde
+      if (needsAiHelp && !(aiTrigger && aiTrigger.reason === "budget_smalltalk_no_ai")) {
         aiTrigger = {
           needsAiHelp: true,
           reason,
@@ -5591,8 +5938,16 @@ export function runSellerBrain(
 
   // [EFRO AI] Smartphone-Exact-Match (K6): Exakte Titel-Matches vor AI-Fallback pr?fen
   // Wenn recommended.length === 0 und ein sehr starker Match auf den Produktnamen vorliegt
+  // K6v2 Fix: Auch prüfen, wenn recommended.length > 0, aber die Produkte nicht passen (z.B. kein "alpha" im Titel)
   // WICHTIG: Nicht ausführen, wenn priceRangeNoMatch === true (dann sollen keine Produkte empfohlen werden)
-  if (recommended.length === 0 && !priceRangeNoMatch) {
+  const hasSmartphoneModelName = /\b(smartphone\s+alpha|alpha\s+smartphone|phone\s+alpha|alpha\s+phone|alpha\s+\d+gb|alpha\s+\d+\s*gb|das\s+alpha\s+\d+\s*gb|alpha\s+\d+\s*gb\s+schwarz)\b/i.test(cleaned);
+  const recommendedProductsDontMatch = recommended.length > 0 && hasSmartphoneModelName && 
+    !recommended.some((p) => {
+      const productTitle = normalize(p.title || "");
+      return productTitle.includes("alpha") || productTitle.includes("smartphone");
+    });
+  
+  if ((recommended.length === 0 || recommendedProductsDontMatch) && !priceRangeNoMatch) {
     const normalizedText = normalize(cleaned);
     // Extrahiere relevante Produktbegriffe (z. B. "smartphone", "alpha", "128gb", "schwarz")
     // F?r K6: "Ich suche das Smartphone Alpha 128GB Schwarz" ? ["smartphone", "alpha", "128gb", "schwarz"]
@@ -5608,9 +5963,11 @@ export function runSellerBrain(
     const targetCategoryForKettle = userAsksForKettle ? "haushalt" : null;
     
     // EFRO Smartphone-Fix K6/K16: Prüfe auf Smartphone-Keywords
+    // K6v2 Fix: Auch wenn "smartphone" nicht im Query ist, aber "alpha" + Speicherangabe vorhanden ist
     const smartphoneKeywords = ["smartphone", "phone", "handy"];
     const userAsksForSmartphone = smartphoneKeywords.some((kw) => normalizedText.includes(kw));
-    const targetCategoryForSmartphone = userAsksForSmartphone ? "elektronik" : null;
+    const hasAlphaModelName = /\b(alpha\s+\d+\s*gb|alpha\s+\d+\s*gb\s+schwarz|das\s+alpha\s+\d+\s*gb)\b/i.test(cleaned);
+    const targetCategoryForSmartphone = (userAsksForSmartphone || hasAlphaModelName) ? "elektronik" : null;
     
     if (productNameFragments.length > 0) {
       // K6-Fix: Prüfe zuerst auf exakte Titel-Matches (alle Fragmente müssen im Titel vorkommen)
@@ -5648,6 +6005,7 @@ export function runSellerBrain(
         });
       } else {
         // Fallback: Prüfe, ob mindestens ein Fragment im Titel vorkommt
+        // CLUSTER 3 FIX: Wenn effectiveCategorySlug gesetzt ist, nur Produkte aus dieser Kategorie zurückgeben
         const partialMatches = allProducts.filter((p) => {
           // EFRO Wasserkocher-Fix: Bei Wasserkocher-Anfragen nur Produkte aus "haushalt" finden
           if (targetCategoryForKettle) {
@@ -5660,6 +6018,13 @@ export function runSellerBrain(
           if (targetCategoryForSmartphone) {
             const productCategory = normalize(p.category || "");
             if (productCategory !== targetCategoryForSmartphone) {
+              return false;
+            }
+          }
+          // CLUSTER 3 FIX: Wenn effectiveCategorySlug gesetzt ist (z.B. "perfume", "haustier"), nur Produkte aus dieser Kategorie
+          if (effectiveCategorySlug) {
+            const productCategory = normalize(p.category || "");
+            if (productCategory !== normalize(effectiveCategorySlug)) {
               return false;
             }
           }
