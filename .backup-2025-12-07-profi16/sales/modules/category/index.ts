@@ -36,9 +36,6 @@ function selectEffectiveCategory(params: {
 } {
   const { matchedCategories, allProducts, text, strongOverrideCategory, contextCategory } = params;
   
-  // Normalisiere den Eingabetext für die Verwendung in dieser Funktion
-  const normalizedText = normalize(text || "");
-  
   // Zähle Produkte pro Kategorie
   const categoryProductCounts: Record<string, number> = {};
   
@@ -55,36 +52,6 @@ function selectEffectiveCategory(params: {
     (cat) => (categoryProductCounts[cat] ?? 0) > 0
   );
   
-  // CLUSTER F FIX: K14v1, K15v1 - Kontextwechsel Mode → Elektronik
-  // Wenn aktueller Kontext "Mode" ist UND der neue Text klar auf Elektronik hinweist → überschreibe auf "Elektronik"
-  const isModeContext = contextCategory && normalize(contextCategory) === "mode";
-  const mentionsElektronik = 
-    normalizedText.includes("elektronik") ||
-    normalizedText.includes("kopfhörer") ||
-    normalizedText.includes("headphones") ||
-    normalizedText.includes("smartphone") ||
-    normalizedText.includes("phone") ||
-    normalizedText.includes("handy");
-  
-  if (isModeContext && mentionsElektronik) {
-    const elektronikCount = allProducts.filter(
-      (p) => normalize(p.category || "") === "elektronik"
-    ).length;
-    if (elektronikCount > 0) {
-      // Kontextwechsel Mode → Elektronik → überschreibe auf "Elektronik"
-      return {
-        selectedCategory: "elektronik",
-        filteredMatchedCategories: filteredMatchedCategories.length > 0 
-          ? filteredMatchedCategories 
-          : ["elektronik"],
-        categoryProductCounts: {
-          ...categoryProductCounts,
-          elektronik: elektronikCount,
-        },
-      };
-    }
-  }
-
   // EFRO Smartphone-Fix K7/K8: Bei Kontext "elektronik" → "elektronik" priorisieren
   if (contextCategory && normalize(contextCategory) === "elektronik") {
     const elektronikCount = allProducts.filter(
@@ -216,9 +183,6 @@ export function determineEffectiveCategory(params: {
   const t = normalize(cleanedText);
   const normalizedText = t;
   
-  // Deklariere effectiveCategorySlug früh, damit es im Haustier-Block verwendet werden kann
-  let effectiveCategorySlug: string | null = null;
-  
   // Alle Kategorien aus dem Katalog extrahieren (muss VOR Smartphone-Check sein)
   const allCategories = Array.from(
     new Set(
@@ -230,32 +194,24 @@ export function determineEffectiveCategory(params: {
   
   // Strong Category Hints: Strukturierte Liste mit starken Kategorie-Hinweisen
   // EFRO Smartphone-Fix: Smartphone-Keywords haben höchste Priorität, auch wenn "modern" im Text ist
-  // CLUSTER D FIX PROFI-01v1: "board" allein führt NICHT zu "snowboard" (nur wenn "snowboard" auch im Text steht)
   const strongCategoryHints: Record<string, string[]> = {
-    snowboard: ["snowboard", "snowboards"], // "board" entfernt - wird separat behandelt
+    snowboard: ["snowboard", "snowboards", "board"],
     haushalt: ["haushalt", "wasserkocher", "electric kettle", "kettle"],
     elektronik: ["elektronik", "electronics", "smartphone", "phone", "handy", "tv", "fernseher"],
     mode: ["mode", "fashion", "kleidung", "bekleidung", "jeans", "hose", "t-shirt"],
   };
   
-  // CLUSTER D FIX PROFI-01v1: "board" wurde aus strongCategoryHints entfernt
-  // "board" allein führt NICHT zu "snowboard" (nur wenn "snowboard" auch im Text steht)
-  
-  // EFRO Smartphone-Fix K5-K8: Prüfe zuerst auf Smartphone-Keywords (vor anderen Kategorien)
+  // EFRO Smartphone-Fix K6/K7: Prüfe zuerst auf Smartphone-Keywords (vor anderen Kategorien)
   // Dies verhindert, dass "modern" zu "mode" führt, wenn Smartphone-Keywords vorhanden sind
   let strongOverrideCategory: string | null = null;
   
   const mentionsSmartphoneEarly =
     normalizedText.includes("smartphone") ||
-    normalizedText.includes("smartphones") ||
     normalizedText.includes("handy") ||
-    normalizedText.includes("handys") ||
-    normalizedText.includes("iphone") ||
-    normalizedText.includes("android") ||
     (normalizedText.includes("phone") && !normalizedText.includes("handyvertrag"));
   
-  // Prüfe auch auf konkrete Modellnamen wie "Smartphone Alpha", "Alpha 128GB", etc.
-  const hasSmartphoneModelName = /\b(smartphone\s+alpha|alpha\s+smartphone|phone\s+alpha|alpha\s+phone|alpha\s+\d+gb|alpha\s+\d+\s*gb)\b/i.test(text);
+  // Prüfe auch auf konkrete Modellnamen wie "Smartphone Alpha"
+  const hasSmartphoneModelName = /\b(smartphone\s+alpha|alpha\s+smartphone|phone\s+alpha|alpha\s+phone)\b/i.test(text);
   
   if (mentionsSmartphoneEarly || hasSmartphoneModelName) {
     const hasElektronikCategory = allCategories.some(
@@ -269,7 +225,7 @@ export function determineEffectiveCategory(params: {
       if (elektronikCount > 0) {
         // Smartphone-Keywords gefunden → setze elektronik als strongOverrideCategory
         strongOverrideCategory = "elektronik";
-        console.log("[EFRO Category] Smartphone-Keywords detected early (K5-K8)", {
+        console.log("[EFRO Category] Smartphone-Keywords detected early (K6/K7)", {
           text: text.substring(0, 80),
           mentionsSmartphoneEarly,
           hasSmartphoneModelName,
@@ -311,7 +267,7 @@ export function determineEffectiveCategory(params: {
   // Wort-Classification: Kategorien aus languageRules.de erkennen (additiv)
   const fullTextLowerForCategory = t.toLowerCase();
 
-  // SCHRITT 5 FIX: Parfüm-Fix: Kategorie "perfume" hart priorisieren, wenn der Text klar nach Parfüm klingt
+  // EFRO Parfüm-Fix: Kategorie "perfume" hart priorisieren, wenn der Text klar nach Parfüm klingt
   const normalizedQueryForPerfume = normalize(text);
   const perfumeKeywords = [
     "parfum",
@@ -320,8 +276,7 @@ export function determineEffectiveCategory(params: {
     "parf", // EFRO F7 Fix: "parf" wird auch erkannt (normalisiertes "parfüm")
     "duft",
     "eau de parfum",
-    "eau de toilette",
-    "perfume", // SCHRITT 5 FIX: Auch "perfume" direkt erkennen
+    "eau de toilette"
   ];
 
   const userAsksForPerfume = perfumeKeywords.some((kw) =>
@@ -331,21 +286,6 @@ export function determineEffectiveCategory(params: {
   const hasPerfumeCategoryInCatalog = allCategories.some(
     (cat) => normalize(cat) === "perfume"
   );
-  
-  // SCHRITT 5 FIX: Wenn Parfüm erkannt, setze strongOverrideCategory
-  if (userAsksForPerfume && hasPerfumeCategoryInCatalog && !strongOverrideCategory) {
-    const perfumeCount = allProducts.filter(
-      (p) => normalize(p.category || "") === "perfume"
-    ).length;
-    if (perfumeCount > 0) {
-      strongOverrideCategory = "perfume";
-      console.log("[EFRO Category] Perfume-Keywords detected (F2/F3/D1/D2/D3)", {
-        text: text.substring(0, 80),
-        strongOverrideCategory,
-        productCount: perfumeCount,
-      });
-    }
-  }
 
   const categoryHintsFromRules = collectMatches(fullTextLowerForCategory, CATEGORY_KEYWORDS);
   
@@ -376,32 +316,18 @@ export function determineEffectiveCategory(params: {
     return true;
   });
 
-  // CLUSTER D FIX: I3v2 - Haustier-Erkennung erweitert
   // EFRO Haustier-Fix:
-  // Mappe "tierbedarf", "hund", "dog", "katze", "cat" (aus languageRules) auf die echte Katalog-Kategorie "haustier", falls vorhanden.
+  // Mappe "tierbedarf" (aus languageRules) auf die echte Katalog-Kategorie "haustier", falls vorhanden.
   const hasHaustierCategory = allCategories.some(
     (cat) => normalize(cat) === "haustier"
   );
 
-  // CLUSTER D FIX: I3v2 - Erweitere Erkennung auf "hund", "dog", "katze", "cat", "geschenk für hund"
   const hasTierbedarfHint =
     categoryHintsInText.some((hint) => normalize(hint) === "tierbedarf") ||
     matchedCategories.some((cat) => normalize(cat) === "tierbedarf") ||
     filteredHints.some((hint) => normalize(hint) === "tierbedarf");
-  
-  // CLUSTER D FIX: I3v2 - Prüfe auch auf direkte Haustier-Keywords im Text
-  const mentionsHaustierKeywords = 
-    normalizedText.includes("hund") ||
-    normalizedText.includes("dog") ||
-    normalizedText.includes("katze") ||
-    normalizedText.includes("cat") ||
-    normalizedText.includes("haustier") ||
-    normalizedText.includes("pet") ||
-    normalizedText.includes("pets") ||
-    normalizedText.includes("tier") ||
-    normalizedText.includes("animal");
 
-  if (hasHaustierCategory && (hasTierbedarfHint || mentionsHaustierKeywords)) {
+  if (hasHaustierCategory && hasTierbedarfHint) {
     const haustierCategory = allCategories.find(
       (cat) => normalize(cat) === "haustier"
     );
@@ -409,17 +335,12 @@ export function determineEffectiveCategory(params: {
     if (haustierCategory) {
       const normalizedHaustierCat = normalize(haustierCategory);
 
-      // CLUSTER D FIX: I3v2 - Setze haustier als effectiveCategorySlug mit hoher Priorität
-      if (!effectiveCategorySlug || normalize(effectiveCategorySlug) !== normalizedHaustierCat) {
-        effectiveCategorySlug = normalizedHaustierCat;
-      }
-
       if (
         !matchedCategories.some(
           (cat) => normalize(cat) === normalizedHaustierCat
         )
       ) {
-        matchedCategories.unshift(normalizedHaustierCat); // Am Anfang für Priorität
+        matchedCategories.push(normalizedHaustierCat);
       }
 
       if (
@@ -427,14 +348,11 @@ export function determineEffectiveCategory(params: {
           (hint) => normalize(hint) === normalizedHaustierCat
         )
       ) {
-        categoryHintsInText.unshift(haustierCategory); // Am Anfang für Priorität
+        categoryHintsInText.push(haustierCategory);
       }
 
-      console.log("[EFRO Category] CLUSTER D FIX I3v2 - Haustier category mapped", {
+      console.log("[EFRO Category] Haustier category mapped from tierbedarf", {
         text: text.substring(0, 80),
-        hasTierbedarfHint,
-        mentionsHaustierKeywords,
-        effectiveCategorySlug,
         matchedCategories,
         categoryHintsInText,
       });
@@ -523,6 +441,7 @@ export function determineEffectiveCategory(params: {
   // WICHTIG: Wenn strongOverrideCategory gesetzt ist, wird contextCategory ignoriert
   // EFRO Smartphone-Fix K7: Bei Kontext "elektronik" → Kontext beibehalten (auch ohne Smartphone-Keywords im Text)
   // EFRO D8 Fix: Bei Kontext "haushalt" → Kontext beibehalten (auch ohne Haushalt-Keywords im Text)
+  let effectiveCategorySlug: string | null = null;
   
   // EFRO Smartphone-Fix K7: Wenn Kontext "elektronik" vorhanden → Kontext priorisieren
   // WICHTIG: Auch wenn "modern" im Text ist, soll "mode" nicht die Kategorie überschreiben
@@ -561,56 +480,6 @@ export function determineEffectiveCategory(params: {
         effectiveCategorySlug,
         productCount: haushaltCount,
       });
-    }
-  }
-
-  // CLUSTER I/B/A FIX: I3v2, B1v1, A2v2 - Haustier-Begriffe überschreiben Mode/Kosmetik
-  // High-Priority-Regel: Wenn Haustier-Begriffe im Text sind, überschreibe effectiveCategorySlug
-  // WICHTIG: Diese Regel greift NACH der Basissetzung, um Mode/Kosmetik zu überschreiben
-  const mentionsHaustierHighPriority = 
-    normalizedText.includes("hund") ||
-    normalizedText.includes("dog") ||
-    normalizedText.includes("katze") ||
-    normalizedText.includes("cat") ||
-    normalizedText.includes("haustier") ||
-    normalizedText.includes("pet") ||
-    normalizedText.includes("pets") ||
-    normalizedText.includes("tier") ||
-    normalizedText.includes("animal") ||
-    normalizedText.includes("fressnapf") ||
-    normalizedText.includes("geschenk für hund") ||
-    normalizedText.includes("geschenk für katze");
-  
-  if (mentionsHaustierHighPriority && hasHaustierCategory) {
-    const haustierCategory = allCategories.find(
-      (cat) => normalize(cat) === "haustier"
-    );
-    if (haustierCategory) {
-      const haustierCount = allProducts.filter(
-        (p) => normalize(p.category || "") === "haustier"
-      ).length;
-      if (haustierCount > 0) {
-        // Überschreibe effectiveCategorySlug mit "haustier", auch wenn vorher Mode/Kosmetik aktiv war
-        effectiveCategorySlug = normalize(haustierCategory);
-        
-        // Stelle sicher, dass "haustier" in matchedCategories ist (am Anfang für Priorität)
-        const haustierIndex = matchedCategories.findIndex((cat) => normalize(cat) === normalize(haustierCategory));
-        if (haustierIndex === -1) {
-          matchedCategories.unshift(haustierCategory);
-        } else if (haustierIndex > 0) {
-          // Verschiebe "haustier" an den Anfang
-          matchedCategories.splice(haustierIndex, 1);
-          matchedCategories.unshift(haustierCategory);
-        }
-        
-        console.log("[EFRO Category] CLUSTER I/B/A FIX - Haustier überschreibt Mode/Kosmetik (I3v2, B1v1, A2v2)", {
-          text: normalizedText,
-          previousEffectiveCategorySlug: effectiveCategorySlug,
-          effectiveCategorySlug: normalize(haustierCategory),
-          matchedCategories,
-          productCount: haustierCount,
-        });
-      }
     }
   }
 

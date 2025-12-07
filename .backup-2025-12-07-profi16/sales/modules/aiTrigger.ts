@@ -13,23 +13,6 @@ const BUDGET_STOPWORDS = new Set([
 ]);
 
 /**
- * SCHRITT 4 FIX: Erkennt Budget-Smalltalk (z. B. "mein Budget ist begrenzt")
- * Diese Sätze sollen KEINEN AI-Trigger auslösen
- */
-function isBudgetSmalltalk(text: string): boolean {
-  const normalized = text.toLowerCase();
-  const smalltalkPatterns = [
-    /\bmein\s+budget\s+ist\s+begrenzt\b/i,
-    /\bich\s+habe\s+ein\s+kleines\s+budget\b/i,
-    /\bich\s+habe\s+nicht\s+viel\s+geld\s+zur\s+verfügung\b/i,
-    /\bich\s+bin\s+knapp\s+bei\s+kasse\b/i,
-    /\bmein\s+budget\s+ist\s+klein\b/i,
-    /\bich\s+habe\s+wenig\s+geld\b/i,
-  ];
-  return smalltalkPatterns.some((pattern) => pattern.test(normalized));
-}
-
-/**
  * AI-Trigger: Signal, wann SellerBrain zusätzliche AI-Hilfe gebrauchen könnte
  */
 export interface SellerBrainAiTrigger {
@@ -82,9 +65,6 @@ export function decideAiTrigger(options: {
   hasCategoryMatch?: boolean;
   priceRangeNoMatch?: boolean;
   normalizedText?: string;
-  hasEffectiveCategory?: boolean;
-  candidateCountAfterKeywordMatches?: number;
-  finalCount?: number;
 }): SellerBrainAiTrigger | undefined {
   const {
     userMinPrice,
@@ -98,19 +78,7 @@ export function decideAiTrigger(options: {
     hasCategoryMatch,
     priceRangeNoMatch,
     normalizedText,
-    hasEffectiveCategory,
-    candidateCountAfterKeywordMatches,
-    finalCount,
   } = options;
-
-  // SCHRITT 4 FIX: Budget-Smalltalk erkennen (J3v2)
-  // Wenn der Text nur Budget-Smalltalk ist, KEIN AI-Trigger
-  if (normalizedText && isBudgetSmalltalk(normalizedText)) {
-    return {
-      needsAiHelp: false,
-      reason: "budget_smalltalk_no_ai",
-    };
-  }
 
   // Berechne gefilterte unbekannte Begriffe (nicht eindeutig aufgelöst)
   const hasUnknownTerms = unknownTerms.length > 0;
@@ -126,28 +94,6 @@ export function decideAiTrigger(options: {
     const normalizedTerm = term.toLowerCase().trim();
     return !BUDGET_STOPWORDS.has(normalizedTerm);
   });
-
-  // CLUSTER B FIX: E2v1, E3v1, E5v2 - Unbekannte Begriffe + Kategorie/Budget → needsAiHelp = true
-  // Wenn unbekannte Begriffe vorhanden sind UND (Kategorie erkannt ODER Budget erkannt)
-  if (filteredUnknownTerms.length > 0) {
-    if (hasEffectiveCategory || (userMinPrice !== null || userMaxPrice !== null)) {
-      const trigger: SellerBrainAiTrigger = {
-        needsAiHelp: true,
-        reason: "unknown_terms_with_context",
-        unknownTerms: filteredUnknownTerms,
-      };
-      console.log("[EFRO SB AI-TRIGGER] Unknown terms with context -> AI", {
-        unknownTerms,
-        filteredUnknownTerms,
-        hasEffectiveCategory,
-        hasBudget: userMinPrice !== null || userMaxPrice !== null,
-        userMinPrice,
-        userMaxPrice,
-        trigger,
-      });
-      return trigger;
-    }
-  }
 
   // HARTE REGEL S14: Unbekannter Begriff + Budget → AI MUSS true sein
   // Diese Regel hat höchste Priorität und greift VOR allen anderen Budget-Regeln (G3/J1)
@@ -166,30 +112,6 @@ export function decideAiTrigger(options: {
       trigger,
     });
     return trigger;
-  }
-
-  // CLUSTER G FIX: G1v2, G3v2, G4v2 - Budget-only ohne Kategorie und ohne Produkte
-  // Wenn Budget vorhanden (userMinPrice oder userMaxPrice), aber keine Kategorie erkannt
-  // UND candidateCountAfterKeywordMatches = 0 → needsAiHelp = true
-  if ((userMinPrice !== null || userMaxPrice !== null) && 
-      !hasEffectiveCategory && 
-      (candidateCountAfterKeywordMatches ?? 0) === 0) {
-    return {
-      needsAiHelp: true,
-      reason: "budget_only_low_or_high",
-      unknownTerms: unknownTerms.length > 0 ? unknownTerms : undefined,
-    };
-  }
-
-  // CLUSTER B FIX: G3v2 - Budget unter 20 Euro global → needsAiHelp = true
-  // Wenn userMaxPrice < 20 und keine Kategorie erkannt → AI-Hilfe
-  // WICHTIG: Diese Regel greift nur, wenn candidateCountAfterKeywordMatches > 0 (sonst greift Regel oben)
-  if (userMaxPrice !== null && userMaxPrice < 20 && !hasEffectiveCategory && (candidateCountAfterKeywordMatches ?? 0) > 0) {
-    return {
-      needsAiHelp: true,
-      reason: "budget_only_low_or_high",
-      unknownTerms: unknownTerms.length > 0 ? unknownTerms : undefined,
-    };
   }
 
   // Regel 1: Budget viel zu niedrig (G3-Fall)
@@ -267,51 +189,12 @@ export function decideAiTrigger(options: {
     }
   }
 
-  // SCHRITT 4 FIX: G3v2 - Budget ohne Kategorie
-  // Wenn Budget vorhanden, aber keine Kategorie erkannt und keine Produkte gefunden
-  if ((userMinPrice !== null || userMaxPrice !== null) && !hasEffectiveCategory && (candidateCountAfterKeywordMatches ?? 0) === 0) {
-    return {
-      needsAiHelp: true,
-      reason: "needs_category_clarification",
-      unknownTerms: unknownTerms.length > 0 ? unknownTerms : undefined,
-    };
-  }
-
-  // CLUSTER B FIX: K16v1 - Fake-Smartphone nicht im Katalog → needsAiHelp = true
-  // Wenn Text "smartphone", "phone", "handy" enthält, aber keine Elektronik-Produkte gefunden wurden
-  // UND candidateCountAfterKeywordMatches = 0 → needsAiHelp = true, reason = "unknown_product_candidate"
-  if (normalizedText) {
-    const mentionsSmartphone = 
-      normalizedText.includes("smartphone") ||
-      normalizedText.includes("handy") ||
-      (normalizedText.includes("phone") && !normalizedText.includes("handyvertrag"));
-    
-    if (mentionsSmartphone && (candidateCountAfterKeywordMatches ?? 0) === 0 && !hasEffectiveCategory) {
-      return {
-        needsAiHelp: true,
-        reason: "unknown_product_candidate",
-        codeTerm: codeTerm,
-        unknownTerms: unknownTerms.length > 0 ? unknownTerms : undefined,
-      };
-    }
-  }
-
-  // SCHRITT 4 FIX: K16 - Fake-Produkte (unknown_product_code_no_match)
-  // Wenn isProductRelated, finalCount === 0, und unknownProductCodeOnly
-  if (unknownProductCodeOnly && (finalCount ?? 0) === 0) {
-    return {
-      needsAiHelp: true,
-      reason: "unknown_product_code_no_match",
-      codeTerm: codeTerm,
-      unknownTerms: unknownTerms.length > 0 ? unknownTerms : undefined,
-    };
-  }
-
   // [EFRO AI] Regel 3: Unbekannter Produktcode mit Budget (S14-Fall)
   // Wenn ein Budget vorhanden ist (userMinPrice oder userMaxPrice gesetzt)
   // UND ein unbekannter Produktcode vorhanden ist (codeTerm oder unknownProductCodeOnly)
   // DANN: needsAiHelp = true, reason = 'unknown_product_with_budget'
-  if ((userMinPrice !== null || userMaxPrice !== null) && (codeTerm || unknownProductCodeOnly)) {
+  const hasBudget = userMinPrice !== null || userMaxPrice !== null;
+  if (hasBudget && (codeTerm || unknownProductCodeOnly)) {
     return {
       needsAiHelp: true,
       reason: "unknown_product_with_budget",
@@ -324,7 +207,7 @@ export function decideAiTrigger(options: {
   // Wenn unbekannte Begriffe existieren, die NICHT eindeutig aufgelöst wurden
   // UND der Nutzer ein Budget mitgegeben hat (userMaxPrice oder userMinPrice gesetzt)
   // DANN: needsAiHelp = true, reason = "unknown-terms-with-budget"
-  if ((userMinPrice !== null || userMaxPrice !== null) && filteredUnknownTerms.length > 0) {
+  if (hasBudget && filteredUnknownTerms.length > 0) {
     const aiTrigger = {
       needsAiHelp: true,
       reason: "unknown-terms-with-budget" as const,
@@ -347,7 +230,7 @@ export function decideAiTrigger(options: {
   // UND unknownTerms.length > 0
   // UND die unbekannten Begriffe wie Produkt/Code aussehen (z. B. XY-9000, ABC123)
   // DANN: needsAiHelp = true, reason = 'low_confidence_unknown_terms'
-  if ((userMinPrice !== null || userMaxPrice !== null) && unknownTerms.length > 0 && !codeTerm && !unknownProductCodeOnly) {
+  if (hasBudget && unknownTerms.length > 0 && !codeTerm && !unknownProductCodeOnly) {
     // Prüfe, ob unbekannte Begriffe wie Produktcodes aussehen
     const hasCodeLikeTerms = unknownTerms.some((term) => {
       const t = term.toLowerCase().trim();

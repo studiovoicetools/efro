@@ -723,36 +723,6 @@ function resolveUnknownTerms(
   };
 }
 
-/**
- * EFRO K6 Fix: Exact-Match-Boost für Smartphone-Modellnamen
- * Erkennt vollständige Modellnamen wie "Smartphone Alpha 128GB Schwarz"
- */
-function computeExactMatchBoost(product: EfroProduct, text: string): number {
-  const normalizedText = normalize(text);
-  const normalizedTitle = normalize(product.title || "");
-  const normalizedSlug = normalize((product as any).handle || "");
-  
-  // Extrahiere Modellnamen-Patterns (z.B. "alpha 128gb", "alpha 128gb schwarz")
-  const modelPatterns = [
-    /\b(alpha\s+\d+\s*gb(?:\s+schwarz)?)\b/i,
-    /\b(smartphone\s+alpha\s+\d+\s*gb(?:\s+schwarz)?)\b/i,
-    /\b(alpha\s+ultra\s+pro\s+\d+\s*tb(?:\s+\d+\s*zoll)?)\b/i,
-  ];
-  
-  for (const pattern of modelPatterns) {
-    const match = normalizedText.match(pattern);
-    if (match) {
-      const modelName = normalize(match[1]);
-      // Prüfe, ob der Modellname vollständig im Produktnamen vorkommt
-      if (normalizedTitle.includes(modelName) || normalizedSlug.includes(modelName)) {
-        return 50; // Sehr hoher Boost für Exact-Match
-      }
-    }
-  }
-  
-  return 0;
-}
-
 function scoreProductForWords(product: EfroProduct, words: string[]): number {
   if (words.length === 0) return 0;
 
@@ -1818,8 +1788,7 @@ function rankAndSliceCandidates(
   wantsMostExpensive: boolean,
   text: string,
   cleaned: string,
-  effectiveCategorySlug: string | null | undefined,
-  allProducts: EfroProduct[]
+  effectiveCategorySlug?: string | null
 ): EfroProduct[] {
   // Budget- oder Intent-basiertes Sortieren der Kandidaten
   if (hasBudget) {
@@ -1853,60 +1822,11 @@ function rankAndSliceCandidates(
     }
   }
 
-  // CLUSTER C FIX: F5v2 - Günstigstes Produkt global
-  // CLUSTER G FIX: K12 - Mode – günstigste Jeans → genau 1 Produkt (maxCount 1)
-  const normalizedTextForJeans = normalize(text);
-  const wantsCheapestJeans = 
-    (normalizedTextForJeans.includes("jeans") || normalizedTextForJeans.includes("hose")) &&
-    /\b(g?nstigste(?:s|n)?|guenstigste(?:s|n)?|gunstigste(?:s|n)?|billigste(?:s|n)?|cheapest)\b/.test(
-      normalizedTextForJeans
-    );
-  
-  if (wantsCheapestJeans && candidates.length > 0) {
-    // Filtere auf Mode-Kategorie und sortiere nach Preis aufsteigend
-    const modeCandidates = candidates.filter(
-      (p) => normalize(p.category || "") === "mode"
-    );
-    
-    const baseList = modeCandidates.length > 0 ? modeCandidates : candidates;
-    baseList.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    
-    // CLUSTER G FIX: K12 - Nur genau 1 Produkt zurückgeben (maxCount 1)
-    const cheapestJeans = baseList[0] ? [baseList[0]] : [];
-    
-    console.log("[EFRO CLUSTER G FIX] K12 - Günstigste Jeans (exactly 1)", {
-      text: text.substring(0, 80),
-      modeCandidatesCount: modeCandidates.length,
-      finalCount: cheapestJeans.length,
-      cheapestPrice: cheapestJeans[0]?.price ?? null,
-      cheapestTitle: cheapestJeans[0]?.title,
-    });
-    
-    return cheapestJeans;
-  }
-
   // Sonderfall: "günstigste/billigste" Produkt (ohne Budgetangabe)
   const normalizedTextForCheapest = normalize(text);
   const wantsCheapestOne = /\b(g?nstigste(?:s|n)?|guenstigste(?:s|n)?|gunstigste(?:s|n)?|billigste(?:s|n)?|cheapest)\b/.test(
     normalizedTextForCheapest
   );
-  
-  // CLUSTER C FIX: F5v2 - Wenn "günstigstes Produkt" global und candidates leer → Fallback auf alle Produkte
-  if (!hasBudget && wantsCheapestOne && candidates.length === 0) {
-    // Fallback: Nimm alle Produkte und sortiere nach Preis aufsteigend
-    const allProductsSorted = [...allProducts]
-      .filter((c) => (c.price ?? 0) > 0)
-      .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    
-    candidates = allProductsSorted.slice(0, 1); // Nur das günstigste Produkt
-    
-    console.log("[EFRO F5v2 Fix] Günstigstes Produkt global - Fallback auf alle Produkte", {
-      text,
-      fallbackCount: candidates.length,
-      cheapestPrice: candidates[0]?.price ?? null,
-      cheapestTitle: candidates[0]?.title,
-    });
-  }
 
   if (!hasBudget && wantsCheapestOne && candidates.length > 0) {
     // EFRO F7 Fix: Wenn effectiveCategorySlug gesetzt ist (z. B. "perfume"),
@@ -1942,49 +1862,11 @@ function rankAndSliceCandidates(
   let finalProducts: typeof candidates = [];
 
   const normalizedText = cleaned.toLowerCase();
-  
-  // CLUSTER A FIX: S4v2, S6v2 - Snowboard-Erkennung erweitert
-  const mentionsSnowboard = normalizedText.includes("snowboard");
   const wantsCheapestSnowboard =
-    mentionsSnowboard &&
+    normalizedText.includes("snowboard") &&
     /\b(g?nstigstes|g?nstigste|g?nstigsten|billigste|billigsten|preiswerteste)\b/.test(
       normalizedText
     );
-  const wantsMostExpensiveSnowboard =
-    mentionsSnowboard &&
-    /\b(teuerstes|teuerste|teuersten|most expensive|höchstes|höchste)\b/.test(
-      normalizedText
-    );
-
-  // CLUSTER A FIX: S6v2 - Teuerstes Snowboard (minPrice >= 2000)
-  if (wantsMostExpensiveSnowboard) {
-    const snowboardCandidates = candidates.filter(
-      (p) => normalize(p.category || "") === "snowboard"
-    );
-    
-    // CLUSTER A FIX: S6v2 - Wenn keine Snowboard-Kandidaten, Fallback auf alle Snowboards
-    const allSnowboards = mentionsSnowboard 
-      ? allProducts.filter((p) => normalize(p.category || "") === "snowboard")
-      : [];
-    
-    const baseList = snowboardCandidates.length > 0 
-      ? snowboardCandidates 
-      : (allSnowboards.length > 0 ? allSnowboards : candidates);
-
-    baseList.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
-    const mostExpensive = baseList[0] ? [baseList[0]] : [];
-
-    console.log("[EFRO CLUSTER A FIX] S6v2 - Teuerstes Snowboard", {
-      text: text.substring(0, 80),
-      snowboardCandidatesCount: snowboardCandidates.length,
-      allSnowboardsCount: allSnowboards.length,
-      finalCount: mostExpensive.length,
-      mostExpensivePrice: mostExpensive[0]?.price ?? null,
-      mostExpensiveTitle: mostExpensive[0]?.title ?? null,
-    });
-
-    return mostExpensive;
-  }
 
   if (wantsCheapestSnowboard && candidates.length > 0) {
     const snowboardCandidates = candidates.filter(
@@ -2004,34 +1886,6 @@ function rankAndSliceCandidates(
     });
 
     return cheapest;
-  }
-  
-  // CLUSTER A FIX: S4v2 - Snowboards zwischen 600 und 900 Euro
-  // Wenn Snowboard-Budget-Anfrage und keine Kandidaten → Fallback auf alle Snowboards im Budget
-  if (mentionsSnowboard && hasBudget && candidates.length === 0) {
-    const allSnowboards = allProducts.filter(
-      (p) => normalize(p.category || "") === "snowboard"
-    );
-    
-    const snowboardsInBudget = allSnowboards.filter((p) => {
-      const price = p.price ?? 0;
-      if (userMaxPrice !== null && price > userMaxPrice) return false;
-      if (userMinPrice !== null && price < userMinPrice) return false;
-      return true;
-    });
-    
-    if (snowboardsInBudget.length > 0) {
-      candidates = snowboardsInBudget.slice(0, Math.min(4, snowboardsInBudget.length));
-      console.log("[EFRO CLUSTER A FIX] S4v2 - Snowboards im Budget gefunden", {
-        text: text.substring(0, 80),
-        userMinPrice,
-        userMaxPrice,
-        allSnowboardsCount: allSnowboards.length,
-        inBudgetCount: snowboardsInBudget.length,
-        finalCount: candidates.length,
-        sampleTitles: candidates.slice(0, 3).map((p) => p.title),
-      });
-    }
   }
 
   if (candidates.length === 1) {
@@ -2811,9 +2665,6 @@ export function filterProductsForSellerBrain(
         ...languageRuleKeywords.map((kw) => kw.toLowerCase()),
       ];
       const keywordScore = scoreProductForWords(p, expandedWordsWithLanguageRules);
-      
-      // EFRO K6 Fix: Exact-Match-Boost für Smartphone-Modellnamen
-      const exactMatchBoost = computeExactMatchBoost(p, text);
 
       // Attribute-Score: Zähle, wie viele attributeTerms im Text vorkommen
       let attributeScore = 0;
@@ -2868,9 +2719,9 @@ export function filterProductsForSellerBrain(
         }
       }
       
-      // Gesamt-Score: Keywords + Text-Attribute + strukturierte Attribute + LanguageRule-Bonus + Exact-Match-Boost
+      // Gesamt-Score: Keywords + Text-Attribute + strukturierte Attribute + LanguageRule-Bonus
       let totalScore =
-        keywordScore + attributeScore * 2 + structuredAttributeScore * 3 + languageRuleBonus + exactMatchBoost;
+        keywordScore + attributeScore * 2 + structuredAttributeScore * 3 + languageRuleBonus;
 
       // Spezielle Ranking-Regel für "Schimmel": Bevorzuge Reiniger/Sprays, benachteilige Tücher
       // Testfälle:
@@ -3036,51 +2887,18 @@ export function filterProductsForSellerBrain(
   }
 
   // Debug-Log am Ende des KEYWORD_MATCHES-Blocks
-  const candidateCountAfterKeywordMatches = candidates.length;
   console.log("[EFRO KEYWORD_MATCHES_RESULT]", {
     text,
     intent: currentIntent,
-    candidateCountAfterKeywordMatches,
+    candidateCountAfterKeywordMatches: candidates.length,
     wasSkipped: isGenericPremiumQuery,
   });
-
-  // CLUSTER H/C/D FIX: H1v2, H3v2, C1v2, D1v2, D2v2 - Kategorie-only Fallback
-  // Wenn eine klare Kategorie erkannt ist (effectiveCategorySlug vorhanden),
-  // aber candidateCountAfterKeywordMatches = 0,
-  // dann Fallback auf alle Produkte dieser Kategorie, sortiert nach Relevanz/Preis
-  if (effectiveCategorySlug && candidateCountAfterKeywordMatches === 0 && !hasBudget) {
-    const categoryProducts = allProducts.filter((p) => {
-      const normalizedCategory = normalize(p.category || "");
-      return normalizedCategory === normalize(effectiveCategorySlug);
-    });
-    
-    if (categoryProducts.length > 0) {
-      // Sortiere nach Preis (aufsteigend für allgemeine Anfragen, absteigend für Premium)
-      const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
-        if (currentIntent === "premium" || wantsMostExpensive) {
-          return (b.price ?? 0) - (a.price ?? 0);
-        }
-        return (a.price ?? 0) - (b.price ?? 0);
-      });
-      
-      candidates = sortedCategoryProducts.slice(0, Math.min(10, sortedCategoryProducts.length));
-      
-      console.log("[EFRO CLUSTER H/C/D FIX] Kategorie-only Fallback", {
-        text: text.substring(0, 80),
-        effectiveCategorySlug,
-        categoryProductCount: categoryProducts.length,
-        fallbackCount: candidates.length,
-        intent: currentIntent,
-        sampleTitles: candidates.slice(0, 3).map((p) => p.title),
-      });
-    }
-  }
 
     /**
    * PREMIUM: High-End-Filter, wenn kein expliziter Preisbereich und nicht "teuerste Produkt"
    * Filtert auf oberstes Preissegment (Top-25%, 75-Perzentil) mit sicherem Fallback
    * → Premium-Anfragen sollen niemals mit 0 Produkten enden.
-   * CLUSTER C FIX: F1v1 - Premium-Produkte global → Fallback auf alle Produkte wenn candidates leer
+   * EFRO F1 Fix: Wenn keine Kategorie vorhanden, Fallback auf alle Produkte
    */
   if (
     currentIntent === "premium" &&
@@ -3088,8 +2906,8 @@ export function filterProductsForSellerBrain(
     userMaxPrice === null &&
     !wantsMostExpensive
   ) {
-    // CLUSTER C FIX: F1v1 - Wenn candidates leer → Fallback auf alle Produkte (auch wenn Kategorie gesetzt)
-    if (candidates.length === 0) {
+    // EFRO F1 Fix: Wenn keine Kategorie vorhanden und candidates leer → Fallback auf alle Produkte
+    if (candidates.length === 0 && !effectiveCategorySlug) {
       // Fallback: Nimm alle Produkte und sortiere nach Preis absteigend
       const allProductsSorted = [...allProducts]
         .filter((c) => (c.price ?? 0) > 0)
@@ -3097,7 +2915,7 @@ export function filterProductsForSellerBrain(
       
       candidates = allProductsSorted.slice(0, Math.min(10, allProductsSorted.length));
       
-      console.log("[EFRO PREMIUM_FALLBACK] CLUSTER C FIX F1v1 - Fallback auf alle Produkte", {
+      console.log("[EFRO PREMIUM_FALLBACK] Keine Kategorie, Fallback auf alle Produkte", {
         text,
         effectiveCategorySlug,
         fallbackCount: candidates.length,
@@ -3162,63 +2980,8 @@ export function filterProductsForSellerBrain(
    * EFRO Fix: Wenn genau 1 Produkt gefunden wurde, KEINE Fallback-Produkte beimischen
    * WICHTIG: Bei Parfüm-Intent die Parfüm-Kandidaten NICHT überschreiben
    * EFRO D8/K2/K8 Fix: Bei explizitem Budget KEINE Fallback-Produkte außerhalb des Budgets
-   * CLUSTER D FIX: H1v2, H3v1, H3v2 - Bei reiner Kategorie-Anfrage (kosmetik, werkzeug) ohne weitere Filter → Fallback auf Kategorie-Produkte
    */
       if (candidates.length === 0) {
-        // CLUSTER D FIX: H1v2, H3v1, H3v2 - Wenn nur Kategorie gesetzt und keine weiteren Filter
-        const isCategoryOnlyQuery = effectiveCategorySlug && 
-          !hasBudget && 
-          (normalize(effectiveCategorySlug) === "kosmetik" || normalize(effectiveCategorySlug) === "werkzeug");
-        
-        if (isCategoryOnlyQuery) {
-          // Fallback: Nimm alle Produkte aus dieser Kategorie
-          const categoryProducts = allProducts.filter(
-            (p) => normalize(p.category || "") === normalize(effectiveCategorySlug)
-          );
-          
-          if (categoryProducts.length > 0) {
-            candidates = categoryProducts.slice(0, Math.min(3, categoryProducts.length));
-            console.log("[EFRO CLUSTER D FIX] H1v2/H3v1/H3v2 - Category-only fallback", {
-              category: effectiveCategorySlug,
-              count: candidates.length,
-              sampleTitles: candidates.slice(0, 3).map((p) => p.title),
-            });
-          }
-        }
-        
-        // CLUSTER D FIX: G1v2, G4v2 - Budget über 100 Euro oder Budget mit Kontext Parfüm
-        // Wenn Budget gesetzt, aber keine Produkte im Budget gefunden → Fallback auf Kategorie-Produkte
-        if (candidates.length === 0 && hasBudget && effectiveCategorySlug) {
-          const categoryProducts = allProducts.filter(
-            (p) => normalize(p.category || "") === normalize(effectiveCategorySlug)
-          );
-          
-          if (categoryProducts.length > 0) {
-            // Sortiere nach Preis und nimm die passendsten (im Budget oder nah dran)
-            const sortedByPrice = [...categoryProducts].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-            const inBudget = sortedByPrice.filter(
-              (p) => {
-                const price = p.price ?? 0;
-                if (userMaxPrice !== null && price <= userMaxPrice) return true;
-                if (userMinPrice !== null && price >= userMinPrice) return true;
-                return false;
-              }
-            );
-            
-            candidates = inBudget.length > 0 
-              ? inBudget.slice(0, Math.min(3, inBudget.length))
-              : sortedByPrice.slice(0, Math.min(3, sortedByPrice.length)); // Fallback: günstigste aus Kategorie
-            
-            console.log("[EFRO CLUSTER D FIX] G1v2/G4v2 - Budget with category fallback", {
-              category: effectiveCategorySlug,
-              userMinPrice,
-              userMaxPrice,
-              inBudgetCount: inBudget.length,
-              finalCount: candidates.length,
-              sampleTitles: candidates.slice(0, 3).map((p) => p.title),
-            });
-          }
-        }
         // EFRO K2/K4/K8/K13 Fix: Bei unrealistischem Budget wurden bereits Produkte in der Budget-Filter-Logik gezeigt
         // Hier im Fallback nur noch normale Fallback-Logik anwenden
         const hasExplicitBudget = (minPrice !== null || maxPrice !== null);
@@ -3339,8 +3102,7 @@ export function filterProductsForSellerBrain(
     wantsMostExpensive,
     text,
     cleaned,
-    effectiveCategorySlug,
-    allProducts
+    effectiveCategorySlug
   );
 
   // EFRO F2-Fix: Zusätzliche Sicherheit für Premium-Intent mit Parfüm-Produkten

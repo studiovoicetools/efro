@@ -90,6 +90,8 @@ interface ScenarioTest {
   query: string;
   note?: string;
   context?: SellerBrainContext; // Optional: Kontext für diesen Test
+  // zusätzliche Varianten derselben Frage, die alle zum selben erwarteten Ergebnis führen sollen
+  variantQueries?: string[];
   expected?: {
     minCount?: number;
     maxCount?: number;
@@ -412,6 +414,71 @@ async function runScenarioTest(
     console.log(`  Categories: ${categories.join(", ")}`);
   }
 
+  // D8-spezifische Prüfungen: priceRangeInfo validieren
+  if (test.id === "D8") {
+    if (!result.priceRangeNoMatch) {
+      evaluation.details += `\n    → FAIL: priceRangeNoMatch should be true`;
+      evaluation.passed = false;
+    } else {
+      evaluation.details += `\n    → OK: priceRangeNoMatch = true`;
+    }
+
+    if (result.priceRangeInfo) {
+      const pr = result.priceRangeInfo;
+      if (pr.userMaxPrice !== 30) {
+        evaluation.details += `\n    → FAIL: priceRangeInfo.userMaxPrice should be 30, got ${pr.userMaxPrice}`;
+        evaluation.passed = false;
+      } else {
+        evaluation.details += `\n    → OK: priceRangeInfo.userMaxPrice = 30`;
+      }
+
+      const normalizedCategory = (pr.category || "").toLowerCase();
+      if (normalizedCategory !== "haushalt") {
+        evaluation.details += `\n    → FAIL: priceRangeInfo.category should be 'haushalt', got '${pr.category}'`;
+        evaluation.passed = false;
+      } else {
+        evaluation.details += `\n    → OK: priceRangeInfo.category = 'haushalt'`;
+      }
+
+      if (pr.categoryMinPrice !== null && pr.categoryMinPrice <= 30) {
+        evaluation.details += `\n    → FAIL: priceRangeInfo.categoryMinPrice should be > 30, got ${pr.categoryMinPrice}`;
+        evaluation.passed = false;
+      } else if (pr.categoryMinPrice !== null) {
+        evaluation.details += `\n    → OK: priceRangeInfo.categoryMinPrice = ${pr.categoryMinPrice.toFixed(2)} > 30`;
+      }
+
+      // Prüfe, dass Produkte aufsteigend nach Preis sortiert sind
+      if (recommended.length > 1) {
+        let isSorted = true;
+        for (let i = 1; i < recommended.length; i++) {
+          const prevPrice = recommended[i - 1].price ?? 0;
+          const currPrice = recommended[i].price ?? 0;
+          if (currPrice < prevPrice) {
+            isSorted = false;
+            break;
+          }
+        }
+        if (!isSorted) {
+          evaluation.details += `\n    → FAIL: Products should be sorted ascending by price`;
+          evaluation.passed = false;
+        } else {
+          evaluation.details += `\n    → OK: Products sorted ascending by price`;
+        }
+      }
+    } else {
+      evaluation.details += `\n    → FAIL: priceRangeInfo should be set`;
+      evaluation.passed = false;
+    }
+
+    // Prüfe Intent
+    if (result.intent !== "quick_buy") {
+      evaluation.details += `\n    → FAIL: intent should be 'quick_buy', got '${result.intent}'`;
+      evaluation.passed = false;
+    } else {
+      evaluation.details += `\n    → OK: intent = 'quick_buy'`;
+    }
+  }
+
   return { ...evaluation, result };
 }
 
@@ -426,7 +493,7 @@ async function main() {
     const products = await loadTestProducts();
     console.log();
 
-    const tests: ScenarioTest[] = [
+    const baseTests: ScenarioTest[] = [
       // =========================================================
       // GRUPPE S – ursprüngliche Szenarien (Snowboard, Haustier, Wax, Fressnapf, etc.)
       // =========================================================
@@ -434,6 +501,10 @@ async function main() {
         id: "S1",
         title: "Snowboards unter 300 Euro – nichts im Katalog",
         query: "Zeig mir Snowboards unter 300 Euro.",
+        variantQueries: [
+          "Ich suche ein günstiges Snowboard, höchstens 300 €.",
+          "Hast du Snowboards bis 300 Euro im Angebot?",
+        ],
         expected: {
           minCount: 1,
           expectNoMatchPriceRange: true,
@@ -444,6 +515,10 @@ async function main() {
         id: "S2",
         title: "Premium-Snowboard über 800 Euro – minPrice durch 'über'",
         query: "Ich will ein Premium-Snowboard über 800 Euro.",
+        variantQueries: [
+          "Zeig mir bitte ein Premium-Snowboard ab 800 Euro aufwärts.",
+          "Ich suche ein hochwertiges Board, mindestens 800 Euro.",
+        ],
         expected: {
           minCount: 1,
           minPrice: 800,
@@ -454,6 +529,10 @@ async function main() {
         id: "S3",
         title: "Snowboard mit Budget-Wort – Obergrenze",
         query: "Mein Budget für ein Snowboard liegt bei 700 Euro.",
+        variantQueries: [
+          "Ich habe 700 Euro für ein Snowboard zur Verfügung.",
+          "Was kostet ein Snowboard, wenn ich maximal 700 Euro ausgeben möchte?",
+        ],
         expected: {
           minCount: 1,
           maxPrice: 700,
@@ -464,6 +543,10 @@ async function main() {
         id: "S4",
         title: "Snowboards zwischen 600 und 900 Euro",
         query: "Zeig mir bitte Snowboards zwischen 600 und 900 Euro.",
+        variantQueries: [
+          "Ich suche ein Snowboard im Preisbereich von 600 bis 900 Euro.",
+          "Hast du Boards zwischen 600 und 900 €?",
+        ],
         expected: {
           minCount: 1,
           minPrice: 600,
@@ -475,6 +558,10 @@ async function main() {
         id: "S5",
         title: "Günstigstes Snowboard",
         query: "Zeig mir das günstigste Snowboard.",
+        variantQueries: [
+          "Was ist dein billigstes Snowboard?",
+          "Zeig mir das preiswerteste Board, das du hast.",
+        ],
         expected: {
           minCount: 1,
           maxPrice: 700,
@@ -485,6 +572,10 @@ async function main() {
         id: "S6",
         title: "Teuerstes Snowboard",
         query: "Zeig mir das teuerste Snowboard aus deinem Sortiment.",
+        variantQueries: [
+          "Was ist dein teuerstes Snowboard?",
+          "Zeig mir das Premium-Modell mit dem höchsten Preis.",
+        ],
         expected: {
           minCount: 1,
           minPrice: 2000,
@@ -496,6 +587,10 @@ async function main() {
         title: "Hundezubehör",
         query:
           "Ich suche etwas für meinen Hund – am besten einen Napf oder etwas für Futter.",
+        variantQueries: [
+          "Hast du Hundezubehör wie Näpfe oder Futterbehälter?",
+          "Ich brauche etwas für meinen Vierbeiner, am besten für Futter oder Wasser.",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "haustier",
@@ -505,6 +600,10 @@ async function main() {
         id: "S8",
         title: "Günstiges Duschgel unter 10 Euro",
         query: "Zeig mir bitte ein günstiges Duschgel unter 10 Euro.",
+        variantQueries: [
+          "Hast du ein preiswertes Duschgel bis 10 €?",
+          "Ich suche ein günstiges Duschgel, maximal 10 Euro.",
+        ],
         expected: {
           minCount: 1,
           maxPrice: 10,
@@ -517,6 +616,10 @@ async function main() {
           "Gesichtscreme für trockene Haut – eher hochwertig (20–30 €)",
         query:
           "Ich suche eine hochwertige Gesichtscreme für trockene Haut, so um die 20 bis 30 Euro.",
+        variantQueries: [
+          "Zeig mir bitte eine gute Gesichtscreme für trockene Haut zwischen 20 und 30 Euro.",
+          "Ich brauche eine qualitativ hochwertige Creme für trockene Haut, Preisbereich 20-30 €.",
+        ],
         expected: {
           minCount: 1,
           minPrice: 20,
@@ -528,6 +631,10 @@ async function main() {
         id: "S10",
         title: "Garten-Produkte unter 20 Euro",
         query: "Hast du etwas für den Garten unter 20 Euro?",
+        variantQueries: [
+          "Zeig mir bitte Gartenartikel bis 20 Euro.",
+          "Ich suche etwas für meinen Garten, maximal 20 €.",
+        ],
         expected: {
           minCount: 1,
           maxPrice: 20,
@@ -539,6 +646,10 @@ async function main() {
         title: "Geschenk für Heimwerker",
         query:
           "Ich brauche ein Geschenk für einen Heimwerker – irgendwas mit Werkzeug, aber nicht über 100 Euro.",
+        variantQueries: [
+          "Was kannst du mir für einen Heimwerker empfehlen? Etwas mit Werkzeug, bis 100 Euro.",
+          "Ich suche ein Geschenk für jemanden, der gerne bastelt. Werkzeug wäre gut, maximal 100 €.",
+        ],
         expected: {
           minCount: 1,
           maxPrice: 100,
@@ -548,6 +659,10 @@ async function main() {
         id: "S12",
         title: "Erklärung zur Anwendung von Snowboard-Wachs",
         query: "Erklär mir bitte, wie ich Snowboard-Wachs richtig benutze.",
+        variantQueries: [
+          "Wie wende ich Snowboard-Wachs korrekt an?",
+          "Kannst du mir erklären, wie man Snowboardwachs verwendet?",
+        ],
         expected: {
           expectExplanationMode: true,
         },
@@ -556,6 +671,10 @@ async function main() {
         id: "S13",
         title: "Budget-Only Anfrage mit Shampoo",
         query: "Mein Budget für Shampoo liegt bei 15 Euro. Was hast du da?",
+        variantQueries: [
+          "Ich habe 15 Euro für Shampoo zur Verfügung. Was kannst du mir zeigen?",
+          "Was für Shampoos hast du bis 15 Euro?",
+        ],
         expected: {
           minCount: 1,
           maxPrice: 15,
@@ -565,6 +684,10 @@ async function main() {
         id: "S14",
         title: "Unbekannter Begriff + Budget",
         query: "Zeig mir bitte Produkte für XY-9000 unter 50 Euro.",
+        variantQueries: [
+          "Hast du etwas für XY-9000 bis 50 Euro?",
+          "Ich suche XY-9000, maximal 50 €.",
+        ],
         expected: {
           expectAiTrigger: true,
         },
@@ -574,6 +697,10 @@ async function main() {
         title: "Snowboard-Bindungen für Einsteiger",
         query:
           "Ich suche günstige Snowboard-Bindungen für Einsteiger.",
+        variantQueries: [
+          "Zeig mir bitte preiswerte Bindungen für Snowboard-Anfänger.",
+          "Hast du günstige Snowboard-Bindungen für Einsteiger?",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "snowboard",
@@ -583,6 +710,10 @@ async function main() {
         id: "S16",
         title: "Fressnapf (unbekannter Begriff)",
         query: "Hast du Näpfe wie bei Fressnapf für meinen Hund?",
+        variantQueries: [
+          "Ich suche Hundebowls wie bei Fressnapf.",
+          "Hast du Fressnapf-ähnliche Näpfe für Hunde?",
+        ],
         expected: {
           minCount: 0,
           expectAiTrigger: true,
@@ -592,6 +723,10 @@ async function main() {
         id: "S17",
         title: "Wax ohne Kategorie, einfache Produktsuche",
         query: "Ich suche ein gutes Wax für meine Haare.",
+        variantQueries: [
+          "Zeig mir bitte ein gutes Haare-Wachs.",
+          "Hast du ein qualitatives Wax für die Haare?",
+        ],
         expected: {
           minCount: 1,
         },
@@ -600,6 +735,10 @@ async function main() {
         id: "S18",
         title: "Wax-Erklärung mit vorhandener Beschreibung",
         query: "Wie wende ich dieses Wax am besten an?",
+        variantQueries: [
+          "Kannst du mir erklären, wie ich dieses Wax richtig verwende?",
+          "Wie benutze ich dieses Wax korrekt?",
+        ],
         expected: {
           expectExplanationMode: true,
           expectAiTrigger: false,
@@ -609,6 +748,10 @@ async function main() {
         id: "S19",
         title: "Wax-Erklärung ohne Beschreibung",
         query: "Wie genau funktioniert dieses Wax?",
+        variantQueries: [
+          "Erklär mir bitte, wie dieses Wax funktioniert.",
+          "Wie wird dieses Wax angewendet?",
+        ],
         expected: {
           expectExplanationMode: true,
           expectAiTrigger: false,
@@ -619,6 +762,10 @@ async function main() {
         title: "Mischsatz Fressnapf + Budget",
         query:
           "Ich brauche etwas für meinen Hund, am liebsten wie bei Fressnapf, aber es soll unter 20 Euro bleiben.",
+        variantQueries: [
+          "Hast du Fressnapf-ähnliche Produkte für Hunde bis 20 Euro?",
+          "Ich suche etwas für meinen Hund wie bei Fressnapf, maximal 20 €.",
+        ],
         expected: {
           minCount: 0,
           maxPrice: 20,
@@ -629,6 +776,10 @@ async function main() {
         id: "S21",
         title: "Komplett unbekannter Begriff",
         query: "Hast du etwas mit 'Xyloklum'?",
+        variantQueries: [
+          "Zeig mir bitte Xyloklum-Produkte.",
+          "Ich suche etwas mit Xyloklum.",
+        ],
         expected: {
           minCount: 0,
           expectAiTrigger: true,
@@ -639,6 +790,10 @@ async function main() {
         title: "Snowboard-Wachs korrekt",
         query:
           "Ich brauche Wax für mein Snowboard, damit es schneller wird. Was empfiehlst du?",
+        variantQueries: [
+          "Welches Wachs empfiehlst du für mein Snowboard?",
+          "Hast du Snowboardwachs zum Belag pflegen?",
+        ],
         expected: {
           minCount: 1,
         },
@@ -647,6 +802,10 @@ async function main() {
         id: "S23",
         title: "Wax für Haare – kein Haarwachs im Shop",
         query: "Ich suche ein gutes Wax für meine Haare. Hast du sowas?",
+        variantQueries: [
+          "Hast du Haare-Wachs?",
+          "Zeig mir bitte Wax für die Haare.",
+        ],
         expected: {
           minCount: 0,
         },
@@ -656,6 +815,10 @@ async function main() {
         title: "Mischsatz – NICHT Haare, sondern Snowboard",
         query:
           "Ich brauche Wax – aber NICHT für meine Haare, sondern für mein Snowboard.",
+        variantQueries: [
+          "Ich suche Wachs, nicht für Haare, sondern für mein Snowboard.",
+          "Hast du Wax für Snowboards? Nicht für Haare!",
+        ],
         expected: {
           minCount: 1,
         },
@@ -665,6 +828,10 @@ async function main() {
         title:
           "Fressnapf – Produkt vorhanden, aber ohne 'Fressnapf' im Titel",
         query: "Ich suche einen Fressnapf für meinen Hund.",
+        variantQueries: [
+          "Hast du Fressnapf-Produkte für Hunde?",
+          "Ich brauche einen Fressnapf-Napf für meinen Vierbeiner.",
+        ],
         expected: {
           minCount: 0,
           expectAiTrigger: true,
@@ -674,6 +841,10 @@ async function main() {
         id: "S26",
         title: "Kein Match – ehrliche Antwort (Haarwax mit Kokosduft)",
         query: "Hast du Wax für meine Haare mit Kokosduft?",
+        variantQueries: [
+          "Ich suche Haare-Wachs mit Kokosduft.",
+          "Zeig mir bitte Wax für Haare, das nach Kokos riecht.",
+        ],
         expected: {
           minCount: 0,
         },
@@ -686,6 +857,10 @@ async function main() {
         id: "A1",
         title: "Snowboard + Budget (Kontext)",
         query: "Mein Budget ist 1000 Euro.",
+        variantQueries: [
+          "Ich habe 1000 Euro zur Verfügung.",
+          "Was kostet maximal 1000 Euro?",
+        ],
         context: { activeCategorySlug: "snowboard" },
         expected: {
           minCount: 1,
@@ -697,6 +872,10 @@ async function main() {
         id: "A2",
         title: "Haustier + Budget (Kontext)",
         query: "Ich möchte so um die 50 Euro ausgeben.",
+        variantQueries: [
+          "Mein Budget liegt bei etwa 50 Euro.",
+          "Ich habe ungefähr 50 € zur Verfügung.",
+        ],
         context: { activeCategorySlug: "haustier" },
         expected: {
           minCount: 1,
@@ -708,6 +887,10 @@ async function main() {
         id: "B1",
         title: "Haustier → Premium (Kontext)",
         query: "Zeig mir Premium.",
+        variantQueries: [
+          "Ich möchte die Premium-Variante sehen.",
+          "Zeig mir bitte die hochwertigsten Produkte.",
+        ],
         context: { activeCategorySlug: "haustier" },
         expected: {
           minCount: 1,
@@ -719,6 +902,10 @@ async function main() {
         id: "B2",
         title: "Snowboards → günstigste (Kontext)",
         query: "Zeig mir die günstigsten.",
+        variantQueries: [
+          "Was sind die preiswertesten?",
+          "Zeig mir bitte die billigsten Produkte.",
+        ],
         context: { activeCategorySlug: "snowboard" },
         expected: {
           minCount: 1,
@@ -730,6 +917,10 @@ async function main() {
         id: "C1",
         title: "Global 'teuersten Produkte'",
         query: "Zeige mir die teuersten Produkte.",
+        variantQueries: [
+          "Was sind deine teuersten Artikel?",
+          "Zeig mir die Premium-Produkte mit dem höchsten Preis.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "premium",
@@ -739,6 +930,10 @@ async function main() {
         id: "D1",
         title: "Parfüm → Start",
         query: "Zeige mir Parfüm.",
+        variantQueries: [
+          "Ich suche Parfum.",
+          "Hast du Duftstoffe oder Parfüms?",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "perfume",
@@ -748,6 +943,10 @@ async function main() {
         id: "D2",
         title: "Parfüm → Budget (Kontext)",
         query: "Ich habe nur 50 Euro.",
+        variantQueries: [
+          "Mein Budget liegt bei 50 Euro.",
+          "Ich kann maximal 50 € ausgeben.",
+        ],
         context: { activeCategorySlug: "perfume" },
         expected: {
           minCount: 1,
@@ -759,6 +958,10 @@ async function main() {
         id: "D3",
         title: "Parfüm → Premium (Kontext)",
         query: "Zeige mir Premium.",
+        variantQueries: [
+          "Ich möchte die Premium-Variante sehen.",
+          "Zeig mir bitte die hochwertigsten Parfüms.",
+        ],
         context: { activeCategorySlug: "perfume" },
         expected: {
           minCount: 1,
@@ -770,6 +973,10 @@ async function main() {
         id: "D4",
         title: "Snowboard → Start",
         query: "Zeig mir Snowboards.",
+        variantQueries: [
+          "Ich suche Snowboards.",
+          "Hast du Boards zum Snowboarden?",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "snowboard",
@@ -779,6 +986,10 @@ async function main() {
         id: "D5",
         title: "Snowboard → Budget (Kontext)",
         query: "Mein Budget liegt bei 1000 Euro.",
+        variantQueries: [
+          "Ich habe 1000 Euro zur Verfügung.",
+          "Was kostet maximal 1000 Euro?",
+        ],
         context: { activeCategorySlug: "snowboard" },
         expected: {
           minCount: 1,
@@ -790,6 +1001,10 @@ async function main() {
         id: "D6",
         title: "Snowboard → Premium (Kontext)",
         query: "Zeig mir Premium-Produkte.",
+        variantQueries: [
+          "Ich möchte die Premium-Variante sehen.",
+          "Zeig mir bitte die hochwertigsten Snowboards.",
+        ],
         context: { activeCategorySlug: "snowboard" },
         expected: {
           minCount: 1,
@@ -801,6 +1016,10 @@ async function main() {
         id: "D7",
         title: "Haushalt → Start",
         query: "Zeige mir etwas für den Haushalt.",
+        variantQueries: [
+          "Ich suche Haushaltsartikel.",
+          "Hast du etwas für den Haushalt?",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "haushalt",
@@ -810,11 +1029,17 @@ async function main() {
         id: "D8",
         title: "Haushalt → Budget (Kontext)",
         query: "Ich möchte nicht mehr als 30 Euro ausgeben.",
+        variantQueries: [
+          "Mein Budget liegt bei maximal 30 Euro.",
+          "Ich kann höchstens 30 € ausgeben.",
+        ],
         context: { activeCategorySlug: "haushalt" },
         expected: {
           minCount: 1,
-          maxPrice: 30,
           categorySlug: "haushalt",
+          expectNoMatchPriceRange: true,
+          // D8 Budget-Mismatch-Fallback: Zeigt Produkte aus Kategorie trotz Budget-Mismatch
+          // maxPrice-Prüfung entfernt, da Produkte über Budget gezeigt werden sollen
         },
       },
 
@@ -826,6 +1051,10 @@ async function main() {
         id: "E1",
         title: "Unbekannter Fantasiebegriff 'Zephyron'",
         query: "Hast du etwas mit 'Zephyron'?",
+        variantQueries: [
+          "Zeig mir bitte Zephyron-Produkte.",
+          "Ich suche etwas mit Zephyron.",
+        ],
         expected: {
           minCount: 0,
           expectAiTrigger: true,
@@ -835,6 +1064,10 @@ async function main() {
         id: "E2",
         title: "Unbekannter Begriff + Kategorie",
         query: "Zeige mir Zephyron-Parfüm.",
+        variantQueries: [
+          "Hast du Zephyron-Parfum?",
+          "Ich suche Zephyron-Duft.",
+        ],
         expected: {
           expectAiTrigger: true,
         },
@@ -843,6 +1076,10 @@ async function main() {
         id: "E3",
         title: "Unbekannter Begriff + Budget",
         query: "Ich suche Zephyron unter 50 Euro.",
+        variantQueries: [
+          "Hast du Zephyron bis 50 €?",
+          "Zeig mir Zephyron, maximal 50 Euro.",
+        ],
         expected: {
           expectAiTrigger: true,
         },
@@ -851,6 +1088,10 @@ async function main() {
         id: "E4",
         title: "Unbekannter Markenname 'Luxuria'",
         query: "Hast du Produkte von 'Luxuria'?",
+        variantQueries: [
+          "Zeig mir bitte Luxuria-Artikel.",
+          "Ich suche Produkte der Marke Luxuria.",
+        ],
         expected: {
           expectAiTrigger: true,
         },
@@ -859,6 +1100,10 @@ async function main() {
         id: "E5",
         title: "Unbekannter Begriff mit Kontext Parfüm",
         query: "Zeige mir Zephyron.",
+        variantQueries: [
+          "Ich suche Zephyron.",
+          "Hast du Zephyron?",
+        ],
         context: { activeCategorySlug: "perfume" },
         expected: {
           expectAiTrigger: true,
@@ -868,6 +1113,10 @@ async function main() {
         id: "F1",
         title: "Premium-Produkte global",
         query: "Zeige mir Premium-Produkte.",
+        variantQueries: [
+          "Ich möchte die Premium-Variante sehen.",
+          "Zeig mir bitte die hochwertigsten Produkte.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "premium",
@@ -877,6 +1126,10 @@ async function main() {
         id: "F2",
         title: "Premium-Parfüm (explizit)",
         query: "Zeige mir Premium-Parfüm.",
+        variantQueries: [
+          "Ich suche hochwertiges Parfum.",
+          "Zeig mir bitte Premium-Duft.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "premium",
@@ -887,6 +1140,10 @@ async function main() {
         id: "F3",
         title: "Premium-Parfüm mit Kontext",
         query: "Zeige mir Premium.",
+        variantQueries: [
+          "Ich möchte die Premium-Variante sehen.",
+          "Zeig mir bitte die hochwertigsten Parfüms.",
+        ],
         context: { activeCategorySlug: "perfume" },
         expected: {
           minCount: 1,
@@ -898,6 +1155,10 @@ async function main() {
         id: "F4",
         title: "Teuerstes Produkt global",
         query: "Zeige mir das teuerste Produkt.",
+        variantQueries: [
+          "Was ist dein teuerstes Produkt?",
+          "Zeig mir bitte das Premium-Modell mit dem höchsten Preis.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "premium",
@@ -907,6 +1168,10 @@ async function main() {
         id: "F5",
         title: "Günstigstes Produkt global",
         query: "Zeige mir das günstigste Produkt.",
+        variantQueries: [
+          "Was ist dein billigstes Produkt?",
+          "Zeig mir bitte das preiswerteste, das du hast.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "bargain",
@@ -916,6 +1181,10 @@ async function main() {
         id: "F6",
         title: "Teuerstes Snowboard",
         query: "Zeige mir das teuerste Snowboard.",
+        variantQueries: [
+          "Was ist dein teuerstes Snowboard?",
+          "Zeig mir bitte das Premium-Board mit dem höchsten Preis.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "premium",
@@ -926,6 +1195,10 @@ async function main() {
         id: "F7",
         title: "Günstigstes Parfüm",
         query: "Zeige mir das günstigste Parfüm.",
+        variantQueries: [
+          "Was ist dein billigstes Parfum?",
+          "Zeig mir bitte das preiswerteste Parfüm.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "bargain",
@@ -936,6 +1209,10 @@ async function main() {
         id: "G1",
         title: "Budget über 100 Euro",
         query: "Ich möchte über 100 Euro ausgeben.",
+        variantQueries: [
+          "Ich suche Produkte ab 100 Euro aufwärts.",
+          "Zeig mir bitte Artikel, die mindestens 100 Euro kosten.",
+        ],
         expected: {
           minCount: 1,
           minPrice: 100,
@@ -945,6 +1222,10 @@ async function main() {
         id: "G2",
         title: "Budget zwischen 50 und 100 Euro",
         query: "Mein Budget liegt zwischen 50 und 100 Euro.",
+        variantQueries: [
+          "Ich suche etwas im Preisbereich von 50 bis 100 Euro.",
+          "Was kostet zwischen 50 und 100 €?",
+        ],
         expected: {
           minCount: 1,
           minPrice: 50,
@@ -955,6 +1236,10 @@ async function main() {
         id: "G3",
         title: "Budget unter 20 Euro",
         query: "Ich habe nur 20 Euro.",
+        variantQueries: [
+          "Mein Budget liegt bei 20 Euro.",
+          "Ich kann maximal 20 € ausgeben.",
+        ],
         expected: {
           minCount: 0,
           expectAiTrigger: true,
@@ -964,6 +1249,10 @@ async function main() {
         id: "G4",
         title: "Budget mit Kontext Parfüm",
         query: "Ich habe nur 50 Euro.",
+        variantQueries: [
+          "Mein Budget liegt bei 50 Euro.",
+          "Ich kann maximal 50 € ausgeben.",
+        ],
         context: { activeCategorySlug: "perfume" },
         expected: {
           minCount: 1,
@@ -975,6 +1264,10 @@ async function main() {
         id: "G5",
         title: "Budget mit Kontext Snowboard",
         query: "Mein Budget ist 800 Euro.",
+        variantQueries: [
+          "Ich habe 800 Euro zur Verfügung.",
+          "Was kostet maximal 800 Euro?",
+        ],
         context: { activeCategorySlug: "snowboard" },
         expected: {
           minCount: 1,
@@ -986,6 +1279,10 @@ async function main() {
         id: "H1",
         title: "Kosmetik-Produkte allgemein",
         query: "Zeige mir Kosmetik-Produkte.",
+        variantQueries: [
+          "Ich suche Kosmetik.",
+          "Hast du Beauty-Produkte?",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "kosmetik",
@@ -995,6 +1292,10 @@ async function main() {
         id: "H2",
         title: "Garten-Produkte allgemein",
         query: "Ich suche etwas für den Garten.",
+        variantQueries: [
+          "Zeig mir bitte Gartenartikel.",
+          "Hast du etwas für meinen Garten?",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "garten",
@@ -1004,6 +1305,10 @@ async function main() {
         id: "H3",
         title: "Werkzeug-Produkte",
         query: "Zeige mir Werkzeug.",
+        variantQueries: [
+          "Ich suche Werkzeuge.",
+          "Hast du Tools oder Werkzeug?",
+        ],
         expected: {
           minCount: 1,
         },
@@ -1012,6 +1317,10 @@ async function main() {
         id: "H4",
         title: "Fashion-Produkte",
         query: "Ich suche Kleidung.",
+        variantQueries: [
+          "Zeig mir bitte Mode.",
+          "Hast du Bekleidung?",
+        ],
         expected: {
           minCount: 0,
         },
@@ -1020,6 +1329,10 @@ async function main() {
         id: "H5",
         title: "Elektronik-Produkte",
         query: "Hast du Elektronik?",
+        variantQueries: [
+          "Zeig mir bitte Elektronik-Artikel.",
+          "Ich suche elektronische Geräte.",
+        ],
         expected: {
           minCount: 0,
         },
@@ -1028,6 +1341,10 @@ async function main() {
         id: "I1",
         title: "Premium-Parfüm unter 100 Euro",
         query: "Zeige mir Premium-Parfüm unter 100 Euro.",
+        variantQueries: [
+          "Ich suche hochwertiges Parfum bis 100 €.",
+          "Zeig mir Premium-Duft, maximal 100 Euro.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "premium",
@@ -1039,6 +1356,10 @@ async function main() {
         id: "I2",
         title: "Günstiges Snowboard über 500 Euro",
         query: "Zeige mir ein günstiges Snowboard über 500 Euro.",
+        variantQueries: [
+          "Ich suche ein preiswertes Board ab 500 Euro.",
+          "Zeig mir bitte ein günstiges Snowboard, mindestens 500 €.",
+        ],
         expected: {
           minCount: 1,
           minPrice: 500,
@@ -1049,6 +1370,10 @@ async function main() {
         id: "I3",
         title: "Geschenk für Hund unter 30 Euro",
         query: "Ich brauche ein Geschenk für meinen Hund unter 30 Euro.",
+        variantQueries: [
+          "Was kannst du mir für meinen Hund empfehlen? Bis 30 Euro.",
+          "Ich suche ein Geschenk für meinen Vierbeiner, maximal 30 €.",
+        ],
         expected: {
           minCount: 1,
           maxPrice: 30,
@@ -1059,6 +1384,10 @@ async function main() {
         id: "I4",
         title: "Premium-Haustierprodukt",
         query: "Zeige mir Premium-Produkte für Haustiere.",
+        variantQueries: [
+          "Ich suche hochwertige Haustierprodukte.",
+          "Zeig mir bitte Premium-Artikel für Tiere.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "premium",
@@ -1069,6 +1398,10 @@ async function main() {
         id: "I5",
         title: "Teuerstes Parfüm unter 200 Euro",
         query: "Zeige mir das teuerste Parfüm unter 200 Euro.",
+        variantQueries: [
+          "Was ist dein teuerstes Parfum bis 200 €?",
+          "Zeig mir bitte das Premium-Parfüm mit dem höchsten Preis unter 200 Euro.",
+        ],
         expected: {
           minCount: 1,
           expectIntent: "premium",
@@ -1080,6 +1413,10 @@ async function main() {
         id: "J1",
         title: "Sehr hohes Budget",
         query: "Ich habe 10000 Euro zur Verfügung.",
+        variantQueries: [
+          "Mein Budget liegt bei 10000 Euro.",
+          "Ich kann bis zu 10000 € ausgeben.",
+        ],
         expected: {
           minCount: 0,
           // KEIN AI-Trigger: EFRO soll nach Kategorie fragen, statt zufällige Produkte zu raten
@@ -1090,6 +1427,10 @@ async function main() {
         id: "J2",
         title: "Sehr niedriges Budget",
         query: "Ich habe nur 5 Euro.",
+        variantQueries: [
+          "Mein Budget liegt bei 5 Euro.",
+          "Ich kann maximal 5 € ausgeben.",
+        ],
         expected: {
           minCount: 0,
         },
@@ -1098,6 +1439,10 @@ async function main() {
         id: "J3",
         title: "Budget ohne Zahl",
         query: "Ich habe ein kleines Budget.",
+        variantQueries: [
+          "Mein Budget ist begrenzt.",
+          "Ich habe nicht viel Geld zur Verfügung.",
+        ],
         expected: {
           minCount: 0,
           // KEIN AI-Trigger: EFRO soll regelbasiert eine Rückfrage stellen
@@ -1108,6 +1453,10 @@ async function main() {
         id: "J4",
         title: "Leere Anfrage",
         query: "",
+        variantQueries: [
+          " ",
+          "   ",
+        ],
         expected: {
           minCount: 0,
         },
@@ -1116,6 +1465,10 @@ async function main() {
         id: "J5",
         title: "Nur Zahlen",
         query: "50",
+        variantQueries: [
+          "100",
+          "25",
+        ],
         expected: {
           minCount: 0,
         },
@@ -1128,6 +1481,10 @@ async function main() {
         id: "K1",
         title: "Wasserkocher – Basis",
         query: "Ich suche Wasserkocher.",
+        variantQueries: [
+          "Hast du Wasserkocher?",
+          "Zeig mir bitte Kocher für Wasser.",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "haushalt",
@@ -1137,6 +1494,10 @@ async function main() {
         id: "K2",
         title: "Günstige Wasserkocher unter 25 Euro",
         query: "Zeig mir bitte die günstigsten Wasserkocher unter 25 Euro.",
+        variantQueries: [
+          "Ich suche preiswerte Wasserkocher bis 25 €.",
+          "Hast du günstige Kocher, maximal 25 Euro?",
+        ],
         expected: {
           minCount: 1,
           expectNoMatchPriceRange: true,
@@ -1147,6 +1508,10 @@ async function main() {
         id: "K3",
         title: "Premium-Wasserkocher ab 60 Euro",
         query: "Hast du auch Premium-Wasserkocher ab 60 Euro?",
+        variantQueries: [
+          "Zeig mir hochwertige Wasserkocher ab 60 €.",
+          "Ich suche Premium-Kocher, mindestens 60 Euro.",
+        ],
         expected: {
           minCount: 1,
           minPrice: 60,
@@ -1157,6 +1522,10 @@ async function main() {
         id: "K4",
         title: "Wasserkocher unrealistisches Budget (5 €)",
         query: "Ich möchte einen Wasserkocher für maximal 5 Euro.",
+        variantQueries: [
+          "Hast du Wasserkocher bis 5 €?",
+          "Ich suche einen Kocher, höchstens 5 Euro.",
+        ],
         expected: {
           minCount: 1,
           expectNoMatchPriceRange: true,
@@ -1167,6 +1536,10 @@ async function main() {
         id: "K5",
         title: "Smartphone – Basis",
         query: "Ich suche ein Smartphone.",
+        variantQueries: [
+          "Hast du Smartphones?",
+          "Zeig mir bitte Handys.",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "elektronik",
@@ -1176,6 +1549,10 @@ async function main() {
         id: "K6",
         title: "Smartphone Alpha exakter Name",
         query: "Ich suche das Smartphone Alpha 128GB Schwarz.",
+        variantQueries: [
+          "Hast du das Smartphone Alpha 128GB in Schwarz?",
+          "Zeig mir bitte das Alpha 128GB Schwarz.",
+        ],
         expected: {
           minCount: 1,
           maxCount: 2,
@@ -1186,6 +1563,10 @@ async function main() {
         id: "K7",
         title: "Smartphone – Attribute (Farbe, Zoll) mit Kontext",
         query: "Es soll die Farbe schwarz haben, modern mit 6,5 Zoll Display.",
+        variantQueries: [
+          "Ich möchte ein schwarzes Smartphone mit 6,5 Zoll.",
+          "Es sollte schwarz sein und ein 6,5 Zoll Display haben.",
+        ],
         context: { activeCategorySlug: "elektronik" },
         expected: {
           minCount: 1,
@@ -1196,6 +1577,10 @@ async function main() {
         id: "K8",
         title: "Smartphone – Budget-Filter im Kontext",
         query: "Zeig mir davon bitte die Modelle zwischen 200 und 400 Euro.",
+        variantQueries: [
+          "Ich suche Smartphones im Preisbereich 200-400 Euro.",
+          "Was kostet zwischen 200 und 400 €?",
+        ],
         context: { activeCategorySlug: "elektronik" },
         expected: {
           minCount: 1,
@@ -1207,6 +1592,10 @@ async function main() {
         id: "K9",
         title: "Teuerstes Smartphone im Shop",
         query: "Welches ist das teuerste Smartphone, das du im Shop hast?",
+        variantQueries: [
+          "Was ist dein teuerstes Handy?",
+          "Zeig mir bitte das Premium-Smartphone mit dem höchsten Preis.",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "elektronik",
@@ -1216,6 +1605,10 @@ async function main() {
         id: "K10",
         title: "Mode – Slim Fit Jeans",
         query: "Ich suche eine blaue Slim Fit Jeans.",
+        variantQueries: [
+          "Hast du blaue Slim-Fit-Jeans?",
+          "Zeig mir bitte eine Jeans in Blau, Slim Fit.",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "mode",
@@ -1225,6 +1618,10 @@ async function main() {
         id: "K11",
         title: "Mode – genau ein Produkt (keine Fallbacks)",
         query: "Zeig mir nur die Slim Fit Jeans Blau.",
+        variantQueries: [
+          "Ich möchte nur die blaue Slim-Fit-Jeans sehen.",
+          "Zeig mir ausschließlich die Slim Fit Jeans in Blau.",
+        ],
         expected: {
           minCount: 1,
           maxCount: 1,
@@ -1235,6 +1632,10 @@ async function main() {
         id: "K12",
         title: "Mode – günstigste Jeans",
         query: "Welche ist die günstigste Jeans, die du hast?",
+        variantQueries: [
+          "Was ist deine billigste Jeans?",
+          "Zeig mir bitte die preiswerteste Jeans.",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "mode",
@@ -1244,6 +1645,10 @@ async function main() {
         id: "K13",
         title: "Mode – unrealistisches Budget (unter 6 €)",
         query: "Hast du eine Jeans für unter 6 Euro?",
+        variantQueries: [
+          "Ich suche eine Jeans bis 6 €.",
+          "Zeig mir bitte Jeans, maximal 6 Euro.",
+        ],
         expected: {
           minCount: 1,
           expectNoMatchPriceRange: true,
@@ -1254,6 +1659,10 @@ async function main() {
         id: "K14",
         title: "Kontextwechsel Mode → Elektronik",
         query: "Ich suche eine schwarze Jeans.",
+        variantQueries: [
+          "Hast du schwarze Jeans?",
+          "Zeig mir bitte eine Jeans in Schwarz.",
+        ],
         expected: {
           minCount: 1,
           categorySlug: "mode",
@@ -1263,6 +1672,10 @@ async function main() {
         id: "K15",
         title: "Kontextwechsel Mode → Elektronik (explizit)",
         query: "Okay, zeig mir statt Jeans lieber ein Smartphone unter 300 Euro.",
+        variantQueries: [
+          "Lass uns das ändern: Ich möchte ein Handy bis 300 €.",
+          "Stattdessen suche ich ein Smartphone, maximal 300 Euro.",
+        ],
         context: { activeCategorySlug: "mode" },
         expected: {
           minCount: 1,
@@ -1274,6 +1687,10 @@ async function main() {
         id: "K16",
         title: "Fake-Smartphone nicht im Katalog",
         query: "Ich suche das Smartphone Alpha ULTRA PRO 1TB mit 7 Zoll.",
+        variantQueries: [
+          "Hast du das Alpha ULTRA PRO 1TB mit 7 Zoll?",
+          "Zeig mir bitte das Smartphone Alpha ULTRA PRO 1TB 7 Zoll.",
+        ],
         expected: {
           minCount: 0,
           expectAiTrigger: true,
@@ -1283,6 +1700,10 @@ async function main() {
         id: "K17",
         title: "Fake-Wasserkocher nicht im Katalog",
         query: "Hast du den Wasserkocher 'HyperBoil ZX-9000'?",
+        variantQueries: [
+          "Ich suche den HyperBoil ZX-9000 Wasserkocher.",
+          "Zeig mir bitte den Wasserkocher HyperBoil ZX-9000.",
+        ],
         expected: {
           minCount: 0,
           expectAiTrigger: true,
@@ -1297,6 +1718,10 @@ async function main() {
         id: "PROFI-01",
         title: "Mehrdeutige Anfrage: Board",
         query: "Ich will ein Board.",
+        variantQueries: [
+          "Ich suche ein Board.",
+          "Hast du Boards?",
+        ],
         note: "Mehrdeutige Anfrage, Avatar soll nachfragen.",
         expected: {
           expectedPrimaryAction: "ASK_CLARIFICATION",
@@ -1307,6 +1732,10 @@ async function main() {
         id: "PROFI-02",
         title: "Low-Budget: Günstigstes Snowboard",
         query: "Zeig mir das günstigste Snowboard.",
+        variantQueries: [
+          "Was ist dein billigstes Snowboard?",
+          "Zeig mir bitte das preiswerteste Board.",
+        ],
         note: "Low-Budget-Anfrage, Avatar soll günstig + Upsell denken.",
         expected: {
           expectedPrimaryAction: "SHOW_PRODUCTS",
@@ -1317,6 +1746,10 @@ async function main() {
         id: "PROFI-03",
         title: "Kauf-Intent: Cross-Selling",
         query: "Ich kaufe das Snowboard, was brauche ich noch dazu?",
+        variantQueries: [
+          "Wenn ich dieses Snowboard nehme, was sollte ich zusätzlich dazukaufen?",
+          "Gibt es Zubehör, das du mir zu diesem Board empfehlen würdest?",
+        ],
         note: "Kauf-Intent, Avatar soll Cross-Selling andeuten.",
         expected: {
           expectedPrimaryAction: "OFFER_CROSS_SELL",
@@ -1327,6 +1760,10 @@ async function main() {
         id: "PROFI-04",
         title: "Lieferzeit-Frage",
         query: "Ist das morgen da, wenn ich heute bestelle?",
+        variantQueries: [
+          "Wie schnell kommt das an, wenn ich jetzt bestelle?",
+          "Kann das bis morgen geliefert werden?",
+        ],
         note: "Lieferzeit-Frage, Avatar soll Lieferinfo-Modus wählen.",
         expected: {
           expectedPrimaryAction: "SHOW_DELIVERY_INFO",
@@ -1337,6 +1774,10 @@ async function main() {
         id: "PROFI-05",
         title: "Rückgabe/Garantie-Frage",
         query: "Was ist, wenn es mir nicht passt?",
+        variantQueries: [
+          "Kann ich das zurückschicken, falls es nicht gefällt?",
+          "Was passiert, wenn es mir nicht gefällt?",
+        ],
         note: "Rückgabe/Garantie-Frage.",
         expected: {
           expectedPrimaryAction: "SHOW_RETURNS_INFO",
@@ -1347,6 +1788,10 @@ async function main() {
         id: "PROFI-06",
         title: "Preis-Einwand",
         query: "Das ist mir zu teuer.",
+        variantQueries: [
+          "Der Preis ist mir zu hoch.",
+          "Ich finde das zu teuer.",
+        ],
         note: "Preis-Einwand, Avatar soll Einwand behandeln.",
         expected: {
           expectedPrimaryAction: "HANDLE_OBJECTION",
@@ -1357,6 +1802,10 @@ async function main() {
         id: "PROFI-07",
         title: "Budget-Mismatch: Sehr niedriges Budget",
         query: "Ich suche ein komplettes Snowboard-Set unter 100 Euro.",
+        variantQueries: [
+          "Hast du Snowboard-Sets bis 100 €?",
+          "Ich brauche ein komplettes Set, maximal 100 Euro.",
+        ],
         note: "Sehr niedriges Budget, wahrscheinlich kein Treffer.",
         expected: {
           expectedPrimaryAction: "EXPLAIN_BUDGET_MISMATCH",
@@ -1367,6 +1816,10 @@ async function main() {
         id: "PROFI-08",
         title: "Vage Anfrage: Nachfrage nötig",
         query: "Ich will was richtig Cooles für meinen Winterurlaub, aber ich weiß nicht genau was.",
+        variantQueries: [
+          "Ich brauche ein richtig cooles Board für den nächsten Trip.",
+          "Hast du etwas, womit ich im Urlaub Eindruck mache?",
+        ],
         note: "Vage, emotionale Anfrage, Avatar soll nachfragen.",
         expected: {
           expectedPrimaryAction: "ASK_CLARIFICATION",
@@ -1374,6 +1827,35 @@ async function main() {
         },
       },
     ];
+
+    // Expandiere Basis-Szenarien mit Varianten
+    const expandedTests: ScenarioTest[] = [];
+    for (const base of baseTests) {
+      // 1) Basisszenario immer mitnehmen
+      expandedTests.push(base);
+
+      // 2) Optionale Varianten erzeugen (falls vorhanden)
+      if (base.variantQueries && base.variantQueries.length > 0) {
+        let variantIndex = 1;
+
+        for (const q of base.variantQueries) {
+          const idSuffix = `v${variantIndex}`;
+          expandedTests.push({
+            ...base,
+            id: `${base.id}${idSuffix}`,
+            query: q,
+            // keine rekursive Verschachtelung:
+            variantQueries: undefined,
+            note: base.note
+              ? `${base.note} [Variant ${variantIndex}]`
+              : `Variant ${variantIndex} of ${base.id}`,
+          });
+          variantIndex++;
+        }
+      }
+    }
+
+    const tests = expandedTests;
 
     const results: Array<{
       test: ScenarioTest;

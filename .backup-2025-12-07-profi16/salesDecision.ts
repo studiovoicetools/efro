@@ -291,78 +291,8 @@ export function computeSalesDecision(
   }
 
   // ============================================================
-  // REGEL 3: Budget-Konflikt (priceRangeNoMatch) - HOHE PRIORITÄT
+  // REGEL 3: Mehrdeutige Anfrage (Board, vage Beschreibungen)
   // ============================================================
-  // CLUSTER E FIX: PROFI-07v2 - Budget-Mismatch sehr niedrig → BUDGET_NO_MATCH statt LOW_BUDGET_WITH_UPSELL
-  // PROFI-07: "Snowboard-Set unter 100 Euro" → EXPLAIN_BUDGET_MISMATCH, BUDGET_NO_MATCH
-  // WICHTIG: Diese Regel muss VOR REGEL 5 (Low-Budget mit Upsell) geprüft werden,
-  // damit priceRangeNoMatch Priorität hat
-  // CLUSTER E FIX: Prüfe auch auf sehr niedriges Budget (z. B. unter 100 Euro für Snowboard)
-  // SCHRITT 3 FIX: Prüfe auch auf Budget-Mismatch mit Kategorie-Minimum (z. B. Snowboard-Set unter 100 Euro)
-  // WICHTIG: Bei priceRangeNoMatch = true UND real existierenden Produkten in der richtigen Kategorie
-  // → EXPLAIN_BUDGET_MISMATCH setzen (auch wenn candidates.length > 0, weil diese aus aboveBudget kommen)
-  const hasVeryLowBudget = userMaxPrice !== null && userMaxPrice < 100;
-  const hasBudgetMismatch = priceRangeNoMatch || (hasBudget && userMaxPrice !== null && userMaxPrice < 100 && candidates.length === 0);
-  
-  // CLUSTER E FIX: PROFI-07v2 - Auch wenn Produkte vorhanden sind, aber priceRangeNoMatch = true
-  // (z. B. Snowboard-Set unter 100 Euro, aber Produkte kosten mehr)
-  if (!primaryAction && (hasBudgetMismatch || (priceRangeNoMatch && effectiveCategorySlug && candidates.length > 0))) {
-    primaryAction = "EXPLAIN_BUDGET_MISMATCH";
-    notes.push("BUDGET_NO_MATCH");
-    // Optional: LOW_BUDGET_WITH_UPSELL hinzufügen, wenn aktiv auf höhere Preise hinweisen soll
-    if (candidates.length > 0 && userMaxPrice !== null && userMaxPrice < 100) {
-      notes.push("LOW_BUDGET_WITH_UPSELL");
-    }
-    debugSalesFlags.push("budget_no_match");
-  }
-
-  // ============================================================
-  // REGEL 4: Cross-Selling (Kauf-Intent) - VOR AMBIGUOUS_BOARD
-  // ============================================================
-  // CLUSTER E FIX: PROFI-03v2 - Cross-Selling → BUY_INTENT_CROSS_SELL_HINT statt AMBIGUOUS_BOARD
-  // PROFI-03: "Ich kaufe das Snowboard, was brauche ich noch dazu?" → OFFER_CROSS_SELL, BUY_INTENT_CROSS_SELL_HINT
-  // SCHRITT 3 FIX: Erweitere Cross-Sell-Erkennung für robustere Erkennung
-  const seemsBuyIntent =
-    /\b(kaufe|kaufen|nehme|nehmen|bestelle|bestellen|in den warenkorb|was brauche ich noch|was brauch ich noch|was sollte ich zusätzlich|was sollte ich dazukaufen|was brauche ich zusätzlich|gibt es zubehör|empfehlen würdest)\b/.test(normalized);
-
-  if (!primaryAction && candidates.length > 0 && seemsBuyIntent) {
-    primaryAction = "OFFER_CROSS_SELL";
-    notes.push("BUY_INTENT_CROSS_SELL_HINT");
-    debugSalesFlags.push("cross_sell_trigger");
-  }
-
-  // ============================================================
-  // REGEL 5: Low-Budget mit Upsell (günstigste Anfragen) - VOR AMBIGUOUS_BOARD
-  // ============================================================
-  // CLUSTER E FIX: PROFI-02v2 - Low-Budget: Günstigstes Snowboard → LOW_BUDGET_WITH_UPSELL statt AMBIGUOUS_BOARD
-  // PROFI-02: "Zeig mir das günstigste Snowboard." → SHOW_PRODUCTS, LOW_BUDGET_WITH_UPSELL
-  // WICHTIG: Diese Regel wird NUR angewendet, wenn KEIN priceRangeNoMatch vorliegt
-  const mentionsCheapest =
-    /\b(günstig(st)?|billig(st)?|das günstigste|preiswerteste)\b/.test(normalized);
-
-  const mentionsCheapBudget = /\b(unter|bis|maximal|max)\s+\d+/.test(normalized);
-  
-  // CLUSTER E FIX: Prüfe auf Snowboard-Kontext, um AMBIGUOUS_BOARD zu vermeiden
-  const hasSnowboardContext = 
-    normalized.includes("snowboard") ||
-    effectiveCategorySlug === "snowboard" ||
-    contextCategory === "snowboard";
-
-  // SCHRITT 3 FIX: Bei bargain-Intent + Produkte + kein Budget-Mismatch → LOW_BUDGET_WITH_UPSELL
-  if (!primaryAction && candidates.length > 0 && !priceRangeNoMatch) {
-    if (intent === "bargain" || mentionsCheapest || mentionsCheapBudget) {
-      primaryAction = "SHOW_PRODUCTS";
-      if (!notes.includes("LOW_BUDGET_WITH_UPSELL")) {
-        notes.push("LOW_BUDGET_WITH_UPSELL");
-      }
-      debugSalesFlags.push("low_budget_upsell");
-    }
-  }
-
-  // ============================================================
-  // REGEL 6: Mehrdeutige Anfrage (Board, vage Beschreibungen) - NACH anderen Signalen
-  // ============================================================
-  // CLUSTER E FIX: AMBIGUOUS_BOARD nur dann setzen, wenn KEIN klarer Snowboard-Kontext vorliegt
   // PROFI-01: "Ich will ein Board." → ASK_CLARIFICATION, AMBIGUOUS_BOARD
   // PROFI-08: "Ich will was richtig Cooles..." → ASK_CLARIFICATION, NO_PRODUCTS_FOUND
   // SCHRITT 4 FIX: PROFI-08v2: "Hast du etwas, womit ich im Urlaub Eindruck mache?" → ASK_CLARIFICATION, NO_PRODUCTS_FOUND
@@ -383,7 +313,7 @@ export function computeSalesDecision(
   // ob wir viele verschiedene Kategorien im Spiel haben (schwacher Kategorie-Fokus)
   const normalizedCategories = new Set(
     candidates
-      .map((p) => (p.category || "").toLowerCase().trim())
+      .map((p) => (p.category || "").trim().toLowerCase())
       .filter((c) => c.length > 0)
   );
   const hasWeakCategories =
@@ -395,14 +325,21 @@ export function computeSalesDecision(
     hasWeakCategories && 
     candidates.length > 0;
 
-  // CLUSTER E FIX: PROFI-08v1 - Vage Anfrage → NO_PRODUCTS_FOUND statt AMBIGUOUS_BOARD
-  // Prüfe zuerst auf vage Lifestyle-Anfrage (PROFI-08v1)
-  if (!primaryAction && isVeryVagueLifestyle) {
+  if (!primaryAction && mentionsBoardGeneric) {
+    primaryAction = "ASK_CLARIFICATION";
+    notes.push("AMBIGUOUS_BOARD");
+    debugSalesFlags.push("ambiguous_board_detected");
+  } else if (!primaryAction && isVagueQuery) {
+    // Vage Query, auch wenn Produkte gefunden wurden
+    primaryAction = "ASK_CLARIFICATION";
+    notes.push("NO_PRODUCTS_FOUND");
+    debugSalesFlags.push("vague_query");
+  } else if (!primaryAction && isVeryVagueLifestyle) {
     // SCHRITT 4 FIX: Vage Lifestyle-Anfrage → ASK_CLARIFICATION + NO_PRODUCTS_FOUND
     primaryAction = "ASK_CLARIFICATION";
     notes.push("NO_PRODUCTS_FOUND");
     debugSalesFlags.push("vague_lifestyle_query");
-    console.log("[EFRO SalesDecision] Vage Lifestyle-Anfrage erkannt (PROFI-08v1/v2)", {
+    console.log("[EFRO SalesDecision] Vage Lifestyle-Anfrage erkannt (PROFI-08v2)", {
       text: text.substring(0, 100),
       unknownTerms,
       hasNoBudget,
@@ -411,16 +348,47 @@ export function computeSalesDecision(
       effectiveCategorySlug,
       note: "ASK_CLARIFICATION + NO_PRODUCTS_FOUND gesetzt",
     });
-  } else if (!primaryAction && isVagueQuery) {
-    // Vage Query, auch wenn Produkte gefunden wurden
-    primaryAction = "ASK_CLARIFICATION";
-    notes.push("NO_PRODUCTS_FOUND");
-    debugSalesFlags.push("vague_query");
-  } else if (!primaryAction && mentionsBoardGeneric && !hasSnowboardContext) {
-    // CLUSTER E FIX: AMBIGUOUS_BOARD nur wenn KEIN Snowboard-Kontext
-    primaryAction = "ASK_CLARIFICATION";
-    notes.push("AMBIGUOUS_BOARD");
-    debugSalesFlags.push("ambiguous_board_detected");
+  }
+
+  // ============================================================
+  // REGEL 4: Budget-Konflikt (priceRangeNoMatch) - HOHE PRIORITÄT
+  // ============================================================
+  // PROFI-07: "Snowboard-Set unter 100 Euro" → EXPLAIN_BUDGET_MISMATCH, BUDGET_NO_MATCH
+  // WICHTIG: Diese Regel muss VOR REGEL 6 (Low-Budget mit Upsell) geprüft werden,
+  // damit priceRangeNoMatch Priorität hat
+  if (!primaryAction && hasBudget && priceRangeNoMatch && userMaxPrice !== null) {
+    primaryAction = "EXPLAIN_BUDGET_MISMATCH";
+    notes.push("BUDGET_NO_MATCH");
+    debugSalesFlags.push("budget_no_match");
+  }
+
+  // ============================================================
+  // REGEL 5: Cross-Selling (Kauf-Intent)
+  // ============================================================
+  // PROFI-03: "Ich kaufe das Snowboard, was brauche ich noch dazu?" → OFFER_CROSS_SELL, BUY_INTENT_CROSS_SELL_HINT
+  const seemsBuyIntent =
+    /\b(kaufe|kaufen|nehme|nehmen|bestelle|bestellen|in den warenkorb|was brauche ich noch|was brauch ich noch)\b/.test(normalized);
+
+  if (!primaryAction && candidates.length > 0 && seemsBuyIntent) {
+    primaryAction = "OFFER_CROSS_SELL";
+    notes.push("BUY_INTENT_CROSS_SELL_HINT");
+    debugSalesFlags.push("cross_sell_trigger");
+  }
+
+  // ============================================================
+  // REGEL 6: Low-Budget mit Upsell (günstigste Anfragen)
+  // ============================================================
+  // PROFI-02: "Zeig mir das günstigste Snowboard." → SHOW_PRODUCTS, LOW_BUDGET_WITH_UPSELL
+  // WICHTIG: Diese Regel wird NUR angewendet, wenn KEIN priceRangeNoMatch vorliegt
+  const mentionsCheapest =
+    /\b(günstig(st)?|billig(st)?|das günstigste|preiswerteste)\b/.test(normalized);
+
+  const mentionsCheapBudget = /\b(unter|bis|maximal|max)\s+\d+/.test(normalized);
+
+  if (!primaryAction && candidates.length > 0 && (mentionsCheapest || mentionsCheapBudget) && !priceRangeNoMatch) {
+    primaryAction = "SHOW_PRODUCTS";
+    notes.push("LOW_BUDGET_WITH_UPSELL");
+    debugSalesFlags.push("low_budget_upsell");
   }
 
   // ============================================================

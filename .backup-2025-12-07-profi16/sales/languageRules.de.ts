@@ -71,9 +71,6 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "telefon",
     "mobiltelefon",
     "mobiles gerät",
-    "iphone",
-    "android",
-    "galaxy",
   ],
   mode: [
     "mode",
@@ -93,19 +90,14 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "jacke",
     "jacken",
   ],
-  // CLUSTER D FIX PROFI-01v1: "board" entfernt - zu mehrdeutig (kann Snowboard, Skateboard, Surfboard sein)
-  snowboard: ["snowboard", "snowboards"],
+  snowboard: ["snowboard", "snowboards", "board"],
   // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
   bindungen: ["bindungen", "bindung", "binding", "bindings", "snowboard-bindungen", "snowboard-bindung", "snowboardbindungen", "snowboardbindung"],
-  haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad", "wasserkocher", "electric kettle", "kettle", "haushaltsgeräte", "küchengerät", "haushaltsgerät", "kochendes wasser", "wasser erhitzen"],
+  haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad", "wasserkocher", "electric kettle", "kettle", "haushaltsgeräte"],
   pflege: ["pflege", "shampoo", "duschgel", "seife", "creme", "öl", "oel", "lotion"],
-  tierbedarf: ["tier", "tierbedarf", "hund", "hunde", "welpe", "welpen", "katze", "katzen", "kater", "hündin", "futter", "leckerli", "haustier", "haustiere", "pets", "pet", "dog", "cat", "animal", "napf", "fressnapf"],
-  perfume: ["perfume", "parfum", "parfüm", "duft", "eau de parfum", "eau de toilette"],
+  tierbedarf: ["tier", "tierbedarf", "hund", "hunde", "welpe", "welpen", "katze", "katzen", "kater", "hündin", "futter", "leckerli"],
   // SCHRITT 3 FIX: Garten-Kategorie hinzugefügt für S10v1
   Garten: ["garten", "gartenartikel", "garten-artikel", "gartenbedarf", "gartenzubehör", "gartenzubehoer", "gartenprodukte"],
-  // SCHRITT 5 FIX: Kosmetik und Werkzeug für globale Kategorien
-  kosmetik: ["kosmetik", "beauty", "pflegeprodukte", "hautpflege"],
-  werkzeug: ["werkzeug", "tools", "werkzeugkoffer"],
   // hier können später weitere Kategorien ergänzt werden
 };
 
@@ -611,31 +603,15 @@ export const PREMIUM_WORDS = [
 // Bargain-Wörter: Intent-Erkennung für günstige Produkte
 export const BARGAIN_WORDS = [
   "billig",
-  "billige",
-  "billiger",
-  "billiges",
-  "billigste",
-  "billigstes",
-  "billigsten",
   "guenstig",
   "günstig",
-  "günstige",
-  "günstiger",
-  "günstiges",
-  "günstigste",
-  "günstigstes",
-  "günstigsten",
-  "preiswert",
-  "preiswerte",
-  "preiswerter",
-  "preiswertes",
-  "preiswerteste",
-  "preiswertestes",
   "discount",
   "spar",
   "rabatt",
   "deal",
   "bargain",
+  "günstigste",
+  "günstigsten",
 ];
 
 // Gift-Wörter: Intent-Erkennung für Geschenke

@@ -456,21 +456,6 @@ function detectExplanationMode(text: string): ExplanationMode | null {
   const t = normalize(text || "");
   if (!t) return null;
 
-  // SCHRITT 2 FIX: Ausschluss-Wörter für Explanation-Mode
-  // Wenn der Text billig/günstig-Wörter enthält, KEIN explanationMode
-  const bargainExclusionWords = [
-    "billig", "billige", "billiger", "billiges", "billigste", "billigstes", "billigsten",
-    "günstig", "günstige", "günstiger", "günstiges", "günstigste", "günstigstes", "günstigsten",
-    "preiswert", "preiswerte", "preiswerter", "preiswertes", "preiswerteste", "preiswertestes",
-    "günstigstes snowboard", "billigstes snowboard"
-  ];
-  
-  const hasBargainWord = bargainExclusionWords.some((w) => t.includes(w));
-  if (hasBargainWord) {
-    // Billig/günstig-Frage → kein explanationMode
-    return null;
-  }
-
   // EFRO S18/S19 Fix: Robuste Pattern-Erkennung f?r Usage-Mode
   const normalized = text.toLowerCase();
   
@@ -489,23 +474,8 @@ function detectExplanationMode(text: string): ExplanationMode | null {
 
   const hasUsagePattern = usagePatterns.some((re) => re.test(normalized));
 
-  // CLUSTER S FIX: S12-S19 - Erweiterte Erkennung für Erklärungsanfragen
-  // Erkennt auch "Erklärung zur Anwendung", "Erklärung zur Anwendung von [Produkt]"
-  const hasExplanationPhrase = 
-    t.includes("erklärung") ||
-    t.includes("erklaerung") ||
-    t.includes("erklärung zur") ||
-    t.includes("erklaerung zur") ||
-    t.includes("erklärung zur anwendung") ||
-    t.includes("erklaerung zur anwendung");
-  
-  // CLUSTER A FIX S18v1: Erkenne auch "Kannst du mir erklären, wie ich..."
-  const hasExplainPattern = /erkl(?:ä|ae|a)r(?:e|st|en)?\s+(?:mir\s+)?(?:bitte\s+)?(?:mal\s+)?(?:genau\s+)?(?:wie|dass|ob)/i.test(normalized);
-  
   // Erweiterte Erkennung f?r Erkl?rungsanfragen
   if (
-    hasExplanationPhrase ||
-    hasExplainPattern ||
     t.includes("erkl?r") ||
     t.includes("erklaer") ||
     t.includes("erkl?re") ||
@@ -515,8 +485,6 @@ function detectExplanationMode(text: string): ExplanationMode | null {
     t.includes("wie funktioniert") ||
     t.startsWith("was ist ") ||
     t.startsWith("was sind ") ||
-    t.includes("wofür benutzt man") ||
-    t.includes("wofuer benutzt man") ||
     hasUsagePattern
   ) {
     // Zutaten / Inhaltsstoffe
@@ -726,16 +694,6 @@ function isProductRelated(text: string): boolean {
   const activeHints = getActiveProductHints();
   let result = activeHints.some((hint) => t.includes(hint.keyword));
   let reason = result ? "productHint" : "none";
-  
-  // CLUSTER A FIX S18/S19: Wenn explanationMode erkannt wird UND "wax"/"wachs" im Text steht,
-  // dann ist es produktbezogen (auch wenn kein explizites Produkt-Keyword vorhanden ist)
-  if (!result && (t.includes("wax") || t.includes("wachs"))) {
-    const explanationMode = detectExplanationMode(text);
-    if (explanationMode !== null) {
-      result = true;
-      reason = "wax_explanation";
-    }
-  }
 
   // Budget-S?tze als produktbezogen erkennen
   // Beispiel: "Mein Budget ist 50 Euro.", "Maximal 80 ?", "Ich m?chte nicht mehr als 30 Euro ausgeben."
@@ -3831,7 +3789,6 @@ export function runSellerBrain(
     // SCHRITT 1 FIX: Fallback von Explanation-Mode auf FilterProducts
     // Wenn explanationMode === 'usage' und keine Produkte/Beschreibung vorhanden,
     // dann normalen Filter-Pfad ausführen (für S5v1, S6v1, S4v2, S6v2)
-    // CLUSTER A FIX S18/S19: Auch bei Fallback explanationMode: true setzen
     const hasUsageButEmpty =
       effectiveExplanationMode === "usage" &&
       recommended.length === 0 &&
@@ -3843,12 +3800,11 @@ export function runSellerBrain(
         explanationMode: effectiveExplanationMode,
         recommendedCount: recommended.length,
         hasUsableDescription,
-        note: "Fallback auf normalen Filter-Pfad, aber explanationMode bleibt true",
+        note: "Fallback auf normalen Filter-Pfad",
       });
       
-      // CLUSTER A FIX S18/S19: Setze Flag, damit explanationMode später im Return gesetzt wird
+      // Fallback: Normalen Filter-Pfad ausführen (überspringe Explanation-Mode-Return)
       // Die Logik wird nach dem Explanation-Mode-Block fortgesetzt
-      // explanationMode wird im finalen Return gesetzt (siehe Zeile ~5876)
     } else {
       // Normale Explanation-Mode-Logik: Return mit Explanation-Reply
       // Auch bei Explanation-Mode Sales-Entscheidung berechnen (für PROFI-Szenarien)
@@ -4864,9 +4820,7 @@ export function runSellerBrain(
       hasCategoryMatch: hasCategoryMatchForDecide,
       priceRangeNoMatch: priceRangeNoMatch || undefined,
       normalizedText: normalizedText,
-      hasEffectiveCategory: !!effectiveCategorySlugForCodeDetect,
-      candidateCountAfterKeywordMatches: filterResult.length,
-      finalCount: recommended.length,
+      triggerWord: triggerWord ?? null,
     };
     const budgetAiTrigger = decideAiTrigger(aiTriggerInput);
     
@@ -5888,8 +5842,8 @@ export function runSellerBrain(
     aiTrigger,
     priceRangeNoMatch: priceRangeNoMatch || undefined,
     priceRangeInfo: priceRangeInfo || undefined,
-    missingCategoryHint: missingCategoryHint ?? undefined,
-    explanationMode: effectiveExplanationMode !== null ? true : (explanationModeBoolean ? true : undefined),
+    missingCategoryHint: missingCategoryHint || undefined,
+    explanationMode: explanationModeBoolean || undefined,
     sales: salesPolicyOutput,
   };
 }
