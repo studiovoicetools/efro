@@ -97,6 +97,9 @@ interface ElevenLabsAvatarProps {
 
   // Handler-Registrierung, damit Home EFRO sprechen lassen kann
   registerSpeakHandler?: (fn: ((text: string) => void) | null) => void;
+
+  // TTS-Fehlerbehandlung
+  setTtsError?: (error: string | null) => void;
 }
 
 function ElevenLabsAvatar({
@@ -104,6 +107,7 @@ function ElevenLabsAvatar({
   createRecommendations,
   setChatMessages: externalSetChatMessages,
   registerSpeakHandler,
+  setTtsError,
 }: ElevenLabsAvatarProps) {
   /* ===========================================================
       STATES
@@ -302,6 +306,11 @@ function ElevenLabsAvatar({
 
   const speakForApp = useCallback(
     async (text: string) => {
+      // Fehler zurücksetzen beim neuen TTS-Versuch
+      if (setTtsError) {
+        setTtsError(null);
+      }
+
       // Einige ElevenLabs-Versionen haben sendUserMessage nicht
       const fn = (conversation as any)?.sendUserMessage;
       if (typeof fn !== "function") {
@@ -309,6 +318,7 @@ function ElevenLabsAvatar({
           "[EFRO Speak] sendUserMessage ist nicht verfügbar, Text wird nicht gesprochen:",
           text
         );
+        // Kein Fehler setzen, wenn sendUserMessage nicht verfügbar ist - das ist normal bei manchen ElevenLabs-Versionen
         return;
       }
 
@@ -323,10 +333,15 @@ function ElevenLabsAvatar({
           await maybePromise;
         }
       } catch (err) {
-        console.error("[EFRO Speak] sendUserMessage error", err);
+        console.error("[EFRO AvatarSeller] TTS failed", err);
+        if (setTtsError) {
+          setTtsError(
+            "Die Sprachausgabe ist gerade nicht verfügbar. Du kannst einfach weiter im Chat schreiben."
+          );
+        }
       }
     },
-    [conversation]
+    [conversation, setTtsError]
   );
 
   useEffect(() => {
@@ -559,6 +574,7 @@ export default function Home({ searchParams }: HomeProps) {
   >([]);
   const debugDefault = process.env.NEXT_PUBLIC_EFRO_DEBUG === "1";
   const [showDebugOverlay, setShowDebugOverlay] = useState<boolean>(debugDefault);
+  const [ttsError, setTtsError] = useState<string | null>(null);
 
   // Helper-Funktion für Chat-Messages mit Logging
   function appendChatMessage(msg: { id: string; text: string; sender: "user" | "efro" }) {
@@ -631,14 +647,26 @@ export default function Home({ searchParams }: HomeProps) {
   }
 
   function speak(text: string) {
+    // Fehler zurücksetzen beim neuen TTS-Versuch
+    setTtsError(null);
+
     if (!speakHandlerRef.current) {
       console.log(
         "[EFRO Speak] Kein aktiver Handler – Text wird nur im Chat angezeigt:",
         text
       );
+      // Kein Fehler setzen, wenn kein Handler verfügbar ist - das ist normal beim Start
       return;
     }
-    speakHandlerRef.current(text);
+
+    try {
+      speakHandlerRef.current(text);
+    } catch (error) {
+      console.error("[EFRO AvatarSeller] TTS failed", error);
+      setTtsError(
+        "Die Sprachausgabe ist gerade nicht verfügbar. Du kannst einfach weiter im Chat schreiben."
+      );
+    }
   }
 
   /* ===========================================================
@@ -1491,6 +1519,7 @@ export default function Home({ searchParams }: HomeProps) {
             createRecommendations={createRecommendations}
             setChatMessages={setChatMessages}
             registerSpeakHandler={registerSpeakHandler}
+            setTtsError={setTtsError}
           />
         </AvatarPreview>
 
@@ -1498,6 +1527,13 @@ export default function Home({ searchParams }: HomeProps) {
           {productError && (
             <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-lg max-w-md">
               <p className="text-sm font-medium">{productError}</p>
+            </div>
+          )}
+
+          {/* TTS-FEHLER */}
+          {ttsError && (
+            <div className="fixed bottom-24 right-4 z-50 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg shadow-lg max-w-sm">
+              <p className="text-sm font-medium">{ttsError}</p>
             </div>
           )}
 
