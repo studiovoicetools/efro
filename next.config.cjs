@@ -15,7 +15,8 @@ const nextConfig = {
       '*': [
         'src/app/admin/billing/**',
         'src/app/admin/import/**',
-        'src/app/api/checkout/url/**'
+        'src/app/api/checkout/url/**',
+        'src/app/api/demo-products/**'
       ]
     }
   }
