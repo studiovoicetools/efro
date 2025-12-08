@@ -587,6 +587,7 @@ export default function Home({ searchParams }: HomeProps) {
 
   // 🔹 Produkt- und SellerBrain-State
   const [allProducts, setAllProducts] = useState<EfroProduct[]>([]);
+  const [productError, setProductError] = useState<string | null>(null);
   // Ref für synchronen Zugriff auf Produkte (verhindert Race Conditions)
   const allProductsRef = useRef<EfroProduct[]>([]);
   const [sellerIntent, setSellerIntent] =
@@ -679,6 +680,9 @@ export default function Home({ searchParams }: HomeProps) {
 
   const fetchProducts = useCallback(async () => {
     try {
+      // Fehler zurücksetzen beim erneuten Laden
+      setProductError(null);
+
       // Nutze die neue API-Route statt direkt loadProductsForShop
       const res = await fetch(
         `/api/efro/products?shop=${encodeURIComponent(shopDomain)}`,
@@ -750,6 +754,11 @@ export default function Home({ searchParams }: HomeProps) {
       console.error(
         "[EFRO AllProducts] Fehler beim Laden der Produkte, Fallback auf mockCatalog",
         err
+      );
+
+      // Fehlermeldung für den Benutzer setzen
+      setProductError(
+        "Ich konnte gerade keine Produkte laden. Bitte lade die Seite neu oder versuche es später noch einmal."
       );
 
       // Defensiver Fallback: Falls API-Call selbst fehlschlägt
@@ -1484,6 +1493,13 @@ export default function Home({ searchParams }: HomeProps) {
             registerSpeakHandler={registerSpeakHandler}
           />
         </AvatarPreview>
+
+          {/* PRODUKT-FEHLER */}
+          {productError && (
+            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-lg max-w-md">
+              <p className="text-sm font-medium">{productError}</p>
+            </div>
+          )}
 
           {/* PRODUKT-PANEL */}
           <EfroProductPanel
