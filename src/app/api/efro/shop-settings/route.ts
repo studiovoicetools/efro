@@ -13,21 +13,86 @@ interface ShopSettingsPayload {
   ttsEnabled?: boolean;
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    // Supabase Client mit Service Role Key initialisieren
-    const url = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Helper function to create Supabase client with service role key
+function createServiceRoleClient() {
+  const url = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!url || !serviceRoleKey) {
-      console.error("[EFRO shop-settings] Missing SUPABASE envs");
+  if (!url || !serviceRoleKey) {
+    console.error("[EFRO shop-settings] Missing SUPABASE envs");
+    return null;
+  }
+
+  return createClient(url, serviceRoleKey);
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Parse shop query parameter
+    const { searchParams } = new URL(request.url);
+    const shopParam = (searchParams.get("shop") ?? "").trim();
+
+    if (!shopParam) {
+      return NextResponse.json(
+        { error: "Missing 'shop' query parameter" },
+        { status: 400 }
+      );
+    }
+
+    // Create Supabase client
+    const supabase = createServiceRoleClient();
+    if (!supabase) {
       return NextResponse.json(
         { error: "Supabase is not configured on the server" },
         { status: 500 }
       );
     }
 
-    const supabase = createClient(url, serviceRoleKey);
+    // Query settings for the shop
+    const { data, error } = await supabase
+      .from("efro_shop_settings")
+      .select("*")
+      .eq("shop", shopParam)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[EFRO shop-settings] GET failed", error);
+      return NextResponse.json(
+        { error: "Failed to fetch shop settings", details: error.message },
+        { status: 500 }
+      );
+    }
+
+    if (data === null) {
+      return NextResponse.json(
+        { error: "Shop settings not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ settings: data }, { status: 200 });
+  } catch (error: any) {
+    console.error("[EFRO shop-settings] GET unexpected error", error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error?.message || String(error),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Create Supabase client
+    const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: "Supabase is not configured on the server" },
+        { status: 500 }
+      );
+    }
 
     // Request Body parsen und validieren
     const body: ShopSettingsPayload = await request.json();
