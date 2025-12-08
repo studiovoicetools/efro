@@ -2,7 +2,7 @@
 
 import { logEfroEvent } from "@/lib/efro/logEventClient";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useConversation } from "@elevenlabs/react";
 import {
@@ -1458,133 +1458,135 @@ export default function Home({ searchParams }: HomeProps) {
   });
 
   return (
-    <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
-      {/* AVATAR + VOICE + CHAT */}
-      <AvatarPreview
-        src={mascotUrl}
-        className="w-full h-full"
-      >
-        <ElevenLabsAvatar
-          dynamicVariables={dynamicVariables}
-          createRecommendations={createRecommendations}
-          setChatMessages={setChatMessages}
-          registerSpeakHandler={registerSpeakHandler}
-        />
-      </AvatarPreview>
-
-        {/* PRODUKT-PANEL */}
-        <EfroProductPanel
-          visible={
-            !!sellerResult &&
-            sellerResult.recommended !== undefined &&
-            sellerResult.recommended.length > 0
-          }
-          products={sellerResult?.recommended ?? []}
-          replyText={sellerResult?.replyText ?? sellerReplyText}
-        />
-
-      {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
-      {showDebugOverlay && (
-        <div
-          style={{
-            position: "fixed",
-            top: 24,
-            right: 16,
-            maxWidth: "420px",
-            maxHeight: "50vh",
-            overflowY: "auto",
-            padding: "12px",
-            background: "rgba(0,0,0,0.85)",
-            color: "#fff",
-            fontSize: "12px",
-            borderRadius: "12px",
-            zIndex: 9999,
-          }}
+    <Suspense fallback={null}>
+      <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
+        {/* AVATAR + VOICE + CHAT */}
+        <AvatarPreview
+          src={mascotUrl}
+          className="w-full h-full"
         >
-          <button
-            type="button"
-            onClick={() => setShowDebugOverlay(false)}
+          <ElevenLabsAvatar
+            dynamicVariables={dynamicVariables}
+            createRecommendations={createRecommendations}
+            setChatMessages={setChatMessages}
+            registerSpeakHandler={registerSpeakHandler}
+          />
+        </AvatarPreview>
+
+          {/* PRODUKT-PANEL */}
+          <EfroProductPanel
+            visible={
+              !!sellerResult &&
+              sellerResult.recommended !== undefined &&
+              sellerResult.recommended.length > 0
+            }
+            products={sellerResult?.recommended ?? []}
+            replyText={sellerResult?.replyText ?? sellerReplyText}
+          />
+
+        {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
+        {showDebugOverlay && (
+          <div
             style={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              fontSize: "16px",
-              lineHeight: "1",
-              padding: "4px 8px",
-              background: "rgba(255, 255, 255, 0.2)",
+              position: "fixed",
+              top: 24,
+              right: 16,
+              maxWidth: "420px",
+              maxHeight: "50vh",
+              overflowY: "auto",
+              padding: "12px",
+              background: "rgba(0,0,0,0.85)",
               color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+              fontSize: "12px",
+              borderRadius: "12px",
+              zIndex: 9999,
             }}
           >
-            ×
-          </button>
-          <div style={{ marginBottom: 8, opacity: 0.7 }}>
-            EFRO DEBUG-CHAT ({chatMessages.length} Messages)
-          </div>
-        <div style={{ marginBottom: 8, fontSize: "10px", opacity: 0.6 }}>
-          ⚠️ Nur EFRO-Chat (SellerBrain-Reply). ElevenLabs-Agent-Nachrichten
-          werden ignoriert (siehe Console: [ElevenLabs AI ignored]).
-        </div>
-        {chatMessages.map((m, idx) => {
-          const text =
-            // verschiedene mögliche Felder ausprobieren
-            (m as any).text ??
-            (m as any).replyText ??
-            (typeof (m as any).content === "string"
-              ? (m as any).content
-              : Array.isArray((m as any).content)
-              ? (m as any).content
-                  .map((c: any) =>
-                    typeof c === "string"
-                      ? c
-                      : "text" in c
-                      ? c.text
-                      : ""
-                  )
-                  .join(" ")
-              : "");
-
-          if (!text) {
-            console.warn("[EFRO Chat] message ohne text", m);
-            return (
-              <div key={m.id ?? idx} style={{ marginBottom: 4 }}>
-                <strong>{m.sender ?? "?"}</strong>: [kein Text-Feld gefunden]
-              </div>
-            );
-          }
-
-          // Styling basierend auf Sender
-          const isUser = m.sender === "user";
-          const bgColor = isUser ? "rgba(255, 165, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
-          const textColor = isUser ? "#ffa500" : "#fff";
-
-          return (
-            <div
-              key={m.id ?? idx}
+            <button
+              type="button"
+              onClick={() => setShowDebugOverlay(false)}
               style={{
-                marginBottom: 4,
+                position: "absolute",
+                top: 8,
+                right: 8,
+                fontSize: "16px",
+                lineHeight: "1",
                 padding: "4px 8px",
-                background: bgColor,
+                background: "rgba(255, 255, 255, 0.2)",
+                color: "#fff",
+                border: "none",
                 borderRadius: "4px",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
               }}
             >
-              <strong style={{ color: textColor }}>
-                {m.sender === "user" ? "👤 User" : "🤖 EFRO"}
-              </strong>
-              : <span style={{ color: textColor }}>{text}</span>
+              ×
+            </button>
+            <div style={{ marginBottom: 8, opacity: 0.7 }}>
+              EFRO DEBUG-CHAT ({chatMessages.length} Messages)
             </div>
-          );
-        })}
-        </div>
-      )}
-    </main>
+          <div style={{ marginBottom: 8, fontSize: "10px", opacity: 0.6 }}>
+            ⚠️ Nur EFRO-Chat (SellerBrain-Reply). ElevenLabs-Agent-Nachrichten
+            werden ignoriert (siehe Console: [ElevenLabs AI ignored]).
+          </div>
+          {chatMessages.map((m, idx) => {
+            const text =
+              // verschiedene mögliche Felder ausprobieren
+              (m as any).text ??
+              (m as any).replyText ??
+              (typeof (m as any).content === "string"
+                ? (m as any).content
+                : Array.isArray((m as any).content)
+                ? (m as any).content
+                    .map((c: any) =>
+                      typeof c === "string"
+                        ? c
+                        : "text" in c
+                        ? c.text
+                        : ""
+                    )
+                    .join(" ")
+                : "");
+
+            if (!text) {
+              console.warn("[EFRO Chat] message ohne text", m);
+              return (
+                <div key={m.id ?? idx} style={{ marginBottom: 4 }}>
+                  <strong>{m.sender ?? "?"}</strong>: [kein Text-Feld gefunden]
+                </div>
+              );
+            }
+
+            // Styling basierend auf Sender
+            const isUser = m.sender === "user";
+            const bgColor = isUser ? "rgba(255, 165, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
+            const textColor = isUser ? "#ffa500" : "#fff";
+
+            return (
+              <div
+                key={m.id ?? idx}
+                style={{
+                  marginBottom: 4,
+                  padding: "4px 8px",
+                  background: bgColor,
+                  borderRadius: "4px",
+                }}
+              >
+                <strong style={{ color: textColor }}>
+                  {m.sender === "user" ? "👤 User" : "🤖 EFRO"}
+                </strong>
+                : <span style={{ color: textColor }}>{text}</span>
+              </div>
+            );
+          })}
+          </div>
+        )}
+      </main>
+    </Suspense>
   );
 }
