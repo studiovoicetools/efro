@@ -3,6 +3,7 @@
 import { logEfroEvent } from "@/lib/efro/logEventClient";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useConversation } from "@elevenlabs/react";
 import {
   MascotProvider,
@@ -523,10 +524,14 @@ type HomeProps = {
 };
 
 export default function Home({ searchParams }: HomeProps) {
+  // Single source of truth für Shop-Kontext aus URL Query-Parameter
+  const searchParamsHook = useSearchParams();
+  const shop = searchParamsHook.get("shop") ?? "demo";
+
   const mascotUrl = buildMascotUrl(/* später avatarId, aktuell undefined lassen */);
 
   // für Shopify: ?shop=domain kommt von der Theme Extension
-  const shopDomain = searchParams?.shop ?? "local-dev";
+  const shopDomain = shop;
 
   const dynamicVariables = {
     name: "EFRO",
@@ -557,10 +562,8 @@ export default function Home({ searchParams }: HomeProps) {
 
   // Helper-Funktionen für SellerBrain v2 (Shop-Domain & Locale)
   function resolveShopDomain(): string {
-    // 1) URL-Query ?shop=... (wird bereits in shopDomain State verwendet)
-    // 2) sellerContext hat kein shopDomain-Feld, also nur shopDomain State
-    // 3) Fallback: "demo"
-    return shopDomain || "demo";
+    // shopDomain ist bereits aus URL Query-Parameter ?shop=... abgeleitet (Default: "demo")
+    return shopDomain;
   }
 
   function resolveLocale(): string {
@@ -1301,7 +1304,7 @@ export default function Home({ searchParams }: HomeProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            shopDomain: "local-dev",
+            shopDomain: shop,
             userText: cleanedText,
             intent: result.intent,
             productCount: recommendations.length,
@@ -1418,7 +1421,7 @@ export default function Home({ searchParams }: HomeProps) {
 
         // EFRO Event Logging: Fehlerfall
         void logEfroEvent({
-          shopDomain: shopDomain || "local-dev",
+          shopDomain: shop,
           userText: cleanedText,
           intent: "error",
           productCount: 0,
