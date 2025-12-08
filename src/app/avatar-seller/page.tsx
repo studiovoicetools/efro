@@ -97,9 +97,6 @@ interface ElevenLabsAvatarProps {
 
   // Handler-Registrierung, damit Home EFRO sprechen lassen kann
   registerSpeakHandler?: (fn: ((text: string) => void) | null) => void;
-
-  // TTS-Fehlerbehandlung
-  setTtsError?: (error: string | null) => void;
 }
 
 function ElevenLabsAvatar({
@@ -107,7 +104,6 @@ function ElevenLabsAvatar({
   createRecommendations,
   setChatMessages: externalSetChatMessages,
   registerSpeakHandler,
-  setTtsError,
 }: ElevenLabsAvatarProps) {
   /* ===========================================================
       STATES
@@ -306,11 +302,6 @@ function ElevenLabsAvatar({
 
   const speakForApp = useCallback(
     async (text: string) => {
-      // Fehler zurücksetzen beim neuen TTS-Versuch
-      if (setTtsError) {
-        setTtsError(null);
-      }
-
       // Einige ElevenLabs-Versionen haben sendUserMessage nicht
       const fn = (conversation as any)?.sendUserMessage;
       if (typeof fn !== "function") {
@@ -318,7 +309,6 @@ function ElevenLabsAvatar({
           "[EFRO Speak] sendUserMessage ist nicht verfügbar, Text wird nicht gesprochen:",
           text
         );
-        // Kein Fehler setzen, wenn sendUserMessage nicht verfügbar ist - das ist normal bei manchen ElevenLabs-Versionen
         return;
       }
 
@@ -333,15 +323,10 @@ function ElevenLabsAvatar({
           await maybePromise;
         }
       } catch (err) {
-        console.error("[EFRO AvatarSeller] TTS failed", err);
-        if (setTtsError) {
-          setTtsError(
-            "Die Sprachausgabe ist gerade nicht verfügbar. Du kannst einfach weiter im Chat schreiben."
-          );
-        }
+        console.error("[EFRO Speak] sendUserMessage error", err);
       }
     },
-    [conversation, setTtsError]
+    [conversation]
   );
 
   useEffect(() => {
@@ -538,28 +523,10 @@ type HomeProps = {
 };
 
 export default function Home({ searchParams }: HomeProps) {
-  // Single source of truth für Shop-Kontext aus URL Query-Parameter
-  const [shop, setShop] = useState<string>("demo");
-
-  // Shop-Parameter aus URL lesen (client-side)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const shopParam = params.get("shop");
-      if (shopParam && shopParam.trim().length > 0) {
-        setShop(shopParam);
-      }
-    } catch (error) {
-      console.error("[EFRO AvatarSeller] Failed to read shop from URL", error);
-    }
-  }, []);
-
   const mascotUrl = buildMascotUrl(/* später avatarId, aktuell undefined lassen */);
 
   // für Shopify: ?shop=domain kommt von der Theme Extension
-  const shopDomain = shop;
+  const shopDomain = searchParams?.shop ?? "local-dev";
 
   const dynamicVariables = {
     name: "EFRO",
@@ -572,9 +539,7 @@ export default function Home({ searchParams }: HomeProps) {
   const [chatMessages, setChatMessages] = useState<
     { id: string; text: string; sender: "user" | "efro" }[]
   >([]);
-  const debugDefault = process.env.NEXT_PUBLIC_EFRO_DEBUG === "1";
-  const [showDebugOverlay, setShowDebugOverlay] = useState<boolean>(debugDefault);
-  const [ttsError, setTtsError] = useState<string | null>(null);
+  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
 
   // Helper-Funktion für Chat-Messages mit Logging
   function appendChatMessage(msg: { id: string; text: string; sender: "user" | "efro" }) {
@@ -591,8 +556,10 @@ export default function Home({ searchParams }: HomeProps) {
 
   // Helper-Funktionen für SellerBrain v2 (Shop-Domain & Locale)
   function resolveShopDomain(): string {
-    // shopDomain ist bereits aus URL Query-Parameter ?shop=... abgeleitet (Default: "demo")
-    return shopDomain;
+    // 1) URL-Query ?shop=... (wird bereits in shopDomain State verwendet)
+    // 2) sellerContext hat kein shopDomain-Feld, also nur shopDomain State
+    // 3) Fallback: "demo"
+    return shopDomain || "demo";
   }
 
   function resolveLocale(): string {
@@ -603,7 +570,6 @@ export default function Home({ searchParams }: HomeProps) {
 
   // 🔹 Produkt- und SellerBrain-State
   const [allProducts, setAllProducts] = useState<EfroProduct[]>([]);
-  const [productError, setProductError] = useState<string | null>(null);
   // Ref für synchronen Zugriff auf Produkte (verhindert Race Conditions)
   const allProductsRef = useRef<EfroProduct[]>([]);
   const [sellerIntent, setSellerIntent] =
@@ -647,26 +613,14 @@ export default function Home({ searchParams }: HomeProps) {
   }
 
   function speak(text: string) {
-    // Fehler zurücksetzen beim neuen TTS-Versuch
-    setTtsError(null);
-
     if (!speakHandlerRef.current) {
       console.log(
         "[EFRO Speak] Kein aktiver Handler – Text wird nur im Chat angezeigt:",
         text
       );
-      // Kein Fehler setzen, wenn kein Handler verfügbar ist - das ist normal beim Start
       return;
     }
-
-    try {
-      speakHandlerRef.current(text);
-    } catch (error) {
-      console.error("[EFRO AvatarSeller] TTS failed", error);
-      setTtsError(
-        "Die Sprachausgabe ist gerade nicht verfügbar. Du kannst einfach weiter im Chat schreiben."
-      );
-    }
+    speakHandlerRef.current(text);
   }
 
   /* ===========================================================
@@ -708,9 +662,6 @@ export default function Home({ searchParams }: HomeProps) {
 
   const fetchProducts = useCallback(async () => {
     try {
-      // Fehler zurücksetzen beim erneuten Laden
-      setProductError(null);
-
       // Nutze die neue API-Route statt direkt loadProductsForShop
       const res = await fetch(
         `/api/efro/products?shop=${encodeURIComponent(shopDomain)}`,
@@ -782,11 +733,6 @@ export default function Home({ searchParams }: HomeProps) {
       console.error(
         "[EFRO AllProducts] Fehler beim Laden der Produkte, Fallback auf mockCatalog",
         err
-      );
-
-      // Fehlermeldung für den Benutzer setzen
-      setProductError(
-        "Ich konnte gerade keine Produkte laden. Bitte lade die Seite neu oder versuche es später noch einmal."
       );
 
       // Defensiver Fallback: Falls API-Call selbst fehlschlägt
@@ -1354,7 +1300,7 @@ export default function Home({ searchParams }: HomeProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            shopDomain: shop,
+            shopDomain: "local-dev",
             userText: cleanedText,
             intent: result.intent,
             productCount: recommendations.length,
@@ -1471,7 +1417,7 @@ export default function Home({ searchParams }: HomeProps) {
 
         // EFRO Event Logging: Fehlerfall
         void logEfroEvent({
-          shopDomain: shop,
+          shopDomain: shopDomain || "local-dev",
           userText: cleanedText,
           intent: "error",
           productCount: 0,
@@ -1509,147 +1455,132 @@ export default function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
-        {/* AVATAR + VOICE + CHAT */}
-        <AvatarPreview
-          src={mascotUrl}
-          className="w-full h-full"
+      {/* AVATAR + VOICE + CHAT */}
+      <AvatarPreview
+        src={mascotUrl}
+        className="w-full h-full"
+      >
+        <ElevenLabsAvatar
+          dynamicVariables={dynamicVariables}
+          createRecommendations={createRecommendations}
+          setChatMessages={setChatMessages}
+          registerSpeakHandler={registerSpeakHandler}
+        />
+      </AvatarPreview>
+
+        {/* PRODUKT-PANEL */}
+        <EfroProductPanel
+          visible={
+            !!sellerResult &&
+            sellerResult.recommended !== undefined &&
+            sellerResult.recommended.length > 0
+          }
+          products={sellerResult?.recommended ?? []}
+          replyText={sellerResult?.replyText ?? sellerReplyText}
+        />
+
+      {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
+      {showDebugOverlay && (
+        <div
+          style={{
+            position: "fixed",
+            top: 24,
+            right: 16,
+            maxWidth: "420px",
+            maxHeight: "50vh",
+            overflowY: "auto",
+            padding: "12px",
+            background: "rgba(0,0,0,0.85)",
+            color: "#fff",
+            fontSize: "12px",
+            borderRadius: "12px",
+            zIndex: 9999,
+          }}
         >
-          <ElevenLabsAvatar
-            dynamicVariables={dynamicVariables}
-            createRecommendations={createRecommendations}
-            setChatMessages={setChatMessages}
-            registerSpeakHandler={registerSpeakHandler}
-            setTtsError={setTtsError}
-          />
-        </AvatarPreview>
-
-          {/* PRODUKT-FEHLER */}
-          {productError && (
-            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-lg max-w-md">
-              <p className="text-sm font-medium">{productError}</p>
-            </div>
-          )}
-
-          {/* TTS-FEHLER */}
-          {ttsError && (
-            <div className="fixed bottom-24 right-4 z-50 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg shadow-lg max-w-sm">
-              <p className="text-sm font-medium">{ttsError}</p>
-            </div>
-          )}
-
-          {/* PRODUKT-PANEL */}
-          <EfroProductPanel
-            visible={
-              !!sellerResult &&
-              sellerResult.recommended !== undefined &&
-              sellerResult.recommended.length > 0
-            }
-            products={sellerResult?.recommended ?? []}
-            replyText={sellerResult?.replyText ?? sellerReplyText}
-          />
-
-        {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
-        {showDebugOverlay && (
-          <div
+          <button
+            type="button"
+            onClick={() => setShowDebugOverlay(false)}
             style={{
-              position: "fixed",
-              top: 24,
-              right: 16,
-              maxWidth: "420px",
-              maxHeight: "50vh",
-              overflowY: "auto",
-              padding: "12px",
-              background: "rgba(0,0,0,0.85)",
+              position: "absolute",
+              top: 8,
+              right: 8,
+              fontSize: "16px",
+              lineHeight: "1",
+              padding: "4px 8px",
+              background: "rgba(255, 255, 255, 0.2)",
               color: "#fff",
-              fontSize: "12px",
-              borderRadius: "12px",
-              zIndex: 9999,
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
             }}
           >
-            <button
-              type="button"
-              onClick={() => setShowDebugOverlay(false)}
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                fontSize: "16px",
-                lineHeight: "1",
-                padding: "4px 8px",
-                background: "rgba(255, 255, 255, 0.2)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
-              }}
-            >
-              ×
-            </button>
-            <div style={{ marginBottom: 8, opacity: 0.7 }}>
-              EFRO DEBUG-CHAT ({chatMessages.length} Messages)
-            </div>
-          <div style={{ marginBottom: 8, fontSize: "10px", opacity: 0.6 }}>
-            ⚠️ Nur EFRO-Chat (SellerBrain-Reply). ElevenLabs-Agent-Nachrichten
-            werden ignoriert (siehe Console: [ElevenLabs AI ignored]).
+            ×
+          </button>
+          <div style={{ marginBottom: 8, opacity: 0.7 }}>
+            EFRO DEBUG-CHAT ({chatMessages.length} Messages)
           </div>
-          {chatMessages.map((m, idx) => {
-            const text =
-              // verschiedene mögliche Felder ausprobieren
-              (m as any).text ??
-              (m as any).replyText ??
-              (typeof (m as any).content === "string"
-                ? (m as any).content
-                : Array.isArray((m as any).content)
-                ? (m as any).content
-                    .map((c: any) =>
-                      typeof c === "string"
-                        ? c
-                        : "text" in c
-                        ? c.text
-                        : ""
-                    )
-                    .join(" ")
-                : "");
+        <div style={{ marginBottom: 8, fontSize: "10px", opacity: 0.6 }}>
+          ⚠️ Nur EFRO-Chat (SellerBrain-Reply). ElevenLabs-Agent-Nachrichten
+          werden ignoriert (siehe Console: [ElevenLabs AI ignored]).
+        </div>
+        {chatMessages.map((m, idx) => {
+          const text =
+            // verschiedene mögliche Felder ausprobieren
+            (m as any).text ??
+            (m as any).replyText ??
+            (typeof (m as any).content === "string"
+              ? (m as any).content
+              : Array.isArray((m as any).content)
+              ? (m as any).content
+                  .map((c: any) =>
+                    typeof c === "string"
+                      ? c
+                      : "text" in c
+                      ? c.text
+                      : ""
+                  )
+                  .join(" ")
+              : "");
 
-            if (!text) {
-              console.warn("[EFRO Chat] message ohne text", m);
-              return (
-                <div key={m.id ?? idx} style={{ marginBottom: 4 }}>
-                  <strong>{m.sender ?? "?"}</strong>: [kein Text-Feld gefunden]
-                </div>
-              );
-            }
-
-            // Styling basierend auf Sender
-            const isUser = m.sender === "user";
-            const bgColor = isUser ? "rgba(255, 165, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
-            const textColor = isUser ? "#ffa500" : "#fff";
-
+          if (!text) {
+            console.warn("[EFRO Chat] message ohne text", m);
             return (
-              <div
-                key={m.id ?? idx}
-                style={{
-                  marginBottom: 4,
-                  padding: "4px 8px",
-                  background: bgColor,
-                  borderRadius: "4px",
-                }}
-              >
-                <strong style={{ color: textColor }}>
-                  {m.sender === "user" ? "👤 User" : "🤖 EFRO"}
-                </strong>
-                : <span style={{ color: textColor }}>{text}</span>
+              <div key={m.id ?? idx} style={{ marginBottom: 4 }}>
+                <strong>{m.sender ?? "?"}</strong>: [kein Text-Feld gefunden]
               </div>
             );
-          })}
-          </div>
-        )}
-      </main>
+          }
+
+          // Styling basierend auf Sender
+          const isUser = m.sender === "user";
+          const bgColor = isUser ? "rgba(255, 165, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
+          const textColor = isUser ? "#ffa500" : "#fff";
+
+          return (
+            <div
+              key={m.id ?? idx}
+              style={{
+                marginBottom: 4,
+                padding: "4px 8px",
+                background: bgColor,
+                borderRadius: "4px",
+              }}
+            >
+              <strong style={{ color: textColor }}>
+                {m.sender === "user" ? "👤 User" : "🤖 EFRO"}
+              </strong>
+              : <span style={{ color: textColor }}>{text}</span>
+            </div>
+          );
+        })}
+        </div>
+      )}
+    </main>
   );
 }
