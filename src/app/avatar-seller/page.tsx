@@ -539,7 +539,8 @@ export default function Home({ searchParams }: HomeProps) {
   const [chatMessages, setChatMessages] = useState<
     { id: string; text: string; sender: "user" | "efro" }[]
   >([]);
-  const [showDebugOverlay, setShowDebugOverlay] = useState(true);
+  const debugDefault = process.env.NEXT_PUBLIC_EFRO_DEBUG === "1";
+  const [showDebugOverlay, setShowDebugOverlay] = useState<boolean>(debugDefault);
 
   // Helper-Funktion für Chat-Messages mit Logging
   function appendChatMessage(msg: { id: string; text: string; sender: "user" | "efro" }) {
