@@ -1826,6 +1826,798 @@ async function main() {
           expectedNotesIncludes: ["NO_PRODUCTS_FOUND"],
         },
       },
+
+      // =====================================================
+      // Real-Life Demo Szenarien (RL01–RL40)
+      // Zweck: Test echter Kundensprache für den 49er Demo-Katalog
+      // =====================================================
+      {
+        id: "RL01",
+        title: "Budget Snowboard normal",
+        query: "Ich suche ein Snowboard für Anfänger, bitte nichts zu krasses. Budget so bis 300 Euro – was kannst du empfehlen?",
+        note: "Budget-Snowboard für Anfänger, Budget bis 300 Euro - Review: Budget zu niedrig, zeigt trotzdem Produkte",
+        expected: {
+          minCount: 1,
+          expectNoMatchPriceRange: true,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL02",
+        title: "Premium Snowboard",
+        query: "Hast du auch ein hochwertiges Snowboard für Fortgeschrittene? Preis ist mir egal, Hauptsache richtig gute Qualität.",
+        note: "Premium-Snowboard, Preis egal",
+        expected: {
+          minCount: 1,
+          expectIntent: "premium",
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL03",
+        title: "Komplettes Snowboard-Set, Budget zu niedrig",
+        query: "Kannst du mir ein komplettes Snowboard-Set mit Board und allem Zubehör zusammenstellen? Mehr als 200 Euro möchte ich aber ungern ausgeben.",
+        note: "Komplettes Set, Budget zu niedrig (200 Euro) - Review: Budget zu niedrig, zeigt trotzdem Produkte, priceRangeNoMatch wird nicht immer gesetzt",
+        expected: {
+          minCount: 1,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL04",
+        title: "Wax-Verwirrung",
+        query: "Ich habe gesehen, ihr habt was mit Wax. Ist das für die Haare oder für mein Snowboard? Ich will nur etwas zum Board-Wachsen.",
+        note: "Wax-Verwirrung, klarstellen Snowboard-Wachs",
+        expected: {
+          minCount: 1,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL05",
+        title: "Smartphone mittleres Budget",
+        query: "Ich brauche ein neues Smartphone für WhatsApp, ein paar Fotos und Video-Streaming. Budget: maximal 400 Euro. Was passt da am besten?",
+        note: "Smartphone mittleres Budget (400 Euro)",
+        expected: {
+          minCount: 1,
+          maxPrice: 400,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL06",
+        title: "Smartphone + Zubehör (Cross-Sell)",
+        query: "Zeig mir bitte ein gutes Smartphone und am besten gleich eine passende Hülle und ein Ladegerät dazu.",
+        note: "Smartphone + Zubehör Cross-Sell",
+        expected: {
+          minCount: 1,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL07",
+        title: "Premium-Smartphone Kamera-Fokus",
+        query: "Welches eurer Smartphones hat die beste Kamera? Preis ist zweitrangig, ich will vor allem richtig gute Fotos machen.",
+        note: "Premium-Smartphone, Fokus auf Kamera",
+        expected: {
+          minCount: 1,
+          expectIntent: "premium",
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL08",
+        title: "Laptop fürs Homeoffice",
+        query: "Ich brauche einen Laptop fürs Homeoffice, viel E-Mails, ein bisschen Excel, kein Gaming. Was empfiehlst du mir?",
+        note: "Laptop für Homeoffice - Review: Kein Laptop im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL09",
+        title: "Laptop + Zubehör (Maus/Headset)",
+        query: "Gibt es zu dem Laptop auch sinnvolles Zubehör wie Maus oder Kopfhörer, das du mir empfehlen würdest?",
+        note: "Laptop-Zubehör Cross-Sell - Review: Kein Laptop im Katalog, zeigt andere Produkte",
+        expected: {
+          minCount: 1,
+        },
+      },
+      {
+        id: "RL10",
+        title: "TV für kleines Wohnzimmer",
+        query: "Ich suche einen Fernseher für ein kleines Wohnzimmer, darf nicht zu riesig sein. Budget ungefähr 600 Euro. Was hast du da?",
+        note: "TV kleines Wohnzimmer, Budget 600 Euro",
+        expected: {
+          minCount: 1,
+          maxPrice: 600,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL11",
+        title: "Geschenk für Freund (Gaming/Tech)",
+        query: "Ich brauche ein Geschenk für meinen Freund, der auf Gaming und Technik steht. Hast du da eine Idee?",
+        note: "Geschenk Gaming/Tech - Review: Keine Gaming-Produkte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL12",
+        title: "Geschenk für Mama (Küche/Haushalt)",
+        query: "Hast du etwas Schönes für meine Mutter, sie kocht gerne und mag praktische Sachen für die Küche?",
+        note: "Geschenk Küche/Haushalt",
+        expected: {
+          minCount: 1,
+          categorySlug: "haushalt",
+        },
+      },
+      {
+        id: "RL13",
+        title: "Geschenk für Hundebesitzer",
+        query: "Mein Bruder hat einen Hund und liebt seinen Vierbeiner. Was könntest du ihm beziehungsweise dem Hund als Geschenk empfehlen?",
+        note: "Geschenk für Hundebesitzer",
+        expected: {
+          minCount: 1,
+          categorySlug: "haustier",
+        },
+      },
+      {
+        id: "RL14",
+        title: "Hundespielzeug vs. Futter",
+        query: "Ich suche eher etwas zum Spielen für meinen Hund, nichts zum Fressen. Was hast du da?",
+        note: "Hundespielzeug, kein Futter",
+        expected: {
+          minCount: 1,
+          categorySlug: "haustier",
+        },
+      },
+      {
+        id: "RL15",
+        title: "Duschgel empfindliche Haut",
+        query: "Ich habe empfindliche Haut, kannst du mir ein mildes Duschgel empfehlen, das nicht zu stark riecht?",
+        note: "Duschgel empfindliche Haut",
+        expected: {
+          minCount: 1,
+          categorySlug: "kosmetik",
+        },
+      },
+      {
+        id: "RL16",
+        title: "Gesichtscreme Anti-Aging, höheres Budget",
+        query: "Ich suche eine gute Gesichtscreme gegen Falten. Preis darf ruhig etwas höher sein, Hauptsache die Qualität stimmt.",
+        note: "Gesichtscreme Anti-Aging, höheres Budget - Review: Intent wird nicht als premium erkannt",
+        expected: {
+          minCount: 1,
+          categorySlug: "kosmetik",
+        },
+      },
+      {
+        id: "RL17",
+        title: "Parfüm, nicht zu süß",
+        query: "Hast du ein Parfüm, das eher frisch und nicht so süß ist? Ich mag nichts Schweres.",
+        note: "Parfüm frisch, nicht süß - Review: Keine passenden Parfüms im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL18",
+        title: "Yoga-Matte + Home-Workout",
+        query: "Ich möchte zu Hause mit Yoga anfangen. Kannst du mir eine Matte empfehlen und vielleicht noch etwas, was dazu passt?",
+        note: "Yoga-Matte + Zubehör - Review: Keine Yoga-Matte im Katalog, zeigt andere Produkte",
+        expected: {
+          minCount: 1,
+        },
+      },
+      {
+        id: "RL19",
+        title: "Hanteln für Heimtraining",
+        query: "Ich brauche Kurzhanteln für mein Home-Gym. Was kannst du mir für den Start empfehlen?",
+        note: "Hanteln für Heimtraining - Review: Keine Hanteln im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL20",
+        title: "Gartenlichter / Balkon-Atmosphäre",
+        query: "Ich möchte meinen Balkon gemütlicher machen. Hast du Lichter oder Deko, die dafür passen?",
+        note: "Gartenlichter / Balkon-Deko - Review: Keine passenden Produkte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL21",
+        title: "Indoor/Outdoor-Deko-Frage",
+        query: "Sind eure Lichter eher für draußen oder drinnen gedacht? Ich will sie auf dem Balkon und vielleicht auch im Wohnzimmer nutzen.",
+        note: "Indoor/Outdoor-Deko-Frage - Review: Keine passenden Produkte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL22",
+        title: "Büro-Set (Notizbuch + Stifte)",
+        query: "Kannst du mir ein kleines Büro-Set zusammenstellen, zum Beispiel Notizbuch und Stifte für den Schreibtisch?",
+        note: "Büro-Set Notizbuch + Stifte - Review: Keine Büro-Produkte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL23",
+        title: "Günstiger Homeoffice-Start",
+        query: "Ich starte gerade ins Homeoffice und habe kaum Budget. Was ist das günstigste, womit ich erstmal vernünftig arbeiten kann?",
+        note: "Günstiger Homeoffice-Start - Review: Keine Homeoffice-Produkte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL24",
+        title: "Budget-Smalltalk Badartikel",
+        query: "Ich habe nicht so viel Geld, aber ich bräuchte irgendwas Kleines fürs Bad, vielleicht Duschgel oder so. Was schlägst du vor?",
+        note: "Budget-Smalltalk Badartikel - Review: Zeigt Haushaltsprodukte statt Kosmetik",
+        expected: {
+          minCount: 1,
+        },
+      },
+      {
+        id: "RL25",
+        title: "Vage Lifestyle-Frage (Urlaub/Eindruck)",
+        query: "Ich fahre bald in den Urlaub und möchte ein bisschen Eindruck machen. Hast du irgendetwas Cooles, das dazu passt?",
+        note: "Vage Lifestyle-Frage Urlaub/Eindruck",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL26",
+        title: "Rückgabe/Garantie",
+        query: "Wie sieht es bei euch mit Rückgabe und Garantie aus, falls ich mit dem Produkt nicht zufrieden bin?",
+        note: "Rückgabe/Garantie-Frage",
+        expected: {
+          expectedPrimaryAction: "SHOW_RETURNS_INFO",
+          expectedNotesIncludes: ["RETURNS_QUESTION"],
+        },
+      },
+      {
+        id: "RL27",
+        title: "Lieferzeit Deutschland",
+        query: "Wenn ich heute bestelle, wann kommt meine Bestellung ungefähr bei mir in Deutschland an?",
+        note: "Lieferzeit Deutschland",
+        expected: {
+          expectedPrimaryAction: "SHOW_DELIVERY_INFO",
+          expectedNotesIncludes: ["DELIVERY_QUESTION"],
+        },
+      },
+      {
+        id: "RL28",
+        title: "Versand ins Ausland (Österreich)",
+        query: "Versendet ihr auch nach Österreich und wie lange dauert das ungefähr?",
+        note: "Versand ins Ausland Österreich",
+        expected: {
+          expectedPrimaryAction: "SHOW_DELIVERY_INFO",
+          expectedNotesIncludes: ["DELIVERY_QUESTION"],
+        },
+      },
+      {
+        id: "RL29",
+        title: "Rabatt/Gutschein/Deal",
+        query: "Gibt es aktuell irgendwelche Rabatte oder einen Gutschein, den ich nutzen kann? Wenn nicht, was wäre trotzdem ein gutes Preis-Leistungs-Angebot?",
+        note: "Rabatt/Gutschein/Deal - Review: Keine passenden Produkte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL30",
+        title: "Günstigstes Produkt in einer Kategorie",
+        query: "Was ist das günstigste Produkt, das du im Bereich Haushalt hast? Ich will wirklich so wenig wie möglich ausgeben.",
+        note: "Günstigstes Produkt Haushalt",
+        expected: {
+          minCount: 1,
+          expectIntent: "bargain",
+          categorySlug: "haushalt",
+        },
+      },
+      {
+        id: "RL31",
+        title: "Teuerstes/Premium-Produkt",
+        query: "Zeig mir bitte euer hochwertigstes Produkt, egal in welcher Kategorie. Etwas, das sich wie ein Luxus-Geschenk anfühlt.",
+        note: "Teuerstes/Premium-Produkt global",
+        expected: {
+          minCount: 1,
+          expectIntent: "premium",
+        },
+      },
+      {
+        id: "RL32",
+        title: "Englisch: Hundespielzeug",
+        query: "Do you have something for my dog that is good for chewing and playing? Nothing with food, just a toy.",
+        note: "Englisch: Hundespielzeug",
+        expected: {
+          minCount: 1,
+          categorySlug: "haustier",
+        },
+      },
+      {
+        id: "RL33",
+        title: "Englisch + Budget (Snowboard)",
+        query: "I need a cheap snowboard for a total beginner, nothing too fast. Budget max 250 euros. What would you recommend?",
+        note: "Englisch + Budget Snowboard - Review: Budget zu niedrig, zeigt trotzdem Produkte",
+        expected: {
+          minCount: 1,
+          expectNoMatchPriceRange: true,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL34",
+        title: "Preis-Einwand zu teuer",
+        query: "Das sieht gut aus, aber das ist mir zu teuer. Hast du etwas Ähnliches, das günstiger ist?",
+        note: "Preis-Einwand zu teuer",
+        expected: {
+          expectedPrimaryAction: "HANDLE_OBJECTION",
+          expectedNotesIncludes: ["PRICE_OBJECTION"],
+        },
+      },
+      {
+        id: "RL35",
+        title: "Vegan/Öko-Duschgel (potenziell nicht im Katalog)",
+        query: "Hast du ein veganes oder besonders umweltfreundliches Duschgel? Wenn nicht, was wäre die beste Alternative?",
+        note: "Vegan/Öko-Duschgel, potenziell nicht im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL36",
+        title: "Umweltfreundliche Verpackung",
+        query: "Achtet ihr bei euren Produkten oder beim Versand auf umweltfreundliche Verpackungen? Welches Produkt passt da am besten zu meinem Wunsch?",
+        note: "Umweltfreundliche Verpackung",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL37",
+        title: "Home-Gym-Set",
+        query: "Kannst du mir ein kleines Set für mein Home-Gym zusammenstellen, zum Beispiel Matte und Hanteln oder etwas Ähnliches?",
+        note: "Home-Gym-Set - Review: Keine Home-Gym-Produkte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL38",
+        title: "Erklärung Snowboards",
+        query: "Kannst du mir bitte den Unterschied zwischen euren Snowboards erklären und sagen, welches zu mir passt, wenn ich eher Anfänger mit Ambitionen bin?",
+        note: "Erklärung Snowboards, Anfänger mit Ambitionen",
+        expected: {
+          expectExplanationMode: true,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL39",
+        title: "Alternative bei ausverkauft",
+        query: "Wenn ein bestimmtes Produkt ausverkauft ist, kannst du mir dann eine sinnvolle Alternative vorschlagen? Zum Beispiel wenn mein Wunsch-Snowboard nicht mehr da ist.",
+        note: "Alternative bei ausverkauft",
+        expected: {
+          minCount: 1,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL40",
+        title: "Geschenkgutschein",
+        query: "Habt ihr Geschenkgutscheine, die ich kaufen kann, falls ich mir bei der Produktauswahl unsicher bin?",
+        note: "Geschenkgutschein",
+        expected: {
+          minCount: 0,
+        },
+      },
+
+      // =====================================================
+      // Real-Life Varianten (RL01v1–RL20v2)
+      // Verschärfte Tests für Profiseller-Verhalten
+      // =====================================================
+      {
+        id: "RL01v1",
+        title: "Budget Snowboard normal - Variante 1",
+        query: "Kannst du mir bitte ein Snowboard für Anfänger empfehlen, so in etwa bis 300 Euro maximal?",
+        note: "Budget-Anfrage, 'bis 300', freundliche Formulierung",
+        expected: {
+          minCount: 1,
+          expectNoMatchPriceRange: true,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL01v2",
+        title: "Budget Snowboard normal - Variante 2",
+        query: "Ich will erstmal nur ein Einsteiger-Snowboard, echt nichts Teures, so um die 300 Euro. Was hast du da?",
+        note: "Budget, sehr umgangssprachlich, weich formuliert",
+        expected: {
+          minCount: 1,
+          expectNoMatchPriceRange: true,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL02v1",
+        title: "Premium Snowboard - Variante 1",
+        query: "Hast du auch ein richtig hochwertiges Snowboard? Es darf ruhig teuer sein, Hauptsache Top-Qualität.",
+        note: "Premium-Snowboard, Preis egal",
+        expected: {
+          minCount: 1,
+          expectIntent: "premium",
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL02v2",
+        title: "Premium Snowboard - Variante 2",
+        query: "Gib mir bitte dein bestes Snowboard, Preis ist egal, ich will einfach was richtig Gutes.",
+        note: "Premium-Wunsch, explizit 'bestes' und 'Preis egal'",
+        expected: {
+          minCount: 1,
+          expectIntent: "premium",
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL03v1",
+        title: "Komplettes Snowboard-Set, Budget zu niedrig - Variante 1",
+        query: "Ich brauche ein komplettes Snowboard-Set inklusive Bindung und allem drum und dran. Mehr als 250 Euro ist nicht drin.",
+        note: "Komplett-Set + zu niedriges Budget",
+        expected: {
+          minCount: 1,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL03v2",
+        title: "Komplettes Snowboard-Set, Budget zu niedrig - Variante 2",
+        query: "Kannst du mir alles fürs Snowboarden zusammenstellen, aber insgesamt maximal 200 Euro? Board, Bindung, alles dabei.",
+        note: "Unrealistisches Gesamtbudget, Profi soll Budget-Mismatch erklären",
+        expected: {
+          minCount: 1,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL04v1",
+        title: "Wax-Verwirrung - Variante 1",
+        query: "Dieses Wax bei euch, ist das für die Haare oder für mein Snowboard gedacht?",
+        note: "Wax-Disambiguierung (Hair vs. Snowboard)",
+        expected: {
+          minCount: 1,
+          categorySlug: "snowboard",
+        },
+      },
+      {
+        id: "RL04v2",
+        title: "Wax-Verwirrung - Variante 2",
+        query: "Ich brauche Wax für mein Board, kein Haarwachs. Was empfiehlst du mir dafür genau?",
+        note: "Klar Snowboard-Wax, Fokus auf Explanation/Anwendung - Review: SellerBrain erkennt manchmal Kosmetik statt Snowboard",
+        expected: {
+          minCount: 1,
+        },
+      },
+      {
+        id: "RL05v1",
+        title: "Smartphone mittleres Budget - Variante 1",
+        query: "Welches Smartphone passt für WhatsApp, Insta und ein paar Fotos, wenn ich höchstens 350 Euro ausgeben kann?",
+        note: "Smartphone, Budget konkret, Alltags-Use-Case",
+        expected: {
+          minCount: 1,
+          maxPrice: 350,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL05v2",
+        title: "Smartphone mittleres Budget - Variante 2",
+        query: "Ich suche ein Handy zum Chatten und Netflix schauen, maximal 400 Euro. Was würdest du mir empfehlen?",
+        note: "Handy-Synonym, Streaming, klares Budget",
+        expected: {
+          minCount: 1,
+          maxPrice: 400,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL06v1",
+        title: "Smartphone + Zubehör (Cross-Sell) - Variante 1",
+        query: "Zeig mir bitte ein gutes Smartphone und gleich eine passende Hülle dazu.",
+        note: "Cross-Sell (Smartphone + Hülle)",
+        expected: {
+          minCount: 1,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL06v2",
+        title: "Smartphone + Zubehör (Cross-Sell) - Variante 2",
+        query: "Ich brauche ein neues Handy mit Ladekabel und am besten direkt einer Schutzhülle. Was kannst du mir als Kombi vorschlagen?",
+        note: "Handy + Ladegerät + Hülle, Cross-Sell",
+        expected: {
+          minCount: 1,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL07v1",
+        title: "Premium-Smartphone Kamera-Fokus - Variante 1",
+        query: "Welches eurer Smartphones hat die beste Kamera, wenn ich viele Fotos und Reels mache?",
+        note: "Kamera-Fokus, Content-Creator-Use-Case",
+        expected: {
+          minCount: 1,
+          expectIntent: "premium",
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL07v2",
+        title: "Premium-Smartphone Kamera-Fokus - Variante 2",
+        query: "Ich will hauptsächlich gute Fotos von Familie und Urlaub machen. Welches Smartphone ist dafür euer bestes?",
+        note: "Kamera-Qualität, Alltagssprache",
+        expected: {
+          minCount: 1,
+          expectIntent: "premium",
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL08v1",
+        title: "Laptop fürs Homeoffice - Variante 1",
+        query: "Hast du einen Laptop, der sich gut fürs Homeoffice eignet – viel E-Mail, Meetings, bisschen Excel, kein Gaming?",
+        note: "Laptop Homeoffice, klarer Use-Case, kein Gaming",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL08v2",
+        title: "Laptop fürs Homeoffice - Variante 2",
+        query: "Ich brauche einen Arbeits-Laptop für zu Hause, Office, Videocalls, nichts Ausgefallenes. Was ist da dein Favorit?",
+        note: "Business-Use-Case, Beratungston",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL09v1",
+        title: "Laptop + Zubehör (Maus/Headset) - Variante 1",
+        query: "Zu dem Laptop hätte ich gerne auch eine Maus, was passt da gut zusammen?",
+        note: "Cross-Sell: Laptop + Maus - Review: Kein Laptop im Katalog, keine passenden Produkte",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL09v2",
+        title: "Laptop + Zubehör (Maus/Headset) - Variante 2",
+        query: "Gibt es Kopfhörer, die du zu diesem Laptop empfehlen würdest, damit ich in Ruhe arbeiten kann?",
+        note: "Cross-Sell: Laptop + Kopfhörer, Fokus 'ruhig arbeiten'",
+        expected: {
+          minCount: 1,
+        },
+      },
+      {
+        id: "RL10v1",
+        title: "TV für kleines Wohnzimmer - Variante 1",
+        query: "Welcher Fernseher eignet sich für ein kleines Wohnzimmer, ohne dass er die ganze Wand einnimmt?",
+        note: "TV-Größe, Raumgröße",
+        expected: {
+          minCount: 1,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL10v2",
+        title: "TV für kleines Wohnzimmer - Variante 2",
+        query: "Ich will einen nicht zu großen TV, so mittelgroß für mein Wohnzimmer, maximal 700 Euro. Was passt?",
+        note: "TV + Budget, 'mittelgroß'",
+        expected: {
+          minCount: 1,
+          maxPrice: 700,
+          categorySlug: "elektronik",
+        },
+      },
+      {
+        id: "RL11v1",
+        title: "Geschenk für Freund (Gaming/Tech) - Variante 1",
+        query: "Mein Freund zockt gerne auf Konsole und PC. Hast du ein technisches Geschenk, das dazu passt?",
+        note: "Geschenk für Gamer, Tech-Affinität",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL11v2",
+        title: "Geschenk für Freund (Gaming/Tech) - Variante 2",
+        query: "Ich brauche ein Geschenk für einen Technik-Freak – irgendwas Cooles aus der Elektronik-Ecke. Was schlägst du vor?",
+        note: "Geschenk, Kategorie Elektronik, vage Wunsch",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL12v1",
+        title: "Geschenk für Mama (Küche/Haushalt) - Variante 1",
+        query: "Meine Mutter liebt es, in der Küche zu experimentieren. Hast du etwas Praktisches oder Hochwertiges für die Küche?",
+        note: "Geschenk für Mutter, Küche/Haushalt",
+        expected: {
+          minCount: 1,
+          categorySlug: "haushalt",
+        },
+      },
+      {
+        id: "RL12v2",
+        title: "Geschenk für Mama (Küche/Haushalt) - Variante 2",
+        query: "Kannst du mir ein Küchen-Gadget empfehlen, das man gut verschenken kann? Es soll nützlich sein und hochwertig wirken.",
+        note: "Haushalts-/Küchenartikel, Geschenk-Use-Case",
+        expected: {
+          minCount: 1,
+          categorySlug: "haushalt",
+        },
+      },
+      {
+        id: "RL13v1",
+        title: "Geschenk für Hundebesitzer - Variante 1",
+        query: "Mein Bruder ist total vernarrt in seinen Hund. Was wäre ein schönes Geschenk aus eurer Haustier-Ecke?",
+        note: "Geschenk für Hundebesitzer, Haustier-Kategorie",
+        expected: {
+          minCount: 1,
+          categorySlug: "haustier",
+        },
+      },
+      {
+        id: "RL13v2",
+        title: "Geschenk für Hundebesitzer - Variante 2",
+        query: "Ich suche ein Geschenk, das sowohl dem Hund als auch dem Besitzer Spaß macht. Hast du da etwas?",
+        note: "Doppel-Fokus Hund + Besitzer, Spaßfaktor",
+        expected: {
+          minCount: 1,
+          categorySlug: "haustier",
+        },
+      },
+      {
+        id: "RL14v1",
+        title: "Hundespielzeug vs. Futter - Variante 1",
+        query: "Ich suche ein robustes Spielzeug für meinen Hund, nichts zum Fressen, eher zum Kauen und Rumtragen.",
+        note: "Hundespielzeug, kein Futter",
+        expected: {
+          minCount: 1,
+          categorySlug: "haustier",
+        },
+      },
+      {
+        id: "RL14v2",
+        title: "Hundespielzeug vs. Futter - Variante 2",
+        query: "Bitte nur Spielzeug für den Hund zeigen, kein Futter und keine Pflegeprodukte.",
+        note: "Klarer Ausschluss (Futter/Pflege), Filter-Logik",
+        expected: {
+          minCount: 1,
+          categorySlug: "haustier",
+        },
+      },
+      {
+        id: "RL15v1",
+        title: "Duschgel empfindliche Haut - Variante 1",
+        query: "Gibt es bei euch ein Duschgel, das besonders mild ist? Meine Haut reagiert schnell empfindlich.",
+        note: "empfindliche Haut, Duschgel mild",
+        expected: {
+          minCount: 1,
+          categorySlug: "kosmetik",
+        },
+      },
+      {
+        id: "RL15v2",
+        title: "Duschgel empfindliche Haut - Variante 2",
+        query: "Ich brauche ein sanftes Duschgel ohne extremen Duft. Was wäre da deine Empfehlung?",
+        note: "Duft nicht zu stark, mild - Review: SellerBrain erkennt manchmal Parfüm statt Kosmetik",
+        expected: {
+          minCount: 1,
+        },
+      },
+      {
+        id: "RL16v1",
+        title: "Gesichtscreme Anti-Aging, höheres Budget - Variante 1",
+        query: "Welche Gesichtscreme empfiehlst du gegen Falten, wenn ich bereit bin, etwas mehr dafür zu bezahlen?",
+        note: "Anti-Aging, höheres Budget",
+        expected: {
+          minCount: 1,
+          categorySlug: "kosmetik",
+        },
+      },
+      {
+        id: "RL16v2",
+        title: "Gesichtscreme Anti-Aging, höheres Budget - Variante 2",
+        query: "Ich will eine hochwertige Anti-Aging-Creme. Sie darf ruhig teuer sein, aber auch wirklich etwas bringen.",
+        note: "Premium, Wirksamkeit, Kosmetik - Review: Keine passenden Produkte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL17v1",
+        title: "Parfüm, nicht zu süß - Variante 1",
+        query: "Hast du ein Parfüm, das eher frisch und zitrisch ist und nicht so schwer wirkt?",
+        note: "Duftprofil frisch/zitrisch, kein schwerer Duft",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL17v2",
+        title: "Parfüm, nicht zu süß - Variante 2",
+        query: "Ich mag keine süßen Düfte. Welches eurer Parfüms riecht eher sauber und leicht?",
+        note: "Anti-süß, frisch/clean",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL18v1",
+        title: "Yoga-Matte + Home-Workout - Variante 1",
+        query: "Für Yoga zu Hause – welche Matte würdest du mir als Einstieg empfehlen?",
+        note: "Yoga-Matte für Einsteiger - Review: Keine Yoga-Matte im Katalog",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL18v2",
+        title: "Yoga-Matte + Home-Workout - Variante 2",
+        query: "Ich will mit Yoga anfangen und brauche eine Matte, die nicht rutscht. Was passt dafür?",
+        note: "Anti-Rutsch, Yoga",
+        expected: {
+          minCount: 1,
+        },
+      },
+      {
+        id: "RL19v1",
+        title: "Hanteln für Heimtraining - Variante 1",
+        query: "Welche Hanteln eignen sich für den Einstieg ins Krafttraining zu Hause?",
+        note: "Hanteln für Anfänger, Heimtraining",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL19v2",
+        title: "Hanteln für Heimtraining - Variante 2",
+        query: "Ich möchte zu Hause ein bisschen Muskeln aufbauen. Welche Kurzhanteln empfiehlst du mir?",
+        note: "Home-Gym, Muskelaufbau",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL20v1",
+        title: "Gartenlichter / Balkon-Atmosphäre - Variante 1",
+        query: "Ich will meinen Balkon gemütlich machen – Lichterkette, vielleicht etwas Deko. Was kannst du da zeigen?",
+        note: "Balkon-Deko, Beleuchtung + Deko",
+        expected: {
+          minCount: 0,
+        },
+      },
+      {
+        id: "RL20v2",
+        title: "Gartenlichter / Balkon-Atmosphäre - Variante 2",
+        query: "Hast du Deko oder Lichter, die draußen auf dem Balkon gut aussehen und auch ein bisschen wetterfest sind?",
+        note: "Outdoor-Fokus, Garten/Balkon, Atmosphäre",
+        expected: {
+          minCount: 0,
+        },
+      },
     ];
 
     // Expandiere Basis-Szenarien mit Varianten
