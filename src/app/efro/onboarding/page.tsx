@@ -219,13 +219,23 @@ export default function EfroOnboardingPage() {
       const voiceId = catalogVoice?.agentId ?? null;
       const locale = catalogVoice?.language ?? "de";
 
+      // Sicherstellen, dass avatarId der tatsächlich ausgewählte Avatar ist
+      const avatarId = selectedAvatarId;
+
       const payload = {
         shop,
-        avatarId: selectedAvatarId ?? null,
+        avatarId: avatarId ?? null,
         voiceId: voiceId ?? null,
         locale,
         ttsEnabled: true,
       };
+
+      console.log("[EFRO Onboarding] Saving shop settings payload", {
+        payload,
+        selectedAvatarId,
+        selectedVoiceKey,
+        catalogVoice: catalogVoice ? { key: catalogVoice.key, agentId: catalogVoice.agentId, language: catalogVoice.language } : null,
+      });
 
       const res = await fetch("/api/efro/shop-settings", {
         method: "POST",
@@ -320,7 +330,13 @@ export default function EfroOnboardingPage() {
                     <button
                       key={avatar.id}
                       type="button"
-                      onClick={() => setSelectedAvatarId(avatar.id as EfroAvatarId)}
+                      onClick={() => {
+                        console.log("[EFRO Onboarding] Avatar selected", {
+                          avatarId: avatar.id,
+                          avatarName: avatar.name,
+                        });
+                        setSelectedAvatarId(avatar.id as EfroAvatarId);
+                      }}
                       className={[
                         "w-full text-left rounded-xl border px-3 py-3 transition-all",
                         "bg-slate-900/70 hover:bg-slate-800/70",
