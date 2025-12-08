@@ -101,11 +101,27 @@ const VOICES: VoiceOption[] = [
 export default function EfroOnboardingPage() {
   const router = useRouter();
 
+  // Shop aus URL lesen (client-side)
+  const [shop, setShop] = useState<string>("demo");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const shopParam = params.get("shop");
+      if (shopParam && shopParam.trim().length > 0) {
+        setShop(shopParam);
+      }
+    } catch (error) {
+      console.error("[EFRO Onboarding] Failed to read shop from URL", error);
+    }
+  }, []);
+
   const [selectedAvatarId, setSelectedAvatarId] = useState<EfroAvatarId>("bear");
   const [selectedVoiceKey, setSelectedVoiceKey] = useState<VoiceKey | null>(
     VOICES[0]?.key ?? null
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
   // TODO: Onboarding Lipsync-Preview später über sicheren Golden-Flow anbinden
@@ -190,12 +206,49 @@ export default function EfroOnboardingPage() {
     }
   };
 
-  // Hier kannst du später z. B. in Supabase speichern oder in localStorage
+  // Speichere Einstellungen in Supabase und navigiere weiter
   async function handleContinue() {
-    try {
-      setIsSaving(true);
+    setSaveError(null);
+    setIsSaving(true);
 
-      // Beispiel: Einstellungen in localStorage merken (einfacher Start)
+    try {
+      // Voice-ID und Locale aus Voice-Key ableiten
+      const catalogVoice = selectedVoiceKey
+        ? VOICE_CATALOG.find((v) => v.key === selectedVoiceKey) ?? null
+        : null;
+      const voiceId = catalogVoice?.agentId ?? null;
+      const locale = catalogVoice?.language ?? "de";
+
+      const payload = {
+        shop,
+        avatarId: selectedAvatarId ?? null,
+        voiceId: voiceId ?? null,
+        locale,
+        ttsEnabled: true,
+      };
+
+      const res = await fetch("/api/efro/shop-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorJson = await res.json().catch(() => null);
+        console.error("[EFRO Onboarding] Failed to save settings", {
+          status: res.status,
+          errorJson,
+        });
+        setSaveError(
+          "Die Einstellungen konnten nicht gespeichert werden. Bitte versuche es später noch einmal."
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      // Einstellungen auch in localStorage merken (Fallback)
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           "efro-avatar-settings",
@@ -207,9 +260,13 @@ export default function EfroOnboardingPage() {
         );
       }
 
-      // Weiter zur Avatar-Seller-Seite
-      router.push("/avatar-seller");
-    } finally {
+      // Weiter zur Avatar-Seller-Seite mit Shop-Parameter
+      router.push(`/avatar-seller?shop=${encodeURIComponent(shop)}`);
+    } catch (error) {
+      console.error("[EFRO Onboarding] Error while saving settings", error);
+      setSaveError(
+        "Die Einstellungen konnten nicht gespeichert werden. Bitte versuche es später noch einmal."
+      );
       setIsSaving(false);
     }
   }
@@ -419,22 +476,29 @@ export default function EfroOnboardingPage() {
                 <li>• Modus: Produktberatung + Verkauf (v1)</li>
               </ul>
 
-              <div className="flex items-center justify-between mt-2">
-                <button
-                  type="button"
-                  onClick={handleContinue}
-                  disabled={isSaving}
-                  className={[
-                    "inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold",
-                    "bg-emerald-500 text-slate-950 hover:bg-emerald-400",
-                    "disabled:opacity-60 disabled:cursor-not-allowed",
-                  ].join(" ")}
-                >
-                  {isSaving ? "Speichere…" : "Weiter zum Avatar"}
-                </button>
-                <span className="text-[10px] text-slate-500">
-                  Du kannst Avatar & Stimme später jederzeit ändern.
-                </span>
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={handleContinue}
+                    disabled={isSaving}
+                    className={[
+                      "inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold",
+                      "bg-emerald-500 text-slate-950 hover:bg-emerald-400",
+                      "disabled:opacity-60 disabled:cursor-not-allowed",
+                    ].join(" ")}
+                  >
+                    {isSaving ? "Speichere…" : "Weiter zum Avatar"}
+                  </button>
+                  <span className="text-[10px] text-slate-500">
+                    Du kannst Avatar & Stimme später jederzeit ändern.
+                  </span>
+                </div>
+                {saveError && (
+                  <div className="mt-2 text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                    {saveError}
+                  </div>
+                )}
               </div>
             </div>
           </section>
