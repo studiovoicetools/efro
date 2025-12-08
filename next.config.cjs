@@ -8,7 +8,17 @@ const nextConfig = {
       { protocol: "https", hostname: "*.elevenlabs.io" }
     ]
   },
-  output: "standalone"
+  output: "standalone",
+  // Exclude problematic routes from static generation during build
+  experimental: {
+    outputFileTracingExcludes: {
+      '*': [
+        'src/app/admin/billing/**',
+        'src/app/admin/import/**',
+        'src/app/api/checkout/url/**'
+      ]
+    }
+  }
 };
 
 module.exports = nextConfig;
