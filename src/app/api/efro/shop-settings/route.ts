@@ -19,7 +19,12 @@ function createServiceRoleClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
-    console.error("[EFRO shop-settings] Missing SUPABASE envs");
+    console.error("[EFRO shop-settings] Missing Supabase envs", {
+      urlDefined: !!url,
+      serviceRoleDefined: !!serviceRoleKey,
+      urlLength: url?.length ?? 0,
+      serviceRoleLength: serviceRoleKey?.length ?? 0,
+    });
     return null;
   }
 
@@ -56,7 +61,13 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
-      console.error("[EFRO shop-settings] GET failed", error);
+      console.error("[EFRO shop-settings] GET failed", {
+        error,
+        shop: shopParam,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+      });
       return NextResponse.json(
         { error: "Failed to fetch shop settings", details: error.message },
         { status: 500 }
@@ -124,7 +135,20 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("[EFRO shop-settings] upsert failed", error);
+      console.error("[EFRO shop-settings] upsert failed", {
+        error,
+        shop,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        payload: {
+          shop,
+          avatar_id: body.avatarId ?? null,
+          voice_id: body.voiceId ?? null,
+          locale: body.locale ?? null,
+          tts_enabled: typeof body.ttsEnabled === "boolean" ? body.ttsEnabled : true,
+        },
+      });
       return NextResponse.json(
         { error: "Failed to save shop settings", details: error.message },
         { status: 500 }
