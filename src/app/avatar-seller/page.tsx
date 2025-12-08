@@ -2,8 +2,7 @@
 
 import { logEfroEvent } from "@/lib/efro/logEventClient";
 
-import { useState, useCallback, useEffect, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
 import {
   MascotProvider,
@@ -525,8 +524,22 @@ type HomeProps = {
 
 export default function Home({ searchParams }: HomeProps) {
   // Single source of truth für Shop-Kontext aus URL Query-Parameter
-  const searchParamsHook = useSearchParams();
-  const shop = searchParamsHook.get("shop") ?? "demo";
+  const [shop, setShop] = useState<string>("demo");
+
+  // Shop-Parameter aus URL lesen (client-side)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const shopParam = params.get("shop");
+      if (shopParam && shopParam.trim().length > 0) {
+        setShop(shopParam);
+      }
+    } catch (error) {
+      console.error("[EFRO AvatarSeller] Failed to read shop from URL", error);
+    }
+  }, []);
 
   const mascotUrl = buildMascotUrl(/* später avatarId, aktuell undefined lassen */);
 
@@ -1458,8 +1471,7 @@ export default function Home({ searchParams }: HomeProps) {
   });
 
   return (
-    <Suspense fallback={null}>
-      <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
+    <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
         {/* AVATAR + VOICE + CHAT */}
         <AvatarPreview
           src={mascotUrl}
@@ -1587,6 +1599,5 @@ export default function Home({ searchParams }: HomeProps) {
           </div>
         )}
       </main>
-    </Suspense>
   );
 }
