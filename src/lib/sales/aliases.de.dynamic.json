@@ -1,6 +1,22 @@
 {
   "_comment": "Dynamisch gelernte Aliase (z. B. aus AI oder User-Feedback)",
   "_version": "1.0.0",
-  "aliases": []
+  "aliases": [
+    {
+      "term": "haust",
+      "normalizedTerm": "haust",
+      "type": "category",
+      "mapToCategorySlug": "haustier",
+      "confidence": 0.85,
+      "source": "ai"
+    },
+    {
+      "term": "shop",
+      "normalizedTerm": "shop",
+      "type": "category",
+      "mapToCategorySlug": "shopify",
+      "confidence": 0.85,
+      "source": "ai"
+    }
+  ]
 }
-

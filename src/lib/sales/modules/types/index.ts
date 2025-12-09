@@ -26,6 +26,8 @@ export type PriceRangeInfo = {
  */
 export interface SellerBrainContext {
   activeCategorySlug?: string | null;
+  /** Dynamische Aliase, die vom AI-Resolver gelernt wurden (z. B. "gesichtscreen" -> "gesichtscreme") */
+  dynamicAliases?: Record<string, string>;
 }
 
 /**

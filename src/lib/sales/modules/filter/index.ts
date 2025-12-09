@@ -1056,6 +1056,7 @@ function buildFilterContext(
   const catalogKeywords = Array.from(catalogKeywordsSet);
 
   // Alias-Map initialisieren und filtern (nur Keywords, die im Katalog vorkommen)
+  // HINWEIS: Dynamic Aliases werden in runSellerBrain() verwendet (dort ist vollständiger SellerBrainContext verfügbar)
   const aliasMap = initializeAliasMap(catalogKeywords);
 
   // Wörter mit Katalog-Keywords erweitern (Komposita aufbrechen)

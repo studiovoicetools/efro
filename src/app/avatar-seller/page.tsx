@@ -110,6 +110,9 @@ interface ElevenLabsAvatarProps {
     >
   >;
 
+  // EFRO VOICE+CHAT FIX 2025-12-10: Zentrale User-Input-Handlung
+  handleUserTextInput?: (text: string) => void;
+
   // Handler-Registrierung, damit Home EFRO sprechen lassen kann
   registerSpeakHandler?: (fn: ((text: string) => void) | null) => void;
   registerStartHandler?: (fn: (() => void) | null) => void;
@@ -120,6 +123,7 @@ function ElevenLabsAvatar({
   dynamicVariables,
   createRecommendations,
   setChatMessages: externalSetChatMessages,
+  handleUserTextInput,
   registerSpeakHandler,
   registerStartHandler,
   registerStopHandler,
@@ -290,7 +294,7 @@ function ElevenLabsAvatar({
       }
 
       /* ===========================================================
-         USER VOICE → orange
+         USER VOICE → zentrale handleUserTextInput-Pipeline
       ============================================================ */
       if (isUserMessage) {
         // Nur Rauschen (ohne Buchstaben/Ziffern) ignorieren
@@ -302,16 +306,18 @@ function ElevenLabsAvatar({
           return;
         }
 
-        console.log("USER (Voice or Text):", cleanText);
+        console.log("[EFRO Voice] USER message detected", { text: cleanText });
 
-        // Produktempfehlungen nur für ECHTEN User-Text
-        // EFRO Fix: User-Message wird in createRecommendations hinzugefügt (nach Cleaning)
-        // Hier NICHT mehr hinzufügen, um Duplikate zu vermeiden
-        if (typeof createRecommendations === "function") {
+        // EFRO VOICE+CHAT FIX 2025-12-10: Zentrale handleUserTextInput-Pipeline
+        if (typeof handleUserTextInput === "function") {
+          handleUserTextInput(cleanText);
+        } else if (typeof createRecommendations === "function") {
+          // Fallback für alte Implementierung
+          console.warn("[EFRO Voice] handleUserTextInput nicht gesetzt, verwende createRecommendations");
           createRecommendations(cleanText);
         } else {
           console.log(
-            "[EFRO] createRecommendations nicht gesetzt – Katalog-Logik wird übersprungen."
+            "[EFRO Voice] handleUserTextInput und createRecommendations nicht gesetzt – Katalog-Logik wird übersprungen."
           );
         }
 
@@ -631,13 +637,14 @@ export default function Home({ searchParams }: HomeProps) {
     { id: string; text: string; sender: "user" | "efro" }[]
   >([]);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Helper-Funktion für Chat-Messages mit Logging
-  function appendChatMessage(msg: {
+  const appendChatMessage = useCallback((msg: {
     id: string;
     text: string;
     sender: "user" | "efro";
-  }) {
+  }) => {
     setChatMessages((prev) => {
       const next = [...prev, msg];
       console.log("[EFRO Chat] append", {
@@ -647,7 +654,7 @@ export default function Home({ searchParams }: HomeProps) {
       });
       return next;
     });
-  }
+  }, []);
 
   // Helper-Funktionen für SellerBrain v2 (Shop-Domain & Locale)
   function resolveShopDomain(): string {
@@ -1125,268 +1132,264 @@ export default function Home({ searchParams }: HomeProps) {
       SELLERBRAIN-BRIDGE (wird vom Avatar aufgerufen)
   ============================================================ */
 
-  const createRecommendations = useCallback(
-    async (userText: string) => {
-      const sellerProducts = allProductsRef.current;
+const createRecommendations = useCallback(
+  async (userText: string) => {
+    const sellerProducts = allProductsRef.current;
 
-      if (!sellerProducts.length) {
-        console.log(
-          "[EFRO SellerBrain] Kein Katalog geladen, Empfehlung übersprungen.",
-          {
-            allProductsStateLength: allProducts.length,
-            allProductsRefLength: sellerProducts.length,
-          }
+    if (!sellerProducts.length) {
+      console.log(
+        "[EFRO SellerBrain] Kein Katalog geladen, Empfehlung übersprungen.",
+        {
+          allProductsStateLength: allProducts.length,
+          allProductsRefLength: sellerProducts.length,
+        }
+      );
+      return;
+    }
+
+    const rawCleaned = userText.trim();
+    if (!rawCleaned) return;
+
+    const normalizedForSellerBrain = normalizeSellerBrainText(rawCleaned);
+
+    if (!normalizedForSellerBrain) {
+      console.log(
+        "[EFRO Pipeline] normalizeSellerBrainText returned empty – aborting",
+        { rawCleaned }
+      );
+      return;
+    }
+
+    // Alias, damit alle älteren Stellen mit `cleanedText` weiter funktionieren
+    const cleanedText = normalizedForSellerBrain;
+    const cleanedTextLower = cleanedText.toLowerCase();
+
+    console.log("[EFRO Pipeline] sellerBrainText", {
+      raw: rawCleaned,
+      normalized: normalizedForSellerBrain,
+    });
+
+    const explanation = detectExplanationType(normalizedForSellerBrain);
+
+    const offTopicKeywords = [
+      "politik",
+      "wahl",
+      "cursor",
+      "freund",
+      "freunde",
+      "gefühle",
+      "lebenssituation",
+    ];
+    const isOffTopic = offTopicKeywords.some((keyword) =>
+      cleanedTextLower.includes(keyword)
+    );
+
+    if (isOffTopic) {
+      sendDirectAiReply(
+        "Ich bin hier, um dir bei Produkten aus dem Shop zu helfen. Frag mich einfach nach einem Produkt, z. B. 'Zeige mir Duschgel'.",
+        { speak: true }
+      );
+      console.log("[EFRO OffTopic] Redirecting to product questions", {
+        text: normalizedForSellerBrain,
+      });
+      return;
+    }
+
+    // Ingredients
+    if (
+      explanation === "ingredients" ||
+      isIngredientsQuestion(normalizedForSellerBrain)
+    ) {
+      let fromLast =
+        lastRecommendedProducts[0] || lastRecommendations[0] || null;
+      let fromSeller = sellerRecommended[0] || null;
+      let primary: EfroProduct | null = fromLast || fromSeller;
+
+      if (!primary) {
+        primary = findBestProductMatchByText(
+          normalizedForSellerBrain,
+          sellerProducts
         );
-        return;
       }
 
-      const rawCleaned = userText.trim();
-      if (!rawCleaned) return;
+      const contextFromRef = fromLast
+        ? 1
+        : fromSeller
+        ? 2
+        : primary
+        ? 3
+        : 0;
 
-      const normalizedForSellerBrain = normalizeSellerBrainText(rawCleaned);
-
-      if (!normalizedForSellerBrain) {
-        console.log("[EFRO Pipeline] normalizeSellerBrainText returned empty – aborting", { rawCleaned });
-        return;
-      }
-
-      console.log("[EFRO Pipeline] sellerBrainText", {
-        raw: rawCleaned,
-        normalized: normalizedForSellerBrain,
+      console.log("[EFRO IngredientsExplanation]", {
+        text: normalizedForSellerBrain,
+        primaryTitle: primary?.title,
+        contextFromRef,
       });
 
-      const explanation = detectExplanationType(normalizedForSellerBrain);
-
-      const offTopicKeywords = [
-        "politik",
-        "wahl",
-        "cursor",
-        "freund",
-        "freunde",
-        "gefühle",
-        "lebenssituation",
-      ];
-      const isOffTopic = offTopicKeywords.some((keyword) =>
-        normalizedForSellerBrain.toLowerCase().includes(keyword)
-      );
-
-      if (isOffTopic) {
+      if (!primary) {
         sendDirectAiReply(
-          "Ich bin hier, um dir bei Produkten aus dem Shop zu helfen. Frag mich einfach nach einem Produkt, z. B. 'Zeige mir Duschgel'.",
+          "Zu diesem Produkt habe ich hier keine Inhaltsstoffe hinterlegt. Schau dir bitte die Produktseite im Shop an – dort findest du alle Details.",
           { speak: true }
         );
-        console.log("[EFRO OffTopic] Redirecting to product questions", {
-          text: normalizedForSellerBrain,
-        });
         return;
       }
 
-      // Ingredients
-      if (explanation === "ingredients" || isIngredientsQuestion(normalizedForSellerBrain)) {
-        let fromLast =
-          lastRecommendedProducts[0] || lastRecommendations[0] || null;
-        let fromSeller = sellerRecommended[0] || null;
-        let primary: EfroProduct | null = fromLast || fromSeller;
+      const desc = (primary.description || "").trim();
+      const descLower = desc.toLowerCase();
+      const hasIngredients =
+        descLower.includes("inhaltsstoffe") ||
+        descLower.includes("ingredients") ||
+        descLower.includes("inci");
 
-        if (!primary) {
-          primary = findBestProductMatchByText(normalizedForSellerBrain, sellerProducts);
-        }
-
-        const contextFromRef = fromLast
-          ? 1
-          : fromSeller
-          ? 2
-          : primary
-          ? 3
-          : 0;
-
-        console.log("[EFRO IngredientsExplanation]", {
-          text: normalizedForSellerBrain,
-          primaryTitle: primary?.title,
-          contextFromRef,
-        });
-
-        if (!primary) {
-          sendDirectAiReply(
-            "Zu diesem Produkt habe ich hier keine Inhaltsstoffe hinterlegt. Klicke im Shop auf das Produkt, dort findest du alle Details.",
-            { speak: true }
-          );
-          return;
-        }
-
-        const desc = (primary.description || "").trim();
-        const hasIngredients =
-          desc.toLowerCase().includes("inhaltsstoffe") ||
-          desc.toLowerCase().includes("ingredients") ||
-          desc.toLowerCase().includes("inci");
-
-        if (hasIngredients) {
-          const shortInfo = extractIngredientsSnippet(desc);
-          sendDirectAiReply(
-            `Zu diesem Produkt habe ich folgende Infos zu den Inhaltsstoffen: ${shortInfo}`,
-            { speak: true }
-          );
-        } else {
-          sendDirectAiReply(
-            "Zu diesem Produkt habe ich hier keine Inhaltsstoffe hinterlegt. Klicke im Shop auf das Produkt, dort findest du alle Details.",
-            { speak: true }
-          );
-        }
-        return;
+      if (hasIngredients) {
+        const shortInfo = extractIngredientsSnippet(desc);
+        sendDirectAiReply(
+          `Zu diesem Produkt habe ich folgende Infos zu den Inhaltsstoffen: ${shortInfo}`,
+          { speak: true }
+        );
+      } else {
+        sendDirectAiReply(
+          "Zu diesem Produkt habe ich hier keine Inhaltsstoffe hinterlegt. Schau dir bitte die Produktseite im Shop an – dort findest du alle Details.",
+          { speak: true }
+        );
       }
+      return;
+    }
 
-      // Anwendung / Waschen
-      if (explanation === "usage" || explanation === "washing") {
-        const t = cleanedText.toLowerCase();
-        let reply = "";
+    // Anwendung / Waschen
+    if (explanation === "usage" || explanation === "washing") {
+      const t = cleanedTextLower;
+      let reply = "";
 
-        if (explanation === "usage") {
-          if (
-            t.includes("trockene haut") ||
-            t.includes("trockener haut") ||
-            t.includes("sensible haut") ||
-            t.includes("empfindliche haut")
-          ) {
-            reply =
-              "Ob ein Duschgel speziell für trockene oder empfindliche Haut geeignet ist, erfährst du am besten in der Produktbeschreibung oder auf der Verpackung. Schau dir die Produktseite im Shop an – dort findest du Hinweise zum Hauttyp und zur Verträglichkeit.";
-          } else {
-            reply =
-              "Die genaue Anwendung hängt vom jeweiligen Produkt ab. Auf der Produktseite im Shop findest du alle wichtigen Anwendungshinweise.";
-          }
-        } else if (explanation === "washing") {
+      if (explanation === "usage") {
+        if (
+          t.includes("trockene haut") ||
+          t.includes("trockener haut") ||
+          t.includes("sensible haut") ||
+          t.includes("empfindliche haut")
+        ) {
           reply =
-            "Wasch- und Pflegehinweise findest du am besten direkt auf der Produktseite im Shop oder auf dem Pflegeetikett.";
-        }
-
-        sendDirectAiReply(reply, { speak: true });
-
-        console.log("[EFRO ExplanationGuard] Skipping sellerBrain", {
-          text: normalizedForSellerBrain,
-          explanation,
-        });
-
-        return;
-      }
-
-      // Preis
-      if (explanation === "price" || isPriceQuestion(normalizedForSellerBrain)) {
-        const fromLast =
-          lastRecommendedProducts[0] || lastRecommendations[0] || null;
-        const fromSeller = sellerRecommended[0] || null;
-        const primary = fromLast || fromSeller;
-        const contextFromRef = fromLast ? 1 : fromSeller ? 2 : 0;
-
-        console.log("[EFRO PriceExplanation]", {
-          text: normalizedForSellerBrain,
-          primaryTitle: primary?.title,
-          primaryPrice: primary?.price,
-          contextFromRef,
-        });
-
-        if (!primary) {
-          sendDirectAiReply(
-            "Ich habe gerade kein konkretes Produkt im Fokus. Klicke auf eine Produktkarte, dort siehst du den exakten Preis.",
-            { speak: true }
-          );
-          return;
-        }
-
-        const formattedPrice = formatPrice(primary.price);
-        const name = primary.title || "dieses Produkt";
-
-        sendDirectAiReply(`Das ${name} kostet aktuell ${formattedPrice}.`, {
-          speak: true,
-        });
-        return;
-      }
-
-      // Normale Produktanfrage → SellerBrain
-      try {
-        appendChatMessage({
-          id: `user-${Date.now()}`,
-          text: rawCleaned,
-          sender: "user",
-        });
-        console.log("[EFRO Chat] user message", { text: rawCleaned });
-
-        const context: SellerBrainContext | undefined =
-          sellerContext.activeCategorySlug
-            ? { activeCategorySlug: sellerContext.activeCategorySlug }
-            : undefined;
-
-        console.log("[EFRO Client] Sending sellerContext", {
-          sellerContext,
-          context,
-          activeCategorySlug: sellerContext.activeCategorySlug,
-        });
-
-        console.log("[EFRO Pipeline] BEFORE runSellerBrain", {
-          userText: normalizedForSellerBrain,
-          sellerContext,
-        });
-
-        const resolvedShopDomain = resolveShopDomain();
-        const resolvedLocale = resolveLocale();
-
-        const normalizedDomain = (resolvedShopDomain || "").trim().toLowerCase();
-        const isDemoShop =
-          normalizedDomain === "demo" ||
-          normalizedDomain.startsWith("demo.") ||
-          normalizedDomain.endsWith(".demo") ||
-          normalizedDomain === "test-shop.myshopify.com";
-        const isLocalDevShop =
-          normalizedDomain === "local-dev" ||
-          normalizedDomain.startsWith("local-dev.");
-
-        // Für demo/local-dev immer v1 verwenden (wie in Szenario-Tests)
-        // Für andere Shops: V2 verwenden (bisheriges Verhalten)
-        const useV2 = !isDemoShop && !isLocalDevShop;
-
-        let result: SellerBrainResult | SellerBrainV2Result;
-
-        if (useV2) {
-          console.log("[EFRO SB V2] Calling runSellerBrainV2", {
-            shopDomain: resolvedShopDomain,
-            locale: resolvedLocale,
-            text: normalizedForSellerBrain,
-          });
-
-          try {
-            result = await runSellerBrainV2(
-              normalizedForSellerBrain,
-              sellerProducts,
-              context,
-              {
-                shopDomain: resolvedShopDomain,
-                locale: resolvedLocale,
-                useCache: true,
-              }
-            );
-
-            console.log("[EFRO SB V2] Result", {
-              fromCache: (result as SellerBrainV2Result).fromCache,
-              replyTextLength: result.replyText?.length ?? 0,
-              recommendedCount: result.recommended?.length ?? 0,
-            });
-          } catch (err: any) {
-            console.error("[EFRO SB V2] Error, falling back to v1", {
-              error: err?.message || String(err),
-              text: normalizedForSellerBrain,
-            });
-
-            result = runSellerBrain(
-              normalizedForSellerBrain,
-              sellerIntent,
-              sellerProducts,
-              shopPlan,
-              sellerRecommended,
-              context
-            );
-          }
+            "Ob ein Duschgel speziell für trockene oder empfindliche Haut geeignet ist, erfährst du am besten in der Produktbeschreibung oder auf der Verpackung. Schau dir die Produktseite im Shop an – dort findest du Hinweise zum Hauttyp und zur Verträglichkeit.";
         } else {
-          console.log("[EFRO SB] Using runSellerBrain v1", {
-            reason: isDemoShop ? "demo shop" : isLocalDevShop ? "local-dev shop" : "v1 forced",
-            shopDomain: resolvedShopDomain,
+          reply =
+            "Die genaue Anwendung hängt vom jeweiligen Produkt ab. Auf der Produktseite im Shop findest du alle wichtigen Anwendungshinweise.";
+        }
+      } else if (explanation === "washing") {
+        reply =
+          "Wasch- und Pflegehinweise findest du am besten direkt auf der Produktseite im Shop oder auf dem Pflegeetikett.";
+      }
+
+      sendDirectAiReply(reply, { speak: true });
+
+      console.log("[EFRO ExplanationGuard] Skipping sellerBrain", {
+        text: normalizedForSellerBrain,
+        explanation,
+      });
+
+      return;
+    }
+
+    // Preis
+    if (explanation === "price" || isPriceQuestion(normalizedForSellerBrain)) {
+      const fromLast =
+        lastRecommendedProducts[0] || lastRecommendations[0] || null;
+      const fromSeller = sellerRecommended[0] || null;
+      const primary = fromLast || fromSeller;
+      const contextFromRef = fromLast ? 1 : fromSeller ? 2 : 0;
+
+      console.log("[EFRO PriceExplanation]", {
+        text: normalizedForSellerBrain,
+        primaryTitle: primary?.title,
+        primaryPrice: primary?.price,
+        contextFromRef,
+      });
+
+      if (!primary) {
+        sendDirectAiReply(
+          "Ich habe gerade kein konkretes Produkt im Fokus. Schau dir bitte direkt im Shop ein Produkt an – dort siehst du den exakten Preis.",
+          { speak: true }
+        );
+        return;
+      }
+
+      const formattedPrice = formatPrice(primary.price);
+      const name = primary.title || "dieses Produkt";
+
+      sendDirectAiReply(`Das ${name} kostet aktuell ${formattedPrice}.`, {
+        speak: true,
+      });
+      return;
+    }
+
+    // Normale Produktanfrage → SellerBrain
+    // EFRO VOICE+CHAT FIX 2025-12-10: User-Message wird bereits in handleUserTextInput hinzugefügt
+    try {
+      console.log("[EFRO Chat] processing user message", { text: rawCleaned });
+
+      const context: SellerBrainContext | undefined =
+        sellerContext.activeCategorySlug
+          ? { activeCategorySlug: sellerContext.activeCategorySlug }
+          : undefined;
+
+      console.log("[EFRO Client] Sending sellerContext", {
+        sellerContext,
+        context,
+        activeCategorySlug: sellerContext.activeCategorySlug,
+      });
+
+      console.log("[EFRO Pipeline] BEFORE runSellerBrain", {
+        userText: normalizedForSellerBrain,
+        sellerContext,
+      });
+
+      const resolvedShopDomain = resolveShopDomain();
+      const resolvedLocale = resolveLocale();
+
+      const normalizedDomain = (resolvedShopDomain || "")
+        .trim()
+        .toLowerCase();
+      const isDemoShop =
+        normalizedDomain === "demo" ||
+        normalizedDomain.startsWith("demo.") ||
+        normalizedDomain.endsWith(".demo") ||
+        normalizedDomain === "test-shop.myshopify.com";
+      const isLocalDevShop =
+        normalizedDomain === "local-dev" ||
+        normalizedDomain.startsWith("local-dev.");
+
+      // Für demo/local-dev immer v1 verwenden (wie in Szenario-Tests)
+      // Für andere Shops: V2 verwenden (bisheriges Verhalten)
+      const useV2 = !isDemoShop && !isLocalDevShop;
+
+      let result: SellerBrainResult | SellerBrainV2Result;
+
+      if (useV2) {
+        console.log("[EFRO SB V2] Calling runSellerBrainV2", {
+          shopDomain: resolvedShopDomain,
+          locale: resolvedLocale,
+          text: normalizedForSellerBrain,
+        });
+
+        try {
+          result = await runSellerBrainV2(
+            normalizedForSellerBrain,
+            sellerProducts,
+            context,
+            {
+              shopDomain: resolvedShopDomain,
+              locale: resolvedLocale,
+              useCache: true,
+            }
+          );
+
+          console.log("[EFRO SB V2] Result", {
+            fromCache: (result as SellerBrainV2Result).fromCache,
+            replyTextLength: result.replyText?.length ?? 0,
+            recommendedCount: result.recommended?.length ?? 0,
+          });
+        } catch (err: any) {
+          console.error("[EFRO SB V2] Error, falling back to v1", {
+            error: err?.message || String(err),
             text: normalizedForSellerBrain,
           });
 
@@ -1399,170 +1402,226 @@ export default function Home({ searchParams }: HomeProps) {
             context
           );
         }
-
-        console.log("[EFRO SellerBrain] Result summary", {
+      } else {
+        console.log("[EFRO SB] Using runSellerBrain v1", {
+          reason: isDemoShop
+            ? "demo shop"
+            : isLocalDevShop
+            ? "local-dev shop"
+            : "v1 forced",
           shopDomain: resolvedShopDomain,
-          useV2,
-          recommendedCount: result.recommended ? result.recommended.length : 0,
+          text: normalizedForSellerBrain,
         });
 
-        console.log("[EFRO Pipeline] AFTER runSellerBrain", {
-          userText: normalizedForSellerBrain,
-          result: {
-            intent: result.intent,
-            replyText: result.replyText,
-            productCount: result.recommended?.length ?? 0,
-            aiTrigger: result.aiTrigger,
-            nextContext: result.nextContext,
-          },
-        });
+        result = runSellerBrain(
+          normalizedForSellerBrain,
+          sellerIntent,
+          sellerProducts,
+          shopPlan,
+          sellerRecommended,
+          context
+        );
+      }
 
-        const replyText = result.replyText || "";
-        if (replyText.trim().length > 0) {
-          appendChatMessage({
-            id: `efro-${Date.now()}`,
-            text: replyText,
-            sender: "efro",
-          });
-        } else {
-          const fallbackText =
-            "Entschuldigung, ich konnte keine passende Antwort generieren. Bitte versuche es mit einer anderen Formulierung.";
-          appendChatMessage({
-            id: `efro-fallback-${Date.now()}`,
-            text: fallbackText,
-            sender: "efro",
-          });
-        }
+      console.log("[EFRO SellerBrain] Result summary", {
+        shopDomain: resolvedShopDomain,
+        useV2,
+        recommendedCount: result.recommended
+          ? result.recommended.length
+          : 0,
+      });
 
-        const recommendations = result.recommended ?? [];
+      console.log("[EFRO Pipeline] AFTER runSellerBrain", {
+        userText: normalizedForSellerBrain,
+        result: {
+          intent: result.intent,
+          replyText: result.replyText,
+          productCount: result.recommended?.length ?? 0,
+          aiTrigger: result.aiTrigger,
+          nextContext: result.nextContext,
+        },
+      });
 
-        console.log("[EFRO Recommendations] received products from SellerBrain", {
+      const replyText = (result.replyText || "").trim();
+
+if (replyText.length > 0) {
+  // zentrale EFRO-Antwort + TTS
+  sendDirectAiReply(replyText, { speak: true });
+} else {
+  // Fallback, wenn SellerBrain nichts Sinnvolles liefert
+  sendDirectAiReply(
+    "Entschuldigung, ich konnte keine passende Antwort generieren. Bitte versuche es mit einer anderen Formulierung.",
+    { speak: true }
+  );
+}
+
+
+      const recommendations = result.recommended ?? [];
+
+      console.log(
+        "[EFRO Recommendations] received products from SellerBrain",
+        {
           count: recommendations.length,
           titles: recommendations.slice(0, 5).map((p) => p.title),
           hasResult: !!result,
           resultIntent: result.intent,
-        });
-
-        setLastRecommendedProducts(recommendations);
-        setLastRecommendations(recommendations);
-
-        setSellerResult(result);
-        setLastProductResult(result);
-
-        setSellerIntent(result.intent);
-        setSellerReplyText(result.replyText);
-        setSellerRecommended(recommendations);
-
-        console.log("[EFRO Recommendations] State updated", {
-          sellerResultSet: true,
-          recommendedCount: recommendations.length,
-          sellerResultRecommendedCount: result.recommended?.length ?? 0,
-        });
-
-        const nextContext = result.nextContext;
-        if (nextContext) {
-          setSellerContext((prev) => {
-            const updated = {
-              ...prev,
-              ...(nextContext.activeCategorySlug != null
-                ? { activeCategorySlug: nextContext.activeCategorySlug }
-                : {}),
-            };
-            console.log("[EFRO Client] Updated sellerContext", {
-              previous: prev,
-              nextContext,
-              updated,
-              note: "activeCategorySlug wird nur aktualisiert, wenn es nicht null/undefined ist",
-            });
-            return updated;
-          });
-        } else {
-          console.log(
-            "[EFRO Client] No nextContext in result, keeping existing context",
-            sellerContext
-          );
         }
+      );
 
-        const aiTrigger = result.aiTrigger;
-        if (
-          aiTrigger?.needsAiHelp &&
-          Array.isArray(aiTrigger.unknownTerms) &&
-          aiTrigger.unknownTerms.length > 0
-        ) {
-          console.log(
-            "[EFRO Client AI-Trigger] Sending unknown terms to backend",
-            {
-              userText: cleanedText,
-              aiTrigger,
-            }
-          );
+      setLastRecommendedProducts(recommendations);
+      setLastRecommendations(recommendations);
 
-          fetch("/api/efro/ai-unknown-terms", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              shopDomain: shopDomain,
-              userText: normalizedForSellerBrain,
-              aiTrigger,
-              catalogMeta: {
-                totalProducts: allProducts.length,
-                categories: Array.from(
-                  new Set(
-                    allProducts
-                      .map(
-                        (p) =>
-                          (p as any).categorySlug || p.category || ""
-                      )
-                      .filter(Boolean)
-                  )
-                ).slice(0, 20),
-              },
-            }),
-            keepalive: true,
-          }).catch((err) => {
-            console.warn(
-              "[EFRO Client AI-Trigger] Failed to send unknown terms",
-              err
-            );
+      setSellerResult(result);
+      setLastProductResult(result);
+
+      setSellerIntent(result.intent);
+      setSellerReplyText(result.replyText);
+      setSellerRecommended(recommendations);
+
+      console.log("[EFRO Recommendations] State updated", {
+        sellerResultSet: true,
+        recommendedCount: recommendations.length,
+        sellerResultRecommendedCount:
+          result.recommended?.length ?? 0,
+      });
+
+      const nextContext = result.nextContext;
+      if (nextContext) {
+        setSellerContext((prev) => {
+          const updated = {
+            ...prev,
+            ...(nextContext.activeCategorySlug != null
+              ? { activeCategorySlug: nextContext.activeCategorySlug }
+              : {}),
+          };
+          console.log("[EFRO Client] Updated sellerContext", {
+            previous: prev,
+            nextContext,
+            updated,
+            note: "activeCategorySlug wird nur aktualisiert, wenn es nicht null/undefined ist",
           });
-        }
-      } catch (err: any) {
-        console.error("[EFRO SellerBrain Error]", err);
-        console.log("[EFRO Recommendations] Error occurred - clearing product panel", {
-          error: err?.message || String(err),
+          return updated;
         });
-
-        void logEfroEvent({
-          shopDomain: shopDomain || "local-dev",
-          userText: normalizedForSellerBrain,
-          intent: "error",
-          productCount: 0,
-          plan: shopPlan ?? null,
-          hadError: true,
-          errorMessage: err?.message
-            ? String(err.message)
-            : "Unknown SellerBrain error",
-        });
-
-        setSellerResult(null);
-        setSellerRecommended([]);
-        setSellerReplyText(
-          "Entschuldigung, es gab einen Fehler bei der Produktsuche."
+      } else {
+        console.log(
+          "[EFRO Client] No nextContext in result, keeping existing context",
+          sellerContext
         );
       }
+
+      const aiTrigger = result.aiTrigger;
+      if (
+        aiTrigger?.needsAiHelp &&
+        Array.isArray(aiTrigger.unknownTerms) &&
+        aiTrigger.unknownTerms.length > 0
+      ) {
+        console.log(
+          "[EFRO Client AI-Trigger] Sending unknown terms to backend",
+          {
+            userText: cleanedText,
+            aiTrigger,
+          }
+        );
+
+        fetch("/api/efro/ai-unknown-terms", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            shopDomain: shopDomain,
+            userText: normalizedForSellerBrain,
+            aiTrigger,
+            catalogMeta: {
+              totalProducts: allProducts.length,
+              categories: Array.from(
+                new Set(
+                  allProducts
+                    .map(
+                      (p) =>
+                        (p as any).categorySlug || p.category || ""
+                    )
+                    .filter(Boolean)
+                )
+              ).slice(0, 20),
+            },
+          }),
+          keepalive: true,
+        }).catch((err) => {
+          console.warn(
+            "[EFRO Client AI-Trigger] Failed to send unknown terms",
+            err
+          );
+        });
+      }
+    } catch (err: any) {
+      console.error("[EFRO SellerBrain Error]", err);
+      console.log(
+        "[EFRO Recommendations] Error occurred - clearing product panel",
+        {
+          error: err?.message || String(err),
+        }
+      );
+
+      void logEfroEvent({
+        shopDomain: shopDomain || "local-dev",
+        userText: normalizedForSellerBrain,
+        intent: "error",
+        productCount: 0,
+        plan: shopPlan ?? null,
+        hadError: true,
+        errorMessage: err?.message
+          ? String(err.message)
+          : "Unknown SellerBrain error",
+      });
+
+      setSellerResult(null);
+      setSellerRecommended([]);
+      setSellerReplyText(
+        "Entschuldigung, es gab einen Fehler bei der Produktsuche."
+      );
+    }
+  },
+  [
+    allProducts,
+    sellerIntent,
+    shopPlan,
+    sellerRecommended,
+    lastRecommendedProducts,
+    lastRecommendations,
+    sellerContext,
+    shopDomain,
+  ]
+);
+
+  /* ===========================================================
+      ZENTRALE USER-INPUT-HANDLUNG (Voice + Chat)
+  ============================================================ */
+  // EFRO VOICE+CHAT FIX 2025-12-10 – gemeinsame handleUserTextInput-Pipeline
+
+  const handleUserTextInput = useCallback(
+    async (text: string) => {
+      const cleaned = text.trim();
+      if (!cleaned) {
+        console.log("[EFRO UserInput] Empty text, skipping");
+        return;
+      }
+
+      console.log("[EFRO UserInput] IN", { text: cleaned });
+
+      // User-Message sofort in Chat-State schreiben
+      appendChatMessage({
+        id: `user-${Date.now()}`,
+        text: cleaned,
+        sender: "user",
+      });
+
+      // SellerBrain + AI-Resolver Pipeline aufrufen
+      await createRecommendations(cleaned);
+
+      console.log("[EFRO UserInput] SellerBrain done", { text: cleaned });
     },
-    [
-      allProducts,
-      sellerIntent,
-      shopPlan,
-      sellerRecommended,
-      lastRecommendedProducts,
-      lastRecommendations,
-      sellerContext,
-      shopDomain,
-    ]
+    [createRecommendations, appendChatMessage]
   );
 
   /* ===========================================================
@@ -1616,6 +1675,7 @@ export default function Home({ searchParams }: HomeProps) {
                   dynamicVariables={dynamicVariables}
                   createRecommendations={createRecommendations}
                   setChatMessages={setChatMessages}
+                  handleUserTextInput={handleUserTextInput}
                   registerSpeakHandler={registerSpeakHandler}
                   registerStartHandler={registerStartHandler}
                   registerStopHandler={registerStopHandler}
@@ -1649,21 +1709,31 @@ export default function Home({ searchParams }: HomeProps) {
               <button
                 type="button"
                 onClick={() => {
-                  console.log("[EFRO AvatarUI] Open Chat clicked");
-                  const chatElement = document.getElementById("efro-chat");
-                  if (chatElement) {
-                    chatElement.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }
+                  console.log("[EFRO AvatarUI] Toggle Chat clicked");
+                  setIsChatOpen((prev) => !prev);
                 }}
                 className="flex-1 inline-flex items-center justify-center gap-1 rounded-full border border-slate-300 bg-white text-slate-800 text-xs font-medium px-3 py-2 shadow-sm hover:bg-slate-100 hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 active:shadow-inner transition"
               >
                 <span aria-hidden="true">💬</span>
-                <span>Chat öffnen</span>
+                <span>{isChatOpen ? "Chat schließen" : "Chat öffnen"}</span>
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* EFRO CHAT WINDOW */}
+      <EFROChatWindow
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onSend={handleUserTextInput}
+        messages={chatMessages.map((m) => ({
+          id: m.id,
+          text: m.text,
+          role: m.sender === "user" ? "user" : "efro",
+          createdAt: Date.now(),
+        }))}
+      />
 
       {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
       {showDebugOverlay && (

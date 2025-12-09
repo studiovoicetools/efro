@@ -1985,6 +1985,7 @@ function buildFilterContext(
   const catalogKeywords = Array.from(catalogKeywordsSet);
 
   // Alias-Map initialisieren und filtern (nur Keywords, die im Katalog vorkommen)
+  // HINWEIS: Dynamic Aliases werden in runSellerBrain() verwendet (dort ist vollständiger SellerBrainContext verfügbar)
   const aliasMap = initializeAliasMap(catalogKeywords);
 
   // W?rter mit Katalog-Keywords erweitern (Komposita aufbrechen)
@@ -4687,7 +4688,9 @@ export function runSellerBrain(
   
   // Pr?fe, ob ein erfolgreicher AliasMatch vorhanden war
   // (wird sp?ter in CodeDetect verwendet, um zu verhindern, dass Produkte verworfen werden)
-  const aliasMap = initializeAliasMap(Array.from(catalogKeywordsSetForAlias));
+  // Dynamic Aliases aus context hinzufügen (vom AI-Resolver gelernt)
+  const dynamicAliasesForCodeDetect = context?.dynamicAliases;
+  const aliasMap = initializeAliasMap(Array.from(catalogKeywordsSetForAlias), undefined, dynamicAliasesForCodeDetect);
   const aliasCheckResult = resolveUnknownTerms(cleaned, Array.from(catalogKeywordsSetForAlias), aliasMap);
   const aliasMatchSuccessful = aliasCheckResult.aliasMapUsed && candidateCount > 0;
   const candidateCountAfterAlias = candidateCount;
