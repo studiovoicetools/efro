@@ -18,7 +18,11 @@ const nextConfig = {
         'src/app/api/**',
         // Exclude problematic admin routes that cause build errors
         'src/app/admin/billing/**',
-        'src/app/admin/import/**'
+        'src/app/admin/import/**',
+        // Exclude internal Next.js pages (Pages Router concepts, not used in App Router)
+        '**/_document.*',
+        '**/_app.*',
+        '**/_error.*'
       ]
     }
   }

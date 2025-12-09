@@ -89,3 +89,15 @@ export function getDefaultVoice(): VoiceDefinition | null {
   return v ?? null;
 }
 
+/**
+ * Findet einen VoiceKey anhand einer ElevenLabs Agent ID (voiceId)
+ * Wird verwendet, um aus shopSettings.voice_id (Agent ID) den VoiceKey zu bestimmen
+ */
+export function getVoiceKeyByAgentId(agentId: string | null | undefined): VoiceKey | null {
+  if (!agentId || agentId.trim().length === 0) {
+    return null;
+  }
+  const voice = VOICES.find((v) => v.agentId === agentId || v.agentId.trim() === agentId.trim());
+  return voice?.key ?? null;
+}
+

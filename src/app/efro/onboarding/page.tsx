@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AvatarPreview } from "@/components/efro/AvatarPreview";
-import { VOICES as VOICE_CATALOG, type VoiceKey } from "@/lib/voices/voiceCatalog";
+import type { VoiceKey } from "@/lib/voices/voiceCatalog";
 import { getRandomDemoPhrase } from "@/lib/voices/demoPhrases";
 import type { EfroAvatarId } from "@/lib/efro/mascotConfig";
 
@@ -65,37 +65,41 @@ const AVATARS: AvatarOption[] = [
 // -------------------- ElevenLabs-Optionen --------------------
 
 type VoiceOption = {
-  key: VoiceKey;
-  name: string;
-  description: string;
+  id: VoiceKey;
+  label: string;
+  voiceId: string; // ElevenLabs Agent ID aus Env-Variablen
+  locale: "de" | "en";
 };
 
-// Nutze echte VoiceKeys aus voiceCatalog.ts
+// Voice-Optionen mit direkter Mapping zu ElevenLabs Voice-IDs aus Env-Variablen
 const VOICES: VoiceOption[] = [
   {
-    key: "de_female_soft_1",
-    name: "Deutsch – weiblich – soft 1",
-    description: "Weich, freundlich, standard",
+    id: "de_female_soft_1",
+    label: "Deutsch – weiblich – soft 1",
+    voiceId: process.env.NEXT_PUBLIC_EFRO_VOICE_DE_FEMALE_SOFT_1 ?? "",
+    locale: "de",
   },
   {
-    key: "de_female_soft_2",
-    name: "Deutsch – weiblich – soft 2",
-    description: "Weich, freundlich, alternative",
+    id: "de_female_soft_2",
+    label: "Deutsch – weiblich – soft 2",
+    voiceId: process.env.NEXT_PUBLIC_EFRO_VOICE_DE_FEMALE_SOFT_2 ?? "",
+    locale: "de",
   },
   {
-    key: "de_male_confident_1",
-    name: "Deutsch – männlich – klar 1",
-    description: "Klar, ruhig, seriös",
+    id: "de_male_confident_1",
+    label: "Deutsch – männlich – klar 1",
+    voiceId: process.env.NEXT_PUBLIC_EFRO_VOICE_DE_MALE_CONFIDENT_1 ?? "",
+    locale: "de",
   },
   {
-    key: "de_male_confident_2",
-    name: "Deutsch – männlich – klar 2",
-    description: "Klar, ruhig, alternative",
+    id: "de_male_confident_2",
+    label: "Deutsch – männlich – klar 2",
+    voiceId: process.env.NEXT_PUBLIC_EFRO_VOICE_DE_MALE_CONFIDENT_2 ?? "",
+    locale: "de",
   },
 ].filter((v): v is VoiceOption => {
-  // Nur Voices anzeigen, die auch in voiceCatalog.ts existieren und eine agentId haben
-  const catalogVoice = VOICE_CATALOG.find((c) => c.key === v.key);
-  return !!(catalogVoice && catalogVoice.agentId);
+  // Nur Voices anzeigen, die eine gültige voiceId haben
+  return !!v.voiceId && v.voiceId.trim().length > 0;
 });
 
 export default function EfroOnboardingPage() {
@@ -118,7 +122,7 @@ export default function EfroOnboardingPage() {
 
   const [selectedAvatarId, setSelectedAvatarId] = useState<EfroAvatarId>("bear");
   const [selectedVoiceKey, setSelectedVoiceKey] = useState<VoiceKey | null>(
-    VOICES[0]?.key ?? null
+    VOICES[0]?.id ?? null
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -133,7 +137,7 @@ export default function EfroOnboardingPage() {
 
   const selectedVoice = useMemo(() => {
     if (!selectedVoiceKey) return VOICES[0] ?? null;
-    return VOICES.find((v) => v.key === selectedVoiceKey) ?? VOICES[0] ?? null;
+    return VOICES.find((v) => v.id === selectedVoiceKey) ?? VOICES[0] ?? null;
   }, [selectedVoiceKey]);
 
   useEffect(() => {
@@ -150,10 +154,21 @@ export default function EfroOnboardingPage() {
       return;
     }
 
-    const avatarId = selectedAvatarId ?? "bear";
-    console.log("[EFRO Onboarding] Voice preview requested", {
+    // Resolve die tatsächliche ElevenLabs voiceId aus den Voice-Optionen
+    const selectedVoice = VOICES.find((v) => v.id === voiceKey);
+    if (!selectedVoice || !selectedVoice.voiceId) {
+      console.warn("[EFRO Onboarding] Voice preview: selected voice not found or no voiceId", {
+        voiceKey,
+        availableVoices: VOICES.map((v) => ({ id: v.id, hasVoiceId: !!v.voiceId })),
+      });
+      return;
+    }
+
+    const avatarId = selectedAvatarId;
+    console.log("[EFRO Onboarding] Voice preview using", {
+      selectedVoiceKey: voiceKey,
+      voiceId: selectedVoice.voiceId,
       avatarId,
-      voiceKey,
     });
 
     try {
@@ -161,6 +176,8 @@ export default function EfroOnboardingPage() {
 
       const text = getRandomDemoPhrase("intro");
 
+      // Verwende die resolved voiceId direkt für die Preview
+      // Die API-Route kann preferredVoiceKey verwenden, aber wir senden auch die voiceId als Fallback
       const res = await fetch("/api/efro/voice-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -212,12 +229,12 @@ export default function EfroOnboardingPage() {
     setIsSaving(true);
 
     try {
-      // Voice-ID und Locale aus Voice-Key ableiten
-      const catalogVoice = selectedVoiceKey
-        ? VOICE_CATALOG.find((v) => v.key === selectedVoiceKey) ?? null
+      // Resolve die tatsächliche ElevenLabs voiceId aus den Voice-Optionen
+      const selectedVoice = selectedVoiceKey
+        ? VOICES.find((v) => v.id === selectedVoiceKey) ?? null
         : null;
-      const voiceId = catalogVoice?.agentId ?? null;
-      const locale = catalogVoice?.language ?? "de";
+      const resolvedVoiceId = selectedVoice?.voiceId ?? null;
+      const locale = selectedVoice?.locale ?? "de";
 
       // Sicherstellen, dass avatarId der tatsächlich ausgewählte Avatar ist
       const avatarId = selectedAvatarId;
@@ -225,7 +242,7 @@ export default function EfroOnboardingPage() {
       const payload = {
         shop,
         avatarId: avatarId ?? null,
-        voiceId: voiceId ?? null,
+        voiceId: resolvedVoiceId,
         locale,
         ttsEnabled: true,
       };
@@ -234,7 +251,7 @@ export default function EfroOnboardingPage() {
         payload,
         selectedAvatarId,
         selectedVoiceKey,
-        catalogVoice: catalogVoice ? { key: catalogVoice.key, agentId: catalogVoice.agentId, language: catalogVoice.language } : null,
+        selectedVoice: selectedVoice ? { id: selectedVoice.id, voiceId: selectedVoice.voiceId, locale: selectedVoice.locale } : null,
       });
 
       const res = await fetch("/api/efro/shop-settings", {
@@ -393,13 +410,18 @@ export default function EfroOnboardingPage() {
                     onChange={(e) => {
                       const voiceKey = e.target.value as VoiceKey;
                       setSelectedVoiceKey(voiceKey);
-                      console.log("[EFRO Onboarding] Voice selected", voiceKey);
+                      const voice = VOICES.find((v) => v.id === voiceKey);
+                      console.log("[EFRO Onboarding] Voice selected", {
+                        voiceKey,
+                        voiceId: voice?.voiceId,
+                        label: voice?.label,
+                      });
                     }}
                     className="flex-1 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400"
                   >
                     {VOICES.map((voice) => (
-                      <option key={voice.key} value={voice.key}>
-                        {voice.name}
+                      <option key={voice.id} value={voice.id}>
+                        {voice.label}
                       </option>
                     ))}
                   </select>
@@ -424,7 +446,7 @@ export default function EfroOnboardingPage() {
                 </div>
                 {selectedVoice && (
                   <p className="text-[11px] text-slate-400">
-                    {selectedVoice.description}
+                    {selectedVoice.locale === "de" ? "Deutsche Stimme" : "English voice"} • Voice-ID: {selectedVoice.voiceId.substring(0, 20)}...
                   </p>
                 )}
               </div>
@@ -486,7 +508,7 @@ export default function EfroOnboardingPage() {
                 <li>
                   • Stimme:{" "}
                   <span className="font-semibold text-sky-300">
-                    {selectedVoice?.name ?? "Nicht ausgewählt"}
+                    {selectedVoice?.label ?? "Nicht ausgewählt"}
                   </span>
                 </li>
                 <li>• Modus: Produktberatung + Verkauf (v1)</li>

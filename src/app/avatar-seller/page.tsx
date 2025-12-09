@@ -110,6 +110,8 @@ interface ElevenLabsAvatarProps {
 
   // Handler-Registrierung, damit Home EFRO sprechen lassen kann
   registerSpeakHandler?: (fn: ((text: string) => void) | null) => void;
+  registerStartHandler?: (fn: (() => void) | null) => void;
+  registerStopHandler?: (fn: (() => void) | null) => void;
 }
 
 function ElevenLabsAvatar({
@@ -117,6 +119,8 @@ function ElevenLabsAvatar({
   createRecommendations,
   setChatMessages: externalSetChatMessages,
   registerSpeakHandler,
+  registerStartHandler,
+  registerStopHandler,
 }: ElevenLabsAvatarProps) {
   /* ===========================================================
       STATES
@@ -451,10 +455,22 @@ function ElevenLabsAvatar({
     }
   }, [conversation, cachedUrl, dynamicVariables]);
 
+  useEffect(() => {
+    if (!registerStartHandler) return;
+    registerStartHandler(startConversation);
+    return () => registerStartHandler(null);
+  }, [registerStartHandler, startConversation]);
+
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
     setDebugStatus("disconnected");
   }, [conversation]);
+
+  useEffect(() => {
+    if (!registerStopHandler) return;
+    registerStopHandler(stopConversation);
+    return () => registerStopHandler(null);
+  }, [registerStopHandler, stopConversation]);
 
   const toggleMute = useCallback(() => {
     setIsMuted((v) => !v);
@@ -663,6 +679,44 @@ export default function Home({ searchParams }: HomeProps) {
       return;
     }
     speakHandlerRef.current(text);
+  }
+
+  const startHandlerRef = useRef<(() => void) | null>(null);
+
+  function registerStartHandler(fn: (() => void) | null) {
+    startHandlerRef.current = fn;
+  }
+
+  function startVoiceSession() {
+    if (!startHandlerRef.current) {
+      console.warn("[EFRO Voice] Kein startHandler registriert – Session kann nicht gestartet werden");
+      return;
+    }
+    try {
+      startHandlerRef.current();
+    } catch (err) {
+      console.error("[EFRO Voice] Fehler beim Starten der Session", err);
+    }
+  }
+
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+
+  const stopHandlerRef = useRef<(() => void) | null>(null);
+
+  function registerStopHandler(fn: (() => void) | null) {
+    stopHandlerRef.current = fn;
+  }
+
+  function stopVoiceSession() {
+    if (!stopHandlerRef.current) {
+      console.warn("[EFRO Voice] Kein stopHandler registriert – Session kann nicht beendet werden");
+      return;
+    }
+    try {
+      stopHandlerRef.current();
+    } catch (err) {
+      console.error("[EFRO Voice] Fehler beim Stoppen der Session", err);
+    }
   }
 
   /* ===========================================================
@@ -1407,17 +1461,7 @@ export default function Home({ searchParams }: HomeProps) {
   });
 
   return (
-    <main className="w-full h-screen bg-[#FFF8F0] relative overflow-hidden">
-      {/* AVATAR + VOICE + CHAT */}
-      <AvatarPreview src={mascotUrl} className="w-full h-full">
-        <ElevenLabsAvatar
-          dynamicVariables={dynamicVariables}
-          createRecommendations={createRecommendations}
-          setChatMessages={setChatMessages}
-          registerSpeakHandler={registerSpeakHandler}
-        />
-      </AvatarPreview>
-
+    <main className="w-full min-h-screen bg-[#FFF8F0] relative overflow-hidden">
       {/* PRODUKT-PANEL */}
       <EfroProductPanel
         visible={
@@ -1428,6 +1472,66 @@ export default function Home({ searchParams }: HomeProps) {
         products={sellerResult?.recommended ?? []}
         replyText={sellerResult?.replyText ?? sellerReplyText}
       />
+
+      {/* AVATAR + VOICE + CHAT – Floating-Overlay unten rechts */}
+      {mascotUrl && (
+        <div className="fixed bottom-4 right-4 z-40 pointer-events-none">
+          <div className="w-[320px] rounded-3xl shadow-2xl border border-slate-200 bg-white/90 backdrop-blur-md pointer-events-auto flex flex-col overflow-hidden">
+            {/* 🧸 Avatar-Bereich */}
+            <div className="relative w-full aspect-[4/3] bg-slate-950/5 flex items-center justify-center">
+              <AvatarPreview src={mascotUrl} className="w-full h-full">
+                <ElevenLabsAvatar
+                  dynamicVariables={dynamicVariables}
+                  createRecommendations={createRecommendations}
+                  setChatMessages={setChatMessages}
+                  registerSpeakHandler={registerSpeakHandler}
+                  registerStartHandler={registerStartHandler}
+                  registerStopHandler={registerStopHandler}
+                />
+              </AvatarPreview>
+            </div>
+
+            {/* 🧠 Button-Leiste unter dem Avatar */}
+            <div className="border-t border-slate-100 bg-slate-50/90 px-3 py-2 flex flex-row items-center gap-2 justify-between">
+              {/* Mit EFRO sprechen (Voice) */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (isVoiceActive) {
+                    console.log("[EFRO AvatarUI] Stop Voice clicked");
+                    stopVoiceSession();
+                    setIsVoiceActive(false);
+                  } else {
+                    console.log("[EFRO AvatarUI] Start Voice clicked");
+                    startVoiceSession();
+                    setIsVoiceActive(true);
+                  }
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-1 rounded-full bg-emerald-600 text-white text-xs font-semibold px-3 py-2 shadow-sm hover:bg-emerald-500 hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 active:shadow-inner transition"
+              >
+                <span aria-hidden="true">🎤</span>
+                <span>{isVoiceActive ? "Gespräch beenden" : "Mit EFRO sprechen"}</span>
+              </button>
+
+              {/* Chat öffnen */}
+              <button
+                type="button"
+                onClick={() => {
+                  console.log("[EFRO AvatarUI] Open Chat clicked");
+                  const chatElement = document.getElementById("efro-chat");
+                  if (chatElement) {
+                    chatElement.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-1 rounded-full border border-slate-300 bg-white text-slate-800 text-xs font-medium px-3 py-2 shadow-sm hover:bg-slate-100 hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 active:shadow-inner transition"
+              >
+                <span aria-hidden="true">💬</span>
+                <span>Chat öffnen</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
       {showDebugOverlay && (

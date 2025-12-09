@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveVoiceForAvatar } from "@/lib/voices/avatarVoices";
 import type { EfroAvatarId } from "@/lib/efro/mascotConfig";
-import type { VoiceKey } from "@/lib/voices/voiceCatalog";
+import { VOICES, type VoiceKey } from "@/lib/voices/voiceCatalog";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,17 +39,29 @@ export async function POST(request: NextRequest) {
       preferredVoiceKey: preferredVoiceKeyTyped,
     });
 
-    if (!resolved.agentId) {
-      console.error("[EFRO VoicePreview] No agentId resolved");
+    const selectedVoice =
+      (preferredVoiceKeyTyped &&
+        VOICES.find((v) => v.key === preferredVoiceKeyTyped)) ||
+      VOICES.find((v) => v.key === (resolved.voiceKey as VoiceKey)) ||
+      VOICES[0];
+
+    const voiceId = selectedVoice?.agentId;
+
+    if (!voiceId) {
+      console.error("[EFRO VoicePreview] No voiceId for preview", {
+        preferredVoiceKey: preferredVoiceKeyTyped,
+        resolvedVoiceKey: resolved.voiceKey,
+      });
       return NextResponse.json(
-        { error: "No voice configuration available" },
+        { error: "No voiceId available for preview" },
         { status: 500 }
       );
     }
 
-    console.log("[EFRO VoicePreview] Using agentId", {
-      agentId: resolved.agentId.substring(0, 20) + "...",
-      voiceKey: resolved.voiceKey,
+    console.log("[EFRO VoicePreview] Using voiceId for preview", {
+      voiceId: voiceId.substring(0, 12) + "...",
+      preferredVoiceKey: preferredVoiceKeyTyped,
+      resolvedVoiceKey: resolved.voiceKey,
     });
 
     // ElevenLabs TTS direkt aufrufen
@@ -62,9 +74,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ElevenLabs TTS API: text-to-speech mit agent_id als voice_id
+    // ElevenLabs TTS API: text-to-speech mit voiceId
     const ttsResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${resolved.agentId}/stream`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
       {
         method: "POST",
         headers: {
@@ -87,7 +99,7 @@ export async function POST(request: NextRequest) {
 
       // Fallback: Versuche mit eleven_monolingual_v1
       const fallbackResponse = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${resolved.agentId}/stream`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
         {
           method: "POST",
           headers: {
