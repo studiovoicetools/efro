@@ -17,10 +17,10 @@ export type DemoPhraseCategory =
 
 export const GENERAL_DEMO_PHRASES: Record<DemoPhraseCategory, string[]> = {
   intro: [
-    "Hey, schön, dass du da bist. Lass uns kurz reden, dann findest du schneller, was du suchst.",
-    "Willkommen! Ich helfe dir, aus all den Produkten genau die richtigen rauszufischen.",
-    "Hi! Keine Sorge, du musst nicht alles selbst durchklicken – ich sortiere dir das vor.",
-    "Na, bereit für eine Abkürzung? Erzähl mir kurz, was du brauchst, ich kümmere mich um den Rest.",
+    "Ich bin EFRO, dein digitaler Verkaufsberater. Ich helfe dir dabei, aus unserem Sortiment genau die Produkte zu finden, die zu deinem Budget, deinem Anlass und deinen Wünschen passen. Wobei kann ich dir heute helfen?",
+    "Hallo, ich bin EFRO, dein persönlicher Verkaufsassistent. Ich unterstütze dich dabei, die passenden Produkte nach deinen Kriterien wie Preis, Kategorie oder Einsatzgebiet zu finden. Womit kann ich dir weiterhelfen?",
+    "Guten Tag, ich bin EFRO, dein digitaler Verkaufsberater. Ich analysiere deine Bedürfnisse und zeige dir gezielt Produkte, die zu deinem Budget und deinem Anlass passen. Wobei kann ich dir heute helfen?",
+    "Willkommen! Ich bin EFRO, dein Verkaufsassistent. Ich helfe dir dabei, aus unserem Katalog genau die Produkte zu finden, die deinen Anforderungen entsprechen – ob nach Budget, Kategorie oder Verwendungszweck. Womit kann ich dir helfen?",
   ],
   capability: [
     "Sag mir einfach dein Budget und wofür du etwas brauchst – ich stelle dir eine passende Auswahl zusammen.",

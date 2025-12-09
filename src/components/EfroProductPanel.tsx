@@ -45,7 +45,26 @@ export const EfroProductPanel: React.FC<EfroProductPanelProps> = ({
   products,
   replyText,
 }) => {
-  if (!visible || !products || products.length === 0) return null;
+  console.log("[EFRO ProductPanel] Component render", {
+    visible,
+    productsCount: products?.length ?? 0,
+    hasProducts: !!products,
+    willRender: visible && products && products.length > 0,
+  });
+
+  if (!visible || !products || products.length === 0) {
+    console.log("[EFRO ProductPanel] Not rendering - condition check", {
+      visible,
+      hasProducts: !!products,
+      productsLength: products?.length ?? 0,
+    });
+    return null;
+  }
+
+  console.log("[EFRO ProductPanel] Rendering cards", {
+    count: products.length,
+    titles: products.slice(0, 3).map((p) => p.title),
+  });
 
   return (
     <div className="fixed left-4 bottom-4 z-40 w-[380px] max-h-[70vh] rounded-2xl bg-white/95 shadow-2xl border border-slate-200 flex flex-col overflow-hidden backdrop-blur-sm">

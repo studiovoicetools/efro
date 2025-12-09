@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { logEfroEvent } from "@/lib/efro/logEventClient";
+import { getRandomDemoPhrase } from "@/lib/voices/demoPhrases";
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
@@ -169,8 +170,31 @@ function ElevenLabsAvatar({
         connectionStartTime.current = null;
       }
 
-      // Demo-Intro deaktiviert: Nur die normale ElevenLabs-Conversational-Engine spricht
-      console.log("[EFRO DemoIntro] Disabled – using only ElevenLabs default greeting");
+      // Professioneller Intro-Text beim Start der Session
+      const introText = getRandomDemoPhrase("intro");
+      console.log("[EFRO DemoIntro] Sending intro text", {
+        text: introText.substring(0, 50) + "...",
+      });
+
+      // Kurz warten, damit die Session stabil ist, dann Intro senden
+      setTimeout(() => {
+        const fn = (conversation as any)?.sendUserMessage;
+        if (typeof fn === "function") {
+          const phrase = `Bitte sprich genau folgenden Satz und füge nichts hinzu: "${introText}"`;
+          try {
+            const maybePromise = fn(phrase);
+            if (maybePromise && typeof (maybePromise as any).then === "function") {
+              maybePromise.catch((err: any) => {
+                console.error("[EFRO DemoIntro] Error sending intro", err);
+              });
+            }
+          } catch (err) {
+            console.error("[EFRO DemoIntro] Error sending intro", err);
+          }
+        } else {
+          console.warn("[EFRO DemoIntro] sendUserMessage nicht verfügbar");
+        }
+      }, 500);
     },
 
     onDisconnect: () => {
@@ -1243,12 +1267,19 @@ export default function Home({ searchParams }: HomeProps) {
         const resolvedShopDomain = resolveShopDomain();
         const resolvedLocale = resolveLocale();
 
-        const isDemoDomain =
-          resolvedShopDomain === "demo" ||
-          resolvedShopDomain === "test-shop.myshopify.com" ||
-          resolvedShopDomain.includes("demo");
+        const normalizedDomain = (resolvedShopDomain || "").trim().toLowerCase();
+        const isDemoShop =
+          normalizedDomain === "demo" ||
+          normalizedDomain.startsWith("demo.") ||
+          normalizedDomain.endsWith(".demo") ||
+          normalizedDomain === "test-shop.myshopify.com";
+        const isLocalDevShop =
+          normalizedDomain === "local-dev" ||
+          normalizedDomain.startsWith("local-dev.");
 
-        const useV2 = isDemoDomain;
+        // Für demo/local-dev immer v1 verwenden (wie in Szenario-Tests)
+        // Für andere Shops: V2 verwenden (bisheriges Verhalten)
+        const useV2 = !isDemoShop && !isLocalDevShop;
 
         let result: SellerBrainResult | SellerBrainV2Result;
 
@@ -1292,8 +1323,8 @@ export default function Home({ searchParams }: HomeProps) {
             );
           }
         } else {
-          console.log("[EFRO SB V2] Fallback to runSellerBrain v1", {
-            reason: "not demo domain",
+          console.log("[EFRO SB] Using runSellerBrain v1", {
+            reason: isDemoShop ? "demo shop" : isLocalDevShop ? "local-dev shop" : "v1 forced",
             shopDomain: resolvedShopDomain,
             text: cleanedText,
           });
@@ -1307,6 +1338,12 @@ export default function Home({ searchParams }: HomeProps) {
             context
           );
         }
+
+        console.log("[EFRO SellerBrain] Result summary", {
+          shopDomain: resolvedShopDomain,
+          useV2,
+          recommendedCount: result.recommended ? result.recommended.length : 0,
+        });
 
         console.log("[EFRO Pipeline] AFTER runSellerBrain", {
           userText: cleanedText,
@@ -1338,6 +1375,13 @@ export default function Home({ searchParams }: HomeProps) {
 
         const recommendations = result.recommended ?? [];
 
+        console.log("[EFRO Recommendations] received products from SellerBrain", {
+          count: recommendations.length,
+          titles: recommendations.slice(0, 5).map((p) => p.title),
+          hasResult: !!result,
+          resultIntent: result.intent,
+        });
+
         setLastRecommendedProducts(recommendations);
         setLastRecommendations(recommendations);
 
@@ -1347,6 +1391,12 @@ export default function Home({ searchParams }: HomeProps) {
         setSellerIntent(result.intent);
         setSellerReplyText(result.replyText);
         setSellerRecommended(recommendations);
+
+        console.log("[EFRO Recommendations] State updated", {
+          sellerResultSet: true,
+          recommendedCount: recommendations.length,
+          sellerResultRecommendedCount: result.recommended?.length ?? 0,
+        });
 
         const nextContext = result.nextContext;
         if (nextContext) {
@@ -1419,6 +1469,9 @@ export default function Home({ searchParams }: HomeProps) {
         }
       } catch (err: any) {
         console.error("[EFRO SellerBrain Error]", err);
+        console.log("[EFRO Recommendations] Error occurred - clearing product panel", {
+          error: err?.message || String(err),
+        });
 
         void logEfroEvent({
           shopDomain: shopDomain || "local-dev",
@@ -1460,16 +1513,34 @@ export default function Home({ searchParams }: HomeProps) {
     messages: chatMessages,
   });
 
+  // Debug: Log sellerResult vor dem Rendern
+  // Fallback: Verwende sellerRecommended, falls sellerResult.recommended leer ist
+  const productsFromResult = sellerResult?.recommended ?? [];
+  const productsFromState = sellerRecommended;
+  const productPanelProducts = productsFromResult.length > 0 ? productsFromResult : productsFromState;
+  
+  const productPanelVisible =
+    (!!sellerResult &&
+      sellerResult.recommended !== undefined &&
+      sellerResult.recommended.length > 0) ||
+    (productPanelProducts.length > 0);
+
+  console.log("[EFRO ProductPanel] Render check", {
+    hasSellerResult: !!sellerResult,
+    recommendedDefined: sellerResult?.recommended !== undefined,
+    recommendedLength: sellerResult?.recommended?.length ?? 0,
+    sellerRecommendedLength: sellerRecommended.length,
+    productPanelProductsCount: productPanelProducts.length,
+    visible: productPanelVisible,
+    usingFallback: productsFromResult.length === 0 && productsFromState.length > 0,
+  });
+
   return (
     <main className="w-full min-h-screen bg-[#FFF8F0] relative overflow-hidden">
       {/* PRODUKT-PANEL */}
       <EfroProductPanel
-        visible={
-          !!sellerResult &&
-          sellerResult.recommended !== undefined &&
-          sellerResult.recommended.length > 0
-        }
-        products={sellerResult?.recommended ?? []}
+        visible={productPanelVisible}
+        products={productPanelProducts}
         replyText={sellerResult?.replyText ?? sellerReplyText}
       />
 
