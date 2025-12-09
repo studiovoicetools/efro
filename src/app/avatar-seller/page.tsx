@@ -34,6 +34,7 @@ import {
 } from "@/lib/sales/sellerBrain";
 import { analyzeCatalogKeywords } from "@/lib/sales/catalogKeywordAnalyzer";
 import { buildMascotUrl, type EfroAvatarId } from "@/lib/efro/mascotConfig";
+import { SHOW_ME_PATTERNS } from "@/lib/sales/languageRules.de";
 
 
 /* ===========================================================
@@ -1071,6 +1072,56 @@ export default function Home({ searchParams }: HomeProps) {
   }
 
   /* ===========================================================
+      TEXT-NORMALISIERUNG FÜR SELLERBRAIN
+  ============================================================ */
+
+  function normalizeSellerBrainText(rawText: string): string {
+    const text = rawText.trim();
+    if (!text) return text;
+
+    // Satzaufteilung
+    const sentences = text
+      .split(/[\.!?]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    // Triggerliste aufbauen
+    const EXTRA_TRIGGERS = [
+      "ich suche",
+      "hast du",
+      "brauch",
+      "brauche",
+      "kannst du mir",
+    ];
+
+    const PATTERNS = [
+      ...SHOW_ME_PATTERNS,
+      ...EXTRA_TRIGGERS,
+    ].map((p) => p.toLowerCase());
+
+    // Suche nach dem relevanten Satz (von hinten nach vorne)
+    for (let i = sentences.length - 1; i >= 0; i--) {
+      const sentence = sentences[i];
+      const sLower = sentence.toLowerCase();
+
+      if (PATTERNS.some((p) => sLower.includes(p))) {
+        return sentence.trim();
+      }
+    }
+
+    // Fallback: Wenn kein Satz einen Trigger enthält
+    if (sentences.length >= 1) {
+      // Nimm die letzten 1-2 Sätze
+      const lastSentences = sentences.slice(-2);
+      return lastSentences.join(". ");
+    }
+
+    // Wenn es keine sinnvollen Sätze gibt (nur ein langer String ohne Punkt)
+    const MAX_LEN = 180;
+    return text.length > MAX_LEN ? text.slice(text.length - MAX_LEN) : text;
+  }
+
+  /* ===========================================================
       SELLERBRAIN-BRIDGE (wird vom Avatar aufgerufen)
   ============================================================ */
 
@@ -1089,12 +1140,22 @@ export default function Home({ searchParams }: HomeProps) {
         return;
       }
 
-      const cleanedText = userText.trim();
-      if (!cleanedText) return;
+      const rawCleaned = userText.trim();
+      if (!rawCleaned) return;
 
-      console.log("[EFRO Pipeline] cleanedText", { cleanedText });
+      const normalizedForSellerBrain = normalizeSellerBrainText(rawCleaned);
 
-      const explanation = detectExplanationType(cleanedText);
+      if (!normalizedForSellerBrain) {
+        console.log("[EFRO Pipeline] normalizeSellerBrainText returned empty – aborting", { rawCleaned });
+        return;
+      }
+
+      console.log("[EFRO Pipeline] sellerBrainText", {
+        raw: rawCleaned,
+        normalized: normalizedForSellerBrain,
+      });
+
+      const explanation = detectExplanationType(normalizedForSellerBrain);
 
       const offTopicKeywords = [
         "politik",
@@ -1106,7 +1167,7 @@ export default function Home({ searchParams }: HomeProps) {
         "lebenssituation",
       ];
       const isOffTopic = offTopicKeywords.some((keyword) =>
-        cleanedText.toLowerCase().includes(keyword)
+        normalizedForSellerBrain.toLowerCase().includes(keyword)
       );
 
       if (isOffTopic) {
@@ -1115,20 +1176,20 @@ export default function Home({ searchParams }: HomeProps) {
           { speak: true }
         );
         console.log("[EFRO OffTopic] Redirecting to product questions", {
-          text: cleanedText,
+          text: normalizedForSellerBrain,
         });
         return;
       }
 
       // Ingredients
-      if (explanation === "ingredients" || isIngredientsQuestion(cleanedText)) {
+      if (explanation === "ingredients" || isIngredientsQuestion(normalizedForSellerBrain)) {
         let fromLast =
           lastRecommendedProducts[0] || lastRecommendations[0] || null;
         let fromSeller = sellerRecommended[0] || null;
         let primary: EfroProduct | null = fromLast || fromSeller;
 
         if (!primary) {
-          primary = findBestProductMatchByText(cleanedText, sellerProducts);
+          primary = findBestProductMatchByText(normalizedForSellerBrain, sellerProducts);
         }
 
         const contextFromRef = fromLast
@@ -1140,7 +1201,7 @@ export default function Home({ searchParams }: HomeProps) {
           : 0;
 
         console.log("[EFRO IngredientsExplanation]", {
-          text: cleanedText,
+          text: normalizedForSellerBrain,
           primaryTitle: primary?.title,
           contextFromRef,
         });
@@ -1200,7 +1261,7 @@ export default function Home({ searchParams }: HomeProps) {
         sendDirectAiReply(reply, { speak: true });
 
         console.log("[EFRO ExplanationGuard] Skipping sellerBrain", {
-          text: cleanedText,
+          text: normalizedForSellerBrain,
           explanation,
         });
 
@@ -1208,7 +1269,7 @@ export default function Home({ searchParams }: HomeProps) {
       }
 
       // Preis
-      if (explanation === "price" || isPriceQuestion(cleanedText)) {
+      if (explanation === "price" || isPriceQuestion(normalizedForSellerBrain)) {
         const fromLast =
           lastRecommendedProducts[0] || lastRecommendations[0] || null;
         const fromSeller = sellerRecommended[0] || null;
@@ -1216,7 +1277,7 @@ export default function Home({ searchParams }: HomeProps) {
         const contextFromRef = fromLast ? 1 : fromSeller ? 2 : 0;
 
         console.log("[EFRO PriceExplanation]", {
-          text: cleanedText,
+          text: normalizedForSellerBrain,
           primaryTitle: primary?.title,
           primaryPrice: primary?.price,
           contextFromRef,
@@ -1243,10 +1304,10 @@ export default function Home({ searchParams }: HomeProps) {
       try {
         appendChatMessage({
           id: `user-${Date.now()}`,
-          text: cleanedText,
+          text: rawCleaned,
           sender: "user",
         });
-        console.log("[EFRO Chat] user message", { text: cleanedText });
+        console.log("[EFRO Chat] user message", { text: rawCleaned });
 
         const context: SellerBrainContext | undefined =
           sellerContext.activeCategorySlug
@@ -1260,7 +1321,7 @@ export default function Home({ searchParams }: HomeProps) {
         });
 
         console.log("[EFRO Pipeline] BEFORE runSellerBrain", {
-          userText: cleanedText,
+          userText: normalizedForSellerBrain,
           sellerContext,
         });
 
@@ -1287,12 +1348,12 @@ export default function Home({ searchParams }: HomeProps) {
           console.log("[EFRO SB V2] Calling runSellerBrainV2", {
             shopDomain: resolvedShopDomain,
             locale: resolvedLocale,
-            text: cleanedText,
+            text: normalizedForSellerBrain,
           });
 
           try {
             result = await runSellerBrainV2(
-              cleanedText,
+              normalizedForSellerBrain,
               sellerProducts,
               context,
               {
@@ -1310,11 +1371,11 @@ export default function Home({ searchParams }: HomeProps) {
           } catch (err: any) {
             console.error("[EFRO SB V2] Error, falling back to v1", {
               error: err?.message || String(err),
-              text: cleanedText,
+              text: normalizedForSellerBrain,
             });
 
             result = runSellerBrain(
-              cleanedText,
+              normalizedForSellerBrain,
               sellerIntent,
               sellerProducts,
               shopPlan,
@@ -1326,11 +1387,11 @@ export default function Home({ searchParams }: HomeProps) {
           console.log("[EFRO SB] Using runSellerBrain v1", {
             reason: isDemoShop ? "demo shop" : isLocalDevShop ? "local-dev shop" : "v1 forced",
             shopDomain: resolvedShopDomain,
-            text: cleanedText,
+            text: normalizedForSellerBrain,
           });
 
           result = runSellerBrain(
-            cleanedText,
+            normalizedForSellerBrain,
             sellerIntent,
             sellerProducts,
             shopPlan,
@@ -1346,7 +1407,7 @@ export default function Home({ searchParams }: HomeProps) {
         });
 
         console.log("[EFRO Pipeline] AFTER runSellerBrain", {
-          userText: cleanedText,
+          userText: normalizedForSellerBrain,
           result: {
             intent: result.intent,
             replyText: result.replyText,
@@ -1443,7 +1504,7 @@ export default function Home({ searchParams }: HomeProps) {
             },
             body: JSON.stringify({
               shopDomain: shopDomain,
-              userText: cleanedText,
+              userText: normalizedForSellerBrain,
               aiTrigger,
               catalogMeta: {
                 totalProducts: allProducts.length,
@@ -1475,7 +1536,7 @@ export default function Home({ searchParams }: HomeProps) {
 
         void logEfroEvent({
           shopDomain: shopDomain || "local-dev",
-          userText: cleanedText,
+          userText: normalizedForSellerBrain,
           intent: "error",
           productCount: 0,
           plan: shopPlan ?? null,
