@@ -3017,8 +3017,13 @@ function buildRuleBasedReplyText(
   if (count === 0) {
     // S6-Text wird sp?ter im switch-case verwendet, hier nur Fallback
     return (
-      "Zu deiner Anfrage konnte ich in diesem Shop leider nichts Passendes finden.\n\n" +
-      "Wenn du m?chtest, formuliere deine Anfrage noch einmal ? z. B. mit Kategorie, Budget oder Einsatzzweck."
+      `Zu deiner aktuellen Anfrage habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
+      `Das liegt oft daran, dass entweder die Kategorie noch zu allgemein ist oder dein Wunsch sehr speziell ist. ` +
+      `Wenn du m?chtest, versuche es bitte mit einer etwas genaueren Beschreibung ` +
+      `(zum Beispiel: Produktart + Einsatzzweck + grober Preisrahmen), ` +
+      `oder nenn mir eine andere Kategorie oder ein Budget, dann suche ich erneut f?r dich. ` +
+      `Du kannst mir auch einfach sagen, ob du eher etwas G?nstiges, etwas Hochwertiges ` +
+      `oder eine bestimmte Marke suchst – dann kann ich dir gezielter helfen.`
     );
   }
 
@@ -3177,11 +3182,13 @@ function buildRuleBasedReplyText(
   switch (scenario) {
     case "S1": {
       // QUICK BUY ? EIN klares Produkt
-      const priceInfo = first.price != null ? ` ? ${formatPrice(first)}` : "";
+      const product = recommended[0];
       return (
-        "Ich habe ein passendes Produkt f?r dich gefunden:\n\n" +
-        `? ${first.title}${priceInfo}\n\n` +
-        "Wenn du m?chtest, helfe ich dir beim Vergleichen oder wir suchen eine Alternative."
+        `Ich habe dir ein Produkt ausgesucht, das sehr gut zu deiner Anfrage passt: ` +
+        `${product.title}. ` +
+        `Es bietet dir ein starkes Preis-Leistungs-Verh?ltnis f?r deinen Wunsch. ` +
+        `Wenn du m?chtest, kann ich dir auch noch eine oder zwei Alternativen im ?hnlichen Preisbereich zeigen – ` +
+        `zum Beispiel, wenn dir eine bestimmte Marke oder ein bestimmtes Feature wichtiger ist.`
       );
     }
 
@@ -3204,22 +3211,26 @@ function buildRuleBasedReplyText(
         return `? ${p.title}${price}`;
       });
 
+      const count = recommended.length;
       return (
-        "Ich habe mehrere passende Produkte f?r dich gefunden:\n\n" +
-        topProducts.join("\n") +
-        (recommended.length > 3 ? `\n? ... und ${recommended.length - 3} weitere` : "") +
-        priceInfo +
-        "\n\nWorauf legst du am meisten Wert ? Preis, Marke oder Einsatzgebiet?"
+        `Ich habe dir ${count === 2 ? "zwei" : `${count}`} passende Optionen herausgesucht, ` +
+        `die gut zu deiner Anfrage passen. ` +
+        `Unten im Produktbereich siehst du die Vorschl?ge im Detail. ` +
+        `Wenn du eine schnelle Entscheidung treffen willst, schau dir zuerst das Produkt mit dem besten Preis-Leistungs-Verh?ltnis an ` +
+        `und danach die Variante, die etwas hochwertiger ist. ` +
+        `Wenn du mir sagst, ob dir eher der Preis, die Marke oder bestimmte Features wichtig sind, ` +
+        `kann ich dir auch gezielt eine klare Empfehlung aussprechen.`
       );
     }
 
     case "S3": {
       // EXPLORE ? Mehrere Produkte (>= 3)
       return (
-        "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet.\n\n" +
-        "? Du kannst dir in Ruhe die Details und Preise ansehen.\n" +
-        "? Wenn du willst, grenze ich das f?r dich nach Preisbereich, Kategorie oder Einsatzzweck ein.\n\n" +
-        "Was ist dir wichtiger: ein g?nstiger Preis oder eine bestimmte Marke?"
+        `Ich habe dir ${count} passende Produkte herausgesucht, ` +
+        `damit du in Ruhe vergleichen kannst. ` +
+        `Unten im Produktbereich siehst du die Auswahl mit allen wichtigen Details. ` +
+        `Wenn du mir sagst, was dir besonders wichtig ist – zum Beispiel Preis, Marke, bestimmte Features oder ein bestimmter Einsatzzweck – ` +
+        `kann ich die Liste f?r dich weiter eingrenzen und dir eine klare Empfehlung geben.`
       );
     }
 
@@ -3247,8 +3258,13 @@ function buildRuleBasedReplyText(
     case "S6": {
       // ZERO RESULTS (kein unknown_product_code_only)
       return (
-        "Zu deiner Anfrage konnte ich in diesem Shop leider nichts Passendes finden.\n\n" +
-        "Wenn du m?chtest, formuliere deine Anfrage noch einmal ? z. B. mit Kategorie, Budget oder Einsatzzweck."
+        `Zu deiner aktuellen Anfrage habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
+        `Das liegt oft daran, dass entweder die Kategorie noch zu allgemein ist oder dein Wunsch sehr speziell ist. ` +
+        `Wenn du m?chtest, versuche es bitte mit einer etwas genaueren Beschreibung ` +
+        `(zum Beispiel: Produktart + Einsatzzweck + grober Preisrahmen), ` +
+        `oder nenn mir eine andere Kategorie oder ein Budget, dann suche ich erneut f?r dich. ` +
+        `Du kannst mir auch einfach sagen, ob du eher etwas G?nstiges, etwas Hochwertiges ` +
+        `oder eine bestimmte Marke suchst – dann kann ich dir gezielter helfen.`
       );
     }
 
@@ -3475,27 +3491,34 @@ function buildReplyText(
     
     // EFRO Budget-Fix 2025-11-30: Sauberer, kurzer Text ohne zus?tzliche Budget-Formulierungen
     let clarifyText = "";
+    const requestedRange = priceRangeText || "deinem gewünschten Preisbereich";
     if (userMinPrice !== null && userMaxPrice === null) {
       // "?ber X" = Untergrenze, aber nichts gefunden
-      if (categoryMinPrice !== null && categoryMaxPrice !== null) {
-        clarifyText = `Im Shop gibt es keine ${categoryLabel} ?ber ${userMinPrice} ?. Die vorhandenen ${categoryLabel} liegen zwischen ${categoryMinPrice.toFixed(2)} ? und ${categoryMaxPrice.toFixed(2)} ?. Wenn du m?chtest, kann ich dir die g?nstigsten oder die Premium-Variante zeigen.`;
-      } else {
-        clarifyText = `Im Shop gibt es keine ${categoryLabel} ?ber ${userMinPrice} ?. Wenn du m?chtest, kann ich dir die verf?gbaren Optionen zeigen.`;
-      }
+      clarifyText =
+        `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
+        `Ich habe dir stattdessen Vorschl?ge gezeigt, die dem, was du suchst, am n?chsten kommen. ` +
+        `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
+        `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
+        `Sag mir einfach, ob dir eher ein m?glichst g?nstiger Preis oder bestimmte Qualit?t/Marken wichtiger sind, ` +
+        `dann finde ich die beste Option f?r dich.`;
     } else if (userMaxPrice !== null && userMinPrice === null) {
       // "unter X" = Obergrenze, aber nichts gefunden
-      if (categoryMinPrice !== null && categoryMaxPrice !== null) {
-        clarifyText = `Im Shop gibt es keine ${categoryLabel} unter ${userMaxPrice} ?. Die vorhandenen ${categoryLabel} liegen zwischen ${categoryMinPrice.toFixed(2)} ? und ${categoryMaxPrice.toFixed(2)} ?. Wenn du m?chtest, kann ich dir die g?nstigsten oder die Premium-Variante zeigen.`;
-      } else {
-        clarifyText = `Im Shop gibt es keine ${categoryLabel} unter ${userMaxPrice} ?. Wenn du m?chtest, kann ich dir die verf?gbaren Optionen zeigen.`;
-      }
+      clarifyText =
+        `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
+        `Ich habe dir stattdessen Vorschl?ge gezeigt, die dem, was du suchst, am n?chsten kommen. ` +
+        `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
+        `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
+        `Sag mir einfach, ob dir eher ein m?glichst g?nstiger Preis oder bestimmte Qualit?t/Marken wichtiger sind, ` +
+        `dann finde ich die beste Option f?r dich.`;
     } else {
       // Bereich oder allgemein
-      if (categoryMinPrice !== null && categoryMaxPrice !== null) {
-        clarifyText = `Im Shop gibt es keine ${categoryLabel} im Preisbereich ${priceRangeText}. Die vorhandenen ${categoryLabel} liegen zwischen ${categoryMinPrice.toFixed(2)} ? und ${categoryMaxPrice.toFixed(2)} ?. Wenn du m?chtest, kann ich dir die g?nstigsten oder die Premium-Variante zeigen.`;
-      } else {
-        clarifyText = `Im Shop gibt es keine ${categoryLabel} im Preisbereich ${priceRangeText}. Wenn du m?chtest, kann ich dir die verf?gbaren Optionen zeigen.`;
-      }
+      clarifyText =
+        `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
+        `Ich habe dir stattdessen Vorschl?ge gezeigt, die dem, was du suchst, am n?chsten kommen. ` +
+        `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
+        `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
+        `Sag mir einfach, ob dir eher ein m?glichst g?nstiger Preis oder bestimmte Qualit?t/Marken wichtiger sind, ` +
+        `dann finde ich die beste Option f?r dich.`;
     }
     
     console.log("[EFRO ReplyText PriceRangeNoMatch]", {
