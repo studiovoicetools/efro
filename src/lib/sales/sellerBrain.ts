@@ -3444,13 +3444,17 @@ function buildReplyText(
     categoryMaxPrice: number | null;
     category?: string | null;
   },
-  missingCategoryHint?: string
+  missingCategoryHint?: string,
+  replyMode?: "customer" | "operator"
 ): string {
+  const effectiveReplyMode: "customer" | "operator" = replyMode ?? "operator";
+  
   console.log("[EFRO ReplyText] mode='rule-based'", {
     intent,
     recommendedCount: recommended.length,
     priceRangeNoMatch,
     missingCategoryHint,
+    replyMode: effectiveReplyMode,
   });
 
   // EFRO Budget-Fix 2025-11-30 ? PriceRangeNoMatch Reply: Ehrliche Kommunikation, wenn kein Produkt im gew?nschten Preisbereich
@@ -3530,14 +3534,19 @@ function buildReplyText(
       }
     }
     
-    const clarifyText = `In deinem Katalog finde ich nur ${alternativeCategory}, aber keine ${categoryLabel}. Ich zeige dir die ${alternativeCategory.toLowerCase()}.\n\n` +
-      `Hinweis f?r den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} ? nur ${alternativeCategory} und Zubeh?r. ` +
-      `Wenn du ${categoryLabel} verkaufen m?chtest, solltest du entsprechende Produkte/Kategorien anlegen.`;
+    let clarifyText = `In deinem Katalog finde ich nur ${alternativeCategory}, aber keine ${categoryLabel}. Ich zeige dir die ${alternativeCategory.toLowerCase()}.`;
+    
+    // Hinweis für den Shop-Betreiber nur im Operator-Modus anzeigen
+    if (effectiveReplyMode === "operator") {
+      clarifyText += `\n\nHinweis f?r den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} ? nur ${alternativeCategory} und Zubeh?r. ` +
+        `Wenn du ${categoryLabel} verkaufen m?chtest, solltest du entsprechende Produkte/Kategorien anlegen.`;
+    }
     
     console.log("[EFRO ReplyText MissingCategory]", {
       missingCategoryHint,
       alternativeCategory,
       clarifyTextLength: clarifyText.length,
+      replyMode: effectiveReplyMode,
     });
     
     // Wenn Produkte vorhanden sind, f?ge den Hinweis zum normalen Text hinzu
@@ -4222,7 +4231,8 @@ export function runSellerBrain(
       undefined,
       false,
       undefined,
-      undefined
+      undefined,
+      context?.replyMode
     );
     
     return {
@@ -4559,7 +4569,7 @@ export function runSellerBrain(
       "dann zeige ich dir passende Produkte.";
   } else {
     // AI-Trigger wird sp?ter berechnet, hier noch undefined
-    replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined);
+    replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode);
   }
 
   // Force-Show-Logik nach allen Guards: Wenn Produkte gefunden wurden, aber recommended leer ist
@@ -4575,7 +4585,7 @@ export function runSellerBrain(
     // Reply-Text neu generieren, wenn noch nicht gesetzt
     // AI-Trigger wird sp?ter berechnet, hier noch undefined
     if (!replyText || replyText.includes("helfe dir nur")) {
-      replyText = buildReplyText(cleaned, nextIntent, recommended);
+      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode);
     }
   }
 
@@ -4642,7 +4652,7 @@ export function runSellerBrain(
     
     // Reply-Text neu generieren, wenn Produkte gefunden wurden
     if (recommended.length > 0 && (!replyText || replyText.includes("helfe dir nur"))) {
-      replyText = buildReplyText(cleaned, nextIntent, recommended);
+      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode);
     }
   }
 
@@ -5914,7 +5924,8 @@ export function runSellerBrain(
       aiTrigger,
       priceRangeNoMatch,
       priceRangeInfo,
-      missingCategoryHint ?? undefined
+      missingCategoryHint ?? undefined,
+      context?.replyMode
     );
   } else if (aiTrigger?.needsAiHelp || missingCategoryHint) {
     finalReplyText = buildReplyText(
@@ -5924,7 +5935,8 @@ export function runSellerBrain(
       aiTrigger,
       priceRangeNoMatch,
       priceRangeInfo,
-      missingCategoryHint ?? undefined
+      missingCategoryHint ?? undefined,
+      context?.replyMode
     );
   }
 
@@ -6286,6 +6298,13 @@ export interface RunSellerBrainV2Options {
   shopDomain: string; // z.B. 'test-shop.myshopify.com' oder 'demo'
   locale?: string; // default 'de'
   useCache?: boolean; // default true
+  /**
+   * Steuert den Antwortmodus von SellerBrain:
+   * - "customer": Antworten sind auf Endkunden ausgerichtet (du, Nutzen, keine Betreiber-Hinweise)
+   * - "operator": Antworten dürfen interne Hinweise für den Shopbetreiber enthalten.
+   * Standard ist "customer", wenn nicht gesetzt.
+   */
+  replyMode?: "customer" | "operator";
 }
 
 /**
@@ -6408,7 +6427,14 @@ export async function runSellerBrainV2(
   sellerContext: SellerBrainContext | undefined,
   options: RunSellerBrainV2Options
 ): Promise<SellerBrainV2Result> {
-  const { shopDomain, locale = "de", useCache = true } = options;
+  const { shopDomain, locale = "de", useCache = true, replyMode } = options;
+  
+  // replyMode aus Options in Context übernehmen, falls nicht bereits gesetzt
+  const effectiveContext: SellerBrainContext | undefined = sellerContext
+    ? { ...sellerContext, replyMode: sellerContext.replyMode ?? replyMode }
+    : replyMode
+    ? { replyMode }
+    : undefined;
 
   console.log("[EFRO SB V2] ENTER", {
     shopDomain,
@@ -6433,7 +6459,7 @@ export async function runSellerBrainV2(
       allProducts,
       undefined,
       undefined,
-      sellerContext
+      effectiveContext
     );
     return {
       ...result,
@@ -6533,7 +6559,7 @@ export async function runSellerBrainV2(
     productsToUse,
     shop.currency || undefined,
     undefined,
-    sellerContext
+    effectiveContext
   );
 
   // 6) UI-Postprocessing: Klarstellungs-Block entfernen, wenn Produkte vorhanden

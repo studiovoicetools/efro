@@ -28,6 +28,13 @@ export interface SellerBrainContext {
   activeCategorySlug?: string | null;
   /** Dynamische Aliase, die vom AI-Resolver gelernt wurden (z. B. "gesichtscreen" -> "gesichtscreme") */
   dynamicAliases?: Record<string, string>;
+  /**
+   * Steuert den Antwortmodus von SellerBrain:
+   * - "customer": Antworten sind auf Endkunden ausgerichtet (du, Nutzen, keine Betreiber-Hinweise)
+   * - "operator": Antworten dürfen interne Hinweise für den Shopbetreiber enthalten.
+   * Standard ist "customer", wenn nicht gesetzt.
+   */
+  replyMode?: "customer" | "operator";
 }
 
 /**

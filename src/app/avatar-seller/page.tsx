@@ -1330,10 +1330,12 @@ const createRecommendations = useCallback(
     try {
       console.log("[EFRO Chat] processing user message", { text: rawCleaned });
 
-      const context: SellerBrainContext | undefined =
-        sellerContext.activeCategorySlug
+      const context: SellerBrainContext = {
+        replyMode: "customer",
+        ...(sellerContext.activeCategorySlug
           ? { activeCategorySlug: sellerContext.activeCategorySlug }
-          : undefined;
+          : {}),
+      };
 
       console.log("[EFRO Client] Sending sellerContext", {
         sellerContext,
@@ -1383,6 +1385,7 @@ const createRecommendations = useCallback(
               shopDomain: resolvedShopDomain,
               locale: resolvedLocale,
               useCache: true,
+              replyMode: "customer",
             }
           );
 
