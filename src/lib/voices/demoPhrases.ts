@@ -17,10 +17,10 @@ export type DemoPhraseCategory =
 
 export const GENERAL_DEMO_PHRASES: Record<DemoPhraseCategory, string[]> = {
   intro: [
-    "Ich bin EFRO, dein digitaler Verkaufsberater. Ich helfe dir dabei, aus unserem Sortiment genau die Produkte zu finden, die zu deinem Budget, deinem Anlass und deinen Wünschen passen. Wobei kann ich dir heute helfen?",
-    "Hallo, ich bin EFRO, dein persönlicher Verkaufsassistent. Ich unterstütze dich dabei, die passenden Produkte nach deinen Kriterien wie Preis, Kategorie oder Einsatzgebiet zu finden. Womit kann ich dir weiterhelfen?",
-    "Guten Tag, ich bin EFRO, dein digitaler Verkaufsberater. Ich analysiere deine Bedürfnisse und zeige dir gezielt Produkte, die zu deinem Budget und deinem Anlass passen. Wobei kann ich dir heute helfen?",
-    "Willkommen! Ich bin EFRO, dein Verkaufsassistent. Ich helfe dir dabei, aus unserem Katalog genau die Produkte zu finden, die deinen Anforderungen entsprechen – ob nach Budget, Kategorie oder Verwendungszweck. Womit kann ich dir helfen?",
+    "Hey, ich bin EFRO – dein digitaler Verkaufsberater hier im Shop. Erzähl mir kurz, was du suchst oder wofür du etwas brauchst, und ich helfe dir, die passenden Produkte zu finden.",
+    "Hi, schön dass du da bist! 😊 Ich bin EFRO, dein Verkaufsberater. Schreib mir einfach, was dir wichtig ist – zum Beispiel Preis, Qualität, Marke oder ein Geschenk-Anlass – und ich stelle dir eine Auswahl zusammen, die wirklich zu dir passt.",
+    "Hey, ich bin EFRO – dein digitaler Verkaufsberater hier im Shop. Erzähl mir kurz, was du suchst oder wofür du etwas brauchst, und ich helfe dir, die passenden Produkte zu finden.",
+    "Hi, schön dass du da bist! 😊 Ich bin EFRO, dein Verkaufsberater. Schreib mir einfach, was dir wichtig ist – zum Beispiel Preis, Qualität, Marke oder ein Geschenk-Anlass – und ich stelle dir eine Auswahl zusammen, die wirklich zu dir passt.",
   ],
   capability: [
     "Sag mir einfach dein Budget und wofür du etwas brauchst – ich stelle dir eine passende Auswahl zusammen.",

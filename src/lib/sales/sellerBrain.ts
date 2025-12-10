@@ -3019,16 +3019,16 @@ function buildRuleBasedReplyText(
     return (
       `Zu deiner aktuellen Anfrage habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
       `Das liegt oft daran, dass entweder die Kategorie noch zu allgemein ist oder dein Wunsch sehr speziell ist. ` +
-      `Wenn du m?chtest, versuche es bitte mit einer etwas genaueren Beschreibung ` +
+      `Wenn du möchtest, versuche es bitte mit einer etwas genaueren Beschreibung ` +
       `(zum Beispiel: Produktart + Einsatzzweck + grober Preisrahmen), ` +
-      `oder nenn mir eine andere Kategorie oder ein Budget, dann suche ich erneut f?r dich. ` +
-      `Du kannst mir auch einfach sagen, ob du eher etwas G?nstiges, etwas Hochwertiges ` +
+      `oder nenn mir eine andere Kategorie oder ein Budget, dann suche ich erneut für dich. ` +
+      `Du kannst mir auch einfach sagen, ob du eher etwas Günstiges, etwas Hochwertiges ` +
       `oder eine bestimmte Marke suchst – dann kann ich dir gezielter helfen.`
     );
   }
 
   const formatPrice = (p: EfroProduct) =>
-    p.price != null ? `${p.price.toFixed(2)} ?` : "?";
+    p.price != null ? `${p.price.toFixed(2)} €` : "€";
 
   const first = recommended[0];
 
@@ -3038,10 +3038,12 @@ function buildRuleBasedReplyText(
   // Spezialfall: "Teuerstes Produkt" mit gefundenen Produkten
   if (wantsMostExpensive && count > 0) {
     const top = recommended[0];
-    return [
-      `Ich habe dir das teuerste Produkt aus dem Shop eingeblendet: "${top.title}".`,
-      `Wenn du das Produkt anklickst, siehst du alle Details und den genauen Preis.`,
-    ].join(" ");
+    return (
+      `Du legst Wert auf hohe Qualität – deshalb habe ich dir das teuerste Produkt aus dem Shop ausgesucht: "${top.title}". ` +
+      `Dieses Produkt bietet dir in Material, Verarbeitung und Ausstattung das Maximum, was im Shop verfügbar ist. ` +
+      `Wenn du möchtest, kann ich dir auch noch eine etwas günstigere Alternative zeigen, ` +
+      `die trotzdem hochwertig ist – falls du Preis und Qualität ausbalancieren willst.`
+    );
   }
 
   const { minPrice, maxPrice } = extractUserPriceRange(text);
@@ -3059,11 +3061,11 @@ function buildRuleBasedReplyText(
   let budgetText = "";
   if (hasBudget) {
     if (minPrice !== null && maxPrice === null) {
-      budgetText = `ab etwa ${minPrice} ?`;
+      budgetText = `ab etwa ${minPrice} €`;
     } else if (maxPrice !== null && minPrice === null) {
-      budgetText = `bis etwa ${maxPrice} ?`;
+      budgetText = `bis etwa ${maxPrice} €`;
     } else if (minPrice !== null && maxPrice !== null) {
-      budgetText = `zwischen ${minPrice} ? und ${maxPrice} ?`;
+      budgetText = `zwischen ${minPrice} € und ${maxPrice} €`;
     }
   }
 
@@ -3100,18 +3102,18 @@ function buildRuleBasedReplyText(
       if (hasDesc) {
         return (
           `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
-          "Die exakte Liste der Inhaltsstoffe wird direkt im Shop auf der Produktseite gepflegt ? dort findest du alle Details, inklusive gesetzlich vorgeschriebener Angaben.\n\n" +
+          "Die exakte Liste der Inhaltsstoffe wird direkt im Shop auf der Produktseite gepflegt – dort findest du alle Details, inklusive gesetzlich vorgeschriebener Angaben.\n\n" +
           "In der aktuellen Produktbeschreibung steht unter anderem:\n" +
           descSnippet +
           "\n\n" +
-          "Wenn du Allergien oder sehr empfindliche Haut hast, schau bitte auf der Produktseite im Bereich 'Inhaltsstoffe' nach oder kontaktiere direkt den H?ndler, bevor du das Produkt verwendest."
+          "Wenn du Allergien oder sehr empfindliche Haut hast, schau bitte auf der Produktseite im Bereich 'Inhaltsstoffe' nach oder kontaktiere direkt den Händler, bevor du das Produkt verwendest."
         );
       } else {
         return (
           `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
           "Die exakte Liste der Inhaltsstoffe wird direkt im Shop auf der Produktseite gepflegt ? dort findest du alle Details, inklusive gesetzlich vorgeschriebener Angaben.\n\n" +
-          `Dieses Produkt geh?rt zur Kategorie "${categoryLabel}" und liegt preislich bei ${priceLabel}. ` +
-          "Wenn du Allergien oder sehr empfindliche Haut hast, schau bitte auf der Produktseite im Bereich 'Inhaltsstoffe' nach oder kontaktiere direkt den H?ndler, bevor du das Produkt verwendest."
+          `Dieses Produkt gehört zur Kategorie "${categoryLabel}" und liegt preislich bei ${priceLabel}. ` +
+          "Wenn du Allergien oder sehr empfindliche Haut hast, schau bitte auf der Produktseite im Bereich 'Inhaltsstoffe' nach oder kontaktiere direkt den Händler, bevor du das Produkt verwendest."
         );
       }
     }
@@ -3119,19 +3121,19 @@ function buildRuleBasedReplyText(
         if (explanationMode === "materials") {
       if (hasDesc) {
         return (
-          `Du m?chtest mehr ?ber das Material von "${first.title}" wissen.\n\n` +
-          "Die genaue Materialzusammensetzung (z. B. Baumwolle, Polyester, Mischgewebe) ist im Shop auf der Produktseite hinterlegt ? dort findest du in der Regel einen Abschnitt wie 'Material' oder 'Produktdetails'.\n\n" +
+          `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
+          "Die genaue Materialzusammensetzung (z. B. Baumwolle, Polyester, Mischgewebe) ist im Shop auf der Produktseite hinterlegt – dort findest du in der Regel einen Abschnitt wie 'Material' oder 'Produktdetails'.\n\n" +
           "In der aktuellen Produktbeschreibung findest du unter anderem:\n" +
           descSnippet +
           "\n\n" +
-          "F?r exakte Materialangaben und Prozentanteile nutze bitte die Produktseite."
+          "Für exakte Materialangaben und Prozentanteile nutze bitte die Produktseite."
         );
       } else {
         return (
-          `Du m?chtest mehr ?ber das Material von "${first.title}" wissen.\n\n` +
-          "Die genaue Materialzusammensetzung (z. B. Baumwolle, Polyester, Mischgewebe) ist im Shop auf der Produktseite hinterlegt ? dort findest du in der Regel einen Abschnitt wie 'Material' oder 'Produktdetails'.\n\n" +
+          `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
+          "Die genaue Materialzusammensetzung (z. B. Baumwolle, Polyester, Mischgewebe) ist im Shop auf der Produktseite hinterlegt – dort findest du in der Regel einen Abschnitt wie 'Material' oder 'Produktdetails'.\n\n" +
           `EFRO kann dir sagen: Es handelt sich um einen Artikel aus der Kategorie "${categoryLabel}" im Preisbereich ${priceLabel}. ` +
-          "F?r exakte Materialangaben und Prozentanteile nutze bitte die Produktseite."
+          "Für exakte Materialangaben und Prozentanteile nutze bitte die Produktseite."
         );
       }
     }
@@ -3140,8 +3142,8 @@ function buildRuleBasedReplyText(
     if (explanationMode === "usage") {
       if (hasDesc) {
         return (
-          `Du m?chtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
-          `Dieses Produkt geh?rt zur Kategorie "${categoryLabel}". Die konkrete Anwendung wird normalerweise auf der Produktverpackung und auf der Produktseite im Shop beschrieben.\n\n` +
+          `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
+          `Dieses Produkt gehört zur Kategorie "${categoryLabel}". Die konkrete Anwendung wird normalerweise auf der Produktverpackung und auf der Produktseite im Shop beschrieben.\n\n` +
           "In der Produktbeschreibung steht zum Gebrauch unter anderem:\n" +
           descSnippet +
           "\n\n" +
@@ -3149,9 +3151,9 @@ function buildRuleBasedReplyText(
         );
       } else {
         return (
-          `Du m?chtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
-          `Dieses Produkt geh?rt zur Kategorie "${categoryLabel}". Die konkrete Anwendung wird normalerweise auf der Produktverpackung und auf der Produktseite im Shop beschrieben.\n\n` +
-          "Schau dir am besten die Hinweise zur Anwendung und Sicherheit auf der Produktseite an ? dort findest du meist eine Schritt-f?r-Schritt-Erkl?rung. Wenn du mir sagst, wof?r du es genau einsetzen willst, kann ich dir zus?tzlich einen Tipp geben, worauf du besonders achten solltest."
+          `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
+          `Dieses Produkt gehört zur Kategorie "${categoryLabel}". Die konkrete Anwendung wird normalerweise auf der Produktverpackung und auf der Produktseite im Shop beschrieben.\n\n` +
+          "Schau dir am besten die Hinweise zur Anwendung und Sicherheit auf der Produktseite an – dort findest du meist eine Schritt-für-Schritt-Erklärung. Wenn du mir sagst, wofür du es genau einsetzen willst, kann ich dir zusätzlich einen Tipp geben, worauf du besonders achten solltest."
         );
       }
     }
@@ -3159,17 +3161,17 @@ function buildRuleBasedReplyText(
     if (explanationMode === "care" || explanationMode === "washing") {
       if (hasDesc) {
         return (
-          `Du fragst nach Pflege- oder Waschhinweisen f?r "${first.title}".\n\n` +
-          `Als Artikel aus der Kategorie "${categoryLabel}" gelten in der Regel die Pflegehinweise, die auf dem Etikett bzw. auf der Produktseite stehen. Dort findest du zum Beispiel Symbole zu Waschtemperatur, Trockner-Eignung oder Handw?sche.\n\n` +
-          "In der Produktbeschreibung sind Pflegehinweise erw?hnt, z. B.:\n" +
+          `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
+          `Als Artikel aus der Kategorie "${categoryLabel}" gelten in der Regel die Pflegehinweise, die auf dem Etikett bzw. auf der Produktseite stehen. Dort findest du zum Beispiel Symbole zu Waschtemperatur, Trockner-Eignung oder Handwäsche.\n\n` +
+          "In der Produktbeschreibung sind Pflegehinweise erwähnt, z. B.:\n" +
           descSnippet +
           "\n\n" +
           "Bitte richte dich bei der Pflege immer nach den offiziellen Angaben auf dem Produktlabel bzw. in der Produktbeschreibung im Shop."
         );
       } else {
         return (
-          `Du fragst nach Pflege- oder Waschhinweisen f?r "${first.title}".\n\n` +
-          `Als Artikel aus der Kategorie "${categoryLabel}" gelten in der Regel die Pflegehinweise, die auf dem Etikett bzw. auf der Produktseite stehen. Dort findest du zum Beispiel Symbole zu Waschtemperatur, Trockner-Eignung oder Handw?sche.\n\n` +
+          `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
+          `Als Artikel aus der Kategorie "${categoryLabel}" gelten in der Regel die Pflegehinweise, die auf dem Etikett bzw. auf der Produktseite stehen. Dort findest du zum Beispiel Symbole zu Waschtemperatur, Trockner-Eignung oder Handwäsche.\n\n` +
           "Bitte richte dich bei der Pflege immer nach den offiziellen Angaben auf dem Produktlabel bzw. in der Produktbeschreibung im Shop."
         );
       }
@@ -3186,8 +3188,8 @@ function buildRuleBasedReplyText(
       return (
         `Ich habe dir ein Produkt ausgesucht, das sehr gut zu deiner Anfrage passt: ` +
         `${product.title}. ` +
-        `Es bietet dir ein starkes Preis-Leistungs-Verh?ltnis f?r deinen Wunsch. ` +
-        `Wenn du m?chtest, kann ich dir auch noch eine oder zwei Alternativen im ?hnlichen Preisbereich zeigen – ` +
+        `Es bietet dir ein starkes Preis-Leistungs-Verhältnis für deinen Wunsch. ` +
+        `Wenn du möchtest, kann ich dir auch noch eine oder zwei Alternativen im ähnlichen Preisbereich zeigen – ` +
         `zum Beispiel, wenn dir eine bestimmte Marke oder ein bestimmtes Feature wichtiger ist.`
       );
     }
@@ -3201,22 +3203,22 @@ function buildRuleBasedReplyText(
         if (prices.length === 0) return null;
         const min = Math.min(...prices);
         const max = Math.max(...prices);
-        if (min === max) return `${min.toFixed(2)} ?`;
-        return `${min.toFixed(2)} ? ? ${max.toFixed(2)} ?`;
+        if (min === max) return `${min.toFixed(2)} €`;
+        return `${min.toFixed(2)} € – ${max.toFixed(2)} €`;
       })();
 
       const priceInfo = priceRange ? ` (Preisbereich: ${priceRange})` : "";
       const topProducts = recommended.slice(0, 3).map((p) => {
-        const price = p.price != null ? ` ? ${formatPrice(p)}` : "";
-        return `? ${p.title}${price}`;
+        const price = p.price != null ? ` – ${formatPrice(p)}` : "";
+        return `• ${p.title}${price}`;
       });
 
       const count = recommended.length;
       return (
         `Ich habe dir ${count === 2 ? "zwei" : `${count}`} passende Optionen herausgesucht, ` +
         `die gut zu deiner Anfrage passen. ` +
-        `Unten im Produktbereich siehst du die Vorschl?ge im Detail. ` +
-        `Wenn du eine schnelle Entscheidung treffen willst, schau dir zuerst das Produkt mit dem besten Preis-Leistungs-Verh?ltnis an ` +
+        `Unten im Produktbereich siehst du die Vorschläge im Detail. ` +
+        `Wenn du eine schnelle Entscheidung treffen willst, schau dir zuerst das Produkt mit dem besten Preis-Leistungs-Verhältnis an ` +
         `und danach die Variante, die etwas hochwertiger ist. ` +
         `Wenn du mir sagst, ob dir eher der Preis, die Marke oder bestimmte Features wichtig sind, ` +
         `kann ich dir auch gezielt eine klare Empfehlung aussprechen.`
@@ -3230,16 +3232,16 @@ function buildRuleBasedReplyText(
         `damit du in Ruhe vergleichen kannst. ` +
         `Unten im Produktbereich siehst du die Auswahl mit allen wichtigen Details. ` +
         `Wenn du mir sagst, was dir besonders wichtig ist – zum Beispiel Preis, Marke, bestimmte Features oder ein bestimmter Einsatzzweck – ` +
-        `kann ich die Liste f?r dich weiter eingrenzen und dir eine klare Empfehlung geben.`
+        `kann ich die Liste für dich weiter eingrenzen und dir eine klare Empfehlung geben.`
       );
     }
 
     case "S4": {
       // BUDGET-ONLY ANFRAGE
-      const budgetDisplay = budgetText || (maxPrice ? `bis etwa ${maxPrice} ?` : minPrice ? `ab etwa ${minPrice} ?` : "");
+      const budgetDisplay = budgetText || (maxPrice ? `bis etwa ${maxPrice} €` : minPrice ? `ab etwa ${minPrice} €` : "");
       return (
         `Mit deinem Budget von ${budgetDisplay} habe ich dir unten passende Produkte eingeblendet.\n\n` +
-        "Wenn du mir noch sagst, f?r welchen Bereich (z. B. Haushalt, Pflege, Tierbedarf), kann ich die Auswahl weiter eingrenzen."
+        "Wenn du mir noch sagst, für welchen Bereich (z. B. Haushalt, Pflege, Tierbedarf), kann ich die Auswahl weiter eingrenzen."
       );
     }
 
@@ -3250,8 +3252,8 @@ function buildRuleBasedReplyText(
         : "diesem Bereich";
       return (
         "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet.\n\n" +
-        `Alle Produkte geh?ren in den Bereich ${categoryName}.\n\n` +
-        "M?chtest du eher etwas G?nstiges f?r den Alltag oder eher eine Premiumnote?"
+        `Alle Produkte gehören in den Bereich ${categoryName}.\n\n` +
+        "Möchtest du eher etwas Günstiges für den Alltag oder eher eine Premiumnote?"
       );
     }
 
@@ -3260,10 +3262,10 @@ function buildRuleBasedReplyText(
       return (
         `Zu deiner aktuellen Anfrage habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
         `Das liegt oft daran, dass entweder die Kategorie noch zu allgemein ist oder dein Wunsch sehr speziell ist. ` +
-        `Wenn du m?chtest, versuche es bitte mit einer etwas genaueren Beschreibung ` +
+        `Wenn du möchtest, versuche es bitte mit einer etwas genaueren Beschreibung ` +
         `(zum Beispiel: Produktart + Einsatzzweck + grober Preisrahmen), ` +
-        `oder nenn mir eine andere Kategorie oder ein Budget, dann suche ich erneut f?r dich. ` +
-        `Du kannst mir auch einfach sagen, ob du eher etwas G?nstiges, etwas Hochwertiges ` +
+        `oder nenn mir eine andere Kategorie oder ein Budget, dann suche ich erneut für dich. ` +
+        `Du kannst mir auch einfach sagen, ob du eher etwas Günstiges, etwas Hochwertiges ` +
         `oder eine bestimmte Marke suchst – dann kann ich dir gezielter helfen.`
       );
     }
@@ -3282,8 +3284,8 @@ function buildRuleBasedReplyText(
     if (count === 1) {
       return (
         `Ich habe ein Produkt gefunden, das gut zu deinem Budget ${budgetText} passt:\n\n` +
-        `? ${first.title} ? ${formatPrice(first)}\n\n` +
-        "Wenn du m?chtest, kann ich dir noch eine Alternative im ?hnlichen Preisbereich zeigen."
+        `• ${first.title} – ${formatPrice(first)}\n\n` +
+        "Wenn du möchtest, kann ich dir noch eine Alternative im ähnlichen Preisbereich zeigen."
       );
     }
 
@@ -3291,14 +3293,14 @@ function buildRuleBasedReplyText(
       `Ich habe mehrere Produkte passend zu deinem Budget ${budgetText} gefunden.\n` +
       `Ein sehr gutes Match ist:\n\n` +
       `? ${first.title} ? ${formatPrice(first)}\n\n` +
-      "Zus?tzlich habe ich dir unten noch weitere passende Produkte eingeblendet:";
+      "Zusätzlich habe ich dir unten noch weitere passende Produkte eingeblendet:";
 
   const lines = recommended.map(
-      (p, idx) => `${idx + 1}. ${p.title} ? ${formatPrice(p)}`
+      (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
     );
 
     const closing =
-      "\n\nWenn du dein Budget anpassen m?chtest (zum Beispiel etwas h?her oder niedriger), sag mir einfach kurz Bescheid.";
+      "\n\nWenn du dein Budget anpassen möchtest (zum Beispiel etwas höher oder niedriger), sag mir einfach kurz Bescheid.";
 
     return [intro, "", ...lines, closing].join("\n");
   }
@@ -3313,48 +3315,58 @@ function buildRuleBasedReplyText(
         ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
     }
     const qualityHint =
-      " Ich habe Produkte ausgew?hlt, bei denen Qualit?t im Vordergrund steht.";
+      " Ich habe Produkte ausgewählt, bei denen Qualität im Vordergrund steht.";
 
     if (count === 1) {
       return (
-        "Ich habe ein hochwertiges Premium-Produkt f?r dich gefunden:\n\n" +
-        `? ${first.title}\n\n` +
+        `Du legst Wert auf hohe Qualität – deshalb habe ich dir eine Premium-Variante ausgesucht: ` +
+        `${first.title}. ` +
+        `Dieses Produkt ist in Material, Verarbeitung und Ausstattung klar über dem Standard. ` +
         (attributeHint || qualityHint) +
-        " Das ist eine sehr gute Wahl, wenn dir Qualit?t wichtiger ist als der letzte Euro im Preis. " +
-        "Wenn du m?chtest, kann ich dir noch eine etwas g?nstigere Alternative zeigen."
+        ` Wenn du möchtest, kann ich dir im nächsten Schritt auch noch eine etwas günstigere Alternative zeigen, ` +
+        `die trotzdem hochwertig ist – falls du Preis und Qualität ausbalancieren willst.`
       );
     }
 
     const intro =
-      "Ich habe dir eine Auswahl an hochwertigen Premium-Produkten zusammengestellt." +
+      `Du legst Wert auf hohe Qualität – deshalb habe ich dir ${count} passende Premium-Optionen ausgesucht. ` +
+      `Diese Produkte sind in Material, Verarbeitung und Ausstattung klar über dem Standard. ` +
       (attributeHint || qualityHint) +
-      " Ein besonders starkes Match ist:";
+      ` Ein besonders starkes Match ist:`;
 
     const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
 
     const closing =
-      '\n\nWenn du lieber in einem bestimmten Preisbereich bleiben m?chtest, sag mir einfach dein Budget (z. B. "unter 500 Euro").';
+      `\n\nWenn du möchtest, kann ich dir auch noch etwas günstigere Alternativen zeigen, ` +
+      `die trotzdem hochwertig sind – falls du Preis und Qualität ausbalancieren willst.`;
 
-    return [intro, "", `? ${first.title}`, "", ...lines, closing].join("\n");
+    return [intro, "", `• ${first.title}`, "", ...lines, closing].join("\n");
   }
 
   /**
    * 3) Bargain-Intent ohne Budget
    */
   if (intent === "bargain") {
+    const count = recommended.length;
     let attributeHint = "";
     if (attributeTerms.length > 0) {
       attributeHint = ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
     }
     const priceHint =
-      " Ich habe auf ein gutes Preis-Leistungs-Verh?ltnis geachtet.";
+      " Ich habe auf ein gutes Preis-Leistungs-Verhältnis geachtet.";
 
     const intro =
-      "Ich habe dir besonders preiswerte Produkte herausgesucht." +
+      `Du möchtest ein gutes Angebot – deshalb habe ich dir ` +
+      `${count === 1 ? "eine besonders preiswerte Option" : `${count} passende, preisbewusste Optionen`} herausgesucht. ` +
+      `Dabei achte ich nicht nur auf den niedrigsten Preis, sondern auch darauf, dass Qualität und Nutzen stimmen. ` +
       (attributeHint || priceHint);
     const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
     const closing =
-      "\n\nWenn du mir dein maximales Budget nennst, kann ich noch genauer eingrenzen.";
+      `\n\nUnten im Produktbereich siehst du die Vorschläge im Detail. ` +
+      `Wenn du mir sagst, ob dir der absolut niedrigste Preis wichtiger ist oder ein gutes Preis-Leistungs-Verhältnis, ` +
+      `kann ich dir noch gezielter die beste Empfehlung geben. ` +
+      `Wenn du möchtest, kann ich dir zusätzlich auch noch eine etwas hochwertigere Alternative zeigen, ` +
+      `die nur wenig teurer ist, aber bei Ausstattung oder Haltbarkeit mehr bietet.`;
 
     return [intro, "", ...lines, closing].join("\n");
   }
@@ -3363,17 +3375,24 @@ function buildRuleBasedReplyText(
    * 4) Geschenk-Intent
    */
   if (intent === "gift") {
+    const count = recommended.length;
     const intro =
-      "Ich habe dir ein paar passende Geschenkideen zusammengestellt:";
+      `Du suchst ein Geschenk – sehr schön. ` +
+      `Ich habe dir ${count === 1 ? "eine passende Idee" : `${count} passende Geschenkideen`} herausgesucht, ` +
+      `die sich gut zum Verschenken eignen. ` +
+      `Unten im Produktbereich siehst du die Vorschläge mit den wichtigsten Infos.`;
     const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
     const closing =
-      "\n\nSag mir gerne, f?r wen das Geschenk ist ? dann kann ich noch gezielter empfehlen.";
+      `\n\nWenn du mir sagst, für wen das Geschenk ist (z. B. Alter, Beziehung, Interessen) und in welchem Preisrahmen du bleiben möchtest, ` +
+      `kann ich dir noch gezielter 1–2 Top-Empfehlungen nennen. ` +
+      `Wenn du möchtest, kann ich dir auch noch helfen, zwischen "sicheren Klassikern" und etwas ausgefalleneren Ideen zu unterscheiden, ` +
+      `damit du genau den richtigen Ton triffst.`;
 
     return [intro, "", ...lines, closing].join("\n");
   }
 
   /**
-   * 5) Standard-F?lle (explore / quick_buy / bundle ...)
+   * 5) Standard-Fälle (explore / quick_buy / bundle ...)
    */
   if (count === 1) {
     let attributeHint = "";
@@ -3381,8 +3400,8 @@ function buildRuleBasedReplyText(
       attributeHint = ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
     }
     return (
-      "Ich habe ein passendes Produkt f?r dich gefunden:\n\n" +
-      `? ${first.title}${attributeHint}\n\n` +
+      "Ich habe ein passendes Produkt für dich gefunden:\n\n" +
+      `• ${first.title}${attributeHint}\n\n` +
       "Unten siehst du alle Details. Wenn dir etwas daran nicht ganz passt, sag mir einfach, worauf du besonders Wert legst (z. B. Preis, Marke oder Kategorie)."
     );
   }
@@ -3397,7 +3416,7 @@ function buildRuleBasedReplyText(
     attributeHint;
   const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
   const closing =
-    "\n\nWenn du m?chtest, helfe ich dir jetzt beim Eingrenzen ? zum Beispiel nach Preisbereich, Kategorie oder Einsatzzweck.";
+    "\n\nWenn du möchtest, helfe ich dir jetzt beim Eingrenzen – zum Beispiel nach Preisbereich, Kategorie oder Einsatzzweck.";
 
   return [intro, "", ...lines, closing].join("\n");
 }
@@ -3416,17 +3435,46 @@ function buildReplyTextWithAiClarification(
 
   const terms = (aiTrigger.unknownTerms ?? []).filter(Boolean);
   const termsSnippet = terms.length ? ` ${terms.join(", ")}` : "";
+  const hasProducts = (finalCount ?? 0) > 0;
 
   let clarification = "";
 
   if (aiTrigger.reason === "no_results") {
-    clarification = terms.length
-      ? `\n\nIch finde zu folgendem Begriff nichts im Katalog:${termsSnippet}. Meinst du eine bestimmte Marke, Kategorie oder etwas anderes?`
-      : `\n\nIch habe zu deiner Beschreibung keine passenden Produkte gefunden. Magst du dein Anliegen noch einmal anders formulieren oder eine Kategorie bzw. ein Budget nennen?`;
+    if (terms.length > 0) {
+      clarification = `\n\nIch finde zu folgendem Begriff nichts im Katalog:${termsSnippet}. ` +
+        `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
+        `Sag mir zum Beispiel kurz, um welche Art Produkt es dir genau geht und in welchem Preisrahmen du ungefähr bleiben möchtest.`;
+    } else {
+      clarification = `\n\nIch habe zu deiner Beschreibung keine passenden Produkte gefunden. ` +
+        `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
+        `Sag mir zum Beispiel kurz, um welche Art Produkt es dir genau geht und in welchem Preisrahmen du ungefähr bleiben möchtest. ` +
+        `Du kannst z. B. sagen: "Zeig mir etwas Günstiges für jeden Tag" oder "Lieber etwas Hochwertiges, das lange hält".`;
+    }
   } else {
-    clarification = terms.length
-      ? `\n\nEinige deiner Begriffe kann ich im Katalog nicht zuordnen:${termsSnippet}. Meinst du eher eine Marke, eine Kategorie oder ein bestimmtes Einsatzgebiet?`
-      : `\n\nEin Teil deiner Anfrage ist f?r mich schwer zuzuordnen. Magst du mir noch sagen, ob es eher um eine Marke, eine Kategorie oder einen Einsatzbereich geht?`;
+    if (hasProducts) {
+      // Produkte wurden gefunden, aber AI will noch nachfragen
+      if (terms.length > 0) {
+        clarification = `\n\nEinige deiner Begriffe kann ich im Katalog nicht zuordnen:${termsSnippet}. ` +
+          `Die Vorschläge unten passen grob zu deiner Anfrage. ` +
+          `Wenn du mir jetzt noch sagst, was dir am wichtigsten ist (z. B. Preis, Marke, bestimmte Eigenschaft), ` +
+          `kann ich dir daraus 1–2 besonders passende Empfehlungen herauspicken.`;
+      } else {
+        clarification = `\n\nDie Vorschläge unten passen grob zu deiner Anfrage. ` +
+          `Wenn du mir jetzt noch sagst, was dir am wichtigsten ist (z. B. Preis, Marke, bestimmte Eigenschaft), ` +
+          `kann ich dir daraus 1–2 besonders passende Empfehlungen herauspicken.`;
+      }
+    } else {
+      // Keine Produkte gefunden, aber nicht "no_results"
+      if (terms.length > 0) {
+        clarification = `\n\nEinige deiner Begriffe kann ich im Katalog nicht zuordnen:${termsSnippet}. ` +
+          `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
+          `Sag mir zum Beispiel kurz, um welche Art Produkt es dir genau geht und in welchem Preisrahmen du ungefähr bleiben möchtest.`;
+      } else {
+        clarification = `\n\nDamit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
+          `Sag mir zum Beispiel kurz, um welche Art Produkt es dir genau geht und in welchem Preisrahmen du ungefähr bleiben möchtest. ` +
+          `Du kannst z. B. sagen: "Zeig mir etwas Günstiges für jeden Tag" oder "Lieber etwas Hochwertiges, das lange hält".`;
+      }
+    }
   }
 
   // Optional: Wenn wirklich gar keine Produkte gefunden wurden,
@@ -3480,11 +3528,11 @@ function buildReplyText(
     
     let priceRangeText = "";
     if (userMinPrice !== null && userMaxPrice === null) {
-      priceRangeText = `?ber ${userMinPrice} ?`;
+      priceRangeText = `über ${userMinPrice} €`;
     } else if (userMaxPrice !== null && userMinPrice === null) {
-      priceRangeText = `unter ${userMaxPrice} ?`;
+      priceRangeText = `unter ${userMaxPrice} €`;
     } else if (userMinPrice !== null && userMaxPrice !== null) {
-      priceRangeText = `zwischen ${userMinPrice} ? und ${userMaxPrice} ?`;
+      priceRangeText = `zwischen ${userMinPrice} € und ${userMaxPrice} €`;
     }
     
     const categoryLabel = category ? category : "Produkte";
@@ -3496,29 +3544,29 @@ function buildReplyText(
       // "?ber X" = Untergrenze, aber nichts gefunden
       clarifyText =
         `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
-        `Ich habe dir stattdessen Vorschl?ge gezeigt, die dem, was du suchst, am n?chsten kommen. ` +
+        `Ich habe dir stattdessen Vorschläge gezeigt, die dem, was du suchst, am nächsten kommen. ` +
         `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
         `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
-        `Sag mir einfach, ob dir eher ein m?glichst g?nstiger Preis oder bestimmte Qualit?t/Marken wichtiger sind, ` +
-        `dann finde ich die beste Option f?r dich.`;
+        `Sag mir einfach, ob dir eher ein möglichst günstiger Preis oder bestimmte Qualität/Marken wichtiger sind, ` +
+        `dann finde ich die beste Option für dich.`;
     } else if (userMaxPrice !== null && userMinPrice === null) {
       // "unter X" = Obergrenze, aber nichts gefunden
       clarifyText =
         `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
-        `Ich habe dir stattdessen Vorschl?ge gezeigt, die dem, was du suchst, am n?chsten kommen. ` +
+        `Ich habe dir stattdessen Vorschläge gezeigt, die dem, was du suchst, am nächsten kommen. ` +
         `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
         `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
-        `Sag mir einfach, ob dir eher ein m?glichst g?nstiger Preis oder bestimmte Qualit?t/Marken wichtiger sind, ` +
-        `dann finde ich die beste Option f?r dich.`;
+        `Sag mir einfach, ob dir eher ein möglichst günstiger Preis oder bestimmte Qualität/Marken wichtiger sind, ` +
+        `dann finde ich die beste Option für dich.`;
     } else {
       // Bereich oder allgemein
       clarifyText =
         `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
-        `Ich habe dir stattdessen Vorschl?ge gezeigt, die dem, was du suchst, am n?chsten kommen. ` +
+        `Ich habe dir stattdessen Vorschläge gezeigt, die dem, was du suchst, am nächsten kommen. ` +
         `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
         `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
-        `Sag mir einfach, ob dir eher ein m?glichst g?nstiger Preis oder bestimmte Qualit?t/Marken wichtiger sind, ` +
-        `dann finde ich die beste Option f?r dich.`;
+        `Sag mir einfach, ob dir eher ein möglichst günstiger Preis oder bestimmte Qualität/Marken wichtiger sind, ` +
+        `dann finde ich die beste Option für dich.`;
     }
     
     console.log("[EFRO ReplyText PriceRangeNoMatch]", {
@@ -3561,8 +3609,8 @@ function buildReplyText(
     
     // Hinweis für den Shop-Betreiber nur im Operator-Modus anzeigen
     if (effectiveReplyMode === "operator") {
-      clarifyText += `\n\nHinweis f?r den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} ? nur ${alternativeCategory} und Zubeh?r. ` +
-        `Wenn du ${categoryLabel} verkaufen m?chtest, solltest du entsprechende Produkte/Kategorien anlegen.`;
+      clarifyText += `\n\nHinweis für den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} – nur ${alternativeCategory} und Zubehör. ` +
+        `Wenn du ${categoryLabel} verkaufen möchtest, solltest du entsprechende Produkte/Kategorien anlegen.`;
     }
     
     console.log("[EFRO ReplyText MissingCategory]", {
@@ -3593,7 +3641,7 @@ function buildReplyText(
 
     const clarifyText =
       `Ich konnte den Code ${codeLabel} in diesem Shop nicht finden.\n\n` +
-      `Sag mir bitte, was f?r ein Produkt du suchst ? zum Beispiel eine Kategorie (Haushalt, Pflege, Tierbedarf), ` +
+      `Sag mir bitte, was für ein Produkt du suchst – zum Beispiel eine Kategorie (Haushalt, Pflege, Tierbedarf), ` +
       `eine Marke oder ein bestimmtes Einsatzgebiet.\n` +
       `Dann zeige ich dir gezielt passende Produkte.`;
 
@@ -3609,9 +3657,9 @@ function buildReplyText(
   // EFRO Budget-Fix 2025-01-XX: Spezialfall - Vages Budget ohne konkrete Zahl
   if (aiTrigger?.reason === "ambiguous_budget") {
     const clarifyText =
-      `Du hast erw?hnt, dass dein Budget eher klein ist. Damit ich dir wirklich passende Produkte empfehlen kann:\n\n` +
-      `? F?r welche Art von Produkt suchst du etwas (z. B. Snowboard, Haustier, Parf?m, Haushalt)?\n` +
-      `? Und ungef?hr mit welchem Betrag m?chtest du rechnen?`;
+      `Du hast erwähnt, dass dein Budget eher klein ist. Damit ich dir wirklich passende Produkte empfehlen kann:\n\n` +
+      `? Für welche Art von Produkt suchst du etwas (z. B. Snowboard, Haustier, Parfüm, Haushalt)?\n` +
+      `? Und ungefähr mit welchem Betrag möchtest du rechnen?`;
 
     console.log("[EFRO ReplyText AmbiguousBudget]", {
       reason: aiTrigger.reason,
@@ -3624,8 +3672,8 @@ function buildReplyText(
   // EFRO Budget-Fix 2025-01-XX: Spezialfall - Budget mit Zahl, aber ohne Kategorie
   if (aiTrigger?.reason === "missing_category_for_budget") {
     const clarifyText =
-      `Alles klar, du hast ein Budget genannt. F?r welche Art von Produkt suchst du etwas ? ` +
-      `z. B. Snowboard, Haustier-Produkte, Parf?m oder etwas f?r den Haushalt?`;
+      `Alles klar, du hast ein Budget genannt. Für welche Art von Produkt suchst du etwas – ` +
+      `z. B. Snowboard, Haustier-Produkte, Parfüm oder etwas für den Haushalt?`;
 
     console.log("[EFRO ReplyText MissingCategoryForBudget]", {
       reason: aiTrigger.reason,
@@ -3742,7 +3790,7 @@ function extractCodeTermFromText(text: string): string | null {
   // Extrahiere alle Terms nach Entfernen von Stoppw?rtern
   const stopwords = new Set([
     "kannst", "du", "mir", "zeigen", "zeige", "zeig", "bitte", "ich", "suche", "ein", "eine", "einen",
-    "produkt", "produkte", "artikel", "kann", "k?nnen", "soll", "sollte", "m?chte", "will", "w?rde",
+    "produkt", "produkte", "artikel", "kann", "können", "soll", "sollte", "möchte", "will", "würde",
     // Personalpronomen
     "er", "sie", "wir", "ihr",
     // Verben (haben)
@@ -3967,7 +4015,7 @@ export async function runSellerBrain(
         const steps = extractStepsFromDescription(description);
         
         if (steps.length > 0) {
-          replyText = `Hier ist die Anleitung f?r ${productTitle}:\n\n` +
+          replyText = `Hier ist die Anleitung für ${productTitle}:\n\n` +
             steps.map((step: string, idx: number) => `${idx + 1}. ${step}`).join("\n");
         } else {
           // Fallback: Nutze Beschreibung direkt (gek?rzt, falls zu lang)
@@ -3984,8 +4032,8 @@ export async function runSellerBrain(
       }
     } else {
       replyText = "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
-          "Daf?r brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
-          "dann kann ich dir die Details dazu erkl?ren.";
+          "Dafür brauche ich aber ein konkretes Produkt. Bitte sage mir zuerst, welches Produkt dich interessiert, " +
+          "dann kann ich dir die Details dazu erklären.";
     }
 
     console.log("[EFRO SellerBrain] Explanation mode ? Direkt aus Beschreibung", {
@@ -4200,9 +4248,9 @@ export async function runSellerBrain(
     
     // Regelbasierte R?ckfrage direkt hier generieren (ohne AI-Trigger)
     const replyText =
-      `Du hast erw?hnt, dass dein Budget eher klein ist. Damit ich dir wirklich passende Produkte empfehlen kann:\n\n` +
-      `? F?r welche Art von Produkt suchst du etwas (z. B. Snowboard, Haustier, Parf?m, Haushalt)?\n` +
-      `? Und ungef?hr mit welchem Betrag m?chtest du rechnen?`;
+      `Du hast erwähnt, dass dein Budget eher klein ist. Damit ich dir wirklich passende Produkte empfehlen kann:\n\n` +
+      `? Für welche Art von Produkt suchst du etwas (z. B. Snowboard, Haustier, Parfüm, Haushalt)?\n` +
+      `? Und ungefähr mit welchem Betrag möchtest du rechnen?`;
     
     // Sales-Policy auch hier setzen (mit DEFAULT_SHOW_PRODUCTS, da keine spezifische Action)
     const salesPolicyOutput = applySalesPolicy({
