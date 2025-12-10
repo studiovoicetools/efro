@@ -383,20 +383,35 @@ const LANGUAGE_ALIAS_KEYS = new Set([
  * - Language-Aliase (z. B. "parfum" -> "perfume") bleiben IMMER erhalten, auch wenn "perfume" nicht in catalogKeywords ist.
  * - Andere Values werden nur behalten, wenn sie in catalogKeywords vorkommen.
  * - Dynamic Aliases (vom AI-Resolver gelernt) werden am Ende hinzugefügt.
+ * - Supabase-Aliase werden optional geladen und mit JSON-Aliasen kombiniert.
  * 
  * @param catalogKeywords Liste von bekannten Katalog-Keywords (für Filterung)
  * @param shopDomain Optional: Shop-Domain für shop-spezifische Aliase
  * @param dynamicAliases Optional: Dynamische Aliase aus SellerBrainContext (vom AI-Resolver gelernt)
  * @returns Normalisierte Alias-Map (alte Struktur für Rückwärtskompatibilität)
  */
-export function initializeAliasMap(
+export async function initializeAliasMap(
   catalogKeywords: string[],
   shopDomain?: string,
   dynamicAliases?: Record<string, string>
-): AliasMap {
+): Promise<AliasMap> {
   // Lade AliasEntry[] aus statischen und dynamischen Quellen
   // WICHTIG: Bei jedem Start werden beide Quellen geladen (statisch + dynamisch)
-  const entries = loadAliasEntries("de", shopDomain);
+  const baseEntries = loadAliasEntries("de", shopDomain);
+  let allEntries = [...baseEntries];
+  
+  // Versuche Supabase-Aliase zu laden (optional)
+  try {
+    const supabaseEntries = await loadAliasEntriesFromSupabase("de", shopDomain);
+    if (Array.isArray(supabaseEntries) && supabaseEntries.length > 0) {
+      console.log("[EFRO AliasMap] Supabase-Aliase geladen:", supabaseEntries.length);
+      allEntries = [...allEntries, ...supabaseEntries];
+    }
+  } catch (err) {
+    console.warn("[EFRO AliasMap] Konnte Supabase-Aliase nicht laden:", err);
+  }
+  
+  const entries = allEntries;
   
   // Konvertiere zu alter AliasMap-Struktur für Rückwärtskompatibilität
   const map = convertAliasEntriesToMap(entries, catalogKeywords);
