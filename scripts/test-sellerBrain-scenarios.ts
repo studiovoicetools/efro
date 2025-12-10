@@ -23,6 +23,7 @@ import {
   type ShoppingIntent,
 } from "../src/lib/products/mockCatalog";
 import { type SalesAction } from "../src/lib/sales/salesTypes";
+import { normalizeUserInput } from "../src/lib/sales/modules/utils";
 
 /**
  * Lädt Test-Produkte von der EFRO Debug-API
@@ -372,8 +373,10 @@ async function runScenarioTest(
 
   const previousRecommended: EfroProduct[] = [];
 
+  const normalizedQuery = normalizeUserInput(test.query);
+
   const result: SellerBrainResult = runSellerBrain(
-    test.query,
+    normalizedQuery,
     initialIntent,
     products,
     plan,
