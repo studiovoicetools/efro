@@ -512,35 +512,15 @@ function ElevenLabsAvatar({
       CHAT SEND (Textchat-Feld)
   ============================================================ */
 
-  const handleChatSend = async (text: string) => {
-    const cleaned = text.trim();
-    if (!cleaned) return;
-
-    try {
-      const fn = (conversation as any)?.sendUserMessage;
-      if (typeof fn === "function") {
-        const maybePromise = fn(cleaned);
-        if (maybePromise && typeof (maybePromise as any).then === "function") {
-          await maybePromise;
-        }
+  const handleChatSend = useCallback(
+    (text: string) => {
+      // Leite ALLE Chat-Eingaben in die zentrale Pipeline weiter
+      if (typeof handleUserTextInput === "function") {
+        handleUserTextInput(text);
       }
-
-      if (typeof createRecommendations === "function") {
-        createRecommendations(cleaned);
-      }
-
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          text: cleaned,
-          sender: "user",
-        },
-      ]);
-    } catch (err) {
-      console.error("Chat send error:", err);
-    }
-  };
+    },
+    [handleUserTextInput]
+  );
 
   // 🔚 ElevenLabsAvatar rendert nichts Sichtbares – kümmert sich nur um Voice + SellerBrain-Brücke
   return null;
