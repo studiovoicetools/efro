@@ -35,6 +35,7 @@ import {
 import { analyzeCatalogKeywords } from "@/lib/sales/catalogKeywordAnalyzer";
 import { buildMascotUrl, type EfroAvatarId } from "@/lib/efro/mascotConfig";
 import { SHOW_ME_PATTERNS } from "@/lib/sales/languageRules.de";
+import { normalizeUserInput } from "@/lib/sales/modules/utils";
 
 
 /* ===========================================================
@@ -1083,7 +1084,7 @@ export default function Home({ searchParams }: HomeProps) {
   ============================================================ */
 
   function normalizeSellerBrainText(rawText: string): string {
-    const text = rawText.trim();
+    const text = normalizeUserInput(rawText ?? "");
     if (!text) return text;
 
     // Satzaufteilung
@@ -1134,6 +1135,9 @@ export default function Home({ searchParams }: HomeProps) {
 
 const createRecommendations = useCallback(
   async (userText: string) => {
+    const originalText = userText ?? "";
+    const normalizedText = normalizeUserInput(originalText);
+
     const sellerProducts = allProductsRef.current;
 
     if (!sellerProducts.length) {

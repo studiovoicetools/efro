@@ -76,3 +76,33 @@ export function collectMatches(
   }
   return Array.from(new Set(hits));
 }
+
+/**
+ * Normalisiert rohen User-Input für die weitere Verarbeitung in EFRO.
+ * - wandelt türkisches "ı" in "i" um
+ * - normalisiert Unicode (NFKC)
+ * - entfernt Steuerzeichen
+ * - reduziert mehrfachen Whitespace auf ein einzelnes Leerzeichen
+ * - trimmt führende und nachfolgende Leerzeichen
+ * - wandelt alles in Kleinbuchstaben um
+ */
+export function normalizeUserInput(raw: string | null | undefined): string {
+  if (!raw) return "";
+
+  // Unicode-Normalisierung (z. B. kombinierte Zeichen)
+  let text = raw.normalize("NFKC");
+
+  // Türkisches "ı" in "i" umwandeln
+  text = text.replace(/ı/g, "i");
+
+  // Steuerzeichen entfernen
+  text = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+
+  // Mehrfach-Whitespace auf ein einzelnes Leerzeichen reduzieren
+  text = text.replace(/\s+/g, " ").trim();
+
+  // In Kleinbuchstaben umwandeln
+  text = text.toLowerCase();
+
+  return text;
+}
