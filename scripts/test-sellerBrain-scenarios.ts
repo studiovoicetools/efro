@@ -375,14 +375,15 @@ async function runScenarioTest(
 
   const normalizedQuery = normalizeUserInput(test.query);
 
-  const result: SellerBrainResult = runSellerBrain(
-    normalizedQuery,
-    initialIntent,
-    products,
-    plan,
-    previousRecommended,
-    sellerContext
-  );
+  const result: SellerBrainResult = await runSellerBrain(
+  test.query,
+  initialIntent,
+  products,
+  plan,
+  previousRecommended,
+  sellerContext
+);
+
 
   const evaluation = evaluateScenario(result, test);
 

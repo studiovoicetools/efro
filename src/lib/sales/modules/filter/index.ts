@@ -821,12 +821,12 @@ function userMentionsPerfume(text: string): boolean {
 /**
  * Helper: Baut Filter-Kontext auf (parsedQuery, words, categoryHints, intentHints)
  */
-function buildFilterContext(
+async function buildFilterContext(
   text: string,
   intent: ShoppingIntent,
   allProducts: EfroProduct[],
   contextCategory?: string | null
-): {
+): Promise<{
   parsedQuery: ParsedQuery;
   words: string[];
   expandedWords: string[];
@@ -842,7 +842,7 @@ function buildFilterContext(
   keywordSummary: { categoryHints: string[]; usageHints: string[]; skinHints: string[] };
   wantsMostExpensive: boolean;
   attributeIndex: AttributeIndex;
-} {
+}> {
   const t = normalize(text);
   let currentIntent: ShoppingIntent = intent;
 
@@ -1057,7 +1057,7 @@ function buildFilterContext(
 
   // Alias-Map initialisieren und filtern (nur Keywords, die im Katalog vorkommen)
   // HINWEIS: Dynamic Aliases werden in runSellerBrain() verwendet (dort ist vollständiger SellerBrainContext verfügbar)
-  const aliasMap = initializeAliasMap(catalogKeywords);
+  const aliasMap = await initializeAliasMap(catalogKeywords);
 
   // Wörter mit Katalog-Keywords erweitern (Komposita aufbrechen)
   let expandedWords = expandWordsWithCatalogKeywords(words, catalogKeywords);
@@ -2106,12 +2106,12 @@ function rankAndSliceCandidates(
  * Produkte nach Keywords, Kategorie und Preis filtern
  * – NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
  */
-export function filterProductsForSellerBrain(
+export async function filterProductsForSellerBrain(
   text: string,
   intent: ShoppingIntent,
   allProducts: EfroProduct[],
   contextCategory?: string | null
-): EfroProduct[] {
+): Promise<EfroProduct[]> {
   // WICHTIG: Parfüm-Flags GANZ AM ANFANG deklarieren, vor allen Logs und if-Blocks
   let hasPerfumeCandidates = false;
   let originalPerfumeCandidates: EfroProduct[] = [];
@@ -2161,7 +2161,7 @@ export function filterProductsForSellerBrain(
   }
 
   // 1) Filter-Kontext aufbauen
-  const filterContext = buildFilterContext(text, intent, allProducts, contextCategory);
+  const filterContext = await buildFilterContext(text, intent, allProducts, contextCategory);
   let {
     parsedQuery,
     words,

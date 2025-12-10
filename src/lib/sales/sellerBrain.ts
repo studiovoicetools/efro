@@ -1794,12 +1794,12 @@ function userMentionsPerfume(text: string): boolean {
 /**
  * Helper: Baut Filter-Kontext auf (parsedQuery, words, categoryHints, intentHints)
  */
-function buildFilterContext(
+async function buildFilterContext(
   text: string,
   intent: ShoppingIntent,
   allProducts: EfroProduct[],
   contextCategory?: string | null
-): {
+): Promise<{
   parsedQuery: ParsedQuery;
   words: string[];
   expandedWords: string[];
@@ -1815,7 +1815,7 @@ function buildFilterContext(
   keywordSummary: { categoryHints: string[]; usageHints: string[]; skinHints: string[] };
   wantsMostExpensive: boolean;
   attributeIndex: AttributeIndex;
-} {
+}> {
   const t = normalize(text);
   let currentIntent: ShoppingIntent = intent;
 
@@ -1986,7 +1986,7 @@ function buildFilterContext(
 
   // Alias-Map initialisieren und filtern (nur Keywords, die im Katalog vorkommen)
   // HINWEIS: Dynamic Aliases werden in runSellerBrain() verwendet (dort ist vollständiger SellerBrainContext verfügbar)
-  const aliasMap = initializeAliasMap(catalogKeywords);
+  const aliasMap = await initializeAliasMap(catalogKeywords);
 
   // W?rter mit Katalog-Keywords erweitern (Komposita aufbrechen)
   let expandedWords = expandWordsWithCatalogKeywords(words, catalogKeywords);
@@ -2915,13 +2915,13 @@ function rankAndSliceCandidates(
  * Produkte nach Keywords, Kategorie und Preis filtern
  * ? NIE wieder [] zur?ckgeben, solange allProducts nicht leer ist.
  */
-function filterProducts(
+async function filterProducts(
   text: string,
   intent: ShoppingIntent,
   allProducts: EfroProduct[],
   contextCategory?: string | null
-): EfroProduct[] {
-  return filterProductsForSellerBrain(text, intent, allProducts, contextCategory);
+): Promise<EfroProduct[]> {
+  return await filterProductsForSellerBrain(text, intent, allProducts, contextCategory);
 }
 
 /**
@@ -3751,14 +3751,14 @@ function extractCodeTermFromText(text: string): string | null {
 /**
  * Hauptfunktion, die vom Chat/Avatar aufgerufen wird
  */
-export function runSellerBrain(
+export async function runSellerBrain(
   userText: string,
   currentIntent: ShoppingIntent,
   allProducts: EfroProduct[],
   plan?: string,
   previousRecommended?: EfroProduct[],
   context?: SellerBrainContext
-): SellerBrainResult {
+): Promise<SellerBrainResult> {
   const raw = userText ?? "";
   const cleaned = raw.trim();
 
@@ -4121,7 +4121,7 @@ export function runSellerBrain(
   }
 
   // Normale Such-/Kaufanfrage -> filtern
-  const filterResult = filterProducts(
+  const filterResult = await filterProducts(
     cleaned,
     nextIntent,
     allProducts,
@@ -4700,7 +4700,7 @@ export function runSellerBrain(
   // (wird sp?ter in CodeDetect verwendet, um zu verhindern, dass Produkte verworfen werden)
   // Dynamic Aliases aus context hinzufügen (vom AI-Resolver gelernt)
   const dynamicAliasesForCodeDetect = context?.dynamicAliases;
-  const aliasMap = initializeAliasMap(Array.from(catalogKeywordsSetForAlias), undefined, dynamicAliasesForCodeDetect);
+  const aliasMap = await initializeAliasMap(Array.from(catalogKeywordsSetForAlias), context?.shopDomain, dynamicAliasesForCodeDetect);
   const aliasCheckResult = resolveUnknownTerms(cleaned, Array.from(catalogKeywordsSetForAlias), aliasMap);
   const aliasMatchSuccessful = aliasCheckResult.aliasMapUsed && candidateCount > 0;
   const candidateCountAfterAlias = candidateCount;
@@ -6453,7 +6453,7 @@ export async function runSellerBrainV2(
   if (!shop) {
     console.warn("[EFRO SB V2] Kein Shop gefunden, verwende Fallback-Produkte");
     // Fallback: Verwende allProducts direkt und rufe v1 auf
-    const result = runSellerBrain(
+    const result = await runSellerBrain(
       userText,
       "explore",
       allProducts,
@@ -6553,7 +6553,7 @@ export async function runSellerBrainV2(
 
   // 5) SellerBrain v1 aufrufen
   // Default-Intent: "explore" (kann sp?ter erweitert werden)
-  const sbResult = runSellerBrain(
+  const sbResult = await runSellerBrain(
     userText,
     "explore",
     productsToUse,

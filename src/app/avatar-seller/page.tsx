@@ -1380,7 +1380,7 @@ const createRecommendations = useCallback(
             text: normalizedForSellerBrain,
           });
 
-          result = runSellerBrain(
+          result = await runSellerBrain(
             normalizedForSellerBrain,
             sellerIntent,
             sellerProducts,
@@ -1400,7 +1400,7 @@ const createRecommendations = useCallback(
           text: normalizedForSellerBrain,
         });
 
-        result = runSellerBrain(
+        result = await runSellerBrain(
           normalizedForSellerBrain,
           sellerIntent,
           sellerProducts,

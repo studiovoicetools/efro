@@ -87,7 +87,7 @@ async function runTestCase(
   const previousRecommended: EfroProduct[] = [];
 
   // runSellerBrain aufrufen (exakt wie in page.tsx)
-  const result: SellerBrainResult = runSellerBrain(
+  const result: SellerBrainResult = await runSellerBrain(
     text,
     initialIntent,
     products,

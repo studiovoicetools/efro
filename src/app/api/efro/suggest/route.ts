@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     // Context aus Query-Parameter (optional, für GET vorerst nicht genutzt)
     const context: SellerBrainContext | undefined = undefined;
 
-    const brainResult = runSellerBrain(
+    const brainResult = await runSellerBrain(
       text,
       prevIntent,
       products,
@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
 
     console.log("[EFRO SB API] Incoming context", context);
 
-    const brainResult = runSellerBrain(
+    const brainResult = await runSellerBrain(
       text,
       prevIntent,
       products,

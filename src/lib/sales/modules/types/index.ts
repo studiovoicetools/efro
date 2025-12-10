@@ -35,6 +35,11 @@ export interface SellerBrainContext {
    * Standard ist "customer", wenn nicht gesetzt.
    */
   replyMode?: "customer" | "operator";
+  /**
+   * Optionale Shop-Domain (z.B. "demo-shop.myshopify.com"), wird u.a. für
+   * Supabase-Alias-Lookups verwendet.
+   */
+  shopDomain?: string;
 }
 
 /**
