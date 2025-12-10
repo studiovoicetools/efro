@@ -93,6 +93,22 @@ interface ScenarioTest {
   context?: SellerBrainContext; // Optional: Kontext für diesen Test
   // zusätzliche Varianten derselben Frage, die alle zum selben erwarteten Ergebnis führen sollen
   variantQueries?: string[];
+  /**
+   * Optionale Varianten dieses Szenarios (z. B. Tippfehler, Umgangssprache,
+   * andere Formulierungen mit identischer Erwartung).
+   * Wird in einem späteren Schritt vom Runner genutzt, aktuell nur Struktur.
+   */
+  variants?: {
+    /**
+     * Die alternative Query für diese Variante (z. B. mit Tippfehlern).
+     */
+    query: string;
+    /**
+     * Optionale Notiz, warum diese Variante existiert
+     * (z. B. "Tippfehler", "Umgangssprache", "Denglisch").
+     */
+    note?: string;
+  }[];
   expected?: {
     minCount?: number;
     maxCount?: number;
@@ -508,6 +524,10 @@ async function main() {
         variantQueries: [
           "Ich suche ein günstiges Snowboard, höchstens 300 €.",
           "Hast du Snowboards bis 300 Euro im Angebot?",
+          "hast du snowbords bis 300 euro? brauche was günstıges für den anfang.",
+          "gib mir mal ein snowbord unter 300e, nix zu teures bitte.",
+          "hast du ein board für anfänger so bis ungefähr 300 euro?",
+          "ich such ein guenstıges snowboard max 300 eur, eher einsteiger-modell.",
         ],
         expected: {
           minCount: 1,
@@ -565,6 +585,10 @@ async function main() {
         variantQueries: [
           "Was ist dein billigstes Snowboard?",
           "Zeig mir das preiswerteste Board, das du hast.",
+          "hast du ein richtig günstıges snowbord für mich?",
+          "welches snowbord ist bei dir am billigsten?",
+          "zeig mir mal dein cheapstes snowboard, egal welche marke.",
+          "ich brauch nur ein einsteiger-board, so billig wie möglich.",
         ],
         expected: {
           minCount: 1,
@@ -594,6 +618,10 @@ async function main() {
         variantQueries: [
           "Hast du Hundezubehör wie Näpfe oder Futterbehälter?",
           "Ich brauche etwas für meinen Vierbeiner, am besten für Futter oder Wasser.",
+          "hast du was fuer meinen hund, z.b. napf oder futterschale?",
+          "ich such was fuers wuffi, irgendwas fuer futter oder wasser.",
+          "gibts bei dir hunde-naepfe oder futter-schuesseln?",
+          "brauche was fuer meinen hund zum fressen, napf oder aehnlich.",
         ],
         expected: {
           minCount: 1,
@@ -607,6 +635,10 @@ async function main() {
         variantQueries: [
           "Hast du ein preiswertes Duschgel bis 10 €?",
           "Ich suche ein günstiges Duschgel, maximal 10 Euro.",
+          "hast du ein duschgel so bis 10 euro, nix teures?",
+          "ich brauch ein guenstıges duschgel, maximal nen zehner.",
+          "gib mir mal ein einfaches duschgel, preisrahmen bis 10€.",
+          "such was zum duschen, guenstig und unter 10 eur.",
         ],
         expected: {
           minCount: 1,
@@ -623,6 +655,10 @@ async function main() {
         variantQueries: [
           "Zeig mir bitte eine gute Gesichtscreme für trockene Haut zwischen 20 und 30 Euro.",
           "Ich brauche eine qualitativ hochwertige Creme für trockene Haut, Preisbereich 20-30 €.",
+          "ich such eine gute gesıchtscreme fuer trockene haut, so 20-30 euro.",
+          "hast du face cream fuer trockene haut in der preisklasse 20 bis 30 eur?",
+          "brauche was fuer trockene haut im gesicht, budget um die 25 euro.",
+          "zeig mir bitte eine hochwertige creme fuer trockene haut so im bereich 20-30€.",
         ],
         expected: {
           minCount: 1,
@@ -2663,6 +2699,7 @@ async function main() {
       console.log(`\n[${test.id}] ${test.title}`);
       console.log(`Query: "${test.query}"`);
 
+      // Basisfall (wie bisher)
       const evaluation = await runScenarioTest(
         test,
         products,
@@ -2678,6 +2715,41 @@ async function main() {
         passed: evaluation.passed,
         details: evaluation.details,
       });
+
+      // NEU: Varianten des Szenarios ausführen (falls vorhanden)
+      if (test.variants && test.variants.length > 0) {
+        for (let i = 0; i < test.variants.length; i++) {
+          const variant = test.variants[i];
+          const variantId = `${test.id}#v${i + 1}`;
+
+          // Abgeleitetes Szenario-Objekt für die Variante:
+          const variantScenario: ScenarioTest = {
+            ...test,
+            id: variantId,
+            query: variant.query,
+            note: variant.note ?? test.note,
+          };
+
+          console.log(`\n[${variantScenario.id}] ${variantScenario.title}`);
+          console.log(`Query: "${variantScenario.query}"`);
+
+          const variantEvaluation = await runScenarioTest(
+            variantScenario,
+            products,
+            variantScenario.context
+          );
+
+          const variantStatus = variantEvaluation.passed ? "PASS" : "FAIL";
+          console.log(`${variantScenario.id} ${variantStatus} - ${variantScenario.title}`);
+          console.log(`  ${variantEvaluation.details}`);
+
+          results.push({
+            test: variantScenario,
+            passed: variantEvaluation.passed,
+            details: variantEvaluation.details,
+          });
+        }
+      }
     }
 
     // Zusammenfassung
