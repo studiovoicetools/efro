@@ -1983,11 +1983,24 @@ function rankAndSliceCandidates(
   const normalizedText = cleaned.toLowerCase();
   
   // CLUSTER A FIX: S4v2, S6v2 - Snowboard-Erkennung erweitert
-  const mentionsSnowboard = normalizedText.includes("snowboard");
+  // Erkennung, ob der Nutzer überhaupt von Snowboards spricht
+  const mentionsSnowboard =
+    // normale Schreibweise
+    /\bsnowboard(s)?\b/.test(normalizedText) ||
+    // häufige Tippfehler-Variante aus den Szenarien: "snowbord", "snowbords"
+    /\bsnowbord(s)?\b/.test(normalizedText) ||
+    // "einsteiger-board" etc. – nur sinnvoll, wenn Board-Kontext wichtig ist
+    /\b(einsteiger-)?board(s)?\b/.test(normalizedText);
   const wantsCheapestSnowboard =
     mentionsSnowboard &&
-    /\b(g?nstigstes|g?nstigste|g?nstigsten|billigste|billigsten|preiswerteste)\b/.test(
-      normalizedText
+    (
+      // Superlativ-/Preis-Wörter (mit und ohne Umlaut)
+      /\b(g?nstigstes|g?nstigste|g?nstigsten|g?nstiges|billigste|billigsten|billiges|preiswerteste)\b/.test(
+        normalizedText
+      )
+      ||
+      // Formulierungen wie "so billig wie möglich" / "so günstig wie möglich"
+      /\bso\s+(billig|g?nstig)\s+wie\s+m?glich\b/.test(normalizedText)
     );
   const wantsMostExpensiveSnowboard =
     mentionsSnowboard &&
@@ -2044,6 +2057,72 @@ function rankAndSliceCandidates(
 
     return cheapest;
   }
+
+if (wantsCheapestSnowboard) {
+  // 1) Versuche zuerst, Snowboards über Titel/Beschreibung/Tags zu finden
+  const snowboardProductsByText = allProducts.filter((p) => {
+    const title = normalize(p.title || "");
+    const description = normalize((p as any).description || "");
+    const tagsText = Array.isArray((p as any).tags)
+      ? normalize((p as any).tags.join(" "))
+      : "";
+
+    const text = `${title} ${description} ${tagsText}`;
+
+    // erkenne "snowboard" / "snowboards" und die Tippfehler-Variante "snowbord"
+    return (
+      /\bsnowboard(s)?\b/.test(text) ||
+      /\bsnowbord(s)?\b/.test(text)
+    );
+  });
+
+  // Produkte mit Preis > 0 bevorzugen (Giftcards mit 0 € möglichst vermeiden)
+  const affordableSnowboardsByText = snowboardProductsByText.filter((p) => {
+    const price = p.price ?? 0;
+    return price > 0;
+  });
+
+  // 2) Falls über Text nichts gefunden wurde, fallback auf Kategorie "snowboard"
+  const snowboardProductsByCategory =
+    snowboardProductsByText.length === 0
+      ? allProducts.filter(
+          (p) => normalize(p.category || "") === "snowboard"
+        )
+      : [];
+
+  const affordableSnowboardsByCategory = snowboardProductsByCategory.filter(
+    (p) => {
+      const price = p.price ?? 0;
+      return price > 0;
+    }
+  );
+
+  // 3) Entscheide, welche Liste wir nutzen
+  let listToUse: typeof allProducts = [];
+
+  if (affordableSnowboardsByText.length > 0) {
+    listToUse = affordableSnowboardsByText;
+  } else if (snowboardProductsByText.length > 0) {
+    listToUse = snowboardProductsByText;
+  } else if (affordableSnowboardsByCategory.length > 0) {
+    listToUse = affordableSnowboardsByCategory;
+  } else if (snowboardProductsByCategory.length > 0) {
+    listToUse = snowboardProductsByCategory;
+  }
+
+  // 4) Wenn wir irgendetwas gefunden haben, nimm das günstigste Snowboard
+  if (listToUse.length > 0) {
+    const cheapestSnowboard = [...listToUse].sort((a, b) => {
+      const pa = a.price ?? 0;
+      const pb = b.price ?? 0;
+      return pa - pb;
+    })[0];
+
+    candidates = [cheapestSnowboard];
+  }
+} 
+  
+  
   
   // CLUSTER A FIX: S4v2 - Snowboards zwischen 600 und 900 Euro
   // Wenn Snowboard-Budget-Anfrage und keine Kandidaten → Fallback auf alle Snowboards im Budget

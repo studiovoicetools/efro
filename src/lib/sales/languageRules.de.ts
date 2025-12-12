@@ -94,7 +94,7 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "jacken",
   ],
   // CLUSTER D FIX PROFI-01v1: "board" entfernt - zu mehrdeutig (kann Snowboard, Skateboard, Surfboard sein)
-  snowboard: ["snowboard", "snowboards"],
+  snowboard: ["snowboard", "snowboards", "snowbord", "snowbords"],
   // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
   bindungen: ["bindungen", "bindung", "binding", "bindings", "snowboard-bindungen", "snowboard-bindung", "snowboardbindungen", "snowboardbindung"],
   haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad", "wasserkocher", "electric kettle", "kettle", "haushaltsgeräte", "küchengerät", "haushaltsgerät", "kochendes wasser", "wasser erhitzen", "kocher"],
@@ -104,7 +104,23 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   // SCHRITT 3 FIX: Garten-Kategorie hinzugefügt für S10v1
   Garten: ["garten", "gartenartikel", "garten-artikel", "gartenbedarf", "gartenzubehör", "gartenzubehoer", "gartenprodukte"],
   // SCHRITT 5 FIX: Kosmetik und Werkzeug für globale Kategorien
-  kosmetik: ["kosmetik", "beauty", "pflegeprodukte", "hautpflege"],
+  kosmetik: [
+    "kosmetik",
+    "beauty",
+    "pflegeprodukte",
+    "hautpflege",
+    // Direkt auf Gesichts- / Hautcremes zielende Begriffe
+    "gesichtscreme",
+    "gesichts creme",
+    "facecream",
+    "face cream",
+    "feuchtigkeitscreme",
+    "hautcreme",
+    "haut creme",
+    // Generische Creme-Begriffe, die häufig im Beauty-Kontext genutzt werden
+    "creme",
+    "cream"
+  ],
   werkzeug: ["werkzeug", "tools", "werkzeugkoffer"],
   // hier können später weitere Kategorien ergänzt werden
 };

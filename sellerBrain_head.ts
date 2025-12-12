@@ -6285,66 +6285,6 @@ export async function runSellerBrain(
     }
   }
 
-  const signalText = typeof normalizedQuery !== "undefined" ? normalizedQuery : "";
-
-  const cheapestSignal =
-    /\b(günstigst(?:e|en|es)?|guenstigst(?:e|en|es)?|billigst(?:e|en|es)?|am günstigsten|am guenstigsten|so billig wie möglich|so billig wie moeglich|cheapest|lowest price|most affordable)\b/i.test(
-      signalText
-    );
-
-  const mostExpensiveSignal =
-    /\b(teuerst(?:e|en|es)?|am teuersten|most expensive|highest price|premiumste)\b/i.test(
-      signalText
-    );
-
-  const wantsCheapestLegacy =
-    (typeof wantsCheapestOne !== "undefined" && wantsCheapestOne) ||
-    (typeof wantsCheapestSnowboard !== "undefined" && wantsCheapestSnowboard);
-  const wantsMostExpensiveLegacy =
-    typeof wantsMostExpensive !== "undefined" && wantsMostExpensive;
-
-  const wantsCheapestInCategory =
-    !!effectiveCategorySlug && (wantsCheapestLegacy || cheapestSignal);
-  const wantsMostExpensiveInCategory =
-    !!effectiveCategorySlug && (wantsMostExpensiveLegacy || mostExpensiveSignal);
-
-  const productCategorySlug = (product: EfroProduct) =>
-    normalize(product.category || "");
-
-  if (
-    (wantsCheapestInCategory || wantsMostExpensiveInCategory) &&
-    recommended.length > 0
-  ) {
-    const target = effectiveCategorySlug;
-    const inCat = recommended.filter(
-      (product) => productCategorySlug(product) === target
-    );
-
-    if (inCat.length > 0) {
-      const safePrice = (product: EfroProduct): number | null => {
-        const value =
-          typeof product.price === "number"
-            ? product.price
-            : Number(product.price);
-        return Number.isFinite(value) ? value : null;
-      };
-
-      const sorted = [...inCat].sort((a, b) => {
-        const priceA = safePrice(a);
-        const priceB = safePrice(b);
-        if (wantsCheapestInCategory) {
-          const keyA = priceA ?? Number.POSITIVE_INFINITY;
-          const keyB = priceB ?? Number.POSITIVE_INFINITY;
-          return keyA - keyB;
-        }
-        const keyA = priceA ?? Number.NEGATIVE_INFINITY;
-        const keyB = priceB ?? Number.NEGATIVE_INFINITY;
-        return keyB - keyA;
-      });
-      recommended = [sorted[0]];
-    }
-  }
-
   // EFRO Sales-Entscheidungsschicht: Berechne Sales-Policy-Output
   // SCHRITT 4 FIX: unknownTerms aus aiTrigger übergeben
   const unknownTermsForSales = aiTrigger?.unknownTerms || [];
@@ -6821,6 +6761,7 @@ export async function runSellerBrainV2(
 // Erwartetes Ergebnis: M?glichst alle 10 Szenarien (S1, S14, D6, D8, F1, F2, K2, K3, K6, K8) sollen bestehen.
 // 
 // ============================================================================
+
 
 
 
