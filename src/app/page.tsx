@@ -1,4 +1,5 @@
 ﻿﻿import Link from "next/link";
+
 import type { ReactNode } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -317,7 +318,7 @@ function FeatureMini({
   title,
   desc,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   desc: string;
 }) {
@@ -339,7 +340,7 @@ function StepCard({
   title,
   desc,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   desc: string;
 }) {
