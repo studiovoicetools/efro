@@ -2457,11 +2457,88 @@ function applyProductFilters(
   //   mit diesem Category-Slug gibt.
   // - Wenn kein Produkt diese Kategorie hat, Kandidaten NICHT auf 0 schie?en,
   //   sondern missingCategoryHint setzen und einen Debug-Hinweis schreiben.
-  if (effectiveCategorySlug) {
+ 
+ // EFRO: Kategorie-Inferenz bei Tippfehlern / generischen Begriffen (z. B. "snowbord", "einsteiger-board")
+if (!effectiveCategorySlug && allProducts.length > 0) {
+  const slugs = Array.from(
+new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
+
+  );
+
+  const lev = (a: string, b: string): number => {
+    if (a === b) return 0;
+    const al = a.length, bl = b.length;
+    if (!al) return bl;
+    if (!bl) return al;
+    const dp = Array.from({ length: al + 1 }, () => new Array(bl + 1).fill(0));
+    for (let i = 0; i <= al; i++) dp[i][0] = i;
+    for (let j = 0; j <= bl; j++) dp[0][j] = j;
+    for (let i = 1; i <= al; i++) {
+      for (let j = 1; j <= bl; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost
+        );
+      }
+    }
+    return dp[al][bl];
+  };
+
+  const q = normalize(normalizedQuery || "");
+  const tokens = q
+    .split(/[^a-z0-9äöüß\-]+/i)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  let inferred: string | null = null;
+
+  // typo match tokens -> slugs (snowbord -> snowboard)
+  for (const t of tokens) {
+    if (slugs.includes(t)) {
+      inferred = t;
+      break;
+    }
+    let best: { s: string; d: number } | null = null;
+    for (const s of slugs) {
+      const d = lev(t, s);
+      const maxD = s.length >= 8 ? 2 : 1;
+      if (d <= maxD && (!best || d < best.d)) best = { s, d };
+    }
+    if (best) {
+      inferred = best.s;
+      break;
+    }
+  }
+
+  // generic "-board" heuristic (einsteiger-board -> *board* slug)
+  if (!inferred && tokens.some((t) => /(^|-)board$/.test(t))) {
+    const hit = slugs.find((s) => s.includes("board"));
+    if (hit) inferred = hit;
+  }
+
+  if (inferred) {
+    effectiveCategorySlug = inferred;
+    debugFlags?.push?.(`category_inferred:${inferred}`);
+  }
+  
+  if (candidates.length === 0) {
+  candidates = allProducts.filter(
+    (p) => normalize(p.category || "") === inferred
+  );
+}
+
+  
+}
+
+
+
+ if (effectiveCategorySlug) {
     const beforeCategoryFilterCount = candidates.length;
 
     const filteredByCategory = candidates.filter(
-      (p) => normalize(p.category || "") === effectiveCategorySlug
+      (p) => normalize(p.category || "") === normalize(effectiveCategorySlug || "")
     );
 
     if (filteredByCategory.length > 0) {
@@ -2622,6 +2699,8 @@ function applyProductFilters(
       }
     }
   }
+
+
 
   console.log("[EFRO SB] AFTER CATEGORY FILTER", {
     text: text.substring(0, 80),
@@ -6110,11 +6189,13 @@ export async function runSellerBrain(
           // CLUSTER 3 FIX: Wenn effectiveCategorySlug gesetzt ist (z.B. "perfume", "haustier"), nur Produkte aus dieser Kategorie
           if (effectiveCategorySlug) {
             const productCategory = normalize(p.category || "");
-            if (productCategory !== normalize(effectiveCategorySlug)) {
+            if (productCategory !== normalize(effectiveCategorySlug || "")) {
               return false;
             }
           }
-          const productTitle = normalize(p.title || "");
+         
+
+		 const productTitle = normalize(p.title || "");
           // Prüfe, ob mindestens ein Fragment im Titel vorkommt
           return productNameFragments.some((fragment) => productTitle.includes(fragment));
         });
