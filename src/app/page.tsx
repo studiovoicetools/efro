@@ -104,6 +104,17 @@ export default function Home() {
                 </Button>
               </div>
 
+<div className="mt-5 flex flex-wrap gap-2">
+  <TrustChip icon={<Store size={14} />} text="Shopify Embedded App" />
+  <TrustChip icon={<ShieldCheck size={14} />} text="DSGVO: Start-Klick" />
+  <TrustChip icon={<Zap size={14} />} text="Intent/Budget/Kategorie" />
+  <TrustChip icon={<Mic size={14} />} text="Voice optional (ElevenLabs)" />
+  <TrustChip icon={<ScanSearch size={14} />} text="Katalog-Scan" />
+  <TrustChip icon={<Wand2 size={14} />} text="Optimierungsvorschläge" />
+</div>
+
+
+
               <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <FeatureMini icon={<MessageSquareText size={18} />} title="Verkäufer-Dialog" desc="Klar, schnell, verkaufsstark – wie ein Profi." />
                 <FeatureMini icon={<Mic size={18} />} title="Voice optional" desc="Natürliche Stimme (z. B. ElevenLabs)." />
@@ -199,6 +210,54 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+<section className="mt-10">
+  <div className="mb-4 flex items-center gap-2 text-gray-900">
+    <MessageSquareText size={18} className="text-indigo-600" />
+    <h2 className="text-2xl font-bold">So verkauft EFRO im Shop</h2>
+  </div>
+
+  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <Card className="rounded-2xl shadow-sm bg-white/70">
+      <CardHeader>
+        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
+          <MessageSquareText size={18} />
+        </div>
+        <CardTitle className="mt-3 text-lg font-bold text-gray-900">1) Frage verstehen</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm text-gray-600">
+        Kunde schreibt normal: „unter 30€“ / „für Geschenk“ / „Premium“. EFRO erkennt Intent, Budget & Kategorie.
+      </CardContent>
+    </Card>
+
+    <Card className="rounded-2xl shadow-sm bg-white/70">
+      <CardHeader>
+        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
+          <ScanSearch size={18} />
+        </div>
+        <CardTitle className="mt-3 text-lg font-bold text-gray-900">2) Produkte wählen</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm text-gray-600">
+        EFRO filtert den Katalog, sortiert nach Passung und zeigt sofort passende Produkte im Panel – ohne Gelaber.
+      </CardContent>
+    </Card>
+
+    <Card className="rounded-2xl shadow-sm bg-white/70">
+      <CardHeader>
+        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
+          <Zap size={18} />
+        </div>
+        <CardTitle className="mt-3 text-lg font-bold text-gray-900">3) Abschluss pushen</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm text-gray-600">
+        Kurze, klare Empfehlung + Alternativen. Optional Upsell/Cross-Sell („passt dazu“) – wie ein echter Verkäufer.
+      </CardContent>
+    </Card>
+  </div>
+</section>
+
+
+
 
         {/* Early access */}
         <section id="early-access" className="mt-10">
@@ -409,5 +468,13 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       </summary>
       <div className="mt-2 text-sm text-gray-600">{a}</div>
     </details>
+  );
+}
+function TrustChip({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+      <span className="text-indigo-600">{icon}</span>
+      <span>{text}</span>
+    </div>
   );
 }
