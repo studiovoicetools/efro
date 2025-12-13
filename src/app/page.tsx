@@ -1,9 +1,6 @@
-﻿﻿import Link from "next/link";
-
+﻿import Link from "next/link";
 import type { ReactNode } from "react";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
   Play,
@@ -20,10 +17,33 @@ import {
 const DEMO_VIDEO_URL =
   ""; // TODO: set later. Example YouTube embed: "https://www.youtube.com/embed/VIDEO_ID"
 
+type LinkButtonProps = {
+  href: string;
+  children: ReactNode;
+  variant?: "primary" | "outline";
+  className?: string;
+};
+
+function LinkButton({ href, children, variant = "primary", className = "" }: LinkButtonProps) {
+  const base =
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2";
+  const primary =
+    "bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg hover:from-indigo-600 hover:to-blue-600";
+  const outline =
+    "border border-gray-200 bg-white/80 text-gray-900 hover:bg-white";
+
+  const variantClass = variant === "outline" ? outline : primary;
+
+  return (
+    <Link href={href} className={`${base} ${variantClass} ${className}`}>
+      {children}
+    </Link>
+  );
+}
+
 export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-100">
-
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-indigo-200/40 blur-3xl" />
@@ -42,14 +62,13 @@ export default function Home() {
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
-            <Button asChild variant="outline" className="rounded-xl">
-              <Link href="/demo">Demo</Link>
-            </Button>
-            <Button asChild className="rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg">
-              <Link href="/efro/onboarding">
-                Installieren <ArrowRight size={18} className="ml-2" />
-              </Link>
-            </Button>
+            <LinkButton href="/demo" variant="outline">
+              Demo
+            </LinkButton>
+
+            <LinkButton href="/efro/onboarding">
+              Installieren <ArrowRight size={18} />
+            </LinkButton>
           </div>
         </header>
 
@@ -86,34 +105,21 @@ export default function Home() {
 
             <CardContent>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button
-                  asChild
-                  className="rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg hover:scale-[1.01] transition-transform"
+                <LinkButton
+                  href="/avatar-seller?shop=demo"
+                  className="hover:scale-[1.01] transition-transform"
                 >
-                  <Link href="/avatar-seller?shop=demo">
-                    Live Demo starten <Play size={18} className="ml-2" />
-                  </Link>
-                </Button>
+                  Live Demo starten <Play size={18} />
+                </LinkButton>
 
-                <Button asChild variant="outline" className="rounded-xl">
-                  <Link href="#video">Video ansehen</Link>
-                </Button>
+                <LinkButton href="#video" variant="outline">
+                  Video ansehen
+                </LinkButton>
 
-                <Button asChild variant="outline" className="rounded-xl">
-                  <Link href="#early-access">Early Access</Link>
-                </Button>
+                <LinkButton href="#early-access" variant="outline">
+                  Early Access
+                </LinkButton>
               </div>
-
-<div className="mt-5 flex flex-wrap gap-2">
-  <TrustChip icon={<Store size={14} />} text="Shopify Embedded App" />
-  <TrustChip icon={<ShieldCheck size={14} />} text="DSGVO: Start-Klick" />
-  <TrustChip icon={<Zap size={14} />} text="Intent/Budget/Kategorie" />
-  <TrustChip icon={<Mic size={14} />} text="Voice optional (ElevenLabs)" />
-  <TrustChip icon={<ScanSearch size={14} />} text="Katalog-Scan" />
-  <TrustChip icon={<Wand2 size={14} />} text="Optimierungsvorschläge" />
-</div>
-
-
 
               <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <FeatureMini icon={<MessageSquareText size={18} />} title="Verkäufer-Dialog" desc="Klar, schnell, verkaufsstark – wie ein Profi." />
@@ -162,14 +168,12 @@ export default function Home() {
               </div>
 
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Button asChild className="rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg">
-                  <Link href="/demo">
-                    Demo-Seite öffnen <ArrowRight size={18} className="ml-2" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="rounded-xl">
-                  <Link href="/efro/onboarding">Installations-Flow ansehen</Link>
-                </Button>
+                <LinkButton href="/demo">
+                  Demo-Seite öffnen <ArrowRight size={18} />
+                </LinkButton>
+                <LinkButton href="/efro/onboarding" variant="outline">
+                  Installations-Flow ansehen
+                </LinkButton>
               </div>
             </CardContent>
           </Card>
@@ -211,54 +215,6 @@ export default function Home() {
           </div>
         </section>
 
-<section className="mt-10">
-  <div className="mb-4 flex items-center gap-2 text-gray-900">
-    <MessageSquareText size={18} className="text-indigo-600" />
-    <h2 className="text-2xl font-bold">So verkauft EFRO im Shop</h2>
-  </div>
-
-  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-    <Card className="rounded-2xl shadow-sm bg-white/70">
-      <CardHeader>
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
-          <MessageSquareText size={18} />
-        </div>
-        <CardTitle className="mt-3 text-lg font-bold text-gray-900">1) Frage verstehen</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm text-gray-600">
-        Kunde schreibt normal: „unter 30€“ / „für Geschenk“ / „Premium“. EFRO erkennt Intent, Budget & Kategorie.
-      </CardContent>
-    </Card>
-
-    <Card className="rounded-2xl shadow-sm bg-white/70">
-      <CardHeader>
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
-          <ScanSearch size={18} />
-        </div>
-        <CardTitle className="mt-3 text-lg font-bold text-gray-900">2) Produkte wählen</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm text-gray-600">
-        EFRO filtert den Katalog, sortiert nach Passung und zeigt sofort passende Produkte im Panel – ohne Gelaber.
-      </CardContent>
-    </Card>
-
-    <Card className="rounded-2xl shadow-sm bg-white/70">
-      <CardHeader>
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
-          <Zap size={18} />
-        </div>
-        <CardTitle className="mt-3 text-lg font-bold text-gray-900">3) Abschluss pushen</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm text-gray-600">
-        Kurze, klare Empfehlung + Alternativen. Optional Upsell/Cross-Sell („passt dazu“) – wie ein echter Verkäufer.
-      </CardContent>
-    </Card>
-  </div>
-</section>
-
-
-
-
         {/* Early access */}
         <section id="early-access" className="mt-10">
           <div className="mb-4 flex items-center gap-2 text-gray-900">
@@ -266,7 +222,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold">Early Access</h2>
           </div>
 
-          <p className="text-gray-600 mb-5">
+          <p className="mb-5 text-gray-600">
             Early Access ist günstiger und hilft dir, EFRO früh in deinem Shop zu testen. Später sind die regulären Preise höher
             (Ziel: 299€/699€/999€).
           </p>
@@ -303,14 +259,12 @@ export default function Home() {
           </div>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Button asChild className="rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg">
-              <Link href="/efro/onboarding">
-                Early Access starten <ArrowRight size={18} className="ml-2" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="rounded-xl">
-              <Link href="/demo">Erst Demo testen</Link>
-            </Button>
+            <LinkButton href="/efro/onboarding">
+              Early Access starten <ArrowRight size={18} />
+            </LinkButton>
+            <LinkButton href="/demo" variant="outline">
+              Erst Demo testen
+            </LinkButton>
           </div>
         </section>
 
@@ -352,14 +306,12 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button asChild variant="outline" className="rounded-xl">
-                <Link href="/demo">Demo öffnen</Link>
-              </Button>
-              <Button asChild className="rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg">
-                <Link href="/efro/onboarding">
-                  Installieren <ArrowRight size={18} className="ml-2" />
-                </Link>
-              </Button>
+              <LinkButton href="/demo" variant="outline">
+                Demo öffnen
+              </LinkButton>
+              <LinkButton href="/efro/onboarding">
+                Installieren <ArrowRight size={18} />
+              </LinkButton>
             </div>
           </div>
 
@@ -404,7 +356,7 @@ function StepCard({
   desc: string;
 }) {
   return (
-    <Card className="rounded-2xl shadow-sm bg-white/70">
+    <Card className="rounded-2xl bg-white/70 shadow-sm">
       <CardHeader>
         <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg">
           {icon}
@@ -428,7 +380,7 @@ function PricingCard({
   highlight?: boolean;
 }) {
   return (
-    <Card className={`rounded-2xl shadow-sm bg-white/70 ${highlight ? "border-indigo-300 shadow-md" : ""}`}>
+    <Card className={`rounded-2xl bg-white/70 shadow-sm ${highlight ? "border-indigo-300 shadow-md" : ""}`}>
       <CardHeader>
         <CardTitle className="text-lg font-bold text-gray-900">{title}</CardTitle>
         <div className="mt-2 text-3xl font-extrabold text-gray-900">{price}</div>
@@ -445,15 +397,13 @@ function PricingCard({
         </ul>
 
         <div className="mt-5">
-          <Button
-            asChild
-            className={`w-full rounded-xl ${highlight ? "bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg" : ""}`}
-            variant={highlight ? "default" : "outline"}
+          <LinkButton
+            href="/efro/onboarding"
+            variant={highlight ? "primary" : "outline"}
+            className={`w-full ${highlight ? "" : ""}`}
           >
-            <Link href="/efro/onboarding">
-              Starten <ArrowRight size={18} className="ml-2" />
-            </Link>
-          </Button>
+            Starten <ArrowRight size={18} />
+          </LinkButton>
         </div>
       </CardContent>
     </Card>
@@ -468,13 +418,5 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       </summary>
       <div className="mt-2 text-sm text-gray-600">{a}</div>
     </details>
-  );
-}
-function TrustChip({ icon, text }: { icon: ReactNode; text: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
-      <span className="text-indigo-600">{icon}</span>
-      <span>{text}</span>
-    </div>
   );
 }
