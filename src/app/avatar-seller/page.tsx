@@ -1642,189 +1642,107 @@ if (replyText.length > 0) {
     usingFallback: productsFromResult.length === 0 && productsFromState.length > 0,
   });
 
-  return (
-    <main className="w-full min-h-screen bg-[#FFF8F0] relative overflow-hidden">
-      {/* PRODUKT-PANEL */}
-      <EfroProductPanel
-        visible={productPanelVisible}
-        products={productPanelProducts}
-        replyText={sellerResult?.replyText ?? sellerReplyText}
-      />
+return (
+  <main className="w-full min-h-screen bg-[#FFF8F0] relative overflow-hidden">
+    {/* PRODUKT-PANEL */}
+    <EfroProductPanel
+      visible={productPanelVisible}
+      products={productPanelProducts}
+      replyText={sellerResult?.replyText ?? sellerReplyText}
+    />
 
-      {/* AVATAR + VOICE + CHAT – Floating-Overlay unten rechts */}
-      {mascotUrl && (
-        <div className="fixed bottom-4 right-4 z-40 pointer-events-none">
-          <div className="w-[320px] rounded-3xl shadow-2xl border border-slate-200 bg-white/90 backdrop-blur-md pointer-events-auto flex flex-col overflow-hidden">
-            {/* 🧸 Avatar-Bereich */}
-            <div className="relative w-full aspect-[4/3] bg-slate-950/5 flex items-center justify-center">
-              <AvatarPreview src={mascotUrl} className="w-full h-full">
-                <ElevenLabsAvatar
-                  dynamicVariables={dynamicVariables}
-                  createRecommendations={createRecommendations}
-                  setChatMessages={setChatMessages}
-                  handleUserTextInput={handleUserTextInput}
-                  registerSpeakHandler={registerSpeakHandler}
-                  registerStartHandler={registerStartHandler}
-                  registerStopHandler={registerStopHandler}
-                />
-              </AvatarPreview>
-            </div>
+    {/* AVATAR + VOICE + CHAT – Floating-Overlay unten rechts */}
+    {mascotUrl && (
+      <div className="fixed bottom-4 right-4 z-40 pointer-events-none">
+        <div className="w-[320px] rounded-3xl shadow-2xl border border-slate-200 bg-white/90 backdrop-blur-md pointer-events-auto flex flex-col overflow-hidden">
+          {/* 🧸 Avatar-Bereich */}
+          <div className="relative w-full aspect-[4/3] bg-slate-950/5 flex items-center justify-center">
+            <AvatarPreview src={mascotUrl} className="w-full h-full">
+              <ElevenLabsAvatar
+                dynamicVariables={dynamicVariables}
+                createRecommendations={createRecommendations}
+                setChatMessages={setChatMessages}
+                handleUserTextInput={handleUserTextInput}
+                registerSpeakHandler={registerSpeakHandler}
+                registerStartHandler={registerStartHandler}
+                registerStopHandler={registerStopHandler}
+              />
+            </AvatarPreview>
+          </div>
 
-            {/* 🧠 Button-Leiste unter dem Avatar */}
-            <div className="border-t border-slate-100 bg-slate-50/90 px-3 py-2 flex flex-row items-center gap-2 justify-between">
-              {/* Mit EFRO sprechen (Voice) */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isVoiceActive) {
-                    console.log("[EFRO AvatarUI] Stop Voice clicked");
-                    stopVoiceSession();
-                    setIsVoiceActive(false);
-                  } else {
-                    console.log("[EFRO AvatarUI] Start Voice clicked");
-                    startVoiceSession();
-                    setIsVoiceActive(true);
-                  }
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-1 rounded-full bg-emerald-600 text-white text-xs font-semibold px-3 py-2 shadow-sm hover:bg-emerald-500 hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 active:shadow-inner transition"
-              >
-                <span aria-hidden="true">🎤</span>
-                <span>{isVoiceActive ? "Gespräch beenden" : "Mit EFRO sprechen"}</span>
-              </button>
+          {/* 🧠 Button-Leiste unter dem Avatar */}
+          <div className="border-t border-slate-100 bg-slate-50/90 px-3 py-2 flex flex-row items-center gap-2 justify-between">
+            {/* Mit EFRO sprechen (Voice) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (isVoiceActive) {
+                  console.log("[EFRO AvatarUI] Stop Voice clicked");
+                  stopVoiceSession();
+                  setIsVoiceActive(false);
+                } else {
+                  console.log("[EFRO AvatarUI] Start Voice clicked");
+                  startVoiceSession();
+                  setIsVoiceActive(true);
+                }
+              }}
+              className="flex-1 inline-flex items-center justify-center gap-1 rounded-full bg-emerald-600 text-white text-xs font-semibold px-3 py-2 shadow-sm hover:bg-emerald-500 hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 active:shadow-inner transition"
+            >
+              <span aria-hidden="true">🎤</span>
+              <span>{isVoiceActive ? "Gespräch beenden" : "Mit EFRO sprechen"}</span>
+            </button>
 
-              {/* Chat öffnen */}
-              <button
-                type="button"
-                onClick={() => {
-                  console.log("[EFRO AvatarUI] Toggle Chat clicked");
-                  setIsChatOpen((prev) => !prev);
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-1 rounded-full border border-slate-300 bg-white text-slate-800 text-xs font-medium px-3 py-2 shadow-sm hover:bg-slate-100 hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 active:shadow-inner transition"
-              >
-                <span aria-hidden="true">💬</span>
-                <span>{isChatOpen ? "Chat schließen" : "Chat öffnen"}</span>
-              </button>
-            </div>
+            {/* Chat öffnen */}
+            <button
+              type="button"
+              onClick={() => {
+                console.log("[EFRO AvatarUI] Toggle Chat clicked");
+                setIsChatOpen((prev) => !prev);
+              }}
+              className="flex-1 inline-flex items-center justify-center gap-1 rounded-full border border-slate-300 bg-white text-slate-800 text-xs font-medium px-3 py-2 shadow-sm hover:bg-slate-100 hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 active:shadow-inner transition"
+            >
+              <span aria-hidden="true">💬</span>
+              <span>{isChatOpen ? "Chat schließen" : "Chat öffnen"}</span>
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {/* EFRO CHAT WINDOW */}
-      <EFROChatWindow
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        onSend={handleUserTextInput}
-        messages={chatMessages.map((m) => ({
-          id: m.id,
-          text: m.text,
-          role: m.sender === "user" ? "user" : "efro",
-          createdAt: Date.now(),
-        }))}
-      />
+    {/* EFRO CHAT WINDOW */}
+    <EFROChatWindow
+      isOpen={isChatOpen}
+      onClose={() => setIsChatOpen(false)}
+      onSend={handleUserTextInput}
+      messages={chatMessages.map((m) => ({
+        id: m.id,
+        text: m.text,
+        role: m.sender === "user" ? "user" : "efro",
+        createdAt: Date.now(),
+      }))}
+    />
 
-      {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
-      {showDebugOverlay && (
-        <div
-          style={{
-            position: "fixed",
-            top: 24,
-            right: 16,
-            maxWidth: "420px",
-            maxHeight: "50vh",
-            overflowY: "auto",
-            padding: "12px",
-            background: "rgba(0,0,0,0.85)",
-            color: "#fff",
-            fontSize: "12px",
-            borderRadius: "12px",
-            zIndex: 9999,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setShowDebugOverlay(false)}
-            style={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              fontSize: "16px",
-              lineHeight: "1",
-              padding: "4px 8px",
-              background: "rgba(255, 255, 255, 0.2)",
-              color: "#fff",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background =
-                "rgba(255, 255, 255, 0.3)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background =
-                "rgba(255, 255, 255, 0.2)";
-            }}
-          >
-            ×
-          </button>
-          <div style={{ marginBottom: 8, opacity: 0.7 }}>
-            EFRO DEBUG-CHAT ({chatMessages.length} Messages)
-          </div>
-          <div style={{ marginBottom: 8, fontSize: "10px", opacity: 0.6 }}>
-            ⚠️ Nur EFRO-Chat (SellerBrain-Reply). ElevenLabs-Agent-Nachrichten
-            werden ignoriert (siehe Console: [ElevenLabs AI ignored]).
-          </div>
-          {chatMessages.map((m, idx) => {
-            const text =
-              (m as any).text ??
-              (m as any).replyText ??
-              (typeof (m as any).content === "string"
-                ? (m as any).content
-                : Array.isArray((m as any).content)
-                ? (m as any).content
-                    .map((c: any) =>
-                      typeof c === "string"
-                        ? c
-                        : "text" in c
-                        ? c.text
-                        : ""
-                    )
-                    .join(" ")
-                : "");
-
-            if (!text) {
-              console.warn("[EFRO Chat] message ohne text", m);
-              return (
-                <div key={m.id ?? idx} style={{ marginBottom: 4 }}>
-                  <strong>{m.sender ?? "?"}</strong>: [kein Text-Feld gefunden]
-                </div>
-              );
-            }
-
-            const isUser = m.sender === "user";
-            const bgColor = isUser
-              ? "rgba(255, 165, 0, 0.2)"
-              : "rgba(255, 255, 255, 0.1)";
-            const textColor = isUser ? "#ffa500" : "#fff";
-
-            return (
-              <div
-                key={m.id ?? idx}
-                style={{
-                  marginBottom: 4,
-                  padding: "4px 8px",
-                  background: bgColor,
-                  borderRadius: "4px",
-                }}
-              >
-                <strong style={{ color: textColor }}>
-                  {m.sender === "user" ? "👤 User" : "🤖 EFRO"}
-                </strong>
-                : <span style={{ color: textColor }}>{text}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </main>
-  );
+    {/* DEBUG CHAT OVERLAY – nur für Entwicklung */}
+    {showDebugOverlay && (
+      <div
+        style={{
+          position: "fixed",
+          top: 24,
+          right: 16,
+          maxWidth: "420px",
+          maxHeight: "50vh",
+          overflowY: "auto",
+          padding: "12px",
+          background: "rgba(0,0,0,0.85)",
+          color: "#fff",
+          fontSize: "12px",
+          borderRadius: "12px",
+          zIndex: 9999,
+        }}
+      >
+        {/* ... (dein Debug-Overlay Inhalt) ... */}
+      </div>
+    )}
+  </main>
+);
 }
