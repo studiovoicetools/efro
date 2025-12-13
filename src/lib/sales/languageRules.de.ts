@@ -94,15 +94,7 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "jacken",
   ],
   // CLUSTER D FIX PROFI-01v1: "board" entfernt - zu mehrdeutig (kann Snowboard, Skateboard, Surfboard sein)
-  snowboard: [
-  "snowboard",
-  "snowboards",
-  "snowbord",
-  "snowbords",
-  "board",
-  "einsteiger board",
-  "einsteigerboard"
-],
+  
   // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
   bindungen: ["bindungen", "bindung", "binding", "bindings", "snowboard-bindungen", "snowboard-bindung", "snowboardbindungen", "snowboardbindung"],
   haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad", "wasserkocher", "electric kettle", "kettle", "haushaltsgeräte", "küchengerät", "haushaltsgerät", "kochendes wasser", "wasser erhitzen", "kocher"],
@@ -674,6 +666,19 @@ export const BARGAIN_WORDS = [
   "billigste",
   "billigstes",
   "billigsten",
+  "billig",
+  "guenstig",
+  "günstig",
+  "discount",
+  "spar",
+  "rabatt",
+  "deal",
+  "bargain",
+  "günstigste",
+  "günstigsten",
+  "billigste",
+  "billigstes",
+  "billigsten"
 ];
 
 // Gift-Wörter: Intent-Erkennung für Geschenke
