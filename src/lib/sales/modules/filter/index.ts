@@ -560,6 +560,9 @@ function expandWordsWithCatalogKeywords(
     result.add(lower);
 
     for (const kw of keywordSet) {
+      if (kw === "board" && lower.startsWith("snowboard")) {
+        continue;
+      }
       if (lower !== kw && lower.endsWith(kw)) {
         result.add(kw);
       }
