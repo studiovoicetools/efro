@@ -5,6 +5,33 @@ import type { EfroProduct } from "@/lib/products/mockCatalog";
 import { normalize, collectMatches } from "@/lib/sales/modules/utils";
 import { CATEGORY_KEYWORDS } from "../../languageRules.de";
 
+function isGenericBoardOnly(text: string): boolean {
+  const t = normalize(text || "");
+  const mentionsBoard = t.includes("board") || t.includes("boards");
+  if (!mentionsBoard) return false;
+
+  const hasSnowPrefix =
+    t.includes("snowboard") ||
+    t.includes("snowbord") ||
+    /\bsnow\s*board/.test(t);
+
+  if (hasSnowPrefix) return false;
+
+  const otherBoards = [
+    "skateboard",
+    "surfboard",
+    "wakeboard",
+    "kiteboard",
+    "longboard",
+  ];
+
+  if (otherBoards.some((kw) => t.includes(kw))) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Ergebnis der Kategorie-Erkennung
  */
@@ -215,6 +242,7 @@ export function determineEffectiveCategory(params: {
   
   const t = normalize(cleanedText);
   const normalizedText = t;
+  const isGenericBoardOnlyQuery = isGenericBoardOnly(cleanedText);
   
   // Deklariere effectiveCategorySlug früh, damit es im Haustier-Block verwendet werden kann
   let effectiveCategorySlug: string | null = null;
@@ -408,6 +436,10 @@ export function determineEffectiveCategory(params: {
 
   const filteredHints = categoryHintsFromRules.filter((hint) => {
     const normalizedHint = normalize(hint);
+
+    if (isGenericBoardOnlyQuery && !strongOverrideCategory && normalizedHint === "snowboard") {
+      return false;
+    }
 
     if (normalizedHint === "mode") {
       // Prüfe, ob "modern" oder ähnliche Wörter im Text vorkommen

@@ -114,22 +114,23 @@
       "confidence": 0.8,
       "source": "static"
     },
-    {
-      "term": "snowbord",
-      "normalizedTerm": "snowboard",
-      "type": "category",
-      "mapToCategorySlug": "snowboard",
-      "confidence": 0.9,
-      "source": "manual"
-    },
-    {
-      "term": "snowbords",
-      "normalizedTerm": "snowboards",
-      "type": "category",
-      "mapToCategorySlug": "snowboard",
-      "confidence": 0.9,
-      "source": "manual"
-    }
+	{
+  "term": "snowbord",
+  "normalizedTerm": "snowbord",
+  "type": "category",
+  "mapToCategorySlug": "snowboard",
+  "confidence": 0.9,
+  "source": "manual"
+},
+{
+  "term": "snowbords",
+  "normalizedTerm": "snowbords",
+  "type": "category",
+  "mapToCategorySlug": "snowboard",
+  "confidence": 0.9,
+  "source": "manual"
+}
+
   ]
 }
 

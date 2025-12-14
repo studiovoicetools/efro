@@ -26,6 +26,25 @@ export type SalesDecisionOutput = {
   debugSalesFlags?: string[];
 };
 
+function isGenericBoardOnly(normalizedText: string): boolean {
+  const mentionsBoard = normalizedText.includes("board") || normalizedText.includes("boards");
+  if (!mentionsBoard) return false;
+
+  const hasSnowPrefix =
+    normalizedText.includes("snowboard") ||
+    normalizedText.includes("snowbord") ||
+    /\bsnow\s*board/.test(normalizedText);
+
+  if (hasSnowPrefix) return false;
+
+  const otherBoards = ["skateboard", "surfboard", "wakeboard", "kiteboard", "longboard"];
+  if (otherBoards.some((kw) => normalizedText.includes(kw))) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Erkennt Lieferzeit-Fragen robust.
  * 
@@ -372,8 +391,11 @@ export function computeSalesDecision(
   // CLUSTER E FIX: Prüfe auf Snowboard-Kontext, um AMBIGUOUS_BOARD zu vermeiden
   const hasSnowboardContext = 
     normalized.includes("snowboard") ||
+    normalized.includes("snowbord") ||
+    /\bsnow\s*board/.test(normalized) ||
     effectiveCategorySlug === "snowboard" ||
     contextCategory === "snowboard";
+  const hasStrongCategoryContext = !!effectiveCategorySlug || !!contextCategory;
 
   // SCHRITT 3 FIX: Bei bargain-Intent + Produkte + kein Budget-Mismatch → LOW_BUDGET_WITH_UPSELL
   if (!primaryAction && candidates.length > 0 && !priceRangeNoMatch) {
@@ -393,11 +415,7 @@ export function computeSalesDecision(
   // PROFI-01: "Ich will ein Board." → ASK_CLARIFICATION, AMBIGUOUS_BOARD
   // PROFI-08: "Ich will was richtig Cooles..." → ASK_CLARIFICATION, NO_PRODUCTS_FOUND
   // SCHRITT 4 FIX: PROFI-08v2: "Hast du etwas, womit ich im Urlaub Eindruck mache?" → ASK_CLARIFICATION, NO_PRODUCTS_FOUND
-  const mentionsBoardGeneric =
-    normalized.includes("board") &&
-    !normalized.includes("snowboard") &&
-    !normalized.includes("skateboard") &&
-    !normalized.includes("surfboard");
+  const mentionsBoardGeneric = isGenericBoardOnly(normalized);
 
   const isVagueQuery =
     (normalized.includes("cool") || normalized.includes("cooles") || normalized.includes("was")) &&
@@ -452,7 +470,16 @@ export function computeSalesDecision(
   // CLUSTER 2 FIX PROFI-08v1: Wenn "Board" vorkommt, aber keine Produkte gefunden wurden → NO_PRODUCTS_FOUND
   const hasBoardButNoProducts = mentionsBoardGeneric && candidates.length === 0;
   
-  if (!primaryAction && (isVeryVagueLifestyle || hasBoardButNoProducts)) {
+  if (!primaryAction && mentionsBoardGeneric && !hasSnowboardContext && !hasStrongCategoryContext) {
+    primaryAction = "ASK_CLARIFICATION";
+    if (!notes.includes("AMBIGUOUS_BOARD")) {
+      notes.push("AMBIGUOUS_BOARD");
+    }
+    if (!notes.includes("NO_PRODUCTS_FOUND")) {
+      notes.push("NO_PRODUCTS_FOUND");
+    }
+    debugSalesFlags.push("ambiguous_board_only");
+  } else if (!primaryAction && (isVeryVagueLifestyle || hasBoardButNoProducts)) {
     // SCHRITT 4 FIX: Vage Lifestyle-Anfrage → ASK_CLARIFICATION + NO_PRODUCTS_FOUND
     primaryAction = "ASK_CLARIFICATION";
     notes.push("NO_PRODUCTS_FOUND");

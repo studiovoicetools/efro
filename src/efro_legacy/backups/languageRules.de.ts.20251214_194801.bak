@@ -96,9 +96,9 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   snowboard: [
     "snowboard",
     "snowboards",
+    "board",
     "snowbord",
     "snowbords",
-    "board",
     "einsteiger board",
     "einsteigerboard"
   ],
@@ -360,10 +360,6 @@ export const PRODUCT_HINTS = [
   "spielzeug",
   "produkt",
   "produkte",
-  "snowboard",
-  "snowboards",
-  "snowbord",
-  "snowbords",
   "shop",
   "kaufen",
   "preis",
