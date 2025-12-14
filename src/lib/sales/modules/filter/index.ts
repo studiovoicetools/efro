@@ -2010,6 +2010,7 @@ function rankAndSliceCandidates(
 
   // CLUSTER A FIX: S6v2 - Teuerstes Snowboard (minPrice >= 2000)
   if (wantsMostExpensiveSnowboard) {
+    currentIntent = "premium";
     const snowboardCandidates = candidates.filter(
       (p) => normalize(p.category || "") === "snowboard"
     );
@@ -3647,21 +3648,39 @@ export async function filterProductsForSellerBrain(
   }
 
   // 5) Sortierung und Begrenzung
-  if (
-    currentIntent === "bargain" &&
-    normalize(effectiveCategorySlug || "") === "snowboard" &&
-    (userMaxPrice === null || typeof userMaxPrice === "undefined")
-  ) {
-    userMaxPrice = 700;
-    hasBudget = true;
+let inferredUserMaxPrice = userMaxPrice;
+let inferredHasBudget = hasBudget;
+
+if (
+  currentIntent === "bargain" &&
+  normalize(effectiveCategorySlug || "") === "snowboard" &&
+  (inferredUserMaxPrice === null || typeof inferredUserMaxPrice === "undefined")
+) {
+  inferredUserMaxPrice = 700;
+  inferredHasBudget = true;
+}
+
+if (normalize(effectiveCategorySlug || "") === "snowboard") {
+  const min = userMinPrice;
+  const max = inferredUserMaxPrice;
+  if (min !== null || max !== null) {
+    candidates = candidates.filter((p) => {
+      const price = typeof p.price === "number" ? p.price : Number(p.price ?? 0);
+      if (!Number.isFinite(price) || price <= 0) return false;
+      if (min !== null && price < min) return false;
+      if (max !== null && price > max) return false;
+      return true;
+    });
   }
+}
+
 
   let finalProducts = rankAndSliceCandidates(
     candidates,
     currentIntent,
-    hasBudget,
+    inferredHasBudget,
     userMinPrice,
-    userMaxPrice,
+    inferredUserMaxPrice,
     wantsMostExpensive,
     text,
     cleaned,
