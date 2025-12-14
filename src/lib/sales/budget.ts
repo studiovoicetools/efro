@@ -561,12 +561,15 @@ export function analyzeBudget(text: string): BudgetAnalysis {
 
   // Fall 1: User sagt explizit "über/mindestens/ab ..." und Budget-Parser hat nur eine Obergrenze gesetzt
   // → minPrice = maxPrice, maxPrice wird zurückgesetzt
-  if (explicitOver && !explicitUnder && userMinPrice == null && userMaxPrice != null) {
-    userMinPrice = userMaxPrice;
-    userMaxPrice = null;
-    userRange.notes.push(
-      `Budget (Korrektur): 'über/mindestens/ab' erkannt – maxPrice → minPrice korrigiert.`
-    );
+  if (explicitOver && !explicitUnder && userMinPrice == null) {
+    const base = userMaxPrice ?? (userRange.maxPrice ?? null);
+    if (base !== null) {
+      userMinPrice = base;
+      userMaxPrice = null;
+      userRange.notes.push(
+        `Budget (Korrektur): 'über/mindestens/ab' erkannt – maxPrice → minPrice korrigiert.`
+      );
+    }
   }
 
   // Fall 2: User sagt explizit "unter/bis/maximal ..." und Budget-Parser hat nur eine Untergrenze gesetzt

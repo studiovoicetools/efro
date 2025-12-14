@@ -4424,6 +4424,13 @@ function isAmbiguousBoardQuery(text: string): boolean {
     } else if (filterResult.length > 0 && filterResult[0].category) {
       effectiveCategorySlugForInfo = normalize(filterResult[0].category);
     }
+    // Wenn der Text klar "snowboard" erwähnt, nutze snowboard als Kategorie für Preisbereich-Info
+    const mentionsSnowboardForInfo =
+      normalizedForPriceCheck.includes("snowboard") ||
+      normalizedForPriceCheck.includes("snowbord");
+    if (mentionsSnowboardForInfo) {
+      effectiveCategorySlugForInfo = "snowboard";
+    }
     
     // EFRO Budget-Optimierung: Wenn keine Produkte im Budget, aber Produkte knapp darüber vorhanden
     // WICHTIG: priceRangeNoMatch muss gesetzt werden, wenn productsInPriceRange.length === 0,
@@ -6453,8 +6460,11 @@ function isAmbiguousBoardQuery(text: string): boolean {
   } as any);
   
   // SCHRITT 4 FIX: Bei ASK_CLARIFICATION + NO_PRODUCTS_FOUND keine Produkte zurückgeben
-  if (salesPolicyOutput.primaryAction === "ASK_CLARIFICATION" && 
-      salesPolicyOutput.notes?.includes("NO_PRODUCTS_FOUND")) {
+  if (
+    salesPolicyOutput.primaryAction === "ASK_CLARIFICATION" &&
+    salesPolicyOutput.notes?.includes("NO_PRODUCTS_FOUND") &&
+    !salesPolicyOutput.notes.includes("AMBIGUOUS_BOARD")
+  ) {
     recommended = [];
     console.log("[EFRO SB ASK_CLARIFICATION] Produkte entfernt (NO_PRODUCTS_FOUND)", {
       text: cleaned.substring(0, 100),
