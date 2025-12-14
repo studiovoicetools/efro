@@ -3942,6 +3942,12 @@ export async function runSellerBrain(
 
   const nextIntent = detectIntentFromText(cleaned, currentIntent);
 
+function isAmbiguousBoardQuery(text: string): boolean {
+  const t = text.toLowerCase();
+  return t.includes("board") && !t.includes("snow");
+}
+
+
   console.log("[EFRO SB Context] Incoming context", {
     activeCategorySlug: context?.activeCategorySlug ?? null,
     hasContext: !!context,

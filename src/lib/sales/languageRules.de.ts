@@ -93,6 +93,15 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "jacke",
     "jacken",
   ],
+  snowboard: [
+    "snowboard",
+    "snowboards",
+    "board",
+    "snowbord",
+    "snowbords",
+    "einsteiger board",
+    "einsteigerboard"
+  ],
   // CLUSTER D FIX PROFI-01v1: "board" entfernt - zu mehrdeutig (kann Snowboard, Skateboard, Surfboard sein)
   
   // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
