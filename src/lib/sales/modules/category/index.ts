@@ -10,6 +10,10 @@ function isGenericBoardOnly(text: string): boolean {
   const mentionsBoard = t.includes("board") || t.includes("boards");
   if (!mentionsBoard) return false;
 
+  const hasEntryLevelQualifier =
+    t.includes("einsteiger") || t.includes("anfanger") || t.includes("anfaenger");
+  if (hasEntryLevelQualifier) return false;
+
   const hasSnowPrefix =
     t.includes("snowboard") ||
     t.includes("snowbord") ||

@@ -3644,9 +3644,18 @@ export async function filterProductsForSellerBrain(
             }
           }
         }
-      }
+  }
 
   // 5) Sortierung und Begrenzung
+  if (
+    currentIntent === "bargain" &&
+    normalize(effectiveCategorySlug || "") === "snowboard" &&
+    (userMaxPrice === null || typeof userMaxPrice === "undefined")
+  ) {
+    userMaxPrice = 700;
+    hasBudget = true;
+  }
+
   let finalProducts = rankAndSliceCandidates(
     candidates,
     currentIntent,

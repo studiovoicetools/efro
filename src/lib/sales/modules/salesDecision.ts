@@ -30,6 +30,12 @@ function isGenericBoardOnly(normalizedText: string): boolean {
   const mentionsBoard = normalizedText.includes("board") || normalizedText.includes("boards");
   if (!mentionsBoard) return false;
 
+  const hasEntryLevelQualifier =
+    normalizedText.includes("einsteiger") ||
+    normalizedText.includes("anfanger") ||
+    normalizedText.includes("anfaenger");
+  if (hasEntryLevelQualifier) return false;
+
   const hasSnowPrefix =
     normalizedText.includes("snowboard") ||
     normalizedText.includes("snowbord") ||
@@ -384,18 +390,27 @@ export function computeSalesDecision(
   // PROFI-02: "Zeig mir das günstigste Snowboard." → SHOW_PRODUCTS, LOW_BUDGET_WITH_UPSELL
   // WICHTIG: Diese Regel wird NUR angewendet, wenn KEIN priceRangeNoMatch vorliegt
   const mentionsCheapest =
-    /\b(günstig(st)?|billig(st)?|das günstigste|preiswerteste)\b/.test(normalized);
+    /\b(günstig(st|ste|sten)?|billig(st|ste|sten)?|das günstigste|preiswerteste)\b/.test(normalized);
 
   const mentionsCheapBudget = /\b(unter|bis|maximal|max)\s+\d+/.test(normalized);
   
   // CLUSTER E FIX: Prüfe auf Snowboard-Kontext, um AMBIGUOUS_BOARD zu vermeiden
-  const hasSnowboardContext = 
+  const hasSnowboardKeyword =
     normalized.includes("snowboard") ||
     normalized.includes("snowbord") ||
-    /\bsnow\s*board/.test(normalized) ||
-    effectiveCategorySlug === "snowboard" ||
+    /\bsnow\s*board/.test(normalized);
+  const boardEntryQualifier =
+    normalized.includes("einsteiger") ||
+    normalized.includes("anfanger") ||
+    normalized.includes("anfaenger");
+  const hasSnowboardContext = 
+    hasSnowboardKeyword ||
+    boardEntryQualifier ||
     contextCategory === "snowboard";
-  const hasStrongCategoryContext = !!effectiveCategorySlug || !!contextCategory;
+  const boardCategoryFromGeneric =
+    effectiveCategorySlug === "snowboard" &&
+    !hasSnowboardKeyword &&
+    !boardEntryQualifier;
 
   // SCHRITT 3 FIX: Bei bargain-Intent + Produkte + kein Budget-Mismatch → LOW_BUDGET_WITH_UPSELL
   if (!primaryAction && candidates.length > 0 && !priceRangeNoMatch) {
@@ -470,7 +485,7 @@ export function computeSalesDecision(
   // CLUSTER 2 FIX PROFI-08v1: Wenn "Board" vorkommt, aber keine Produkte gefunden wurden → NO_PRODUCTS_FOUND
   const hasBoardButNoProducts = mentionsBoardGeneric && candidates.length === 0;
   
-  if (!primaryAction && mentionsBoardGeneric && !hasSnowboardContext && !hasStrongCategoryContext) {
+  if (!primaryAction && mentionsBoardGeneric && (!hasSnowboardContext || boardCategoryFromGeneric)) {
     primaryAction = "ASK_CLARIFICATION";
     if (!notes.includes("AMBIGUOUS_BOARD")) {
       notes.push("AMBIGUOUS_BOARD");
