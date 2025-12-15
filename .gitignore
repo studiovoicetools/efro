@@ -66,3 +66,15 @@ coverage/
 .vscode/
 .idea/
 
+
+# --- EFRO local scratch / codex helpers ---
+_fails_*.log
+_fails_*.txt
+_checkpoint_*.patch
+_diff_before_*.patch
+_codex_*.patch
+_out.txt
+_show.js
+_*.cjs
+_*.js
+
