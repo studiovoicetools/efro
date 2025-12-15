@@ -437,11 +437,16 @@ export function computeSalesDecision(
   const mentionsAlphaModel = /\b(alpha\s+\d+\s*gb|alpha\s+\d+\s*gb\s+schwarz|das\s+alpha\s+\d+\s*gb)\b/i.test(text);
   const isSmartphoneModelRequest = mentionsAlphaModel && (effectiveCategorySlug === "elektronik" || candidates.some((p) => normalize(p.category || "") === "elektronik"));
   
-  const isVeryVagueLifestyle = 
-    unknownTerms.length > 0 && 
-    hasNoBudget && 
-    hasWeakCategories && 
-    candidates.length > 0 &&
+  // PROFI-08 Rescue: Lifestyle-vage Fragen sollen auch dann zu ASK_CLARIFICATION führen,
+  // wenn durch Heuristiken bereits Kandidaten existieren.
+  const mentionsLifestyleVague =
+    /\b(urlaub|eindruck|beeindruck|cool|cooles|outfit|look|style|party|festival|strand|sommer)\b/.test(normalized);
+
+  const isVeryVagueLifestyle =
+    (
+      (unknownTerms.length > 0 && hasNoBudget && hasWeakCategories && candidates.length > 0) ||
+      (mentionsLifestyleVague && hasNoBudget && candidates.length > 0)
+    ) &&
     !isPremiumRequest &&      // C1v2/F6v2/F1v1: Premium-Intent ausschließen
     !isWaxRequest &&           // S17/S17v1: Wax-Anfragen ausschließen
     !isJeansRequest &&         // K10v1/K11v1: Jeans-Anfragen ausschließen
@@ -472,7 +477,15 @@ export function computeSalesDecision(
     primaryAction = "ASK_CLARIFICATION";
     notes.push("NO_PRODUCTS_FOUND");
     debugSalesFlags.push("vague_query");
-  } else if (!primaryAction && mentionsBoardGeneric && !hasSnowboardContext && candidates.length > 0) {
+  // PROFI-01 Rescue: "Board" bleibt mehrdeutig, auch wenn Snowboard-Kandidaten existieren,
+  // außer es ist klar bargain/cheapest/budget-getrieben.
+  } else if (!primaryAction &&
+             mentionsBoardGeneric &&
+             candidates.length > 0 &&
+             hasNoBudget &&
+             intent !== "bargain" &&
+             !mentionsCheapest &&
+             !mentionsCheapBudget) {
     // CLUSTER E FIX: AMBIGUOUS_BOARD nur wenn KEIN Snowboard-Kontext UND Produkte gefunden
     primaryAction = "ASK_CLARIFICATION";
     notes.push("AMBIGUOUS_BOARD");
