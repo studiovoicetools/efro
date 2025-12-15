@@ -78,3 +78,6 @@ _show.js
 _*.cjs
 _*.js
 
+# --- EFRO refactor scratch ---
+_fix_*.patch
+_fails_refactor_*.log
