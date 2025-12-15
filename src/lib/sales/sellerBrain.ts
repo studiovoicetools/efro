@@ -4337,8 +4337,12 @@ function isAmbiguousBoardQuery(text: string): boolean {
   // C1v2/F6v2 Fix: Premium-Intent mit wantsMostExpensive ausschließen (z. B. "Premium-Produkte mit dem höchsten Preis")
   const wantsMostExpensiveForBudget = detectMostExpensiveRequest(cleaned);
   const isPremiumWithMostExpensive = nextIntent === "premium" && wantsMostExpensiveForBudget;
+  const isCheapestLikeQuery =
+    /\b(günstigst(?:e|en|es)|guenstigst(?:e|en|es)|billigst(?:e|en|es)|am günstigsten|am guenstigsten|so billig wie möglich|so billig wie moeglich|so günstig wie möglich|so guenstig wie moeglich|cheapest|lowest price|most affordable)\b/i.test(
+      cleaned
+    );
   
-  if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection && !isPremiumWithMostExpensive) {
+  if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection && !isPremiumWithMostExpensive && !isCheapestLikeQuery) {
     console.log("[EFRO SB Budget Ambiguous] Vages Budget erkannt, keine Produktempfehlungen, KEIN AI-Trigger", {
       text: cleaned.substring(0, 100),
       isBudgetAmbiguous,
@@ -4383,7 +4387,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   // sondern regelbasierte R?ckfrage (z. B. "Ich habe ein kleines Budget.")
   // WICHTIG: Prüfe ZUERST, ob es ein Preis-Einwand ist (höhere Priorität als Budget-Ambiguität)
   // C1v2/F6v2 Fix: Premium-Intent mit wantsMostExpensive ausschließen (z. B. "Premium-Produkte mit dem höchsten Preis")
-  if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection && !isPremiumWithMostExpensive) {
+  if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection && !isPremiumWithMostExpensive && !isCheapestLikeQuery) {
     console.log("[EFRO SB Budget Missing Category] Vages Budget ohne Kategorie erkannt, keine Produktempfehlungen, KEIN AI-Trigger", {
       text: cleaned.substring(0, 100),
       hasBudgetWord,
@@ -5036,7 +5040,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
     // WICHTIG: Budget-Only-Queries d?rfen NIE als unknown_product_code_only behandelt werden
     // Verwende die bereits oben berechneten Variablen hasBudgetWord und isBudgetOnly
-    if (hasBudgetWordForCodeDetect || isBudgetOnly) {
+    if (hasBudgetWordForCodeDetect || isBudgetOnly || isCheapestLikeQuery) {
       // Budget-Only-Query erkannt ? unknownProductCodeOnly NICHT setzen
       unknownProductCodeOnly = false;
       console.log("[EFRO CodeDetect] Budget-Only-Query erkannt, CodeDetect blockiert", {
@@ -5045,6 +5049,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
         hasBudgetWord: hasBudgetWordForCodeDetect,
         isBudgetOnly,
         hasBudget,
+        isCheapestLikeQuery,
         productCodeExistsInCatalog,
         note: "Budget-Only-Queries werden nicht als unknown_product_code_only behandelt",
       });
