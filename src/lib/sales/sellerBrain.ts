@@ -2465,6 +2465,7 @@ function applyProductFilters(
 } {
   const debugFlags: string[] = [];
 
+  const allProducts: EfroProduct[] = candidates; // legacy alias (full pool)
   const normalizedQuery = text;
   // Filtere nach effectiveCategorySlug (entweder aus Text oder aus Kontext)
   // ?? EFRO Category Filter Fix:
