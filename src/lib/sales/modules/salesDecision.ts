@@ -463,7 +463,7 @@ export function computeSalesDecision(
   // PROFI-08 Rescue: Lifestyle-vage Fragen sollen auch dann zu ASK_CLARIFICATION führen,
   // wenn durch Heuristiken bereits Kandidaten existieren.
   const mentionsLifestyleVague = detectLifestyleVague(normalized);
-const isVeryVagueLifestyle =
+  const isVeryVagueLifestyle =
     (
       (unknownTerms.length > 0 && hasNoBudget && hasWeakCategories && candidates.length > 0) ||
       (mentionsLifestyleVague && hasNoBudget && candidates.length > 0)
