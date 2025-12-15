@@ -2464,7 +2464,7 @@ function applyProductFilters(
   nearestProductTitleAboveBudget: string | null;
 } {
   const debugFlags: string[] = [];
-
+`
   const normalizedQuery = text;
   // Filtere nach effectiveCategorySlug (entweder aus Text oder aus Kontext)
   // ?? EFRO Category Filter Fix:
