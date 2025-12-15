@@ -243,7 +243,7 @@ export function determineEffectiveCategory(params: {
   
   // EFRO Smartphone-Fix K5-K8: Prüfe zuerst auf Smartphone-Keywords (vor anderen Kategorien)
   // Dies verhindert, dass "modern" zu "mode" führt, wenn Smartphone-Keywords vorhanden sind
-  let strongOverrideCategory: string | null = null;
+  let strongOverrideCategoryLocal: string | null = null;
   
   // CLUSTER 1 FIX S4v2: "board" + Budget → "snowboard" (Budget ist ein starker Hinweis auf Snowboard)
   const mentionsBoard = normalizedText.includes("board") || normalizedText.includes("boards");
@@ -258,11 +258,11 @@ export function determineEffectiveCategory(params: {
         (p) => normalize(p.category || "") === "snowboard"
       ).length;
       if (snowboardCount > 0) {
-        strongOverrideCategory = "snowboard";
+        strongOverrideCategoryLocal = "snowboard";
         console.log("[EFRO Category] CLUSTER 1 FIX S4v2 - Board + Budget → Snowboard", {
           text: text.substring(0, 80),
           hasBudgetInText,
-          strongOverrideCategory,
+          strongOverrideCategory: strongOverrideCategoryLocal,
           productCount: snowboardCount,
         });
       }
@@ -278,19 +278,19 @@ export function determineEffectiveCategory(params: {
     /\bhöchste\s+preis\b/i.test(normalizedText) ||
     /\bteuerste\b/i.test(normalizedText);
   
-  if (mentionsPremiumModell && mentionsHoechstenPreis && !strongOverrideCategory) {
+  if (mentionsPremiumModell && mentionsHoechstenPreis && !strongOverrideCategoryLocal) {
     const hasSnowboardCategory = allCategories.some((cat) => normalize(cat) === "snowboard");
     if (hasSnowboardCategory) {
       const snowboardCount = allProducts.filter(
         (p) => normalize(p.category || "") === "snowboard"
       ).length;
       if (snowboardCount > 0) {
-        strongOverrideCategory = "snowboard";
+        strongOverrideCategoryLocal = "snowboard";
         console.log("[EFRO Category] CLUSTER 3 FIX S6v2 - Premium-Modell + höchsten Preis → Snowboard", {
           text: text.substring(0, 80),
           mentionsPremiumModell,
           mentionsHoechstenPreis,
-          strongOverrideCategory,
+          strongOverrideCategory: strongOverrideCategoryLocal,
           productCount: snowboardCount,
         });
       }
@@ -321,12 +321,12 @@ export function determineEffectiveCategory(params: {
       
       if (elektronikCount > 0) {
         // Smartphone-Keywords gefunden → setze elektronik als strongOverrideCategory
-        strongOverrideCategory = "elektronik";
+        strongOverrideCategoryLocal = "elektronik";
         console.log("[EFRO Category] Smartphone-Keywords detected early (K5-K8)", {
           text: text.substring(0, 80),
           mentionsSmartphoneEarly,
           hasSmartphoneModelName,
-          strongOverrideCategory,
+          strongOverrideCategory: strongOverrideCategoryLocal,
           productCount: elektronikCount,
         });
       }
@@ -335,6 +335,25 @@ export function determineEffectiveCategory(params: {
 
   const categoryHintsInText: string[] = [];
   const matchedCategories: string[] = [];
+
+  const hasSnowbord = /\bsnowbord(s)?\b/.test(normalizedText);
+  const hasBoard = /\bboard(s)?\b/.test(normalizedText);
+  const hasBargainSignal = /\b(einsteiger|billig|preiswert|günstig|guenstig)\b/.test(normalizedText);
+  const hasSnowboardCategory = allProducts.some(
+    (p) => normalize(p.category || "") === "snowboard"
+  );
+
+  if (hasSnowboardCategory && (hasSnowbord || (hasBoard && hasBargainSignal))) {
+    strongOverrideCategoryLocal = "snowboard";
+    if (!matchedCategories.some((cat) => normalize(cat) === "snowboard")) {
+      matchedCategories.unshift("snowboard");
+    }
+    console.log("[EFRO Category] S5 Rescue - board/snowbord -> snowboard", {
+      hasSnowbord,
+      hasBoard,
+      hasBargainSignal,
+    });
+  }
 
   // Kategorie-Erkennung: Direkte Pattern-Matches
   const catRegex = /kategorie\s+([a-zäöüß]+)/;
@@ -386,15 +405,15 @@ export function determineEffectiveCategory(params: {
   );
   
   // SCHRITT 5 FIX: Wenn Parfüm erkannt, setze strongOverrideCategory
-  if (userAsksForPerfume && hasPerfumeCategoryInCatalog && !strongOverrideCategory) {
+  if (userAsksForPerfume && hasPerfumeCategoryInCatalog && !strongOverrideCategoryLocal) {
     const perfumeCount = allProducts.filter(
       (p) => normalize(p.category || "") === "perfume"
     ).length;
     if (perfumeCount > 0) {
-      strongOverrideCategory = "perfume";
+      strongOverrideCategoryLocal = "perfume";
       console.log("[EFRO Category] Perfume-Keywords detected (F2/F3/D1/D2/D3)", {
         text: text.substring(0, 80),
-        strongOverrideCategory,
+        strongOverrideCategory: strongOverrideCategoryLocal,
         productCount: perfumeCount,
       });
     }
@@ -514,10 +533,10 @@ export function determineEffectiveCategory(params: {
   // Strong Keyword Override: Prüfe auf starke Kategorie-Hinweise (nach matchedCategories-Matching, aber vor finalem Fallback)
   // EFRO Smartphone-Fix: strongOverrideCategory wurde bereits oben gesetzt, wenn Smartphone-Keywords gefunden wurden
   // Falls nicht, prüfe jetzt auf andere Strong Overrides
-  if (!strongOverrideCategory) {
+  if (!strongOverrideCategoryLocal) {
     for (const [category, keywords] of Object.entries(strongCategoryHints)) {
       if (keywords.some((kw) => normalizedText.includes(kw))) {
-        strongOverrideCategory = category;
+        strongOverrideCategoryLocal = category;
         break;
       }
     }
@@ -556,7 +575,7 @@ export function determineEffectiveCategory(params: {
   // Dies stellt sicher, dass Kontext-Kategorien (z.B. "haustier", "perfume", "snowboard") beibehalten werden,
   // auch wenn der Text keine Kategorie-Keywords enthält (z.B. "Zeig mir Premium")
   // WICHTIG: Diese Logik muss VOR selectEffectiveCategory greifen, damit matchedCategories korrekt gesetzt wird
-  if (contextCategory && matchedCategories.length === 0 && !strongOverrideCategory) {
+  if (contextCategory && matchedCategories.length === 0 && !strongOverrideCategoryLocal) {
     const normalizedContextCategory = normalize(contextCategory);
     const contextCategoryCount = allProducts.filter(
       (p) => normalize(p.category || "") === normalizedContextCategory
@@ -583,7 +602,7 @@ export function determineEffectiveCategory(params: {
     matchedCategories,
     allProducts,
     text,
-    strongOverrideCategory,
+    strongOverrideCategory: strongOverrideCategoryLocal,
     contextCategory,
   });
   
@@ -730,13 +749,13 @@ export function determineEffectiveCategory(params: {
   // Strong Category Override hat höchste Priorität (überschreibt Kontext)
   // ABER: Nur wenn es tatsächlich Produkte in dieser Kategorie gibt (wird in selectEffectiveCategory geprüft)
   // EFRO Smartphone-Fix: Nur wenn effectiveCategorySlug noch nicht gesetzt wurde
-  if (!effectiveCategorySlug && categorySelection.selectedCategory && strongOverrideCategory) {
+  if (!effectiveCategorySlug && categorySelection.selectedCategory && strongOverrideCategoryLocal) {
     effectiveCategorySlug = categorySelection.selectedCategory;
     console.log("[EFRO Category] Strong override (with products)", {
       text: normalizedText,
       chosenCategory: effectiveCategorySlug,
       contextCategory,
-      productCount: categorySelection.categoryProductCounts[strongOverrideCategory] ?? 0,
+      productCount: categorySelection.categoryProductCounts[strongOverrideCategoryLocal] ?? 0,
     });
   } else if (!effectiveCategorySlug && categorySelection.selectedCategory) {
     // Kategorie aus selectEffectiveCategory verwenden (hat bereits Produktanzahl geprüft)
@@ -795,7 +814,7 @@ export function determineEffectiveCategory(params: {
   // EFRO Haustier-Fix: Stelle sicher, dass "haustier" als effectiveCategorySlug gesetzt wird,
   // wenn es in matchedCategories vorhanden ist (auch wenn es nicht die erste ist)
   // WICHTIG: Nur wenn kein Strong Override gesetzt wurde UND es Produkte in dieser Kategorie gibt
-  if (!strongOverrideCategory && !effectiveCategorySlug) {
+  if (!strongOverrideCategoryLocal && !effectiveCategorySlug) {
     const hasHaustierInMatched = matchedCategories.some(
       (cat) => normalize(cat) === "haustier"
     );
@@ -857,7 +876,7 @@ export function determineEffectiveCategory(params: {
   // WICHTIG: Diese Overrides haben Vorrang vor Kontext-Kategorien, wenn eindeutige Produktwörter erkannt werden
   // ABER: Nur wenn kein Strong Override gesetzt wurde (Strong Overrides haben höchste Priorität)
   // UND: Nur wenn es tatsächlich Produkte in der Kategorie gibt
-  if (!strongOverrideCategory && !effectiveCategorySlug) {
+  if (!strongOverrideCategoryLocal && !effectiveCategorySlug) {
     const textLowerForOverrides = text.toLowerCase();
 
     // Wasserkocher → Haushalt (starker Override, überschreibt Kontext)
