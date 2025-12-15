@@ -706,6 +706,20 @@ function handleWaxExplanation(
 function isProductRelated(text: string): boolean {
   const t = normalize(text || "");
 
+  // EFRO S5v3: "snowbord" Tippfehler und günstiges "board" als produktbezogen markieren
+  const hasSnowbord = /\bsnowbord(s)?\b/.test(t);
+  const hasBoardBargain =
+    /\bboard(s)?\b/.test(t) &&
+    /\b(einsteiger|billig|preiswert|günstig|guenstig)\b/.test(t);
+  if (hasSnowbord || hasBoardBargain) {
+    console.log("[EFRO ProductRelated]", {
+      text,
+      isProductRelated: true,
+      reason: hasSnowbord ? "snowbord_typo" : "board_bargain_signal",
+    });
+    return true;
+  }
+
   // Kern-Produkt-Keywords: Wenn eines davon vorkommt, ist es immer produktbezogen
   // Importiert aus languageRules.de.ts
   if (CORE_PRODUCT_KEYWORDS.some((w) => t.includes(w))) {
