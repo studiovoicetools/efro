@@ -48,18 +48,21 @@ export default function DemoPage() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <Button
-                asChild
-                className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold py-6 shadow-lg hover:scale-[1.01] transition-transform text-lg"
-              >
-                <Link href="/avatar-seller?shop=demo">
-                  EFRO jetzt testen <ArrowRight size={18} className="ml-2" />
-                </Link>
-              </Button>
+             <Link
+  href="/avatar-seller?shop=demo"
+  className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold py-6 shadow-lg hover:scale-[1.01] transition-transform text-lg inline-flex items-center justify-center"
+>
+  Starten
+</Link>
 
-              <Button asChild variant="outline" className="w-full rounded-xl py-6 text-lg">
-                <Link href="/">Zur Landing</Link>
-              </Button>
+
+              <Link
+  href="/"
+  className="w-full rounded-xl py-6 text-lg inline-flex items-center justify-center border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+>
+  Zur Landing
+</Link>
+
             </div>
 
             <p className="mt-6 text-xs text-gray-500 text-center">

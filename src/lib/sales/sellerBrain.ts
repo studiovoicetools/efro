@@ -2465,6 +2465,7 @@ function applyProductFilters(
 } {
   const debugFlags: string[] = [];
 
+  const allProducts = candidates; // legacy alias (full pool)
   // Filtere nach effectiveCategorySlug (entweder aus Text oder aus Kontext)
   // ?? EFRO Category Filter Fix:
   // - Nur dann hart nach Kategorie filtern, wenn es mindestens ein Produkt
@@ -2499,8 +2500,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
     }
     return dp[al][bl];
   };
-
-  const q = normalize(normalizedQuery || "");
+  const q = normalize(text || "");
   const tokens = q
     .split(/[^a-z0-9äöüß\-]+/i)
     .map((t) => t.trim())
