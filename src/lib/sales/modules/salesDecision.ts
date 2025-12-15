@@ -182,6 +182,29 @@ export function detectPriceObjection(normalizedText: string): boolean {
  * - Keine Query-spezifischen Hacks
  * - Generische Muster (Ambiguität, Preis-Einwand, Budget-Konflikt, etc.)
  */
+
+// --- EFRO LEAN HELPERS (auto) ---
+function detectLifestyleVague(normalized: string): boolean {
+  return /\b(urlaub|eindruck|beeindruck|cool|cooles|outfit|look|style|party|festival|strand|sommer)\b/.test(normalized);
+}
+
+function shouldClarifyAmbiguousBoard(input: {
+  mentionsBoardGeneric: boolean;
+  candidatesCount: number;
+  hasNoBudget: boolean;
+  intent: ShoppingIntent | null;
+  mentionsCheapest: boolean;
+  mentionsCheapBudget: boolean;
+}): boolean {
+  return (
+    input.mentionsBoardGeneric &&
+    input.candidatesCount > 0 &&
+    input.hasNoBudget &&
+    input.intent !== "bargain" &&
+    !input.mentionsCheapest &&
+    !input.mentionsCheapBudget
+  );
+}
 export function computeSalesDecision(
   input: SalesDecisionInput
 ): SalesDecisionOutput {
@@ -439,10 +462,8 @@ export function computeSalesDecision(
   
   // PROFI-08 Rescue: Lifestyle-vage Fragen sollen auch dann zu ASK_CLARIFICATION führen,
   // wenn durch Heuristiken bereits Kandidaten existieren.
-  const mentionsLifestyleVague =
-    /\b(urlaub|eindruck|beeindruck|cool|cooles|outfit|look|style|party|festival|strand|sommer)\b/.test(normalized);
-
-  const isVeryVagueLifestyle =
+  const mentionsLifestyleVague = detectLifestyleVague(normalized);
+const isVeryVagueLifestyle =
     (
       (unknownTerms.length > 0 && hasNoBudget && hasWeakCategories && candidates.length > 0) ||
       (mentionsLifestyleVague && hasNoBudget && candidates.length > 0)
@@ -472,20 +493,14 @@ export function computeSalesDecision(
       hasBoardButNoProducts,
       note: "ASK_CLARIFICATION + NO_PRODUCTS_FOUND gesetzt",
     });
-  } else if (!primaryAction && isVagueQuery) {
-    // Vage Query, auch wenn Produkte gefunden wurden
-    primaryAction = "ASK_CLARIFICATION";
-    notes.push("NO_PRODUCTS_FOUND");
-    debugSalesFlags.push("vague_query");
-  // PROFI-01 Rescue: "Board" bleibt mehrdeutig, auch wenn Snowboard-Kandidaten existieren,
-  // außer es ist klar bargain/cheapest/budget-getrieben.
-  } else if (!primaryAction &&
-             mentionsBoardGeneric &&
-             candidates.length > 0 &&
-             hasNoBudget &&
-             intent !== "bargain" &&
-             !mentionsCheapest &&
-             !mentionsCheapBudget) {
+  } else if (!primaryAction && shouldClarifyAmbiguousBoard({
+    mentionsBoardGeneric,
+    candidatesCount: candidates.length,
+    hasNoBudget,
+    intent,
+    mentionsCheapest,
+    mentionsCheapBudget,
+  })) {
     // CLUSTER E FIX: AMBIGUOUS_BOARD nur wenn KEIN Snowboard-Kontext UND Produkte gefunden
     primaryAction = "ASK_CLARIFICATION";
     notes.push("AMBIGUOUS_BOARD");
