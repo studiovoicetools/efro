@@ -4,6 +4,150 @@
 import { detectMostExpensiveRequest } from "../../intent";
 import { extractUserPriceRange } from "../../budget";
 import { detectExplanationModeBoolean } from "../../intent/explanationMode";
+import { QUERY_STOPWORDS, ATTRIBUTE_PHRASES, ATTRIBUTE_KEYWORDS } from "../../languageRules.de";
+
+
+type ProductAttributeMap = Record<string, string[]>;
+
+type ParsedQuery = {
+  coreTerms: string[];
+  attributeTerms: string[];
+  attributeFilters: ProductAttributeMap;
+};
+
+function normalizeText(input: string): string {
+  return (input ?? "")
+    .toLowerCase()
+    // Umlaute/ß bewusst behalten
+    .replace(/[^a-z0-9äöüß\s]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseQueryForAttributes(text: string): ParsedQuery {
+  const normalized = normalizeText(text);
+  const stopwords = QUERY_STOPWORDS;
+
+  const attributePhrases = ATTRIBUTE_PHRASES;
+  const foundPhrases: string[] = [];
+  let remainingText = normalized;
+
+  for (const phrase of attributePhrases) {
+    if (remainingText.includes(phrase)) {
+      foundPhrases.push(phrase);
+      remainingText = remainingText.replace(phrase, " ");
+    }
+  }
+
+  const remainingTokens = remainingText
+    .split(" ")
+    .filter((t) => t.length >= 3 && !stopwords.includes(t));
+
+  const attributeKeywords = ATTRIBUTE_KEYWORDS;
+
+  const attributeTerms: string[] = [...foundPhrases];
+  const coreTerms: string[] = [];
+
+  for (const token of remainingTokens) {
+    if (
+      attributeKeywords.includes(token) ||
+      foundPhrases.some((p) => p.includes(token))
+    ) {
+      if (!attributeTerms.includes(token)) attributeTerms.push(token);
+    } else {
+      coreTerms.push(token);
+    }
+  }
+
+  const attributeFilters: ProductAttributeMap = {};
+
+  function addFilter(key: string, value: string): void {
+    if (!attributeFilters[key]) attributeFilters[key] = [];
+    if (!attributeFilters[key].includes(value)) attributeFilters[key].push(value);
+  }
+
+  // (Optional) hier kannst du später die ganzen addFilter(...) Regeln ergänzen,
+  // wenn du sie im Reply-Step wirklich brauchst. Für den aktuellen Crash ist das NICHT nötig.
+
+  return { coreTerms, attributeTerms, attributeFilters };
+}
+
+function getDescriptionSnippet(input: any, maxLen = 140): string {
+  // Akzeptiert entweder:
+  // - string (Beschreibung)
+  // - Objekt mit .description (Produkt)
+  let raw = "";
+
+  if (typeof input === "string") raw = input;
+  else if (input && typeof input.description === "string") raw = input.description;
+  else if (input && typeof input.descriptionHtml === "string") raw = input.descriptionHtml;
+
+  if (!raw) return "";
+
+  // HTML tags entfernen
+  let text = raw.replace(/<[^>]*>/g, " ");
+
+  // Entities minimal entschärfen
+  text = text
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+
+  // Whitespace normalisieren
+  text = text.replace(/\s+/g, " ").trim();
+
+  if (!text) return "";
+
+  // Auf maxLen kürzen
+  if (text.length <= maxLen) return text;
+
+  const cut = text.slice(0, maxLen);
+
+  // Nicht mitten im Wort abschneiden (wenn möglich)
+  const lastSpace = cut.lastIndexOf(" ");
+  const safe = lastSpace >= 40 ? cut.slice(0, lastSpace) : cut;
+
+  return safe.trim() + "…";
+}
+
+function detectProfisellerScenario(input: any): boolean {
+  // Unterstützt verschiedene Call-Sites:
+  // - detectProfisellerScenario(text: string)
+  // - detectProfisellerScenario(state/context/scenarioObj)
+  let s = "";
+
+  if (typeof input === "string") {
+    s = input;
+  } else if (input && typeof input.scenarioName === "string") {
+    s = input.scenarioName;
+  } else if (input && typeof input.scenarioId === "string") {
+    s = input.scenarioId;
+  } else if (input && typeof input.testName === "string") {
+    s = input.testName;
+  } else if (input && typeof input.label === "string") {
+    s = input.label;
+  } else if (input && typeof input.text === "string") {
+    // falls jemand aus Versehen state/text übergibt
+    s = input.text;
+  }
+
+  const t = (s || "").toLowerCase();
+
+  // “Profi”-Modus Trigger: entweder explizit in Szenario/Label oder im Text
+  return /\b(profi|profiseller|professional|enterprise|b2b|agentur|beratung|sales)\b/.test(t);
+}
+
+function normalize(input: string | null | undefined): string {
+  return String(input ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
 
 
 export function buildRuleBasedReplyText(
