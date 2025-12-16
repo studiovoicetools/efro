@@ -29,6 +29,7 @@
     "csv-parse": "^5.5.6",
     "dotenv": "^16.4.5",
     "framer-motion": "^11.3.30",
+    "lucide-react": "^0.561.0",
     "next": "14.2.3",
     "openai": "^4.58.1",
     "postcss": "8.4.41",

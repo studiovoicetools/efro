@@ -5,6 +5,8 @@ import { detectMostExpensiveRequest } from "../../intent";
 import { extractUserPriceRange } from "../../budget";
 import { detectExplanationModeBoolean } from "../../intent/explanationMode";
 import { QUERY_STOPWORDS, ATTRIBUTE_PHRASES, ATTRIBUTE_KEYWORDS } from "../../languageRules.de";
+import type { ShoppingIntent } from "@/lib/products/mockCatalog";
+import type { EfroProduct } from "@/lib/products/mockCatalog";
 
 
 type ProductAttributeMap = Record<string, string[]>;
@@ -223,15 +225,16 @@ export function buildRuleBasedReplyText(
   const priceLabel = formatPrice(first);
 
   // Szenario-Erkennung f?r Profiseller-Engine
-  const scenario = detectProfisellerScenario(
-    text,
-    intent,
-    count,
-    hasBudget,
-    minPrice ?? null,
-    maxPrice ?? null,
-    attributeTerms
-  );
+  const scenario = detectProfisellerScenario({
+  text,
+  intent,
+  count,
+  hasBudget,
+  minPrice: minPrice ?? null,
+  maxPrice: maxPrice ?? null,
+  plan,
+});
+
 
   console.log("[EFRO Profiseller] scenario", {
     text: text.substring(0, 100),
