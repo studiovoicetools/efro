@@ -5739,13 +5739,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
       signalText
     );
 
-const wantsCheapestLegacy =
-  /\b(günstigst(?:e|en|es)|guenstigst(?:e|en|es)|billigst(?:e|en|es)|am günstigsten|am guenstigsten|so billig wie möglich|so billig wie moeglich|so günstig wie möglich|so guenstig wie moeglich|cheapest|lowest price|most affordable)\b/i.test(
-    cleaned
-  );
+ 
+
+  
+  const wantsCheapestLegacy = cheapestSignal;
+  const wantsMostExpensiveLegacy = mostExpensiveSignal;
 
 
-const wantsMostExpensiveLegacy = detectMostExpensiveRequest(cleaned);
+
 
 
   const wantsCheapestInCategory =

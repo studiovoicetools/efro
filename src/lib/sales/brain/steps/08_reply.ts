@@ -3,11 +3,10 @@
 
 import { detectMostExpensiveRequest } from "../../intent";
 import { extractUserPriceRange } from "../../budget";
-import { detectExplanationModeBoolean } from "../../intent/explanationMode";
+
 import { QUERY_STOPWORDS, ATTRIBUTE_PHRASES, ATTRIBUTE_KEYWORDS } from "../../languageRules.de";
 import type { ShoppingIntent } from "@/lib/products/mockCatalog";
 import type { EfroProduct } from "@/lib/products/mockCatalog";
-
 
 type ProductAttributeMap = Record<string, string[]>;
 
@@ -25,6 +24,31 @@ function normalizeText(input: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+
+
+type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
+
+function detectExplanationMode(text: string): ExplanationMode | null {
+  const t = normalizeText(text);
+
+  // Inhaltsstoffe
+  if (/\b(inhaltsstoff|inhaltsstoffe|ingredients?)\b/i.test(t)) return "ingredients";
+
+  // Material
+  if (/\b(material|materials|stoff|gewebe|leder|wolle|baumwolle|polyester)\b/i.test(t)) return "materials";
+
+  // Anwendung
+  if (/\b(anwendung|verwenden|benutzen|gebrauch|use|usage|how to)\b/i.test(t)) return "usage";
+
+  // Pflege/Waschen
+  if (/\b(pflege|care|wasch|washing|waschen|wäsche|trockner|bügeln)\b/i.test(t)) return "washing";
+
+  return null;
+}
+
+
+
 
 function parseQueryForAttributes(text: string): ParsedQuery {
   const normalized = normalizeText(text);
@@ -197,7 +221,7 @@ export function buildRuleBasedReplyText(
   const { minPrice, maxPrice } = extractUserPriceRange(text);
   const hasBudget = minPrice !== undefined || maxPrice !== undefined;
 
-  const explanationMode = detectExplanationModeBoolean(text);
+  
 
 
   // Attribute-Terms aus Query extrahieren
@@ -246,87 +270,93 @@ export function buildRuleBasedReplyText(
     maxPrice,
   });
 
-  // 0) Spezialf?lle: Erkl?r-Modus (hat Priorit?t vor Profiseller-Szenarien)
-  if (explanationMode) {
-    if (explanationMode === "ingredients") {
+    // 0) Spezialfälle: Erklär-/Info-Fragen (Priorität vor Profiseller-Szenarien)
+  const t = normalizeText(text);
+
+  const wantsIngredients =
+    /\b(inhaltsstoff|inhaltsstoffe|ingredients?)\b/i.test(t);
+
+  const wantsMaterials =
+    /\b(material|materials|stoff|gewebe|leder|wolle|baumwolle|polyester)\b/i.test(t);
+
+  const wantsUsage =
+    /\b(anwendung|verwenden|benutzen|gebrauch|use|usage|how to)\b/i.test(t);
+
+  const wantsCare =
+    /\b(pflege|care|wasch|washing|waschen|wäsche|trockner|bügeln)\b/i.test(t);
+
+  const wantsExplain = wantsIngredients || wantsMaterials || wantsUsage || wantsCare;
+
+  if (wantsExplain) {
+    const desc = (first?.description || "").trim();
+    const descSnippet = desc ? getDescriptionSnippet(desc) : "";
+    const hasDesc = !!descSnippet;
+
+    const categoryLabel =
+      (first?.category && first.category.trim().length > 0) ? first.category.trim() : "diesem Bereich";
+
+    const priceLabel = typeof formatPrice === "function" ? formatPrice(first) : "";
+
+    if (wantsIngredients) {
       if (hasDesc) {
         return (
           `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
-          "Die exakte Liste der Inhaltsstoffe wird direkt im Shop auf der Produktseite gepflegt – dort findest du alle Details, inklusive gesetzlich vorgeschriebener Angaben.\n\n" +
-          "In der aktuellen Produktbeschreibung steht unter anderem:\n" +
-          descSnippet +
-          "\n\n" +
-          "Wenn du Allergien oder sehr empfindliche Haut hast, schau bitte auf der Produktseite im Bereich 'Inhaltsstoffe' nach oder kontaktiere direkt den Händler, bevor du das Produkt verwendest."
-        );
-      } else {
-        return (
-          `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
-          "Die exakte Liste der Inhaltsstoffe wird direkt im Shop auf der Produktseite gepflegt ? dort findest du alle Details, inklusive gesetzlich vorgeschriebener Angaben.\n\n" +
-          `Dieses Produkt gehört zur Kategorie "${categoryLabel}" und liegt preislich bei ${priceLabel}. ` +
-          "Wenn du Allergien oder sehr empfindliche Haut hast, schau bitte auf der Produktseite im Bereich 'Inhaltsstoffe' nach oder kontaktiere direkt den Händler, bevor du das Produkt verwendest."
+          `Aus der Beschreibung:\n${descSnippet}\n\n` +
+          "Die vollständige, rechtlich verbindliche Zutatenliste findest du auf der Produktseite im Shop (Bereich „Inhaltsstoffe“)."
         );
       }
+      return (
+        `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
+        "Im Katalog habe ich dazu keine Beschreibung. Die vollständigen Inhaltsstoffe findest du normalerweise direkt auf der Produktseite im Shop."
+      );
     }
 
-        if (explanationMode === "materials") {
+    if (wantsMaterials) {
       if (hasDesc) {
         return (
           `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
-          "Die genaue Materialzusammensetzung (z. B. Baumwolle, Polyester, Mischgewebe) ist im Shop auf der Produktseite hinterlegt – dort findest du in der Regel einen Abschnitt wie 'Material' oder 'Produktdetails'.\n\n" +
-          "In der aktuellen Produktbeschreibung findest du unter anderem:\n" +
-          descSnippet +
-          "\n\n" +
-          "Für exakte Materialangaben und Prozentanteile nutze bitte die Produktseite."
-        );
-      } else {
-        return (
-          `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
-          "Die genaue Materialzusammensetzung (z. B. Baumwolle, Polyester, Mischgewebe) ist im Shop auf der Produktseite hinterlegt – dort findest du in der Regel einen Abschnitt wie 'Material' oder 'Produktdetails'.\n\n" +
-          `EFRO kann dir sagen: Es handelt sich um einen Artikel aus der Kategorie "${categoryLabel}" im Preisbereich ${priceLabel}. ` +
-          "Für exakte Materialangaben und Prozentanteile nutze bitte die Produktseite."
+          `Aus der Beschreibung:\n${descSnippet}\n\n` +
+          "Exakte Material-/Prozentangaben stehen meist auf der Produktseite (Produktdetails/Material)."
         );
       }
+      return (
+        `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
+        `Kategorie: "${categoryLabel}" ${priceLabel ? `– Preis: ${priceLabel}` : ""}.\n` +
+        "Die exakte Materialzusammensetzung steht normalerweise auf der Produktseite im Shop."
+      );
     }
 
-
-    if (explanationMode === "usage") {
+    if (wantsUsage) {
       if (hasDesc) {
         return (
           `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
-          `Dieses Produkt gehört zur Kategorie "${categoryLabel}". Die konkrete Anwendung wird normalerweise auf der Produktverpackung und auf der Produktseite im Shop beschrieben.\n\n` +
-          "In der Produktbeschreibung steht zum Gebrauch unter anderem:\n" +
-          descSnippet +
-          "\n\n" +
-          "Weitere Details und Sicherheitshinweise findest du auf der Produktseite im Shop."
-        );
-      } else {
-        return (
-          `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
-          `Dieses Produkt gehört zur Kategorie "${categoryLabel}". Die konkrete Anwendung wird normalerweise auf der Produktverpackung und auf der Produktseite im Shop beschrieben.\n\n` +
-          "Schau dir am besten die Hinweise zur Anwendung und Sicherheit auf der Produktseite an – dort findest du meist eine Schritt-für-Schritt-Erklärung. Wenn du mir sagst, wofür du es genau einsetzen willst, kann ich dir zusätzlich einen Tipp geben, worauf du besonders achten solltest."
+          `Aus der Beschreibung:\n${descSnippet}\n\n` +
+          "Weitere Details und Sicherheitshinweise findest du auf der Produktseite im Shop bzw. auf der Verpackung."
         );
       }
+      return (
+        `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
+        `Kategorie: "${categoryLabel}" ${priceLabel ? `– Preis: ${priceLabel}` : ""}.\n` +
+        "Details zur Anwendung findest du normalerweise auf der Produktseite im Shop. Wenn du mir sagst wofür genau, gebe ich dir eine kurze Orientierung."
+      );
     }
 
-    if (explanationMode === "care" || explanationMode === "washing") {
-      if (hasDesc) {
-        return (
-          `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
-          `Als Artikel aus der Kategorie "${categoryLabel}" gelten in der Regel die Pflegehinweise, die auf dem Etikett bzw. auf der Produktseite stehen. Dort findest du zum Beispiel Symbole zu Waschtemperatur, Trockner-Eignung oder Handwäsche.\n\n` +
-          "In der Produktbeschreibung sind Pflegehinweise erwähnt, z. B.:\n" +
-          descSnippet +
-          "\n\n" +
-          "Bitte richte dich bei der Pflege immer nach den offiziellen Angaben auf dem Produktlabel bzw. in der Produktbeschreibung im Shop."
-        );
-      } else {
-        return (
-          `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
-          `Als Artikel aus der Kategorie "${categoryLabel}" gelten in der Regel die Pflegehinweise, die auf dem Etikett bzw. auf der Produktseite stehen. Dort findest du zum Beispiel Symbole zu Waschtemperatur, Trockner-Eignung oder Handwäsche.\n\n` +
-          "Bitte richte dich bei der Pflege immer nach den offiziellen Angaben auf dem Produktlabel bzw. in der Produktbeschreibung im Shop."
-        );
-      }
+    // care / washing
+    if (hasDesc) {
+      return (
+        `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
+        `Aus der Beschreibung:\n${descSnippet}\n\n` +
+        "Bitte richte dich immer nach den offiziellen Angaben (Etikett/Produktseite)."
+      );
     }
+    return (
+      `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
+      "Bitte richte dich nach den offiziellen Angaben auf dem Etikett bzw. auf der Produktseite im Shop."
+    );
   }
+
+
+
 
   /**
    * Profiseller-Szenarien S1-S6
