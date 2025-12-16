@@ -86,3 +86,9 @@ _out.txt
 _show.js
 _*.cjs
 _*.js
+
+
+sellerbrain-scenarios-*.log
+src/lib/sales/brain/steps/08_reply.ts.bak-*
+*.bak-*
+
