@@ -13,6 +13,9 @@
  * Ausführung: pnpm sellerbrain:scenarios
  */
 
+import { loadDebugProducts } from "./lib/loadDebugProducts";
+
+
 import {
   runSellerBrain,
   type SellerBrainResult,
@@ -34,53 +37,29 @@ async function loadTestProducts(): Promise<EfroProduct[]> {
     process.env.EFRO_DEBUG_PRODUCTS_URL ??
     "http://localhost:3000/api/efro/debug-products?shop=local-dev";
 
-  console.log("[EFRO Scenarios] Fetching products from", DEBUG_PRODUCTS_URL);
+  console.log("[EFRO Scenarios] Loading products (api with fixture fallback)", {
+    url: DEBUG_PRODUCTS_URL,
+  });
 
-  let res: Response;
-  try {
-    res = await fetch(DEBUG_PRODUCTS_URL);
-  } catch (err) {
-    console.error(
-      "[EFRO Scenarios] ERROR: Could not fetch from EFRO debug API."
-    );
-    console.error(err);
+  const { products, source } = await loadDebugProducts<EfroProduct[]>({
+    url: DEBUG_PRODUCTS_URL,
+    fixturePath: "scripts/fixtures/products.local.json",
+    timeoutMs: 4000,
+  });
+
+  if (!products || products.length === 0) {
+    console.error("[EFRO Scenarios] ERROR: No products loaded (api + fixture empty).");
     process.exit(1);
   }
 
-  if (!res.ok) {
-    console.error("[EFRO Scenarios] ERROR: API returned non-ok status", {
-      status: res.status,
-      statusText: res.statusText,
-    });
-    process.exit(1);
-  }
-
-  let productsJson: any;
-  try {
-    productsJson = await res.json();
-  } catch (err) {
-    console.error(
-      "[EFRO Scenarios] ERROR: Could not parse JSON from EFRO debug API."
-    );
-    console.error(err);
-    process.exit(1);
-  }
-
-  const products: EfroProduct[] = productsJson.products ?? [];
-
-  if (!products.length) {
-    console.error(
-      "[EFRO Scenarios] ERROR: Kein Produkt aus EFRO debug API geladen."
-    );
-    process.exit(1);
-  }
-
-  console.log("[EFRO Scenarios] Loaded products from EFRO debug API", {
+  console.log("[EFRO Scenarios] Loaded products", {
     count: products.length,
+    source,
   });
 
   return products;
 }
+
 
 /**
  * Test-Szenario-Definition
