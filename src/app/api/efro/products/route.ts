@@ -1,3 +1,7 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 // src/app/api/efro/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { loadProductsForShop, type LoadProductsResult } from "@/lib/products/efroProductLoader";

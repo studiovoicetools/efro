@@ -1,10 +1,16 @@
-ï»¿export type ScenarioSeed = {
+import type { SellerBrainContext } from "../../src/lib/sales/sellerBrain";
+
+export type ScenarioSeed = {
   id: string;
   title: string;
   query: string;
   note?: string;
-  context?: unknown;
-  [k: string]: unknown;
+  context?: any;
+
+  // Optional: Felder, die ScenarioTest kennt (damit Smoke-Tests sie löschen dürfen)
+  expected?: unknown;
+  variants?: unknown;
+  variantQueries?: unknown;
 };
 
 function hashString(input: string): number {
@@ -61,9 +67,9 @@ function safeCandidates(q: string): string[] {
   out.push("Hey, " + t);
   out.push(t + " bitte");
   out.push(t + " danke");
-  out.push(t + " ðŸ™‚");
+  out.push(t + " ??");
 
-  // Case-Noise (fÃ¼r Smoke ok)
+  // Case-Noise (für Smoke ok)
   out.push(t.toLowerCase());
 
   // niemals identisch
@@ -72,27 +78,27 @@ function safeCandidates(q: string): string[] {
 }
 
 /**
- * ErhÃ¶ht die Gesamtanzahl deterministisch durch zusÃ¤tzliche "SMOKE"-Tests.
- * Diese Tests haben KEIN expected => sie prÃ¼fen nur: SellerBrain lÃ¤uft durch.
+ * Erhöht die Gesamtanzahl deterministisch durch zusätzliche "SMOKE"-Tests.
+ * Diese Tests haben KEIN expected => sie prüfen nur: SellerBrain läuft durch.
  */
-export function addSmokeTestsToReachTarget(
-  tests: ScenarioSeed[],
+export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
+  tests: T[],
   targetTotal: number,
   opts?: { seed?: number }
-): ScenarioSeed[] {
+): T[] {
   const seed = opts?.seed ?? 1;
 
   if (!Number.isFinite(targetTotal) || targetTotal <= tests.length) {
     return tests;
   }
 
-  const base = tests.map((t) => ({ ...t }));
-  const used = new Set<string>();
+  const base = tests.map((t) => ({ ...t })) as T[];
+const used = new Set<string>();
   for (const t of base) used.add(normalizeSpaces(t.query));
 
   const rngGlobal = mulberry32(hashString("EFRO_SMOKE") + seed);
 
-  const out: ScenarioSeed[] = [...base];
+  const out: T[] = [...base];
   let smokeIndex = 1;
 
   for (let i = 0; out.length < targetTotal; i++) {
@@ -116,15 +122,16 @@ export function addSmokeTestsToReachTarget(
         expected: undefined,
         variants: undefined,
         variantQueries: undefined,
-      });
+      } as T);
 
       used.add(key);
       smokeIndex++;
     }
 
-    // Safety â€“ aber sehr groÃŸzÃ¼gig
+    // Safety – aber sehr großzügig
     if (i > base.length * 500) break;
   }
 
   return out;
 }
+

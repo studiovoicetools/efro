@@ -2670,8 +2670,7 @@ async function main() {
     const targetTotal = Number(process.env.EFRO_SCENARIO_TARGET ?? "0");
 const seed = Number(process.env.EFRO_SCENARIO_SEED ?? "1");
 
-const tests =
-  targetTotal && targetTotal > expandedTests.length
+const tests: ScenarioTest[] = targetTotal && targetTotal > expandedTests.length
     ? addSmokeTestsToReachTarget(expandedTests, targetTotal, { seed })
     : expandedTests;
 
