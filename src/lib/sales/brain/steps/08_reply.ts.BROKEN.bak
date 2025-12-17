@@ -3,10 +3,27 @@
 
 import { detectMostExpensiveRequest } from "../../intent";
 import { extractUserPriceRange } from "../../budget";
+import { detectExplanationModeBoolean } from "../../intent/explanationMode";
 
-import { QUERY_STOPWORDS, ATTRIBUTE_PHRASES, ATTRIBUTE_KEYWORDS } from "../../languageRules.de";
+import {
+  QUERY_STOPWORDS,
+  ATTRIBUTE_PHRASES,
+  ATTRIBUTE_KEYWORDS,
+} from "../../languageRules.de";
 import type { ShoppingIntent } from "@/lib/products/mockCatalog";
 import type { EfroProduct } from "@/lib/products/mockCatalog";
+
+export type SellerBrainAiTrigger = {
+  needsAiHelp: boolean;
+  reason: string;
+  unknownTerms: string[];
+  codeTerm: string | null;
+};
+const looksLikeProductCode = (t: string): boolean => {
+  const s = String(t || "").trim();
+  if (!s) return false;
+  return /^[A-Za-z0-9_-]{3,}$/.test(s) && /\d/.test(s);
+};
 
 type ProductAttributeMap = Record<string, string[]>;
 
@@ -139,31 +156,34 @@ function getDescriptionSnippet(input: any, maxLen = 140): string {
   return safe.trim() + "…";
 }
 
-function detectProfisellerScenario(input: any): boolean {
-  // Unterstützt verschiedene Call-Sites:
-  // - detectProfisellerScenario(text: string)
-  // - detectProfisellerScenario(state/context/scenarioObj)
-  let s = "";
+type ProfisellerScenario = "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "fallback";
+function detectProfisellerScenario(...args: any[]): ProfisellerScenario {
+  const a0 = args[0];
+  if (typeof a0 === "string") {
+    const count = typeof args[2] === "number" ? args[2] : 0;
+    const hasBudget = !!args[3];
+    const minPrice = typeof args[4] === "number" ? args[4] : null;
+    const maxPrice = typeof args[5] === "number" ? args[5] : null;
 
-  if (typeof input === "string") {
-    s = input;
-  } else if (input && typeof input.scenarioName === "string") {
-    s = input.scenarioName;
-  } else if (input && typeof input.scenarioId === "string") {
-    s = input.scenarioId;
-  } else if (input && typeof input.testName === "string") {
-    s = input.testName;
-  } else if (input && typeof input.label === "string") {
-    s = input.label;
-  } else if (input && typeof input.text === "string") {
-    // falls jemand aus Versehen state/text übergibt
-    s = input.text;
+    if (count <= 0) return "S6";
+    if (hasBudget || minPrice !== null || maxPrice !== null) {
+      // budget-only-ish
+      if (count > 0 && count <= 3) return "S4";
+    }
+    if (count === 1) return "S1";
+    if (count === 2) return "S2";
+    if (count >= 3) return "S3";
+    return "fallback";
   }
-
-  const t = (s || "").toLowerCase();
-
-  // “Profi”-Modus Trigger: entweder explizit in Szenario/Label oder im Text
-  return /\b(profi|profiseller|professional|enterprise|b2b|agentur|beratung|sales)\b/.test(t);
+  const obj = (a0 && typeof a0 === "object") ? a0 : {};
+  const count = Number(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (obj as any).count || ((obj as any).recommended?.length) || 0
+  );
+  if (count <= 0) return "S6";
+  if (count === 1) return "S1";
+  if (count === 2) return "S2";
+  return "S3";
 }
 
 function normalize(input: string | null | undefined): string {
@@ -173,23 +193,6 @@ function normalize(input: string | null | undefined): string {
     .trim();
 }
 
-type ProfisellerScenarioId = "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "fallback";
-
-function detectProfisellerScenarioId(args: {
-  count: number;
-  hasBudget: boolean;
-  hasCategory: boolean;
-}): ProfisellerScenarioId {
-  const { count, hasBudget, hasCategory } = args;
-
-  if (count <= 0) return "S6";
-  if (hasBudget && !hasCategory) return "S4";
-  if (hasCategory && !hasBudget) return "S5";
-  if (count === 1) return "S1";
-  if (count === 2) return "S2";
-  if (count >= 3) return "S3";
-  return "fallback";
-}
 
 
 
@@ -247,6 +250,7 @@ export function buildRuleBasedReplyText(
 
   const descSnippet = getDescriptionSnippet(first.description);
   const hasDesc = !!descSnippet;
+  const explanationMode = detectExplanationModeBoolean(normalizeText(text));
 
   let budgetText = "";
   if (hasBudget) {
@@ -266,7 +270,7 @@ export function buildRuleBasedReplyText(
   const priceLabel = formatPrice(first);
 
   // Szenario-Erkennung f?r Profiseller-Engine
-  const isProfiseller = detectProfisellerScenario(
+  const scenario = detectProfisellerScenario({
   text,
   intent,
   count,
@@ -287,89 +291,13 @@ export function buildRuleBasedReplyText(
     maxPrice,
   });
 
-    // 0) Spezialfälle: Erklär-/Info-Fragen (Priorität vor Profiseller-Szenarien)
-  const t = normalizeText(text);
-
-  const wantsIngredients =
-    /\b(inhaltsstoff|inhaltsstoffe|ingredients?)\b/i.test(t);
-
-  const wantsMaterials =
-    /\b(material|materials|stoff|gewebe|leder|wolle|baumwolle|polyester)\b/i.test(t);
-
-  const wantsUsage =
-    /\b(anwendung|verwenden|benutzen|gebrauch|use|usage|how to)\b/i.test(t);
-
-  const wantsCare =
-    /\b(pflege|care|wasch|washing|waschen|wäsche|trockner|bügeln)\b/i.test(t);
-
-  const wantsExplain = wantsIngredients || wantsMaterials || wantsUsage || wantsCare;
-
-  if (wantsExplain) {
-    const desc = (first?.description || "").trim();
-    const descSnippet = desc ? getDescriptionSnippet(desc) : "";
-    const hasDesc = !!descSnippet;
-
-    const categoryLabel =
-      (first?.category && first.category.trim().length > 0) ? first.category.trim() : "diesem Bereich";
-
-    const priceLabel = typeof formatPrice === "function" ? formatPrice(first) : "";
-
-    if (wantsIngredients) {
-      if (hasDesc) {
-        return (
-          `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
-          `Aus der Beschreibung:\n${descSnippet}\n\n` +
-          "Die vollständige, rechtlich verbindliche Zutatenliste findest du auf der Produktseite im Shop (Bereich „Inhaltsstoffe“)."
-        );
-      }
-      return (
-        `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
-        "Im Katalog habe ich dazu keine Beschreibung. Die vollständigen Inhaltsstoffe findest du normalerweise direkt auf der Produktseite im Shop."
-      );
+  // 0) Spezialfälle: Erklär-Modus (hat Priorität vor Profiseller-Szenarien)
+  if (explanationMode) {
+    const descSnippet = hasDesc ? getDescriptionSnippet(first.description || "") : "";
+    if (hasDesc && descSnippet) {
+      return `Hier sind die wichtigsten Infos zu "${first.title}":\n\n${descSnippet}\n`;
     }
-
-    if (wantsMaterials) {
-      if (hasDesc) {
-        return (
-          `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
-          `Aus der Beschreibung:\n${descSnippet}\n\n` +
-          "Exakte Material-/Prozentangaben stehen meist auf der Produktseite (Produktdetails/Material)."
-        );
-      }
-      return (
-        `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
-        `Kategorie: "${categoryLabel}" ${priceLabel ? `– Preis: ${priceLabel}` : ""}.\n` +
-        "Die exakte Materialzusammensetzung steht normalerweise auf der Produktseite im Shop."
-      );
-    }
-
-    if (wantsUsage) {
-      if (hasDesc) {
-        return (
-          `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
-          `Aus der Beschreibung:\n${descSnippet}\n\n` +
-          "Weitere Details und Sicherheitshinweise findest du auf der Produktseite im Shop bzw. auf der Verpackung."
-        );
-      }
-      return (
-        `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
-        `Kategorie: "${categoryLabel}" ${priceLabel ? `– Preis: ${priceLabel}` : ""}.\n` +
-        "Details zur Anwendung findest du normalerweise auf der Produktseite im Shop. Wenn du mir sagst wofür genau, gebe ich dir eine kurze Orientierung."
-      );
-    }
-
-    // care / washing
-    if (hasDesc) {
-      return (
-        `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
-        `Aus der Beschreibung:\n${descSnippet}\n\n` +
-        "Bitte richte dich immer nach den offiziellen Angaben (Etikett/Produktseite)."
-      );
-    }
-    return (
-      `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
-      "Bitte richte dich nach den offiziellen Angaben auf dem Etikett bzw. auf der Produktseite im Shop."
-    );
+    return `Zu "${first.title}" habe ich leider keine Beschreibung im Katalog.`;
   }
 
 

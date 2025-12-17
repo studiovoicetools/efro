@@ -5727,7 +5727,11 @@ function isAmbiguousBoardQuery(text: string): boolean {
     }
   }
 
-  const signalText = typeof normalizedQuery !== "undefined" ? normalizedQuery : "";
+ const signalText =
+  typeof normalizedQuery !== "undefined" && normalizedQuery
+    ? normalizedQuery
+    : cleaned;
+
 
   const cheapestSignal =
     /\b(günstigst(?:e|en|es)?|guenstigst(?:e|en|es)?|billigst(?:e|en|es)?|am günstigsten|am guenstigsten|so billig wie möglich|so billig wie moeglich|cheapest|lowest price|most affordable)\b/i.test(
