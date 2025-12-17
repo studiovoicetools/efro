@@ -96,3 +96,7 @@ src/lib/sales/brain/steps/08_reply.ts.bak-*
 # build logs
 _build_check*.log
 
+
+_local_bak/
+tsconfig.json.bak_*
+
