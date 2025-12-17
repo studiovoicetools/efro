@@ -566,27 +566,30 @@ export function buildReplyText(
 ): string {
   const effectiveReplyMode: "customer" | "operator" = replyMode ?? "operator";
 
-  // KB-Shortcut: nur Customer-Mode, nur wenn Facts existieren (kbRoute ist sonst No-Op).
-  if (effectiveReplyMode !== "operator" && storeFacts) {
+  // 0) KB-Shortcut (nur Customer-Mode). kbRoute antwortet nur, wenn echte Facts existieren.
+  if (effectiveReplyMode !== "operator") {
     const kb = kbRoute(text, storeFacts);
     if (kb) return kb.answer;
   }
+
+  // 1) Preisbereich passt nicht (aber wir zeigen Alternativen)
   if (priceRangeNoMatch && priceRangeInfo) {
     const { userMinPrice, userMaxPrice } = priceRangeInfo;
 
-    let requestedRange = "deinem gewÃ¼nschten Preisbereich";
-    if (userMinPrice !== null && userMaxPrice === null) requestedRange = `Ã¼ber ${userMinPrice} â‚¬`;
-    else if (userMaxPrice !== null && userMinPrice === null) requestedRange = `unter ${userMaxPrice} â‚¬`;
+    let requestedRange = "deinem gewünschten Preisbereich";
+    if (userMinPrice !== null && userMaxPrice === null) requestedRange = `über ${userMinPrice} €`;
+    else if (userMaxPrice !== null && userMinPrice === null) requestedRange = `unter ${userMaxPrice} €`;
     else if (userMinPrice !== null && userMaxPrice !== null)
-      requestedRange = `zwischen ${userMinPrice} â‚¬ und ${userMaxPrice} â‚¬`;
+      requestedRange = `zwischen ${userMinPrice} € und ${userMaxPrice} €`;
 
     return (
       `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
-      `Ich habe dir stattdessen VorschlÃ¤ge gezeigt, die dem, was du suchst, am nÃ¤chsten kommen. ` +
+      `Ich habe dir stattdessen Vorschläge gezeigt, die dem, was du suchst, am nächsten kommen. ` +
       `Wenn du dein Budget ein wenig anpassen kannst, kann ich dir eine deutlich bessere Auswahl empfehlen.`
     );
   }
 
+  // 2) Kategorie fehlt im Katalog
   if (missingCategoryHint) {
     const categoryLabel = missingCategoryHint;
     const normalizedHint = normalize(categoryLabel);
@@ -594,17 +597,22 @@ export function buildReplyText(
     let alternativeCategory =
       recommended.length > 0 && recommended[0].category ? String(recommended[0].category) : "Produkte";
 
+    // Spezialfall: "pflege" -> eher Kosmetik-Kategorie (wenn vorhanden)
     if (normalizedHint.includes("pflege")) {
       const cosmetics = recommended.find((p) => normalize(p.category || "").includes("kosmetik"));
       if (cosmetics?.category) alternativeCategory = String(cosmetics.category);
     }
 
-    let clarifyText = `In deinem Katalog finde ich nur ${alternativeCategory}, aber keine ${categoryLabel}. Ich zeige dir die ${alternativeCategory.toLowerCase()}.`;
+    const shownLabel = alternativeCategory.toLowerCase();
+
+    let clarifyText =
+      `In deinem Katalog finde ich nur ${alternativeCategory}, aber keine ${categoryLabel}. ` +
+      `Ich zeige dir die ${shownLabel}.`;
 
     if (effectiveReplyMode === "operator") {
       clarifyText +=
-        `\n\nHinweis fÃ¼r den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} â€“ nur ${alternativeCategory} und ZubehÃ¶r. ` +
-        `Wenn du ${categoryLabel} verkaufen mÃ¶chtest, solltest du entsprechende Produkte/Kategorien anlegen.`;
+        `\n\nHinweis für den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} – nur ${alternativeCategory} und ggf. Zubehör. ` +
+        `Wenn du ${categoryLabel} verkaufen möchtest, solltest du entsprechende Produkte/Kategorien anlegen.`;
     }
 
     if (recommended.length > 0) {
@@ -614,6 +622,7 @@ export function buildReplyText(
     return clarifyText;
   }
 
+  // 3) Nur ein unbekannter Produktcode (SKU/Artikelnummer) wurde genannt
   if (aiTrigger?.reason === "unknown_product_code_only") {
     const codeTerm =
       aiTrigger.codeTerm ||
@@ -625,30 +634,32 @@ export function buildReplyText(
 
     return (
       `Ich konnte den Code ${codeLabel} in diesem Shop nicht finden.\n\n` +
-      `Sag mir bitte, was fÃ¼r ein Produkt du suchst â€“ zum Beispiel eine Kategorie, eine Marke oder ein Einsatzgebiet. ` +
+      `Sag mir bitte, was für ein Produkt du suchst – zum Beispiel eine Kategorie, eine Marke oder ein Einsatzgebiet. ` +
       `Dann zeige ich dir gezielt passende Produkte.`
     );
   }
 
+  // 4) Budget unklar
   if (aiTrigger?.reason === "ambiguous_budget") {
     return (
-      `Du hast erwÃ¤hnt, dass dein Budget eher klein ist. Damit ich dir wirklich passende Produkte empfehlen kann:\n\n` +
-      `â€¢ FÃ¼r welche Art von Produkt suchst du etwas?\n` +
-      `â€¢ Und ungefÃ¤hr mit welchem Betrag mÃ¶chtest du rechnen?`
+      `Du hast erwähnt, dass dein Budget eher klein ist. Damit ich dir wirklich passende Produkte empfehlen kann:\n\n` +
+      `• Für welche Art von Produkt suchst du etwas?\n` +
+      `• Und ungefähr mit welchem Betrag möchtest du rechnen?`
     );
   }
 
+  // 5) Budget genannt, aber Kategorie fehlt
   if (aiTrigger?.reason === "missing_category_for_budget") {
     return (
-      `Alles klar, du hast ein Budget genannt. FÃ¼r welche Art von Produkt suchst du etwas â€“ ` +
+      `Alles klar, du hast ein Budget genannt. Für welche Art von Produkt suchst du etwas – ` +
       `z. B. Haushalt, Pflege, Tierbedarf oder etwas anderes?`
     );
   }
 
+  // Default: Regelbasierte Antwort + optionaler AI-Clarify-Block
   const baseReplyText = buildRuleBasedReplyText(text, intent, recommended);
   return buildReplyTextWithAiClarify(baseReplyText, aiTrigger, recommended.length);
 }
-
 export function trimClarifyBlock(replyText: string | null | undefined): string {
   if (!replyText) return "";
   const marker = "Einige deiner Begriffe kann ich im Katalog nicht zuordnen";
