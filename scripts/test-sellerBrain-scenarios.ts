@@ -14,6 +14,7 @@
  */
 
 import { loadDebugProducts } from "./lib/loadDebugProducts";
+import { addSmokeTestsToReachTarget } from "./lib/scenarioAutoVariants";
 
 
 import {
@@ -2666,7 +2667,19 @@ async function main() {
       }
     }
 
-    const tests = expandedTests;
+    const targetTotal = Number(process.env.EFRO_SCENARIO_TARGET ?? "0");
+const seed = Number(process.env.EFRO_SCENARIO_SEED ?? "1");
+
+const tests =
+  targetTotal && targetTotal > expandedTests.length
+    ? addSmokeTestsToReachTarget(expandedTests, targetTotal, { seed })
+    : expandedTests;
+
+console.log("[EFRO Scenarios] tests", {
+  baseExpanded: expandedTests.length,
+  targetTotal: targetTotal || expandedTests.length,
+  seed,
+});
 
     const results: Array<{
       test: ScenarioTest;
