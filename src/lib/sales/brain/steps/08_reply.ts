@@ -1,10 +1,14 @@
 // src/lib/sales/brain/steps/08_reply.ts
-// WICHTIG: 1:1 aus orchestrator.ts übernehmen – KEINE Logik ändern.
 
 import { detectMostExpensiveRequest } from "../../intent";
 import { extractUserPriceRange } from "../../budget";
 
-import { QUERY_STOPWORDS, ATTRIBUTE_PHRASES, ATTRIBUTE_KEYWORDS } from "../../languageRules.de";
+import {
+  QUERY_STOPWORDS,
+  ATTRIBUTE_PHRASES,
+  ATTRIBUTE_KEYWORDS,
+} from "../../languageRules.de";
+
 import type { ShoppingIntent } from "@/lib/products/mockCatalog";
 import type { EfroProduct } from "@/lib/products/mockCatalog";
 
@@ -16,18 +20,52 @@ type ParsedQuery = {
   attributeFilters: ProductAttributeMap;
 };
 
+type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
+
+type ProfisellerScenarioId =
+  | "S1"
+  | "S2"
+  | "S3"
+  | "S4"
+  | "S5"
+  | "S6"
+  | "fallback";
+
+export type SellerBrainAiTriggerReason =
+  | "no_results"
+  | "unknown_product_code_only"
+  | "ambiguous_budget"
+  | "missing_category_for_budget"
+  | "other";
+
+export type SellerBrainAiTrigger = {
+  needsAiHelp: boolean;
+  reason: SellerBrainAiTriggerReason;
+  unknownTerms?: string[];
+  codeTerm?: string | null;
+};
+
 function normalizeText(input: string): string {
-  return (input ?? "")
+  return String(input ?? "")
     .toLowerCase()
-    // Umlaute/ß bewusst behalten
     .replace(/[^a-z0-9äöüß\s]+/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
+function normalize(input: string | null | undefined): string {
+  return String(input ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-
-type ExplanationMode = "ingredients" | "materials" | "usage" | "care" | "washing";
+function looksLikeProductCode(term: string): boolean {
+  // z.B. "ABC123", "SKU-99", "X9Z"
+  const t = String(term ?? "").trim();
+  if (!t) return false;
+  return /^[A-Z0-9][A-Z0-9_-]{2,}$/.test(t.toUpperCase());
+}
 
 function detectExplanationMode(text: string): ExplanationMode | null {
   const t = normalizeText(text);
@@ -36,29 +74,27 @@ function detectExplanationMode(text: string): ExplanationMode | null {
   if (/\b(inhaltsstoff|inhaltsstoffe|ingredients?)\b/i.test(t)) return "ingredients";
 
   // Material
-  if (/\b(material|materials|stoff|gewebe|leder|wolle|baumwolle|polyester)\b/i.test(t)) return "materials";
+  if (/\b(material|materials|stoff|gewebe|leder|wolle|baumwolle|polyester)\b/i.test(t))
+    return "materials";
 
   // Anwendung
   if (/\b(anwendung|verwenden|benutzen|gebrauch|use|usage|how to)\b/i.test(t)) return "usage";
 
   // Pflege/Waschen
-  if (/\b(pflege|care|wasch|washing|waschen|wäsche|trockner|bügeln)\b/i.test(t)) return "washing";
+  if (/\b(pflege|care|wasch|washing|waschen|wäsche|trockner|bügeln)\b/i.test(t))
+    return "washing";
 
   return null;
 }
-
-
-
 
 function parseQueryForAttributes(text: string): ParsedQuery {
   const normalized = normalizeText(text);
   const stopwords = QUERY_STOPWORDS;
 
-  const attributePhrases = ATTRIBUTE_PHRASES;
   const foundPhrases: string[] = [];
   let remainingText = normalized;
 
-  for (const phrase of attributePhrases) {
+  for (const phrase of ATTRIBUTE_PHRASES) {
     if (remainingText.includes(phrase)) {
       foundPhrases.push(phrase);
       remainingText = remainingText.replace(phrase, " ");
@@ -69,16 +105,14 @@ function parseQueryForAttributes(text: string): ParsedQuery {
     .split(" ")
     .filter((t) => t.length >= 3 && !stopwords.includes(t));
 
-  const attributeKeywords = ATTRIBUTE_KEYWORDS;
-
   const attributeTerms: string[] = [...foundPhrases];
   const coreTerms: string[] = [];
 
   for (const token of remainingTokens) {
-    if (
-      attributeKeywords.includes(token) ||
-      foundPhrases.some((p) => p.includes(token))
-    ) {
+    const isAttr =
+      ATTRIBUTE_KEYWORDS.includes(token) || foundPhrases.some((p) => p.includes(token));
+
+    if (isAttr) {
       if (!attributeTerms.includes(token)) attributeTerms.push(token);
     } else {
       coreTerms.push(token);
@@ -86,94 +120,44 @@ function parseQueryForAttributes(text: string): ParsedQuery {
   }
 
   const attributeFilters: ProductAttributeMap = {};
-
-  function addFilter(key: string, value: string): void {
-    if (!attributeFilters[key]) attributeFilters[key] = [];
-    if (!attributeFilters[key].includes(value)) attributeFilters[key].push(value);
-  }
-
-  // (Optional) hier kannst du später die ganzen addFilter(...) Regeln ergänzen,
-  // wenn du sie im Reply-Step wirklich brauchst. Für den aktuellen Crash ist das NICHT nötig.
-
   return { coreTerms, attributeTerms, attributeFilters };
 }
 
-function getDescriptionSnippet(input: any, maxLen = 140): string {
-  // Akzeptiert entweder:
-  // - string (Beschreibung)
-  // - Objekt mit .description (Produkt)
+function getDescriptionSnippet(input: unknown, maxLen = 140): string {
+  // akzeptiert:
+  // - string
+  // - Objekt mit description/descriptionHtml
   let raw = "";
 
   if (typeof input === "string") raw = input;
-  else if (input && typeof input.description === "string") raw = input.description;
-  else if (input && typeof input.descriptionHtml === "string") raw = input.descriptionHtml;
+  else if (input && typeof input === "object") {
+    const obj = input as { description?: unknown; descriptionHtml?: unknown };
+    if (typeof obj.description === "string") raw = obj.description;
+    else if (typeof obj.descriptionHtml === "string") raw = obj.descriptionHtml;
+  }
 
   if (!raw) return "";
 
-  // HTML tags entfernen
   let text = raw.replace(/<[^>]*>/g, " ");
-
-  // Entities minimal entschärfen
   text = text
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
     .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">");
-
-  // Whitespace normalisieren
-  text = text.replace(/\s+/g, " ").trim();
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
 
   if (!text) return "";
-
-  // Auf maxLen kürzen
   if (text.length <= maxLen) return text;
 
   const cut = text.slice(0, maxLen);
-
-  // Nicht mitten im Wort abschneiden (wenn möglich)
   const lastSpace = cut.lastIndexOf(" ");
   const safe = lastSpace >= 40 ? cut.slice(0, lastSpace) : cut;
 
   return safe.trim() + "…";
 }
-
-function detectProfisellerScenario(input: any): boolean {
-  // Unterstützt verschiedene Call-Sites:
-  // - detectProfisellerScenario(text: string)
-  // - detectProfisellerScenario(state/context/scenarioObj)
-  let s = "";
-
-  if (typeof input === "string") {
-    s = input;
-  } else if (input && typeof input.scenarioName === "string") {
-    s = input.scenarioName;
-  } else if (input && typeof input.scenarioId === "string") {
-    s = input.scenarioId;
-  } else if (input && typeof input.testName === "string") {
-    s = input.testName;
-  } else if (input && typeof input.label === "string") {
-    s = input.label;
-  } else if (input && typeof input.text === "string") {
-    // falls jemand aus Versehen state/text übergibt
-    s = input.text;
-  }
-
-  const t = (s || "").toLowerCase();
-
-  // “Profi”-Modus Trigger: entweder explizit in Szenario/Label oder im Text
-  return /\b(profi|profiseller|professional|enterprise|b2b|agentur|beratung|sales)\b/.test(t);
-}
-
-function normalize(input: string | null | undefined): string {
-  return String(input ?? "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-type ProfisellerScenarioId = "S1" | "S2" | "S3" | "S4" | "S5" | "S6" | "fallback";
 
 function detectProfisellerScenarioId(args: {
   count: number;
@@ -191,20 +175,21 @@ function detectProfisellerScenarioId(args: {
   return "fallback";
 }
 
-
-
 export function buildRuleBasedReplyText(
   text: string,
   intent: ShoppingIntent,
   recommended: EfroProduct[],
-  plan?: string
+  _plan?: string
 ): string {
   const count = recommended.length;
 
-  // S6: ZERO RESULTS wird hier behandelt, aber Szenario-Erkennung erfolgt sp?ter
-  // (unknown_product_code_only wird bereits in buildReplyText behandelt)
+  const formatPrice = (p: EfroProduct) => {
+    const n = typeof p.price === "number" ? p.price : Number(p.price);
+    return Number.isFinite(n) ? `${n.toFixed(2)} €` : "€";
+  };
+
+  // ZERO RESULTS
   if (count === 0) {
-    // S6-Text wird sp?ter im switch-case verwendet, hier nur Fallback
     return (
       `Zu deiner aktuellen Anfrage habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
       `Das liegt oft daran, dass entweder die Kategorie noch zu allgemein ist oder dein Wunsch sehr speziell ist. ` +
@@ -216,109 +201,48 @@ export function buildRuleBasedReplyText(
     );
   }
 
-  const formatPrice = (p: EfroProduct) =>
-    p.price != null ? `${p.price.toFixed(2)} €` : "€";
-
   const first = recommended[0];
 
-  // Pr?fe, ob User explizit nach dem teuersten Produkt fragt
-  const wantsMostExpensive = detectMostExpensiveRequest(text);
-
-  // Spezialfall: "Teuerstes Produkt" mit gefundenen Produkten
-  if (wantsMostExpensive && count > 0) {
-    const top = recommended[0];
-    return (
-      `Du legst Wert auf hohe Qualität – deshalb habe ich dir das teuerste Produkt aus dem Shop ausgesucht: "${top.title}". ` +
-      `Dieses Produkt bietet dir in Material, Verarbeitung und Ausstattung das Maximum, was im Shop verfügbar ist. ` +
-      `Wenn du möchtest, kann ich dir auch noch eine etwas günstigere Alternative zeigen, ` +
-      `die trotzdem hochwertig ist – falls du Preis und Qualität ausbalancieren willst.`
-    );
-  }
-
-  const { minPrice, maxPrice } = extractUserPriceRange(text);
-  const hasBudget = minPrice !== undefined || maxPrice !== undefined;
-
-  
-
-
-  // Attribute-Terms aus Query extrahieren
-  const parsed = parseQueryForAttributes(text);
-  const { attributeTerms } = parsed;
-
-  const descSnippet = getDescriptionSnippet(first.description);
-  const hasDesc = !!descSnippet;
+  // Budget
+  const priceRange = extractUserPriceRange(text) as {
+    minPrice?: number | null;
+    maxPrice?: number | null;
+  };
+  const minPrice = priceRange.minPrice ?? null;
+  const maxPrice = priceRange.maxPrice ?? null;
+  const hasBudget = minPrice !== null || maxPrice !== null;
 
   let budgetText = "";
   if (hasBudget) {
-    if (minPrice !== null && maxPrice === null) {
-      budgetText = `ab etwa ${minPrice} €`;
-    } else if (maxPrice !== null && minPrice === null) {
-      budgetText = `bis etwa ${maxPrice} €`;
-    } else if (minPrice !== null && maxPrice !== null) {
+    if (minPrice !== null && maxPrice === null) budgetText = `ab etwa ${minPrice} €`;
+    else if (maxPrice !== null && minPrice === null) budgetText = `bis etwa ${maxPrice} €`;
+    else if (minPrice !== null && maxPrice !== null)
       budgetText = `zwischen ${minPrice} € und ${maxPrice} €`;
-    }
   }
 
-  const categoryLabel =
-    first.category && first.category.trim().length > 0
-      ? first.category
-      : "dieses Produkts";
-  const priceLabel = formatPrice(first);
+  // Attribute parsing (für Premium/Bargain Texte)
+  const parsed = parseQueryForAttributes(text);
+  const { attributeTerms } = parsed;
 
-  // Szenario-Erkennung f?r Profiseller-Engine
-  const isProfiseller = detectProfisellerScenario(
-  text,
-  intent,
-  count,
-  hasBudget,
-  minPrice: minPrice ?? null,
-  maxPrice: maxPrice ?? null,
-  plan,
-});
-
-
-  console.log("[EFRO Profiseller] scenario", {
-    text: text.substring(0, 100),
-    intent,
-    finalCount: count,
-    scenario,
-    hasBudget,
-    minPrice,
-    maxPrice,
-  });
-
-    // 0) Spezialfälle: Erklär-/Info-Fragen (Priorität vor Profiseller-Szenarien)
-  const t = normalizeText(text);
-
-  const wantsIngredients =
-    /\b(inhaltsstoff|inhaltsstoffe|ingredients?)\b/i.test(t);
-
-  const wantsMaterials =
-    /\b(material|materials|stoff|gewebe|leder|wolle|baumwolle|polyester)\b/i.test(t);
-
-  const wantsUsage =
-    /\b(anwendung|verwenden|benutzen|gebrauch|use|usage|how to)\b/i.test(t);
-
-  const wantsCare =
-    /\b(pflege|care|wasch|washing|waschen|wäsche|trockner|bügeln)\b/i.test(t);
-
-  const wantsExplain = wantsIngredients || wantsMaterials || wantsUsage || wantsCare;
-
-  if (wantsExplain) {
-    const desc = (first?.description || "").trim();
-    const descSnippet = desc ? getDescriptionSnippet(desc) : "";
-    const hasDesc = !!descSnippet;
+  // Explanation mode hat Priorität
+  const explanationMode = detectExplanationMode(text);
+  if (explanationMode) {
+    const desc = (first?.description ? String(first.description) : "").trim();
+    const snippet = desc ? getDescriptionSnippet(desc) : "";
+    const hasDesc = !!snippet;
 
     const categoryLabel =
-      (first?.category && first.category.trim().length > 0) ? first.category.trim() : "diesem Bereich";
+      first?.category && String(first.category).trim().length > 0
+        ? String(first.category).trim()
+        : "diesem Bereich";
 
-    const priceLabel = typeof formatPrice === "function" ? formatPrice(first) : "";
+    const priceLabel = formatPrice(first);
 
-    if (wantsIngredients) {
+    if (explanationMode === "ingredients") {
       if (hasDesc) {
         return (
           `Du fragst nach den Inhaltsstoffen von "${first.title}".\n\n` +
-          `Aus der Beschreibung:\n${descSnippet}\n\n` +
+          `Aus der Beschreibung:\n${snippet}\n\n` +
           "Die vollständige, rechtlich verbindliche Zutatenliste findest du auf der Produktseite im Shop (Bereich „Inhaltsstoffe“)."
         );
       }
@@ -328,32 +252,32 @@ export function buildRuleBasedReplyText(
       );
     }
 
-    if (wantsMaterials) {
+    if (explanationMode === "materials") {
       if (hasDesc) {
         return (
           `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
-          `Aus der Beschreibung:\n${descSnippet}\n\n` +
+          `Aus der Beschreibung:\n${snippet}\n\n` +
           "Exakte Material-/Prozentangaben stehen meist auf der Produktseite (Produktdetails/Material)."
         );
       }
       return (
         `Du möchtest mehr über das Material von "${first.title}" wissen.\n\n` +
-        `Kategorie: "${categoryLabel}" ${priceLabel ? `– Preis: ${priceLabel}` : ""}.\n` +
+        `Kategorie: "${categoryLabel}" – Preis: ${priceLabel}.\n` +
         "Die exakte Materialzusammensetzung steht normalerweise auf der Produktseite im Shop."
       );
     }
 
-    if (wantsUsage) {
+    if (explanationMode === "usage") {
       if (hasDesc) {
         return (
           `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
-          `Aus der Beschreibung:\n${descSnippet}\n\n` +
+          `Aus der Beschreibung:\n${snippet}\n\n` +
           "Weitere Details und Sicherheitshinweise findest du auf der Produktseite im Shop bzw. auf der Verpackung."
         );
       }
       return (
         `Du möchtest wissen, wie man "${first.title}" am besten verwendet.\n\n` +
-        `Kategorie: "${categoryLabel}" ${priceLabel ? `– Preis: ${priceLabel}` : ""}.\n` +
+        `Kategorie: "${categoryLabel}" – Preis: ${priceLabel}.\n` +
         "Details zur Anwendung findest du normalerweise auf der Produktseite im Shop. Wenn du mir sagst wofür genau, gebe ich dir eine kurze Orientierung."
       );
     }
@@ -362,7 +286,7 @@ export function buildRuleBasedReplyText(
     if (hasDesc) {
       return (
         `Du fragst nach Pflege- oder Waschhinweisen für "${first.title}".\n\n` +
-        `Aus der Beschreibung:\n${descSnippet}\n\n` +
+        `Aus der Beschreibung:\n${snippet}\n\n` +
         "Bitte richte dich immer nach den offiziellen Angaben (Etikett/Produktseite)."
       );
     }
@@ -372,15 +296,34 @@ export function buildRuleBasedReplyText(
     );
   }
 
+  // Teuerstes Produkt (falls User explizit danach fragt)
+  const wantsMostExpensive = detectMostExpensiveRequest(text);
+  if (wantsMostExpensive) {
+    const priced = recommended
+      .map((p) => {
+        const n = typeof p.price === "number" ? p.price : Number(p.price);
+        return { p, n };
+      })
+      .filter((x) => Number.isFinite(x.n));
 
+    const top = priced.length
+      ? priced.sort((a, b) => b.n - a.n)[0].p
+      : recommended[0];
 
+    return (
+      `Du legst Wert auf hohe Qualität – deshalb habe ich dir das teuerste Produkt aus dem Shop ausgesucht: "${top.title}". ` +
+      `Dieses Produkt bietet dir in Material, Verarbeitung und Ausstattung das Maximum, was im Shop verfügbar ist. ` +
+      `Wenn du möchtest, kann ich dir auch noch eine etwas günstigere Alternative zeigen, ` +
+      `die trotzdem hochwertig ist – falls du Preis und Qualität ausbalancieren willst.`
+    );
+  }
 
-  /**
-   * Profiseller-Szenarien S1-S6
-   */
-  switch (scenario) {
+  const hasCategory = !!(first.category && String(first.category).trim().length > 0);
+  const scenarioId = detectProfisellerScenarioId({ count, hasBudget, hasCategory });
+
+  // Profiseller Szenarien S1-S6
+  switch (scenarioId) {
     case "S1": {
-      // QUICK BUY ? EIN klares Produkt
       const product = recommended[0];
       return (
         `Ich habe dir ein Produkt ausgesucht, das sehr gut zu deiner Anfrage passt: ` +
@@ -392,38 +335,17 @@ export function buildRuleBasedReplyText(
     }
 
     case "S2": {
-      // QUICK BUY ? WENIGE Optionen (2-4)
-      const priceRange = (() => {
-        const prices = recommended
-          .map((p) => p.price)
-          .filter((p): p is number => p != null);
-        if (prices.length === 0) return null;
-        const min = Math.min(...prices);
-        const max = Math.max(...prices);
-        if (min === max) return `${min.toFixed(2)} €`;
-        return `${min.toFixed(2)} € – ${max.toFixed(2)} €`;
-      })();
-
-      const priceInfo = priceRange ? ` (Preisbereich: ${priceRange})` : "";
-      const topProducts = recommended.slice(0, 3).map((p) => {
-        const price = p.price != null ? ` – ${formatPrice(p)}` : "";
-        return `• ${p.title}${price}`;
-      });
-
-      const count = recommended.length;
+      const c = recommended.length;
       return (
-        `Ich habe dir ${count === 2 ? "zwei" : `${count}`} passende Optionen herausgesucht, ` +
+        `Ich habe dir ${c === 2 ? "zwei" : `${c}`} passende Optionen herausgesucht, ` +
         `die gut zu deiner Anfrage passen. ` +
         `Unten im Produktbereich siehst du die Vorschläge im Detail. ` +
-        `Wenn du eine schnelle Entscheidung treffen willst, schau dir zuerst das Produkt mit dem besten Preis-Leistungs-Verhältnis an ` +
-        `und danach die Variante, die etwas hochwertiger ist. ` +
         `Wenn du mir sagst, ob dir eher der Preis, die Marke oder bestimmte Features wichtig sind, ` +
         `kann ich dir auch gezielt eine klare Empfehlung aussprechen.`
       );
     }
 
     case "S3": {
-      // EXPLORE ? Mehrere Produkte (>= 3)
       return (
         `Ich habe dir ${count} passende Produkte herausgesucht, ` +
         `damit du in Ruhe vergleichen kannst. ` +
@@ -434,8 +356,9 @@ export function buildRuleBasedReplyText(
     }
 
     case "S4": {
-      // BUDGET-ONLY ANFRAGE
-      const budgetDisplay = budgetText || (maxPrice ? `bis etwa ${maxPrice} €` : minPrice ? `ab etwa ${minPrice} €` : "");
+      const budgetDisplay =
+        budgetText ||
+        (maxPrice !== null ? `bis etwa ${maxPrice} €` : minPrice !== null ? `ab etwa ${minPrice} €` : "");
       return (
         `Mit deinem Budget von ${budgetDisplay} habe ich dir unten passende Produkte eingeblendet.\n\n` +
         "Wenn du mir noch sagst, für welchen Bereich (z. B. Haushalt, Pflege, Tierbedarf), kann ich die Auswahl weiter eingrenzen."
@@ -443,10 +366,8 @@ export function buildRuleBasedReplyText(
     }
 
     case "S5": {
-      // ONLY CATEGORY / MARKENANFRAGE
-      const categoryName = first.category && first.category.trim().length > 0
-        ? first.category
-        : "diesem Bereich";
+      const categoryName =
+        first.category && String(first.category).trim().length > 0 ? String(first.category) : "diesem Bereich";
       return (
         "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet.\n\n" +
         `Alle Produkte gehören in den Bereich ${categoryName}.\n\n` +
@@ -455,7 +376,6 @@ export function buildRuleBasedReplyText(
     }
 
     case "S6": {
-      // ZERO RESULTS (kein unknown_product_code_only)
       return (
         `Zu deiner aktuellen Anfrage habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
         `Das liegt oft daran, dass entweder die Kategorie noch zu allgemein ist oder dein Wunsch sehr speziell ist. ` +
@@ -468,16 +388,12 @@ export function buildRuleBasedReplyText(
     }
 
     case "fallback":
-    default: {
-      // Bestehendes Verhalten f?r alle anderen F?lle
+    default:
       break;
-    }
   }
 
-  /**
-   * 1) F?lle mit explizitem Budget im Text (Fallback, wenn nicht S4)
-   */
-  if (hasBudget && scenario === "fallback") {
+  // Budget-Fallback (nur wenn scenarioId fallback wäre)
+  if (hasBudget && scenarioId === "fallback") {
     if (count === 1) {
       return (
         `Ich habe ein Produkt gefunden, das gut zu deinem Budget ${budgetText} passt:\n\n` +
@@ -487,14 +403,12 @@ export function buildRuleBasedReplyText(
     }
 
     const intro =
-      `Ich habe mehrere Produkte passend zu deinem Budget ${budgetText} gefunden.\n` +
+      `Ich habe mehrere Produkte passend zu deinem Budget ${budgetText} gefunden.\n\n` +
       `Ein sehr gutes Match ist:\n\n` +
-      `? ${first.title} ? ${formatPrice(first)}\n\n` +
+      `• ${first.title} – ${formatPrice(first)}\n\n` +
       "Zusätzlich habe ich dir unten noch weitere passende Produkte eingeblendet:";
 
-  const lines = recommended.map(
-      (p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`
-    );
+    const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title} – ${formatPrice(p)}`);
 
     const closing =
       "\n\nWenn du dein Budget anpassen möchtest (zum Beispiel etwas höher oder niedriger), sag mir einfach kurz Bescheid.";
@@ -502,23 +416,19 @@ export function buildRuleBasedReplyText(
     return [intro, "", ...lines, closing].join("\n");
   }
 
-  /**
-   * 2) Premium-Intent ohne Budget
-   */
+  // Premium-Intent
   if (intent === "premium") {
     let attributeHint = "";
     if (attributeTerms.length > 0) {
-      attributeHint =
-        ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
+      attributeHint = ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
     }
-    const qualityHint =
-      " Ich habe Produkte ausgewählt, bei denen Qualität im Vordergrund steht.";
+    const qualityHint = " Ich habe Produkte ausgewählt, bei denen Qualität im Vordergrund steht.";
 
     if (count === 1) {
       return (
         `Du legst Wert auf hohe Qualität – deshalb habe ich dir eine Premium-Variante ausgesucht: ` +
         `${first.title}. ` +
-        `Dieses Produkt ist in Material, Verarbeitung und Ausstattung klar über dem Standard. ` +
+        `Dieses Produkt ist in Material, Verarbeitung und Ausstattung klar über dem Standard.` +
         (attributeHint || qualityHint) +
         ` Wenn du möchtest, kann ich dir im nächsten Schritt auch noch eine etwas günstigere Alternative zeigen, ` +
         `die trotzdem hochwertig ist – falls du Preis und Qualität ausbalancieren willst.`
@@ -527,9 +437,8 @@ export function buildRuleBasedReplyText(
 
     const intro =
       `Du legst Wert auf hohe Qualität – deshalb habe ich dir ${count} passende Premium-Optionen ausgesucht. ` +
-      `Diese Produkte sind in Material, Verarbeitung und Ausstattung klar über dem Standard. ` +
-      (attributeHint || qualityHint) +
-      ` Ein besonders starkes Match ist:`;
+      `Ein besonders starkes Match ist:` +
+      (attributeHint || qualityHint);
 
     const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
 
@@ -540,57 +449,45 @@ export function buildRuleBasedReplyText(
     return [intro, "", `• ${first.title}`, "", ...lines, closing].join("\n");
   }
 
-  /**
-   * 3) Bargain-Intent ohne Budget
-   */
+  // Bargain-Intent
   if (intent === "bargain") {
-    const count = recommended.length;
     let attributeHint = "";
     if (attributeTerms.length > 0) {
       attributeHint = ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
     }
-    const priceHint =
-      " Ich habe auf ein gutes Preis-Leistungs-Verhältnis geachtet.";
+    const priceHint = " Ich habe auf ein gutes Preis-Leistungs-Verhältnis geachtet.";
 
     const intro =
       `Du möchtest ein gutes Angebot – deshalb habe ich dir ` +
       `${count === 1 ? "eine besonders preiswerte Option" : `${count} passende, preisbewusste Optionen`} herausgesucht. ` +
-      `Dabei achte ich nicht nur auf den niedrigsten Preis, sondern auch darauf, dass Qualität und Nutzen stimmen. ` +
       (attributeHint || priceHint);
+
     const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
+
     const closing =
       `\n\nUnten im Produktbereich siehst du die Vorschläge im Detail. ` +
       `Wenn du mir sagst, ob dir der absolut niedrigste Preis wichtiger ist oder ein gutes Preis-Leistungs-Verhältnis, ` +
-      `kann ich dir noch gezielter die beste Empfehlung geben. ` +
-      `Wenn du möchtest, kann ich dir zusätzlich auch noch eine etwas hochwertigere Alternative zeigen, ` +
-      `die nur wenig teurer ist, aber bei Ausstattung oder Haltbarkeit mehr bietet.`;
+      `kann ich dir noch gezielter die beste Empfehlung geben.`;
 
     return [intro, "", ...lines, closing].join("\n");
   }
 
-  /**
-   * 4) Geschenk-Intent
-   */
+  // Gift-Intent
   if (intent === "gift") {
-    const count = recommended.length;
     const intro =
       `Du suchst ein Geschenk – sehr schön. ` +
-      `Ich habe dir ${count === 1 ? "eine passende Idee" : `${count} passende Geschenkideen`} herausgesucht, ` +
-      `die sich gut zum Verschenken eignen. ` +
-      `Unten im Produktbereich siehst du die Vorschläge mit den wichtigsten Infos.`;
+      `Ich habe dir ${count === 1 ? "eine passende Idee" : `${count} passende Geschenkideen`} herausgesucht.`;
+
     const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
+
     const closing =
-      `\n\nWenn du mir sagst, für wen das Geschenk ist (z. B. Alter, Beziehung, Interessen) und in welchem Preisrahmen du bleiben möchtest, ` +
-      `kann ich dir noch gezielter 1–2 Top-Empfehlungen nennen. ` +
-      `Wenn du möchtest, kann ich dir auch noch helfen, zwischen "sicheren Klassikern" und etwas ausgefalleneren Ideen zu unterscheiden, ` +
-      `damit du genau den richtigen Ton triffst.`;
+      `\n\nWenn du mir sagst, für wen das Geschenk ist (z. B. Alter, Interessen) und in welchem Preisrahmen du bleiben möchtest, ` +
+      `kann ich dir noch gezielter 1–2 Top-Empfehlungen nennen.`;
 
     return [intro, "", ...lines, closing].join("\n");
   }
 
-  /**
-   * 5) Standard-Fälle (explore / quick_buy / bundle ...)
-   */
+  // Standard
   if (count === 1) {
     let attributeHint = "";
     if (attributeTerms.length > 0) {
@@ -608,9 +505,7 @@ export function buildRuleBasedReplyText(
     attributeHint = ` Ich habe auf folgende Kriterien geachtet: ${attributeTerms.join(", ")}.`;
   }
 
-  const intro =
-    "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet:" +
-    attributeHint;
+  const intro = "Ich habe dir unten eine Auswahl an passenden Produkten eingeblendet:" + attributeHint;
   const lines = recommended.map((p, idx) => `${idx + 1}. ${p.title}`);
   const closing =
     "\n\nWenn du möchtest, helfe ich dir jetzt beim Eingrenzen – zum Beispiel nach Preisbereich, Kategorie oder Einsatzzweck.";
@@ -618,16 +513,12 @@ export function buildRuleBasedReplyText(
   return [intro, "", ...lines, closing].join("\n");
 }
 
-
-
 export function buildReplyTextWithAiClarify(
   baseReplyText: string,
   aiTrigger?: SellerBrainAiTrigger,
   finalCount?: number
 ): string {
-  if (!aiTrigger || !aiTrigger.needsAiHelp) {
-    return baseReplyText;
-  }
+  if (!aiTrigger || !aiTrigger.needsAiHelp) return baseReplyText;
 
   const terms = (aiTrigger.unknownTerms ?? []).filter(Boolean);
   const termsSnippet = terms.length ? ` ${terms.join(", ")}` : "";
@@ -636,56 +527,33 @@ export function buildReplyTextWithAiClarify(
   let clarification = "";
 
   if (aiTrigger.reason === "no_results") {
-    if (terms.length > 0) {
-      clarification = `\n\nIch finde zu folgendem Begriff nichts im Katalog:${termsSnippet}. ` +
-        `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
-        `Sag mir zum Beispiel kurz, um welche Art Produkt es dir genau geht und in welchem Preisrahmen du ungefähr bleiben möchtest.`;
-    } else {
-      clarification = `\n\nIch habe zu deiner Beschreibung keine passenden Produkte gefunden. ` +
-        `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
-        `Sag mir zum Beispiel kurz, um welche Art Produkt es dir genau geht und in welchem Preisrahmen du ungefähr bleiben möchtest. ` +
-        `Du kannst z. B. sagen: "Zeig mir etwas Günstiges für jeden Tag" oder "Lieber etwas Hochwertiges, das lange hält".`;
-    }
+    clarification =
+      terms.length > 0
+        ? `\n\nIch finde zu folgendem Begriff nichts im Katalog:${termsSnippet}. ` +
+          `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
+          `Sag mir bitte kurz: Produktart + grober Preisrahmen.`
+        : `\n\nIch habe zu deiner Beschreibung keine passenden Produkte gefunden. ` +
+          `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
+          `Sag mir bitte kurz: Produktart + grober Preisrahmen.`;
   } else {
     if (hasProducts) {
-      // Produkte wurden gefunden, aber AI will noch nachfragen
-      if (terms.length > 0) {
-        clarification = `\n\nEinige deiner Begriffe kann ich im Katalog nicht zuordnen:${termsSnippet}. ` +
-          `Die Vorschläge unten passen grob zu deiner Anfrage. ` +
-          `Wenn du mir jetzt noch sagst, was dir am wichtigsten ist (z. B. Preis, Marke, bestimmte Eigenschaft), ` +
-          `kann ich dir daraus 1–2 besonders passende Empfehlungen herauspicken.`;
-      } else {
-        clarification = `\n\nDie Vorschläge unten passen grob zu deiner Anfrage. ` +
-          `Wenn du mir jetzt noch sagst, was dir am wichtigsten ist (z. B. Preis, Marke, bestimmte Eigenschaft), ` +
-          `kann ich dir daraus 1–2 besonders passende Empfehlungen herauspicken.`;
-      }
+      clarification =
+        terms.length > 0
+          ? `\n\nEinige deiner Begriffe kann ich im Katalog nicht zuordnen:${termsSnippet}. ` +
+            `Die Vorschläge unten passen grob zu deiner Anfrage. ` +
+            `Wenn du mir sagst, was dir am wichtigsten ist (Preis, Marke, Feature), picke ich dir 1–2 Top-Empfehlungen raus.`
+          : `\n\nDie Vorschläge unten passen grob zu deiner Anfrage. ` +
+            `Wenn du mir sagst, was dir am wichtigsten ist (Preis, Marke, Feature), picke ich dir 1–2 Top-Empfehlungen raus.`;
     } else {
-      // Keine Produkte gefunden, aber nicht "no_results"
-      if (terms.length > 0) {
-        clarification = `\n\nEinige deiner Begriffe kann ich im Katalog nicht zuordnen:${termsSnippet}. ` +
-          `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
-          `Sag mir zum Beispiel kurz, um welche Art Produkt es dir genau geht und in welchem Preisrahmen du ungefähr bleiben möchtest.`;
-      } else {
-        clarification = `\n\nDamit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details von dir. ` +
-          `Sag mir zum Beispiel kurz, um welche Art Produkt es dir genau geht und in welchem Preisrahmen du ungefähr bleiben möchtest. ` +
-          `Du kannst z. B. sagen: "Zeig mir etwas Günstiges für jeden Tag" oder "Lieber etwas Hochwertiges, das lange hält".`;
-      }
+      clarification =
+        terms.length > 0
+          ? `\n\nEinige deiner Begriffe kann ich im Katalog nicht zuordnen:${termsSnippet}. ` +
+            `Damit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details (Produktart + grober Preisrahmen).`
+          : `\n\nDamit ich dir wirklich passende Produkte vorschlagen kann, brauche ich noch ein, zwei Details (Produktart + grober Preisrahmen).`;
     }
   }
 
-  // Optional: Wenn wirklich gar keine Produkte gefunden wurden,
-  // kannst du den Basetext sp?ter k?rzen. F?r jetzt h?ngen wir
-  // nur die Kl?rung sauber an.
-  const combined = `${baseReplyText.trim()}\n\n${clarification.trim()}`;
-
-  console.log("[EFRO ReplyText AI-Clarify]", {
-    reason: aiTrigger.reason,
-    needsAiHelp: aiTrigger.needsAiHelp,
-    unknownTerms: aiTrigger.unknownTerms,
-    finalReplyText: combined,
-  });
-
-  return combined;
+  return `${baseReplyText.trim()}\n\n${clarification.trim()}`;
 }
 
 export function buildReplyText(
@@ -705,124 +573,50 @@ export function buildReplyText(
   replyMode?: "customer" | "operator"
 ): string {
   const effectiveReplyMode: "customer" | "operator" = replyMode ?? "operator";
-  
-  console.log("[EFRO ReplyText] mode='rule-based'", {
-    intent,
-    recommendedCount: recommended.length,
-    priceRangeNoMatch,
-    missingCategoryHint,
-    replyMode: effectiveReplyMode,
-  });
 
-  // EFRO Budget-Fix 2025-11-30 ? PriceRangeNoMatch Reply: Ehrliche Kommunikation, wenn kein Produkt im gew?nschten Preisbereich
-  // WICHTIG: Bei priceRangeNoMatch NUR den speziellen Text zur?ckgeben, KEIN zus?tzlicher Standard-Budget-Text
   if (priceRangeNoMatch && priceRangeInfo) {
-    const { userMinPrice, userMaxPrice, categoryMinPrice, categoryMaxPrice, category } = priceRangeInfo;
-    
-    let priceRangeText = "";
-    if (userMinPrice !== null && userMaxPrice === null) {
-      priceRangeText = `über ${userMinPrice} €`;
-    } else if (userMaxPrice !== null && userMinPrice === null) {
-      priceRangeText = `unter ${userMaxPrice} €`;
-    } else if (userMinPrice !== null && userMaxPrice !== null) {
-      priceRangeText = `zwischen ${userMinPrice} € und ${userMaxPrice} €`;
-    }
-    
-    const categoryLabel = category ? category : "Produkte";
-    
-    // EFRO Budget-Fix 2025-11-30: Sauberer, kurzer Text ohne zus?tzliche Budget-Formulierungen
-    let clarifyText = "";
-    const requestedRange = priceRangeText || "deinem gewünschten Preisbereich";
-    if (userMinPrice !== null && userMaxPrice === null) {
-      // "?ber X" = Untergrenze, aber nichts gefunden
-      clarifyText =
-        `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
-        `Ich habe dir stattdessen Vorschläge gezeigt, die dem, was du suchst, am nächsten kommen. ` +
-        `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
-        `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
-        `Sag mir einfach, ob dir eher ein möglichst günstiger Preis oder bestimmte Qualität/Marken wichtiger sind, ` +
-        `dann finde ich die beste Option für dich.`;
-    } else if (userMaxPrice !== null && userMinPrice === null) {
-      // "unter X" = Obergrenze, aber nichts gefunden
-      clarifyText =
-        `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
-        `Ich habe dir stattdessen Vorschläge gezeigt, die dem, was du suchst, am nächsten kommen. ` +
-        `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
-        `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
-        `Sag mir einfach, ob dir eher ein möglichst günstiger Preis oder bestimmte Qualität/Marken wichtiger sind, ` +
-        `dann finde ich die beste Option für dich.`;
-    } else {
-      // Bereich oder allgemein
-      clarifyText =
-        `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
-        `Ich habe dir stattdessen Vorschläge gezeigt, die dem, was du suchst, am nächsten kommen. ` +
-        `Wenn du dein Budget ein wenig nach oben oder unten anpassen kannst, ` +
-        `kann ich dir eine deutlich bessere Auswahl empfehlen. ` +
-        `Sag mir einfach, ob dir eher ein möglichst günstiger Preis oder bestimmte Qualität/Marken wichtiger sind, ` +
-        `dann finde ich die beste Option für dich.`;
-    }
-    
-    console.log("[EFRO ReplyText PriceRangeNoMatch]", {
-      priceRangeNoMatch,
-      priceRangeInfo,
-      clarifyTextLength: clarifyText.length,
-      note: "Nur spezieller Text, kein zus?tzlicher Standard-Budget-Text",
-    });
-    
-    // EFRO Budget-Fix 2025-11-30: Direkt zur?ckgeben, KEIN zus?tzlicher baseText
-    return clarifyText;
+    const { userMinPrice, userMaxPrice } = priceRangeInfo;
+
+    let requestedRange = "deinem gewünschten Preisbereich";
+    if (userMinPrice !== null && userMaxPrice === null) requestedRange = `über ${userMinPrice} €`;
+    else if (userMaxPrice !== null && userMinPrice === null) requestedRange = `unter ${userMaxPrice} €`;
+    else if (userMinPrice !== null && userMaxPrice !== null)
+      requestedRange = `zwischen ${userMinPrice} € und ${userMaxPrice} €`;
+
+    return (
+      `In ${requestedRange} habe ich in diesem Shop leider keine passenden Produkte gefunden. ` +
+      `Ich habe dir stattdessen Vorschläge gezeigt, die dem, was du suchst, am nächsten kommen. ` +
+      `Wenn du dein Budget ein wenig anpassen kannst, kann ich dir eine deutlich bessere Auswahl empfehlen.`
+    );
   }
 
-  // EFRO Budget-Fix 2025-11-30: Spezialfall: Fehlende Kategorie (z. B. "Bindungen" nicht im Katalog)
   if (missingCategoryHint) {
     const categoryLabel = missingCategoryHint;
-    
-    // EFRO S9 Fix: "pflege" soll auf "kosmetik" gemappt werden, nicht auf zuf?llige Kategorie
     const normalizedHint = normalize(categoryLabel);
-    let alternativeCategory = recommended.length > 0 && recommended[0].category 
-      ? recommended[0].category 
-      : "Produkte";
-    
-    // Spezielle Fallback-Mappings f?r h?ufige Kategorien
-    if (normalizedHint === "pflege" || normalizedHint.includes("pflege")) {
-      // Pr?fe, ob "kosmetik" im Katalog existiert
-      const hasCosmetics = recommended.some((p) => 
-        normalize(p.category || "").includes("kosmetik") || 
-        normalize(p.category || "").includes("cosmetic")
-      );
-      if (hasCosmetics) {
-        alternativeCategory = recommended.find((p) => 
-          normalize(p.category || "").includes("kosmetik") || 
-          normalize(p.category || "").includes("cosmetic")
-        )?.category || alternativeCategory;
-      }
+
+    let alternativeCategory =
+      recommended.length > 0 && recommended[0].category ? String(recommended[0].category) : "Produkte";
+
+    if (normalizedHint.includes("pflege")) {
+      const cosmetics = recommended.find((p) => normalize(p.category || "").includes("kosmetik"));
+      if (cosmetics?.category) alternativeCategory = String(cosmetics.category);
     }
-    
+
     let clarifyText = `In deinem Katalog finde ich nur ${alternativeCategory}, aber keine ${categoryLabel}. Ich zeige dir die ${alternativeCategory.toLowerCase()}.`;
-    
-    // Hinweis für den Shop-Betreiber nur im Operator-Modus anzeigen
+
     if (effectiveReplyMode === "operator") {
-      clarifyText += `\n\nHinweis für den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} – nur ${alternativeCategory} und Zubehör. ` +
+      clarifyText +=
+        `\n\nHinweis für den Shop-Betreiber: In deinem Katalog gibt es aktuell keine ${categoryLabel} – nur ${alternativeCategory} und Zubehör. ` +
         `Wenn du ${categoryLabel} verkaufen möchtest, solltest du entsprechende Produkte/Kategorien anlegen.`;
     }
-    
-    console.log("[EFRO ReplyText MissingCategory]", {
-      missingCategoryHint,
-      alternativeCategory,
-      clarifyTextLength: clarifyText.length,
-      replyMode: effectiveReplyMode,
-    });
-    
-    // Wenn Produkte vorhanden sind, f?ge den Hinweis zum normalen Text hinzu
+
     if (recommended.length > 0) {
       const baseText = buildRuleBasedReplyText(text, intent, recommended);
       return `${clarifyText}\n\n${baseText}`;
     }
-    
     return clarifyText;
   }
 
-  // Spezialfall: Nutzer nennt einen unbekannten Produktcode wie "ABC123"
   if (aiTrigger?.reason === "unknown_product_code_only") {
     const codeTerm =
       aiTrigger.codeTerm ||
@@ -832,75 +626,36 @@ export function buildReplyText(
 
     const codeLabel = codeTerm ? `"${codeTerm}"` : "diesen Code";
 
-    const clarifyText =
+    return (
       `Ich konnte den Code ${codeLabel} in diesem Shop nicht finden.\n\n` +
-      `Sag mir bitte, was für ein Produkt du suchst – zum Beispiel eine Kategorie (Haushalt, Pflege, Tierbedarf), ` +
-      `eine Marke oder ein bestimmtes Einsatzgebiet.\n` +
-      `Dann zeige ich dir gezielt passende Produkte.`;
-
-    console.log("[EFRO ReplyText UnknownCode]", {
-      reason: aiTrigger.reason,
-      codeTerm,
-      clarifyTextLength: clarifyText.length,
-    });
-
-    return clarifyText;
+      `Sag mir bitte, was für ein Produkt du suchst – zum Beispiel eine Kategorie, eine Marke oder ein Einsatzgebiet. ` +
+      `Dann zeige ich dir gezielt passende Produkte.`
+    );
   }
 
-  // EFRO Budget-Fix 2025-01-XX: Spezialfall - Vages Budget ohne konkrete Zahl
   if (aiTrigger?.reason === "ambiguous_budget") {
-    const clarifyText =
+    return (
       `Du hast erwähnt, dass dein Budget eher klein ist. Damit ich dir wirklich passende Produkte empfehlen kann:\n\n` +
-      `? Für welche Art von Produkt suchst du etwas (z. B. Snowboard, Haustier, Parfüm, Haushalt)?\n` +
-      `? Und ungefähr mit welchem Betrag möchtest du rechnen?`;
-
-    console.log("[EFRO ReplyText AmbiguousBudget]", {
-      reason: aiTrigger.reason,
-      clarifyTextLength: clarifyText.length,
-    });
-
-    return clarifyText;
+      `• Für welche Art von Produkt suchst du etwas?\n` +
+      `• Und ungefähr mit welchem Betrag möchtest du rechnen?`
+    );
   }
 
-  // EFRO Budget-Fix 2025-01-XX: Spezialfall - Budget mit Zahl, aber ohne Kategorie
   if (aiTrigger?.reason === "missing_category_for_budget") {
-    const clarifyText =
+    return (
       `Alles klar, du hast ein Budget genannt. Für welche Art von Produkt suchst du etwas – ` +
-      `z. B. Snowboard, Haustier-Produkte, Parfüm oder etwas für den Haushalt?`;
-
-    console.log("[EFRO ReplyText MissingCategoryForBudget]", {
-      reason: aiTrigger.reason,
-      clarifyTextLength: clarifyText.length,
-    });
-
-    return clarifyText;
+      `z. B. Haushalt, Pflege, Tierbedarf oder etwas anderes?`
+    );
   }
 
-  // Regel-basierte Logik
   const baseReplyText = buildRuleBasedReplyText(text, intent, recommended);
-
-  // AI-Kl?rung hinzuf?gen, falls n?tig
-  const finalReplyText = buildReplyTextWithAiClarify(
-    baseReplyText,
-    aiTrigger,
-    recommended.length
-  );
-
-  return finalReplyText;
+  return buildReplyTextWithAiClarify(baseReplyText, aiTrigger, recommended.length);
 }
 
 export function trimClarifyBlock(replyText: string | null | undefined): string {
   if (!replyText) return "";
-
   const marker = "Einige deiner Begriffe kann ich im Katalog nicht zuordnen";
-
   const idx = replyText.indexOf(marker);
-  if (idx === -1) {
-    // Kein Klarstellungs-Block -> Text unver?ndert zur?ckgeben
-    return replyText.trim();
-  }
-
-  // Nur den Teil vor dem Marker behalten
+  if (idx === -1) return replyText.trim();
   return replyText.slice(0, idx).trim();
 }
-
