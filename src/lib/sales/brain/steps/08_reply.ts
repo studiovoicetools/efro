@@ -2,6 +2,7 @@
 
 import { detectMostExpensiveRequest } from "../../intent";
 import { extractUserPriceRange } from "../../budget";
+import type { SellerBrainAiTrigger } from "../../modules/aiTrigger";
 
 import {
   QUERY_STOPWORDS,
@@ -31,19 +32,7 @@ type ProfisellerScenarioId =
   | "S6"
   | "fallback";
 
-export type SellerBrainAiTriggerReason =
-  | "no_results"
-  | "unknown_product_code_only"
-  | "ambiguous_budget"
-  | "missing_category_for_budget"
-  | "other";
 
-export type SellerBrainAiTrigger = {
-  needsAiHelp: boolean;
-  reason: SellerBrainAiTriggerReason;
-  unknownTerms?: string[];
-  codeTerm?: string | null;
-};
 
 function normalizeText(input: string): string {
   return String(input ?? "")
