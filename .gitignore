@@ -92,3 +92,7 @@ sellerbrain-scenarios-*.log
 src/lib/sales/brain/steps/08_reply.ts.bak-*
 *.bak-*
 
+
+# build logs
+_build_check*.log
+
