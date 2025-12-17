@@ -3253,11 +3253,8 @@ export async function runOrchestrator({
 }: BrainInput): Promise<BrainOutput> {
   const raw = userText ?? "";
   const cleaned = raw.trim();
-
-
-  // KB: optional (noch nicht verdrahtet -> bleibt undefined, kbRoute ist dann No-Op)
-  let storeFacts: any = undefined;
-
+  // KB: optional – kommt aus dem Context (kann undefined sein, kbRoute ist dann No-Op)
+  const storeFacts = context?.storeFacts;
   // Defensive Guard: Leere Produktliste
   if (!Array.isArray(allProducts) || allProducts.length === 0) {
     logWarn("[EFRO SB] Empty product list", {
@@ -3746,7 +3743,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       false,
       undefined,
       undefined,
-      context?.replyMode, storeFacts);
+      context?.replyMode, context?.storeFacts);
     
     return {
       intent: nextIntent,
@@ -4082,7 +4079,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       "dann zeige ich dir passende Produkte.";
   } else {
     // AI-Trigger wird sp?ter berechnet, hier noch undefined
-    replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, storeFacts);
+    replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, context?.storeFacts);
   }
 
   // Force-Show-Logik nach allen Guards: Wenn Produkte gefunden wurden, aber recommended leer ist
@@ -4098,7 +4095,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     // Reply-Text neu generieren, wenn noch nicht gesetzt
     // AI-Trigger wird sp?ter berechnet, hier noch undefined
     if (!replyText || replyText.includes("helfe dir nur")) {
-      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, storeFacts);
+      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, context?.storeFacts);
     }
   }
 
@@ -4165,7 +4162,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     
     // Reply-Text neu generieren, wenn Produkte gefunden wurden
     if (recommended.length > 0 && (!replyText || replyText.includes("helfe dir nur"))) {
-      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, storeFacts);
+      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, context?.storeFacts);
     }
   }
 
@@ -5439,7 +5436,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       priceRangeNoMatch,
       priceRangeInfo,
       missingCategoryHint ?? undefined,
-      context?.replyMode, storeFacts);
+      context?.replyMode, context?.storeFacts);
   } else if (aiTrigger?.needsAiHelp || missingCategoryHint) {
     finalReplyText = buildReplyText(
       cleaned,
@@ -5449,7 +5446,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       priceRangeNoMatch,
       priceRangeInfo,
       missingCategoryHint ?? undefined,
-      context?.replyMode, storeFacts);
+      context?.replyMode, context?.storeFacts);
   }
 
   // Defensive Guard: Stelle sicher, dass replyText niemals leer oder undefined ist

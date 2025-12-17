@@ -1,37 +1,40 @@
-// Zentrale Typen für SellerBrain
+﻿// Zentrale Typen fÃ¼r SellerBrain
 
 import type { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
+import type { StoreFacts } from "./kb/storeFacts";
 
 /**
- * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
+ * Kontext fÃ¼r SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
  */
 export interface SellerBrainContext {
+  storeFacts?: StoreFacts; // optional KB facts per shop
+
   activeCategorySlug?: string | null;
 }
 
 /**
- * AI-Trigger: Signal, wann SellerBrain zusätzliche AI-Hilfe gebrauchen könnte
+ * AI-Trigger: Signal, wann SellerBrain zusÃ¤tzliche AI-Hilfe gebrauchen kÃ¶nnte
  */
 export interface SellerBrainAiTrigger {
-  /** true, wenn SellerBrain zusätzliche AI-Hilfe gebrauchen könnte */
+  /** true, wenn SellerBrain zusÃ¤tzliche AI-Hilfe gebrauchen kÃ¶nnte */
   needsAiHelp: boolean;
-  /** Kurzbegründung, warum AI sinnvoll wäre */
+  /** KurzbegrÃ¼ndung, warum AI sinnvoll wÃ¤re */
   reason?: string;
-  /** Begriffe, die bisher nicht gut aufgelöst wurden */
+  /** Begriffe, die bisher nicht gut aufgelÃ¶st wurden */
   unknownTerms?: string[];
   /** Erkannter Produktcode wie "ABC123" */
   codeTerm?: string;
   /** Unbekannte Produktcodes (z. B. ["XY-9000"]) */
   unknownProductCodes?: string[];
-  /** Original-Query für AI (z. B. für Erklärungen) */
+  /** Original-Query fÃ¼r AI (z. B. fÃ¼r ErklÃ¤rungen) */
   queryForAi?: string;
-  /** Kontext für AI (z. B. matchedProducts für Erklärungen) */
+  /** Kontext fÃ¼r AI (z. B. matchedProducts fÃ¼r ErklÃ¤rungen) */
   context?: {
     matchedProducts?: Array<{ id: string; title: string; category?: string }>;
-    /** EFRO WAX-Fix: Produktbeschreibung für AI-Zusammenfassung */
+    /** EFRO WAX-Fix: Produktbeschreibung fÃ¼r AI-Zusammenfassung */
     productDescription?: string;
   };
-  /** EFRO Fressnapf-Fix: Strukturierte Anfragen für unbekannte Begriffe */
+  /** EFRO Fressnapf-Fix: Strukturierte Anfragen fÃ¼r unbekannte Begriffe */
   termExplainRequests?: Array<{
     term: string;
     purpose: "category_guess" | "semantic_help";
@@ -46,11 +49,11 @@ export type SellerBrainResult = {
   recommended: EfroProduct[];
   replyText: string;
   nextContext?: SellerBrainContext;
-  /** Meta-Infos, wann eine AI-Hilfe sinnvoll wäre */
+  /** Meta-Infos, wann eine AI-Hilfe sinnvoll wÃ¤re */
   aiTrigger?: SellerBrainAiTrigger;
-  /** EFRO Budget-Fix 2025-11-30: Flag, wenn keine Produkte im gewünschten Preisbereich gefunden wurden */
+  /** EFRO Budget-Fix 2025-11-30: Flag, wenn keine Produkte im gewÃ¼nschten Preisbereich gefunden wurden */
   priceRangeNoMatch?: boolean;
-  /** EFRO Budget-Fix 2025-11-30: Preisbereich-Informationen für ehrliche Kommunikation */
+  /** EFRO Budget-Fix 2025-11-30: Preisbereich-Informationen fÃ¼r ehrliche Kommunikation */
   priceRangeInfo?: {
     userMinPrice: number | null;
     userMaxPrice: number | null;
@@ -60,9 +63,9 @@ export type SellerBrainResult = {
   };
   /** EFRO Budget-Fix 2025-11-30: Fehlende Kategorie-Hinweis (z. B. "Bindungen" nicht im Katalog) */
   missingCategoryHint?: string;
-  /** EFRO Explanation-Mode: true, wenn der User eine Erklärung anfordert */
+  /** EFRO Explanation-Mode: true, wenn der User eine ErklÃ¤rung anfordert */
   explanationMode?: boolean;
-  /** EFRO WAX-Fix: Debug-Flags für fehlende Beschreibungen etc. */
+  /** EFRO WAX-Fix: Debug-Flags fÃ¼r fehlende Beschreibungen etc. */
   debugFlags?: {
     missingDescription?: boolean;
   };
@@ -76,7 +79,7 @@ export type ProductHint = {
 };
 
 /**
- * Optionen für runSellerBrainV2
+ * Optionen fÃ¼r runSellerBrainV2
  */
 export interface RunSellerBrainV2Options {
   shopDomain: string; // z.B. 'test-shop.myshopify.com' oder 'demo'

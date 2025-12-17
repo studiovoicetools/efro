@@ -4,6 +4,7 @@
 import { EfroProduct } from "@/lib/products/mockCatalog";
 import { ShoppingIntent } from "@/lib/products/mockCatalog";
 import type { SalesPolicyOutput } from "@/lib/sales/salesTypes";
+import type { StoreFacts } from "../../kb/storeFacts";
 
 /**
  * Preisbereich-Informationen für ehrliche Kommunikation
@@ -25,6 +26,8 @@ export type PriceRangeInfo = {
  * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
  */
 export interface SellerBrainContext {
+  storeFacts?: StoreFacts; // optional KB facts per shop
+
   activeCategorySlug?: string | null;
   /** Dynamische Aliase, die vom AI-Resolver gelernt wurden (z. B. "gesichtscreen" -> "gesichtscreme") */
   dynamicAliases?: Record<string, string>;
