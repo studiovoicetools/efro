@@ -1,0 +1,130 @@
+﻿export type ScenarioSeed = {
+  id: string;
+  title: string;
+  query: string;
+  note?: string;
+  context?: unknown;
+  [k: string]: unknown;
+};
+
+function hashString(input: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return function () {
+    a += 0x6d2b79f5;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function normalizeSpaces(s: string) {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+function uniq(arr: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of arr) {
+    const key = normalizeSpaces(s);
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+  }
+  return out;
+}
+
+function safeCandidates(q: string): string[] {
+  const t = q.trim();
+  const out: string[] = [];
+
+  // Satzzeichen-Varianten
+  if (!/[.?!]$/.test(t)) out.push(t + "?");
+  out.push(t.replace(/[.]+$/, "?"));
+  out.push(t.replace(/[?]+$/, "."));
+  out.push(t + "!");
+  out.push(t.replace(/[!]+$/, "."));
+
+  // sehr harmlose Prefix/Suffix (Smoke = ohne expected)
+  out.push("Bitte: " + t);
+  out.push("Kurze Frage: " + t);
+  out.push("Hey, " + t);
+  out.push(t + " bitte");
+  out.push(t + " danke");
+  out.push(t + " 🙂");
+
+  // Case-Noise (für Smoke ok)
+  out.push(t.toLowerCase());
+
+  // niemals identisch
+  const filtered = out.map(normalizeSpaces).filter((x) => x !== normalizeSpaces(t));
+  return uniq(filtered);
+}
+
+/**
+ * Erhöht die Gesamtanzahl deterministisch durch zusätzliche "SMOKE"-Tests.
+ * Diese Tests haben KEIN expected => sie prüfen nur: SellerBrain läuft durch.
+ */
+export function addSmokeTestsToReachTarget(
+  tests: ScenarioSeed[],
+  targetTotal: number,
+  opts?: { seed?: number }
+): ScenarioSeed[] {
+  const seed = opts?.seed ?? 1;
+
+  if (!Number.isFinite(targetTotal) || targetTotal <= tests.length) {
+    return tests;
+  }
+
+  const base = tests.map((t) => ({ ...t }));
+  const used = new Set<string>();
+  for (const t of base) used.add(normalizeSpaces(t.query));
+
+  const rngGlobal = mulberry32(hashString("EFRO_SMOKE") + seed);
+
+  const out: ScenarioSeed[] = [...base];
+  let smokeIndex = 1;
+
+  for (let i = 0; out.length < targetTotal; i++) {
+    const t = base[i % base.length];
+    const candidates = safeCandidates(t.query);
+
+    // deterministisch mischen
+    const shuffled = [...candidates].sort(() => rngGlobal() - 0.5);
+
+    for (const c of shuffled) {
+      if (out.length >= targetTotal) break;
+      const key = normalizeSpaces(c);
+      if (used.has(key)) continue;
+
+      out.push({
+        id: `${t.id}__sm${smokeIndex}`,
+        title: `${t.title} (SMOKE ${smokeIndex})`,
+        query: c,
+        note: "auto-smoke",
+        context: t.context,
+        expected: undefined,
+        variants: undefined,
+        variantQueries: undefined,
+      });
+
+      used.add(key);
+      smokeIndex++;
+    }
+
+    // Safety – aber sehr großzügig
+    if (i > base.length * 500) break;
+  }
+
+  return out;
+}

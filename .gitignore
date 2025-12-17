@@ -1,68 +1,94 @@
 # ============================
-# Node & Dependencies
+# Node & Package Manager
 # ============================
 node_modules/
 .pnp/
 .pnp.js
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # ============================
-# Build Outputs
+# Build Outputs / Coverage
 # ============================
 .next/
 out/
 build/
+dist/
 coverage/
 
 # ============================
-# Environment Files
+# Environment Files (never commit)
 # ============================
-# Lokale Umgebungsdateien – niemals mitpushen!
 .env
 .env.*
 !.env.example
 
 # ============================
-# TypeScript
+# TypeScript / Next
 # ============================
 *.tsbuildinfo
 next-env.d.ts
 
 # ============================
-# OS & Misc
+# Caches
+# ============================
+.eslintcache
+.turbo/
+.swc/
+.cache/
+
+# ============================
+# OS / Editor
 # ============================
 .DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+# ============================
+# Keys / Certs
+# ============================
 *.pem
 
 # ============================
-# Framework / Hosting
+# Hosting
 # ============================
-.vercel
-.render
+.vercel/
+.render/
 
 # ============================
-# Custom / Project Specific
+# Project Specific
 # ============================
-# Mascot Bot SDK Pakete (lokal eingebunden)
+# Mascot Bot SDK packages (local)
 mascotbot-sdk-react-*.tgz
 
-# Backup / Utility Scripts
+# Backup / Utility scripts
 syncfix.sh
 syncfix.cmd
 
+# ============================
+# EFRO local scratch / codex helpers
+# ============================
+_fails_*.log
+_fails_*.txt
+_fails_refactor_*.log
 
-# Logs
-*.log
-pnpm-debug.log*
+_checkpoint_*.patch
+_diff_before_*.patch
+_codex_*.patch
+_fix_*.patch
 
-# Build / Coverage
-dist/
-coverage/
+_out.txt
+_show.js
+_*.cjs
+_*.js
 
 
-# IDE / Editor
-.vscode/
-.idea/
+sellerbrain-scenarios-*.log
+src/lib/sales/brain/steps/08_reply.ts.bak-*
+*.bak-*
 

@@ -3,15 +3,6 @@
   "_version": "1.0.0",
   "aliases": [
     {
-      "term": "fressnapf",
-      "normalizedTerm": "fressnapf",
-      "type": "brand",
-      "mapToBrand": "fressnapf",
-      "mapToTag": "napf",
-      "confidence": 1.0,
-      "source": "static"
-    },
-    {
       "term": "napf",
       "normalizedTerm": "napf",
       "type": "tag",
@@ -122,7 +113,24 @@
       "mapToTag": "haare",
       "confidence": 0.8,
       "source": "static"
-    }
+    },
+	{
+  "term": "snowbord",
+  "normalizedTerm": "snowbord",
+  "type": "category",
+  "mapToCategorySlug": "snowboard",
+  "confidence": 0.9,
+  "source": "manual"
+},
+{
+  "term": "snowbords",
+  "normalizedTerm": "snowbords",
+  "type": "category",
+  "mapToCategorySlug": "snowboard",
+  "confidence": 0.9,
+  "source": "manual"
+}
+
   ]
 }
 

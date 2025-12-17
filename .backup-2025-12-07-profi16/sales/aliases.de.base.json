@@ -1,0 +1,119 @@
+{
+  "_comment": "Statische, manuell gepflegte Aliase für deutsche Sprache",
+  "_version": "1.0.0",
+  "aliases": [
+    {
+      "term": "napf",
+      "normalizedTerm": "napf",
+      "type": "tag",
+      "mapToTag": "napfset",
+      "confidence": 0.9,
+      "source": "static"
+    },
+    {
+      "term": "napfset",
+      "normalizedTerm": "napfset",
+      "type": "tag",
+      "mapToTag": "napfset",
+      "confidence": 1.0,
+      "source": "static"
+    },
+    {
+      "term": "parfum",
+      "normalizedTerm": "parfum",
+      "type": "category",
+      "mapToCategorySlug": "perfume",
+      "confidence": 1.0,
+      "source": "static"
+    },
+    {
+      "term": "parfüm",
+      "normalizedTerm": "parfum",
+      "type": "category",
+      "mapToCategorySlug": "perfume",
+      "confidence": 1.0,
+      "source": "static"
+    },
+    {
+      "term": "parfume",
+      "normalizedTerm": "parfum",
+      "type": "category",
+      "mapToCategorySlug": "perfume",
+      "confidence": 1.0,
+      "source": "static"
+    },
+    {
+      "term": "perfüm",
+      "normalizedTerm": "parfum",
+      "type": "category",
+      "mapToCategorySlug": "perfume",
+      "confidence": 1.0,
+      "source": "static"
+    },
+    {
+      "term": "badreiniger",
+      "normalizedTerm": "badreiniger",
+      "type": "usage",
+      "mapToTag": "bad",
+      "confidence": 0.8,
+      "source": "static"
+    },
+    {
+      "term": "hundeshampoo",
+      "normalizedTerm": "hundeshampoo",
+      "type": "tag",
+      "mapToTag": "hund",
+      "confidence": 0.9,
+      "source": "static"
+    },
+    {
+      "term": "pflegecreme",
+      "normalizedTerm": "pflegecreme",
+      "type": "tag",
+      "mapToTag": "pflege",
+      "confidence": 0.8,
+      "source": "static"
+    },
+    {
+      "term": "duschgel",
+      "normalizedTerm": "duschgel",
+      "type": "usage",
+      "mapToTag": "duschkabine",
+      "confidence": 0.7,
+      "source": "static"
+    },
+    {
+      "term": "haushaltsreiniger",
+      "normalizedTerm": "haushaltsreiniger",
+      "type": "usage",
+      "mapToTag": "reiniger",
+      "confidence": 0.9,
+      "source": "static"
+    },
+    {
+      "term": "babyhautpflege",
+      "normalizedTerm": "babyhautpflege",
+      "type": "tag",
+      "mapToTag": "babys",
+      "confidence": 0.8,
+      "source": "static"
+    },
+    {
+      "term": "kinderpflege",
+      "normalizedTerm": "kinderpflege",
+      "type": "tag",
+      "mapToTag": "kinder",
+      "confidence": 0.9,
+      "source": "static"
+    },
+    {
+      "term": "haarpflege",
+      "normalizedTerm": "haarpflege",
+      "type": "tag",
+      "mapToTag": "haare",
+      "confidence": 0.8,
+      "source": "static"
+    }
+  ]
+}
+

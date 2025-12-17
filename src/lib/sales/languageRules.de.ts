@@ -15,6 +15,8 @@ export const BUDGET_RANGE_PATTERNS = [
   /zwischen\s+(\d+)\s*(?:€|euro)?\s+und\s+(\d+)\s*(?:€|euro)?/i,
   // "von 400 bis 800"
   /von\s+(\d+)\s*(?:€|euro)?\s+bis\s+(\d+)\s*(?:€|euro)?/i,
+  // "20 bis 30 Euro" oder "20 bis 30 €" (ohne "von")
+  /(\d+)\s*(?:€|euro)?\s+bis\s+(\d+)\s*(?:€|euro)/i,
   // "400-800" oder "400 – 800"
   /(\d+)\s*[-–]\s*(\d+)/,
 ];
@@ -55,10 +57,80 @@ export const BUDGET_AROUND_WORDS = [
 
 // Kategorie-Keywords: Mapping von Kategorie-Slug zu Suchbegriffen
 export const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  snowboard: ["snowboard", "snowboards", "board"],
-  haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad"],
+  // EFRO Category-Fix 2025-12-03: Elektronik & Mode allgemeiner abdecken
+  elektronik: [
+    "elektronik",
+    "elektrische geräte",
+    "elektrisches gerät",
+    "smartphone",
+    "smartphones",
+    "handy",
+    "handys",
+    "phone",
+    "phones",
+    "telefon",
+    "mobiltelefon",
+    "mobiles gerät",
+    "iphone",
+    "android",
+    "galaxy",
+  ],
+  mode: [
+    "mode",
+    "fashion",
+    "kleidung",
+    "bekleidung",
+    "oberteil",
+    "oberteile",
+    "t-shirt",
+    "tshirts",
+    "shirt",
+    "shirts",
+    "pullover",
+    "hoodie",
+    "hoodies",
+    "sweatshirt",
+    "jacke",
+    "jacken",
+  ],
+  snowboard: [
+    "snowboard",
+    "snowboards",
+    "board",
+    "snowbord",
+    "snowbords",
+    "einsteiger board",
+    "einsteigerboard"
+  ],
+  // CLUSTER D FIX PROFI-01v1: "board" entfernt - zu mehrdeutig (kann Snowboard, Skateboard, Surfboard sein)
+  
+  // EFRO Budget-Fix 2025-11-30: Bindungen als eigene Kategorie
+  bindungen: ["bindungen", "bindung", "binding", "bindings", "snowboard-bindungen", "snowboard-bindung", "snowboardbindungen", "snowboardbindung"],
+  haushalt: ["haushalt", "putzen", "reiniger", "reinigung", "küche", "bad", "wasserkocher", "electric kettle", "kettle", "haushaltsgeräte", "küchengerät", "haushaltsgerät", "kochendes wasser", "wasser erhitzen", "kocher"],
   pflege: ["pflege", "shampoo", "duschgel", "seife", "creme", "öl", "oel", "lotion"],
-  tierbedarf: ["tier", "tierbedarf", "hund", "hunde", "welpe", "welpen", "katze", "katzen", "kater", "hündin", "futter", "leckerli"],
+  tierbedarf: ["tier", "tierbedarf", "hund", "hunde", "welpe", "welpen", "katze", "katzen", "kater", "hündin", "futter", "leckerli", "haustier", "haustiere", "pets", "pet", "dog", "cat", "animal", "napf", "fressnapf"],
+  perfume: ["perfume", "parfum", "parfüm", "duft", "eau de parfum", "eau de toilette"],
+  // SCHRITT 3 FIX: Garten-Kategorie hinzugefügt für S10v1
+  Garten: ["garten", "gartenartikel", "garten-artikel", "gartenbedarf", "gartenzubehör", "gartenzubehoer", "gartenprodukte"],
+  // SCHRITT 5 FIX: Kosmetik und Werkzeug für globale Kategorien
+  kosmetik: [
+    "kosmetik",
+    "beauty",
+    "pflegeprodukte",
+    "hautpflege",
+    // Direkt auf Gesichts- / Hautcremes zielende Begriffe
+    "gesichtscreme",
+    "gesichts creme",
+    "facecream",
+    "face cream",
+    "feuchtigkeitscreme",
+    "hautcreme",
+    "haut creme",
+    // Generische Creme-Begriffe, die häufig im Beauty-Kontext genutzt werden
+    "creme",
+    "cream"
+  ],
+  werkzeug: ["werkzeug", "tools", "werkzeugkoffer"],
   // hier können später weitere Kategorien ergänzt werden
 };
 
@@ -440,7 +512,10 @@ export const EXPLANATION_MODE_KEYWORDS = {
     "wie verwende ich",
     "wie benutze ich",
     "wie nutze ich",
+    "wie wende ich",
     "anwendung",
+    "schritt für schritt",
+    "schritt-für-schritt",
   ],
   washing: [
     "wie kann ich das waschen",
@@ -450,6 +525,48 @@ export const EXPLANATION_MODE_KEYWORDS = {
     "pflegehinweis",
   ],
 };
+
+// EFRO WAX-Disambiguierung: Keywords für Haarwachs vs. Snowboard-Wachs
+export const WAX_HAIR_KEYWORDS = [
+  "haare",
+  "haar",
+  "frisur",
+  "frisör",
+  "friseur",
+  "styling",
+  "pomade",
+  "hair",
+  "haarwachs",
+  "haarstyling",
+  "frisurprodukt",
+  "frisurprodukte",
+  "gelf",
+  "gel",
+  "wax für haare",
+  "wax für die haare",
+  "haarwax",
+];
+
+export const WAX_SNOWBOARD_KEYWORDS = [
+  "snowboard",
+  "snowboards",
+  "ski",
+  "skis",
+  "belag",
+  "board",
+  "piste",
+  "kanten",
+  "wax für snowboard",
+  "wax für ski",
+  "ski wax",
+  "snowboard wax",
+  "skiwachs",
+  "snowboardwachs",
+  "winter",
+  "sport",
+  "accessory",
+  "accessories",
+];
 
 // Kern-Produkt-Keywords: Wörter, die immer produktbezogen sind
 export const CORE_PRODUCT_KEYWORDS = [
@@ -467,9 +584,20 @@ export const CORE_PRODUCT_KEYWORDS = [
   "tuch",
   "wipes",
   // Näpfe/Fressnäpfe
+  // WICHTIG: "fressnapf" wurde entfernt - soll dynamisch über AI gelernt werden
   "napf",
-  "fressnapf",
   "futternapf",
+  // CLUSTER 2 FIX: Bindungen als produktbezogen erkennen
+  "bindungen",
+  "bindung",
+  "binding",
+  "bindings",
+  // CLUSTER K FIX: Smartphone- und Mode-Keywords als produktbezogen erkennen
+  "smartphone",
+  "smartphones",
+  "handy",
+  "handys",
+  "jeans",
   // Reinigungs-/Verschmutzungsbegriffe
   "schmutz",
   "verschmutz",
@@ -519,6 +647,35 @@ export const PREMIUM_WORDS = [
 // Bargain-Wörter: Intent-Erkennung für günstige Produkte
 export const BARGAIN_WORDS = [
   "billig",
+  "billige",
+  "billiger",
+  "billiges",
+  "billigste",
+  "billigstes",
+  "billigsten",
+  "guenstig",
+  "günstig",
+  "günstige",
+  "günstiger",
+  "günstiges",
+  "günstigste",
+  "günstigstes",
+  "günstigsten",
+  "preiswert",
+  "preiswerte",
+  "preiswerter",
+  "preiswertes",
+  "preiswerteste",
+  "preiswertestes",
+  "discount",
+  "spar",
+  "rabatt",
+  "deal",
+  "bargain",
+  "billigste",
+  "billigstes",
+  "billigsten",
+  "billig",
   "guenstig",
   "günstig",
   "discount",
@@ -528,6 +685,9 @@ export const BARGAIN_WORDS = [
   "bargain",
   "günstigste",
   "günstigsten",
+  "billigste",
+  "billigstes",
+  "billigsten"
 ];
 
 // Gift-Wörter: Intent-Erkennung für Geschenke
@@ -559,6 +719,8 @@ export const EXPLORE_WORDS = [
 // Most-Expensive-Patterns: Erkennung von "teuerstes Produkt"
 export const MOST_EXPENSIVE_PATTERNS = [
   /\b(teuerste|teuersten|teuerster)\s+(produkt|produkte|artikel)\b/,
+  /\b(premium|premium-)?(produkt|produkte|artikel)\s+mit\s+dem\s+(höchsten|höchste|höchster)\s+preis\b/i,
+  /\b(höchsten|höchste|höchster)\s+preis\b/i,
   "most expensive",
 ];
 
@@ -635,4 +797,78 @@ export const BUDGET_ONLY_STOPWORDS = [
   "marke",
   "brand",
 ];
+
+// ====================================================================
+// EFRO Dynamic Synonym Infrastructure
+// ====================================================================
+// Diese Infrastruktur ermöglicht es, Synonyme dynamisch zur Laufzeit
+// hinzuzufügen (z. B. durch AI-Lernen), ohne LanguageRules zu ändern.
+
+export type DynamicSynonymEntry = {
+  term: string;              // z. B. ein vom Nutzer verwendeter Begriff
+  canonicalCategory?: string; // z. B. "haustier" oder "pet"
+  extraKeywords?: string[];   // z. B. ["napf", "napfset"]
+  // EFRO: Erweitert für LanguageRule-Kompatibilität
+  canonical?: string;        // z. B. "napf" (synonym zu canonicalCategory)
+  keywords?: string[];       // Synonyme / Schlüsselwörter (synonym zu extraKeywords)
+  categoryHints?: string[];  // Kategorie-Hints (z. B. ["pets", "dogs", "cats"])
+};
+
+const dynamicSynonyms: DynamicSynonymEntry[] = [];
+
+/**
+ * Registriert ein dynamisches Synonym zur Laufzeit
+ * Wird typischerweise von der AI-Schicht aufgerufen, nachdem ein unbekannter Begriff
+ * erfolgreich aufgelöst wurde.
+ */
+export function registerDynamicSynonym(entry: DynamicSynonymEntry) {
+  const term = entry.term.toLowerCase().trim();
+  if (!term) return;
+
+  const existing = dynamicSynonyms.find(
+    (e) => e.term.toLowerCase() === term
+  );
+
+  if (existing) {
+    existing.canonicalCategory = entry.canonicalCategory ?? entry.canonical ?? existing.canonicalCategory;
+    existing.canonical = entry.canonical ?? entry.canonicalCategory ?? existing.canonical;
+    
+    // Merge keywords
+    if (entry.extraKeywords?.length || entry.keywords?.length) {
+      const merged = new Set([
+        ...(existing.extraKeywords ?? []),
+        ...(existing.keywords ?? []),
+        ...(entry.extraKeywords ?? []),
+        ...(entry.keywords ?? []),
+      ]);
+      existing.extraKeywords = Array.from(merged);
+      existing.keywords = Array.from(merged);
+    }
+    
+    // Merge categoryHints
+    if (entry.categoryHints?.length) {
+      const merged = new Set([
+        ...(existing.categoryHints ?? []),
+        ...entry.categoryHints,
+      ]);
+      existing.categoryHints = Array.from(merged);
+    }
+  } else {
+    dynamicSynonyms.push({
+      term,
+      canonicalCategory: entry.canonicalCategory ?? entry.canonical,
+      canonical: entry.canonical ?? entry.canonicalCategory,
+      extraKeywords: entry.extraKeywords ?? entry.keywords ?? [],
+      keywords: entry.keywords ?? entry.extraKeywords ?? [],
+      categoryHints: entry.categoryHints ?? [],
+    });
+  }
+}
+
+/**
+ * Gibt alle registrierten dynamischen Synonyme zurück
+ */
+export function getDynamicSynonyms(): DynamicSynonymEntry[] {
+  return dynamicSynonyms;
+}
 

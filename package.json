@@ -12,7 +12,10 @@
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "prebuild": "node prebuild.cjs",
-    "test:efro": "tsx tests/efro-sellerBrain-tests.ts"
+    "test:efro": "tsx tests/efro-sellerBrain-tests.ts",
+    "sellerbrain:test": "tsx scripts/test-sellerBrain-budget.ts",
+    "sellerbrain:scenarios": "tsx scripts/test-sellerBrain-scenarios.ts",
+    "test:loadProducts": "tsx scripts/test-loadProducts-scenarios.ts"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
@@ -26,6 +29,7 @@
     "csv-parse": "^5.5.6",
     "dotenv": "^16.4.5",
     "framer-motion": "^11.3.30",
+    "lucide-react": "^0.561.0",
     "next": "14.2.3",
     "openai": "^4.58.1",
     "postcss": "8.4.41",
@@ -37,6 +41,8 @@
     "@types/node": "^20.19.25",
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
+    "@typescript-eslint/parser": "^8.50.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.3",
     "ts-node": "^10.9.2",

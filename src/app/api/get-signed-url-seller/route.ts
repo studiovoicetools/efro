@@ -1,32 +1,64 @@
 ﻿// src/app/api/get-signed-url-seller/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
-import { getShopMeta } from "@/lib/shops/meta";
-import { touchShopLastSeen } from "@/lib/shops/db";
-import { resolveVoiceForAvatar } from "@/lib/voices/avatarVoices";
-import type { EfroAvatarId } from "@/lib/efro/mascotConfig";
-import type { VoiceKey } from "@/lib/voices/voiceCatalog";
 
-/**
- * Holt eine signed URL von ElevenLabs über das Mascot Bot Proxy-API.
- * Wird vom Avatar-Seller-Frontend aufgerufen.
- */
-async function createSignedUrlFromElevenLabs(
-  agentId: string,
-  dynamicVariables: any
-): Promise<string> {
+export const dynamic = "force-dynamic";
+
+type DynamicVariables = Record<string, string>;
+
+interface MascotSignedUrlResponse {
+  signed_url?: string;
+  [key: string]: unknown;
+}
+
+function maskToken(token: string | undefined | null): string {
+  if (!token) return "[undefined]";
+  if (token.length <= 8) return `[len=${token.length}] ${"*".repeat(token.length)}`;
+  const start = token.slice(0, 4);
+  const end = token.slice(-4);
+  return `[len=${token.length}] ${start}****${end}`;
+}
+
+function sanitizeDynamicVariables(input: unknown): DynamicVariables | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const result: DynamicVariables = {};
+  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+    if (typeof key === "string" && typeof value === "string") {
+      result[key] = value;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+async function createSignedUrlFromMascot(params: {
+  mascotApiKey: string;
+  elevenApiKey: string;
+  elevenAgentId: string;
+  dynamicVariables?: DynamicVariables;
+}) {
+  const { mascotApiKey, elevenApiKey, elevenAgentId, dynamicVariables } = params;
+
+  console.log("[get-signed-url-seller] Calling Mascot get-signed-url", {
+    mascotKeyMasked: maskToken(mascotApiKey),
+    elevenKeyMasked: maskToken(elevenApiKey),
+    agentIdMasked: maskToken(elevenAgentId),
+    hasDynamicVariables: !!dynamicVariables,
+  });
+
   const response = await fetch("https://api.mascot.bot/v1/get-signed-url", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.MASCOT_BOT_API_KEY}`,
+      // 🔐 genau wie in der offiziellen Mascot-Doku:
+      // Authorization: Bearer <token>
+      Authorization: `Bearer ${mascotApiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       config: {
         provider: "elevenlabs",
         provider_config: {
-          agent_id: agentId,
-          api_key: process.env.ELEVENLABS_API_KEY,
+          api_key: elevenApiKey,
+          agent_id: elevenAgentId,
+          sample_rate: 16000,
           ...(dynamicVariables && { dynamic_variables: dynamicVariables }),
         },
       },
@@ -34,114 +66,111 @@ async function createSignedUrlFromElevenLabs(
     cache: "no-store",
   });
 
+  const rawText = await response.text().catch(() => "");
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(
-      "[get-signed-url-seller] Failed to get signed URL:",
-      errorText
+    let parsed: unknown;
+    try {
+      parsed = rawText ? JSON.parse(rawText) : undefined;
+    } catch {
+      parsed = rawText || undefined;
+    }
+
+    console.error("[get-signed-url-seller] Mascot error", {
+      status: response.status,
+      statusText: response.statusText,
+      raw: parsed,
+    });
+
+    throw new Error(
+      `Mascot get-signed-url returned ${response.status} (${response.statusText})`
     );
-    throw new Error("Failed to get signed URL from Mascot Bot");
   }
 
-  const data = await response.json();
-
-  if (!data?.signed_url) {
+  let data: MascotSignedUrlResponse;
+  try {
+    data = rawText ? (JSON.parse(rawText) as MascotSignedUrlResponse) : {};
+  } catch (err) {
     console.error(
-      "[get-signed-url-seller] Response without signed_url field:",
+      "[get-signed-url-seller] Failed to parse Mascot JSON response",
+      err,
+      rawText
+    );
+    throw new Error("Mascot response is not valid JSON");
+  }
+
+  const signedUrl = data?.signed_url;
+  if (!signedUrl || typeof signedUrl !== "string") {
+    console.error(
+      "[get-signed-url-seller] Mascot response missing signed_url",
       data
     );
-    throw new Error("Mascot Bot did not return a signed_url");
+    throw new Error("Mascot response does not contain signed_url");
   }
 
-  return data.signed_url;
+  console.log("[get-signed-url-seller] Signed URL received");
+  return signedUrl;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[get-signed-url-seller] ENTER POST handler");
+    // 🔹 Body robust lesen
+    let dynamicVariables: DynamicVariables | undefined;
 
-    const body = await request.json().catch(() => ({}));
-    const incomingDynamic = body?.dynamicVariables ?? {};
-
-    // Shop-Domain bestimmen (vom Client oder Fallback auf local-dev)
-    const fallbackShop =
-      incomingDynamic.shopDomain ?? body?.shopDomain ?? "local-dev";
-
-    // Shop-Metadaten aus DB (oder Fallback) holen
-    const meta = await getShopMeta(fallbackShop);
-
-    // Last-Seen-Tracking (Fire & Forget)
-    touchShopLastSeen(meta.shopDomain).catch((err) => {
-      console.error("[get-signed-url-seller] touchShopLastSeen error", err);
-    });
-
-    console.log("[get-signed-url-seller] Shop Meta", {
-      fallbackShop,
-      meta,
-    });
-
-    // Finale dynamicVariables zusammenbauen:
-    // - was vom Client kommt
-    // - plus Shop-Info aus DB
-    const finalDynamicVariables = {
-      ...incomingDynamic,
-      language: meta.language ?? incomingDynamic.language ?? "de",
-      shopDomain: fallbackShop,
-      shopInfo: {
-        brandName: meta.brandName,
-        mainCategory: meta.mainCategory,
-        targetAudience: meta.targetAudience,
-        priceLevel: meta.priceLevel,
-        country: meta.country,
-        currency: meta.currency,
-        toneOfVoice: meta.toneOfVoice,
-        plan: meta.plan,
-      },
-    };
-
-    console.log("[get-signed-url-seller] Final dynamic variables", {
-      fallbackShop,
-      finalDynamicVariables,
-    });
-
-    // TODO: use real selected avatarId from context/store
-    // Aktuell: Default auf "bear", später aus Shop-Meta oder Client-Request
-    const avatarId: EfroAvatarId = (incomingDynamic.avatarId as EfroAvatarId) ?? "bear";
-    const preferredVoiceKey: VoiceKey | null = (incomingDynamic.preferredVoiceKey as VoiceKey) ?? null;
-
-    // Voice für Avatar auflösen
-    const resolved = resolveVoiceForAvatar({ avatarId, preferredVoiceKey });
-
-    if (!resolved.agentId) {
-      console.warn("[get-signed-url-seller] No agentId resolved, falling back to legacy ELEVENLABS_AGENT_ID");
-      // Fallback auf Legacy-Verhalten
-      const legacyAgentId = process.env.ELEVENLABS_AGENT_ID || "";
-      if (!legacyAgentId) {
-        return NextResponse.json(
-          { error: "No voice configuration available" },
-          { status: 500 }
-        );
-      }
-      const signedUrl = await createSignedUrlFromElevenLabs(legacyAgentId, finalDynamicVariables);
-      return NextResponse.json({ signedUrl });
+    try {
+      const body = (await request.json().catch(() => ({}))) as {
+        dynamicVariables?: unknown;
+      };
+      dynamicVariables = sanitizeDynamicVariables(body.dynamicVariables);
+    } catch (err) {
+      console.warn(
+        "[get-signed-url-seller] Failed to parse request JSON, continuing without dynamicVariables",
+        err
+      );
+      dynamicVariables = undefined;
     }
 
-    console.log("[EFRO Voice] Using voice", resolved.voiceKey, "for avatar", avatarId, "agentId:", resolved.agentId);
+    const mascotApiKey = process.env.MASCOT_BOT_API_KEY;
+    const elevenApiKey = process.env.ELEVENLABS_API_KEY;
+    const elevenAgentId = process.env.ELEVENLABS_AGENT_ID;
 
-    const signedUrl = await createSignedUrlFromElevenLabs(
-      resolved.agentId,
-      finalDynamicVariables
-    );
+    if (!mascotApiKey) {
+      console.error("[get-signed-url-seller] MASCOT_BOT_API_KEY fehlt oder ist leer");
+      return NextResponse.json(
+        { error: "MASCOT_BOT_API_KEY is missing on the server" },
+        { status: 500 }
+      );
+    }
 
+    if (!elevenApiKey || !elevenAgentId) {
+      console.error(
+        "[get-signed-url-seller] ELEVENLABS_API_KEY oder ELEVENLABS_AGENT_ID fehlt oder ist leer"
+      );
+      return NextResponse.json(
+        { error: "ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID are required" },
+        { status: 500 }
+      );
+    }
+
+    const signedUrl = await createSignedUrlFromMascot({
+      mascotApiKey,
+      elevenApiKey,
+      elevenAgentId,
+      dynamicVariables,
+    });
+
+    // ✅ Frontend erwartet { signedUrl: string }
     return NextResponse.json({ signedUrl });
-  } catch (error) {
-    console.error("[get-signed-url-seller] Error fetching signed URL:", error);
+  } catch (error: unknown) {
+    console.error("[get-signed-url-seller] Unerwarteter Fehler", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to generate signed URL";
     return NextResponse.json(
-      { error: "Failed to generate signed URL" },
+      {
+        error: "Failed to generate signed URL",
+        details: message,
+      },
       { status: 500 }
     );
   }
 }
-
-// wichtig, damit Next das nicht cached
-export const dynamic = "force-dynamic";

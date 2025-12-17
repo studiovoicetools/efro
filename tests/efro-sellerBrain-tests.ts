@@ -70,7 +70,7 @@ async function runSingleTest(
 
   try {
     // Rufe runSellerBrain auf, genau wie im normalen Flow
-    const result = runSellerBrain(
+    const result = await runSellerBrain(
       testCase.text,
       "explore", // currentIntent: Standard-Intent für Tests
       products,

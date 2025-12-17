@@ -1,4 +1,4 @@
-// src/lib/products/relatedProducts.ts
+﻿// src/lib/products/relatedProducts.ts
 
 import { EfroProduct } from "./mockCatalog";
 
@@ -15,8 +15,8 @@ function similarityScore(a: EfroProduct, b: EfroProduct): number {
   let score = 0;
 
   // Gemeinsame Tags
-  const tagsA = new Set(a.tags);
-  const commonTags = b.tags.filter((t) => tagsA.has(t));
+  const tagsA = new Set(Array.isArray(a.tags) ? a.tags : []);
+  const commonTags = Array.isArray(b.tags) ? b.tags.filter((t) => tagsA.has(t)) : [];
   score += commonTags.length * 2; // jeder gemeinsame Tag gibt 2 Punkte
 
   // Gleiche Kategorie

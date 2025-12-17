@@ -1,4 +1,8 @@
-﻿// src/app/api/shopify-products/route.ts
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+// src/app/api/shopify-products/route.ts
 import { NextResponse } from "next/server";
 
 const SHOP_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN;

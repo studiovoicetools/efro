@@ -1,7 +1,7 @@
 // src/app/api/efro/ai-unknown-terms/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import type { SellerBrainAiTrigger } from "@/lib/sales/sellerBrain";
+import type { SellerBrainAiTrigger } from "@/lib/sales/modules/aiTrigger";
 import type { LearnedAliasProposal } from "@/lib/sales/aliasLearning";
 import {
   generateAliasProposals,
@@ -26,6 +26,9 @@ interface AiUnknownTermsResponse {
   proposals?: LearnedAliasProposal[];
   savedCount?: number;
 }
+
+// 🧠 In-Memory-Cache für AI-Unknown-Terms (pro Node-Prozess)
+const aiUnknownTermsCache = new Map<string, LearnedAliasProposal[]>();
 
 /**
  * POST /api/efro/ai-unknown-terms
@@ -71,6 +74,11 @@ export async function POST(req: NextRequest) {
 
     const unknownTerms = aiTrigger.unknownTerms || [];
     
+    // 🧠 Cache-Key berechnen
+    const shopKey = shopDomain ?? "default-shop";
+    const textKey = normalizeAliasKey(userText);
+    const cacheKey = `${shopKey}::${textKey}`;
+    
     console.log("[EFRO AI-UnknownTerms]", {
       shopDomain: shopDomain ?? "local-dev",
       userText: userText.substring(0, 200), // Begrenze auf 200 Zeichen für Logs
@@ -85,8 +93,25 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-    // Generiere Alias-Vorschläge
-    const proposals = generateAliasProposals(unknownTerms, catalogMeta);
+    // 🧠 Cache-Hit: Wenn wir für diese Kombination schon AI-Ergebnisse haben,
+    // verwende sie und überspringe den AI-Call.
+    let proposals: LearnedAliasProposal[] | null = null;
+    const cached = aiUnknownTermsCache.get(cacheKey);
+    if (cached) {
+      console.log("[EFRO AI-UnknownTerms] Cache-Hit für", cacheKey, "→ benutze gespeicherte Proposals");
+      proposals = cached;
+    } else {
+      console.log("[EFRO AI-UnknownTerms] Cache-Miss für", cacheKey, "→ rufe generateAliasProposals auf");
+      proposals = generateAliasProposals(unknownTerms, catalogMeta);
+
+      // Nur dann cachen, wenn wir ein gültiges Array haben (auch leere Arrays cachen, um Doppelaufrufe zu vermeiden)
+      if (Array.isArray(proposals)) {
+        aiUnknownTermsCache.set(cacheKey, proposals);
+      }
+    }
+
+    // Sicherstellen, dass proposals mindestens ein leeres Array ist
+    proposals = proposals ?? [];
     
     console.log("[EFRO AI-UnknownTerms] Generated proposals", {
       unknownTermsCount: unknownTerms.length,

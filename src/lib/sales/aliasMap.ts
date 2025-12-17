@@ -263,9 +263,6 @@ export function loadAliasEntries(language: "de" = "de", shopDomain?: string): Al
       if (normalizedValue === "perfume") {
         type = "category";
         mapToCategorySlug = "perfume";
-      } else if (key === "fressnapf") {
-        type = "brand";
-        mapToBrand = "fressnapf";
       } else {
         type = "tag";
         mapToTag = normalizedValue;
@@ -376,7 +373,7 @@ const LANGUAGE_ALIAS_SEEDS: Record<string, string[]> = {
  */
 const LANGUAGE_ALIAS_KEYS = new Set([
   "parfum", "parfüm", "perfüm", "parfume", "perfume",
-  "fressnapf", "napf", "napfset", // Bestehende manuelle Aliase
+  "napf", "napfset", // Bestehende manuelle Aliase (fressnapf entfernt - soll dynamisch gelernt werden)
 ]);
 
 /**
@@ -385,17 +382,36 @@ const LANGUAGE_ALIAS_KEYS = new Set([
  * WICHTIG: 
  * - Language-Aliase (z. B. "parfum" -> "perfume") bleiben IMMER erhalten, auch wenn "perfume" nicht in catalogKeywords ist.
  * - Andere Values werden nur behalten, wenn sie in catalogKeywords vorkommen.
+ * - Dynamic Aliases (vom AI-Resolver gelernt) werden am Ende hinzugefügt.
+ * - Supabase-Aliase werden optional geladen und mit JSON-Aliasen kombiniert.
  * 
  * @param catalogKeywords Liste von bekannten Katalog-Keywords (für Filterung)
+ * @param shopDomain Optional: Shop-Domain für shop-spezifische Aliase
+ * @param dynamicAliases Optional: Dynamische Aliase aus SellerBrainContext (vom AI-Resolver gelernt)
  * @returns Normalisierte Alias-Map (alte Struktur für Rückwärtskompatibilität)
  */
-export function initializeAliasMap(
+export async function initializeAliasMap(
   catalogKeywords: string[],
-  shopDomain?: string
-): AliasMap {
+  shopDomain?: string,
+  dynamicAliases?: Record<string, string>
+): Promise<AliasMap> {
   // Lade AliasEntry[] aus statischen und dynamischen Quellen
   // WICHTIG: Bei jedem Start werden beide Quellen geladen (statisch + dynamisch)
-  const entries = loadAliasEntries("de", shopDomain);
+  const baseEntries = loadAliasEntries("de", shopDomain);
+  let allEntries = [...baseEntries];
+  
+  // Versuche Supabase-Aliase zu laden (optional)
+  try {
+    const supabaseEntries = await loadAliasEntriesFromSupabase("de", shopDomain);
+    if (Array.isArray(supabaseEntries) && supabaseEntries.length > 0) {
+      console.log("[EFRO AliasMap] Supabase-Aliase geladen:", supabaseEntries.length);
+      allEntries = [...allEntries, ...supabaseEntries];
+    }
+  } catch (err) {
+    console.warn("[EFRO AliasMap] Konnte Supabase-Aliase nicht laden:", err);
+  }
+  
+  const entries = allEntries;
   
   // Konvertiere zu alter AliasMap-Struktur für Rückwärtskompatibilität
   const map = convertAliasEntriesToMap(entries, catalogKeywords);
@@ -494,6 +510,33 @@ export function initializeAliasMap(
     }
   }
 
+  // 3. Dynamic Aliases aus SellerBrainContext hinzufügen (vom AI-Resolver gelernt)
+  if (dynamicAliases && Object.keys(dynamicAliases).length > 0) {
+    for (const [from, to] of Object.entries(dynamicAliases)) {
+      const key = normalizeAliasKey(from);
+      if (!key) continue;
+
+      const normalizedValue = normalizeAliasKey(to);
+      if (!normalizedValue) continue;
+
+      // Prüfe, ob der Value im Katalog vorhanden ist (oder als Language-Alias behandelt werden soll)
+      const isLanguageAlias = LANGUAGE_ALIAS_KEYS.has(key);
+      const valueInCatalog = known.has(normalizedValue);
+
+      if (isLanguageAlias || valueInCatalog) {
+        const existing = map[key] || [];
+        if (!existing.includes(normalizedValue)) {
+          map[key] = Array.from(new Set([...existing, normalizedValue]));
+        }
+      }
+    }
+
+    console.log("[EFRO AliasMapInit] Dynamic aliases added", {
+      dynamicAliasesCount: Object.keys(dynamicAliases).length,
+      example: Object.entries(dynamicAliases).slice(0, 3),
+    });
+  }
+
   // Debug-Log
   const isDev = process.env.NODE_ENV !== "production";
   if (isDev) {
@@ -504,7 +547,7 @@ export function initializeAliasMap(
       aliasKeys: Object.keys(map).slice(0, 20),
       aliasKeysCount: Object.keys(map).length,
       entriesCount: entries.length,
-      fressnapfEntry: map["fressnapf"] || null,
+      dynamicAliasesCount: dynamicAliases ? Object.keys(dynamicAliases).length : 0,
       parfumEntry: map[parfumKey] || null,
       parfümEntry: map[parfümKey] || null,
       hasPerfumeInKnown: known.has("perfume"),

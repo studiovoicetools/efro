@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AvatarPreview } from "@/components/efro/AvatarPreview";
-import { VOICES as VOICE_CATALOG, type VoiceKey } from "@/lib/voices/voiceCatalog";
+import type { VoiceKey } from "@/lib/voices/voiceCatalog";
 import { getRandomDemoPhrase } from "@/lib/voices/demoPhrases";
 import type { EfroAvatarId } from "@/lib/efro/mascotConfig";
 
@@ -65,47 +65,67 @@ const AVATARS: AvatarOption[] = [
 // -------------------- ElevenLabs-Optionen --------------------
 
 type VoiceOption = {
-  key: VoiceKey;
-  name: string;
-  description: string;
+  id: VoiceKey;
+  label: string;
+  voiceId: string; // ElevenLabs Agent ID aus Env-Variablen
+  locale: "de" | "en";
 };
 
-// Nutze echte VoiceKeys aus voiceCatalog.ts
+// Voice-Optionen mit direkter Mapping zu ElevenLabs Voice-IDs aus Env-Variablen
 const VOICES: VoiceOption[] = [
   {
-    key: "de_female_soft_1",
-    name: "Deutsch – weiblich – soft 1",
-    description: "Weich, freundlich, standard",
+    id: "de_female_soft_1",
+    label: "Deutsch – weiblich – soft 1",
+    voiceId: process.env.NEXT_PUBLIC_EFRO_VOICE_DE_FEMALE_SOFT_1 ?? "",
+    locale: "de",
   },
   {
-    key: "de_female_soft_2",
-    name: "Deutsch – weiblich – soft 2",
-    description: "Weich, freundlich, alternative",
+    id: "de_female_soft_2",
+    label: "Deutsch – weiblich – soft 2",
+    voiceId: process.env.NEXT_PUBLIC_EFRO_VOICE_DE_FEMALE_SOFT_2 ?? "",
+    locale: "de",
   },
   {
-    key: "de_male_confident_1",
-    name: "Deutsch – männlich – klar 1",
-    description: "Klar, ruhig, seriös",
+    id: "de_male_confident_1",
+    label: "Deutsch – männlich – klar 1",
+    voiceId: process.env.NEXT_PUBLIC_EFRO_VOICE_DE_MALE_CONFIDENT_1 ?? "",
+    locale: "de",
   },
   {
-    key: "de_male_confident_2",
-    name: "Deutsch – männlich – klar 2",
-    description: "Klar, ruhig, alternative",
+    id: "de_male_confident_2",
+    label: "Deutsch – männlich – klar 2",
+    voiceId: process.env.NEXT_PUBLIC_EFRO_VOICE_DE_MALE_CONFIDENT_2 ?? "",
+    locale: "de",
   },
 ].filter((v): v is VoiceOption => {
-  // Nur Voices anzeigen, die auch in voiceCatalog.ts existieren und eine agentId haben
-  const catalogVoice = VOICE_CATALOG.find((c) => c.key === v.key);
-  return !!(catalogVoice && catalogVoice.agentId);
+  // Nur Voices anzeigen, die eine gültige voiceId haben
+  return !!v.voiceId && v.voiceId.trim().length > 0;
 });
 
 export default function EfroOnboardingPage() {
   const router = useRouter();
 
+  // Shop aus URL lesen (client-side)
+  const [shop, setShop] = useState<string>("demo");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const shopParam = params.get("shop");
+      if (shopParam && shopParam.trim().length > 0) {
+        setShop(shopParam);
+      }
+    } catch (error) {
+      console.error("[EFRO Onboarding] Failed to read shop from URL", error);
+    }
+  }, []);
+
   const [selectedAvatarId, setSelectedAvatarId] = useState<EfroAvatarId>("bear");
   const [selectedVoiceKey, setSelectedVoiceKey] = useState<VoiceKey | null>(
-    VOICES[0]?.key ?? null
+    VOICES[0]?.id ?? null
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
   // TODO: Onboarding Lipsync-Preview später über sicheren Golden-Flow anbinden
@@ -117,7 +137,7 @@ export default function EfroOnboardingPage() {
 
   const selectedVoice = useMemo(() => {
     if (!selectedVoiceKey) return VOICES[0] ?? null;
-    return VOICES.find((v) => v.key === selectedVoiceKey) ?? VOICES[0] ?? null;
+    return VOICES.find((v) => v.id === selectedVoiceKey) ?? VOICES[0] ?? null;
   }, [selectedVoiceKey]);
 
   useEffect(() => {
@@ -134,10 +154,21 @@ export default function EfroOnboardingPage() {
       return;
     }
 
-    const avatarId = selectedAvatarId ?? "bear";
-    console.log("[EFRO Onboarding] Voice preview requested", {
+    // Resolve die tatsächliche ElevenLabs voiceId aus den Voice-Optionen
+    const selectedVoice = VOICES.find((v) => v.id === voiceKey);
+    if (!selectedVoice || !selectedVoice.voiceId) {
+      console.warn("[EFRO Onboarding] Voice preview: selected voice not found or no voiceId", {
+        voiceKey,
+        availableVoices: VOICES.map((v) => ({ id: v.id, hasVoiceId: !!v.voiceId })),
+      });
+      return;
+    }
+
+    const avatarId = selectedAvatarId;
+    console.log("[EFRO Onboarding] Voice preview using", {
+      selectedVoiceKey: voiceKey,
+      voiceId: selectedVoice.voiceId,
       avatarId,
-      voiceKey,
     });
 
     try {
@@ -145,6 +176,8 @@ export default function EfroOnboardingPage() {
 
       const text = getRandomDemoPhrase("intro");
 
+      // Verwende die resolved voiceId direkt für die Preview
+      // Die API-Route kann preferredVoiceKey verwenden, aber wir senden auch die voiceId als Fallback
       const res = await fetch("/api/efro/voice-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -190,12 +223,59 @@ export default function EfroOnboardingPage() {
     }
   };
 
-  // Hier kannst du später z. B. in Supabase speichern oder in localStorage
+  // Speichere Einstellungen in Supabase und navigiere weiter
   async function handleContinue() {
-    try {
-      setIsSaving(true);
+    setSaveError(null);
+    setIsSaving(true);
 
-      // Beispiel: Einstellungen in localStorage merken (einfacher Start)
+    try {
+      // Resolve die tatsächliche ElevenLabs voiceId aus den Voice-Optionen
+      const selectedVoice = selectedVoiceKey
+        ? VOICES.find((v) => v.id === selectedVoiceKey) ?? null
+        : null;
+      const resolvedVoiceId = selectedVoice?.voiceId ?? null;
+      const locale = selectedVoice?.locale ?? "de";
+
+      // Sicherstellen, dass avatarId der tatsächlich ausgewählte Avatar ist
+      const avatarId = selectedAvatarId;
+
+      const payload = {
+        shop,
+        avatarId: avatarId ?? null,
+        voiceId: resolvedVoiceId,
+        locale,
+        ttsEnabled: true,
+      };
+
+      console.log("[EFRO Onboarding] Saving shop settings payload", {
+        payload,
+        selectedAvatarId,
+        selectedVoiceKey,
+        selectedVoice: selectedVoice ? { id: selectedVoice.id, voiceId: selectedVoice.voiceId, locale: selectedVoice.locale } : null,
+      });
+
+      const res = await fetch("/api/efro/shop-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorJson = await res.json().catch(() => null);
+        console.error("[EFRO Onboarding] Failed to save settings", {
+          status: res.status,
+          errorJson,
+        });
+        setSaveError(
+          "Die Einstellungen konnten nicht gespeichert werden. Bitte versuche es später noch einmal."
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      // Einstellungen auch in localStorage merken (Fallback)
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           "efro-avatar-settings",
@@ -207,9 +287,13 @@ export default function EfroOnboardingPage() {
         );
       }
 
-      // Weiter zur Avatar-Seller-Seite
-      router.push("/avatar-seller");
-    } finally {
+      // Weiter zur Avatar-Seller-Seite mit Shop-Parameter
+      router.push(`/avatar-seller?shop=${encodeURIComponent(shop)}`);
+    } catch (error) {
+      console.error("[EFRO Onboarding] Error while saving settings", error);
+      setSaveError(
+        "Die Einstellungen konnten nicht gespeichert werden. Bitte versuche es später noch einmal."
+      );
       setIsSaving(false);
     }
   }
@@ -263,7 +347,13 @@ export default function EfroOnboardingPage() {
                     <button
                       key={avatar.id}
                       type="button"
-                      onClick={() => setSelectedAvatarId(avatar.id as EfroAvatarId)}
+                      onClick={() => {
+                        console.log("[EFRO Onboarding] Avatar selected", {
+                          avatarId: avatar.id,
+                          avatarName: avatar.name,
+                        });
+                        setSelectedAvatarId(avatar.id as EfroAvatarId);
+                      }}
                       className={[
                         "w-full text-left rounded-xl border px-3 py-3 transition-all",
                         "bg-slate-900/70 hover:bg-slate-800/70",
@@ -320,13 +410,18 @@ export default function EfroOnboardingPage() {
                     onChange={(e) => {
                       const voiceKey = e.target.value as VoiceKey;
                       setSelectedVoiceKey(voiceKey);
-                      console.log("[EFRO Onboarding] Voice selected", voiceKey);
+                      const voice = VOICES.find((v) => v.id === voiceKey);
+                      console.log("[EFRO Onboarding] Voice selected", {
+                        voiceKey,
+                        voiceId: voice?.voiceId,
+                        label: voice?.label,
+                      });
                     }}
                     className="flex-1 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400"
                   >
                     {VOICES.map((voice) => (
-                      <option key={voice.key} value={voice.key}>
-                        {voice.name}
+                      <option key={voice.id} value={voice.id}>
+                        {voice.label}
                       </option>
                     ))}
                   </select>
@@ -351,7 +446,7 @@ export default function EfroOnboardingPage() {
                 </div>
                 {selectedVoice && (
                   <p className="text-[11px] text-slate-400">
-                    {selectedVoice.description}
+                    {selectedVoice.locale === "de" ? "Deutsche Stimme" : "English voice"} • Voice-ID: {selectedVoice.voiceId.substring(0, 20)}...
                   </p>
                 )}
               </div>
@@ -413,28 +508,35 @@ export default function EfroOnboardingPage() {
                 <li>
                   • Stimme:{" "}
                   <span className="font-semibold text-sky-300">
-                    {selectedVoice?.name ?? "Nicht ausgewählt"}
+                    {selectedVoice?.label ?? "Nicht ausgewählt"}
                   </span>
                 </li>
                 <li>• Modus: Produktberatung + Verkauf (v1)</li>
               </ul>
 
-              <div className="flex items-center justify-between mt-2">
-                <button
-                  type="button"
-                  onClick={handleContinue}
-                  disabled={isSaving}
-                  className={[
-                    "inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold",
-                    "bg-emerald-500 text-slate-950 hover:bg-emerald-400",
-                    "disabled:opacity-60 disabled:cursor-not-allowed",
-                  ].join(" ")}
-                >
-                  {isSaving ? "Speichere…" : "Weiter zum Avatar"}
-                </button>
-                <span className="text-[10px] text-slate-500">
-                  Du kannst Avatar & Stimme später jederzeit ändern.
-                </span>
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={handleContinue}
+                    disabled={isSaving}
+                    className={[
+                      "inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold",
+                      "bg-emerald-500 text-slate-950 hover:bg-emerald-400",
+                      "disabled:opacity-60 disabled:cursor-not-allowed",
+                    ].join(" ")}
+                  >
+                    {isSaving ? "Speichere…" : "Weiter zum Avatar"}
+                  </button>
+                  <span className="text-[10px] text-slate-500">
+                    Du kannst Avatar & Stimme später jederzeit ändern.
+                  </span>
+                </div>
+                {saveError && (
+                  <div className="mt-2 text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                    {saveError}
+                  </div>
+                )}
               </div>
             </div>
           </section>
