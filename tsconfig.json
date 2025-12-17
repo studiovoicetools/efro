@@ -1,4 +1,4 @@
-{
+﻿{
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -14,10 +14,10 @@
     "jsx": "preserve",
     "incremental": true,
 
-    // ✅ Base URL für Alias-Pfade
+    // âœ… Base URL fÃ¼r Alias-Pfade
     "baseUrl": ".",
 
-    // ✅ Einheitliche Alias-Mappings für alle Projektteile
+    // âœ… Einheitliche Alias-Mappings fÃ¼r alle Projektteile
     "paths": {
       "@/*": ["src/*"],
       "@/components/*": ["src/components/*"],
@@ -26,7 +26,7 @@
       "@/lib/*": ["src/lib/*"]
     },
 
-    // ✅ Next.js TypeScript Plugin
+    // âœ… Next.js TypeScript Plugin
     "plugins": [{ "name": "next" }]
   },
 
@@ -38,8 +38,11 @@
   ],
 
   "exclude": [
-    "node_modules",
-    "src_backup",
-    "src/efro_legacy/**/*"
+    
+    "src/efro_legacy/**/*","node_modules",
+    "src_backup"
+    
   ]
 }
+
+
