@@ -39,6 +39,10 @@ async function loadTestProducts(): Promise<EfroProduct[]> {
     process.env.EFRO_DEBUG_PRODUCTS_URL ??
     "http://localhost:3000/api/efro/debug-products?shop=local-dev";
 
+  // NEW: allowFixtureFallback from env
+  const allowFixtureFallback = process.env.EFRO_ALLOW_FIXTURE_FALLBACK === "1";
+  console.log("[EFRO Scenarios] Mode", { allowFixtureFallback });
+
   console.log("[EFRO Scenarios] Loading products (api with fixture fallback)", {
     url: DEBUG_PRODUCTS_URL,
   });
@@ -47,19 +51,20 @@ async function loadTestProducts(): Promise<EfroProduct[]> {
     url: DEBUG_PRODUCTS_URL,
     fixturePath: "scripts/fixtures/products.local.json",
     timeoutMs: 4000,
+    allowFixtureFallback,
   });
 
-  if (!products || products.length === 0) {
+  if (!products || (Array.isArray(products) && products.length === 0)) {
     console.error("[EFRO Scenarios] ERROR: No products loaded (api + fixture empty).");
     process.exit(1);
   }
 
   console.log("[EFRO Scenarios] Loaded products", {
-    count: products.length,
+    count: Array.isArray(products) ? products.length : "(non-array)",
     source,
   });
 
-  return products;
+  return products as EfroProduct[];
 }
 
 
@@ -2640,6 +2645,12 @@ async function main() {
         },
       },
     ];
+	
+	const baseTests: ScenarioTest[] = [
+  ...baseTestsCore,
+  ...(Array.isArray(generatedScenarios) ? (generatedScenarios as any as ScenarioTest[]) : []),
+];
+
 
     // Expandiere Basis-Szenarien mit Varianten
     const expandedTests: ScenarioTest[] = [];
