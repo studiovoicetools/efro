@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { EfroProduct } from "@/lib/products/mockCatalog";
 import { mockCatalog } from "@/lib/products/mockCatalog";
+import { debugProductsScenarios } from "../../../../data/debugProducts.scenarios";
 
 type ShopifyProduct = {
   id: string | number;
@@ -11,6 +12,25 @@ type ShopifyProduct = {
   variants?: { price?: string | null }[];
   image?: { src?: string | null } | null;
   images?: { src?: string | null }[];
+};
+
+type ShopifyProductsApiResponse = {
+  products?: unknown;
+};
+
+type DebugResponse = {
+  ok: boolean;
+  source: "debug-products";
+  step: string;
+  baseUrl?: string;
+  shop?: string | null;
+  dataset?: string;
+  shopifyUrl?: string;
+  shopifyStatus?: number;
+  rawCount?: number;
+  products?: EfroProduct[];
+  productsSource?: string;
+  error?: string;
 };
 
 function stripHtml(html: string): string {
@@ -40,10 +60,7 @@ function mapShopifyToEfro(sp: ShopifyProduct): EfroProduct {
       ? stripHtml(sp.body_html)
       : sp.title;
 
-  const imageUrl =
-    (sp.image && sp.image.src) ||
-    (sp.images && sp.images[0]?.src) ||
-    "";
+  const imageUrl = sp.image?.src ?? sp.images?.[0]?.src ?? "";
 
   return {
     id: String(sp.id),
@@ -56,43 +73,64 @@ function mapShopifyToEfro(sp: ShopifyProduct): EfroProduct {
   };
 }
 
-// diese Route ist bewusst dynamisch
+// Diese Route ist bewusst dynamisch (kein Static Caching)
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const debug: any = {
+  const debug: DebugResponse = {
     ok: false,
     source: "debug-products",
     step: "start",
   };
 
+  const headers = { "Cache-Control": "no-store" };
+
   try {
-    // Basis-URL bestimmen
     const url = new URL(request.url);
     debug.step = "parsed-url";
-    const baseUrl = `${url.protocol}//${url.host}`;
-    debug.baseUrl = baseUrl;
 
-    // Shopify Produkte holen
-    const res = await fetch(`${baseUrl}/api/shopify-products`, {
-      cache: "no-store",
-    });
-    debug.step = "fetched-shopify";
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const shop = url.searchParams.get("shop");
+    const dataset = url.searchParams.get("dataset") ?? "";
+
+    debug.baseUrl = baseUrl;
+    debug.shop = shop;
+    debug.dataset = dataset;
+
+    // 1) dataset=scenarios -> Fixture zurückgeben (ohne Netzwerk / ohne Shopify)
+    if (dataset === "scenarios") {
+      debug.step = "dataset=scenarios";
+      debug.products = debugProductsScenarios as EfroProduct[];
+      debug.productsSource = "fixture (debugProductsScenarios)";
+      debug.ok = true;
+      return NextResponse.json(debug, { status: 200, headers });
+    }
+
+    // 2) Normalmodus -> Shopify Produkte holen (shop param weiterreichen, falls vorhanden)
+    const shopifyUrl = new URL(`${baseUrl}/api/shopify-products`);
+    if (shop) shopifyUrl.searchParams.set("shop", shop);
+
+    debug.shopifyUrl = shopifyUrl.toString();
+    debug.step = "fetching-shopify";
+
+    const res = await fetch(debug.shopifyUrl, { cache: "no-store" });
     debug.shopifyStatus = res.status;
+    debug.step = "fetched-shopify";
 
     if (!res.ok) {
       debug.error = `HTTP ${res.status} from /api/shopify-products`;
       debug.products = mockCatalog;
       debug.productsSource = "mockCatalog (fallback: bad HTTP status)";
       debug.ok = true;
-      return NextResponse.json(debug);
+      return NextResponse.json(debug, { status: 200, headers });
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as ShopifyProductsApiResponse;
     debug.step = "parsed-json";
 
-    const rawProducts: ShopifyProduct[] = Array.isArray(data.products)
-      ? data.products
+    const rawProducts = Array.isArray(data.products)
+      ? (data.products as ShopifyProduct[])
       : [];
     debug.rawCount = rawProducts.length;
 
@@ -101,7 +139,7 @@ export async function GET(request: NextRequest) {
       debug.productsSource =
         "mockCatalog (fallback: /api/shopify-products returned 0 products)";
       debug.ok = true;
-      return NextResponse.json(debug);
+      return NextResponse.json(debug, { status: 200, headers });
     }
 
     const products: EfroProduct[] = rawProducts.map(mapShopifyToEfro);
@@ -109,14 +147,14 @@ export async function GET(request: NextRequest) {
     debug.products = products;
     debug.productsSource = "shopify-products (mapped to EfroProduct)";
     debug.ok = true;
-    return NextResponse.json(debug);
-  } catch (err: any) {
+    return NextResponse.json(debug, { status: 200, headers });
+  } catch (err) {
     debug.step = "catch";
-    debug.error = err?.message ?? String(err);
+    debug.error = err instanceof Error ? err.message : String(err);
     debug.products = mockCatalog;
     debug.productsSource =
       "mockCatalog (fallback: error in debug-products handler)";
     debug.ok = false;
-    return NextResponse.json(debug);
+    return NextResponse.json(debug, { status: 200, headers });
   }
 }
