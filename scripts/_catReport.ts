@@ -23,7 +23,7 @@ const url =
   process.env.EFRO_DEBUG_PRODUCTS_URL ??
   "http://localhost:3000/api/efro/debug-products?shop=local-dev";
 
-loadDebugProducts(url)
+loadDebugProducts({ url })
   .then((res: any) => {
     const prods = res.products || [];
     const map = new Map<string, any>();

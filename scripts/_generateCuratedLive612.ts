@@ -60,7 +60,7 @@ function categoryQueries(cat: string): string[] {
   ];
 }
 
-loadDebugProducts(url)
+loadDebugProducts({ url })
   .then((res: any) => {
     const products: any[] = res?.products || [];
     if (!Array.isArray(products) || products.length === 0) {

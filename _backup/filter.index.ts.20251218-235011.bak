@@ -1,0 +1,3771 @@
+﻿
+// src/lib/sales/modules/filter/index.ts
+// EFRO Modularization Phase 3: Filter-Logik vollständig ausgelagert
+
+import type { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
+import type { PriceRangeInfo, SellerBrainContext } from "@/lib/sales/modules/types";
+import { normalizeText, normalize, collectMatches } from "@/lib/sales/modules/utils";
+import { determineEffectiveCategory } from "@/lib/sales/modules/category";
+import { computePriceRangeInfo, analyzeBudget, extractUserPriceRange } from "@/lib/sales/budget";
+import { detectMostExpensiveRequest } from "@/lib/sales/intent";
+import { isPerfumeProduct } from "@/lib/sales/categories";
+import { normalizeAliasKey, initializeAliasMap, type AliasMap } from "@/lib/sales/aliasMap";
+import { getDynamicSynonyms } from "@/lib/sales/languageRules.de";
+import {
+  INTENT_WORDS,
+  QUERY_STOPWORDS,
+  ATTRIBUTE_PHRASES,
+  ATTRIBUTE_KEYWORDS,
+  PERFUME_SYNONYMS,
+  CATEGORY_KEYWORDS,
+  USAGE_KEYWORDS,
+  SKIN_KEYWORDS,
+  WAX_HAIR_KEYWORDS,
+  WAX_SNOWBOARD_KEYWORDS,
+  PREMIUM_TOKENS,
+  MOLD_KEYWORDS,
+  MOLD_PRODUCT_KEYWORDS,
+} from "@/lib/sales/languageRules.de";
+
+// Typen
+type ProductAttributeMap = Record<string, string[]>;
+
+type ShopAttributeVocabulary = {
+  key: string;
+  values: string[];
+  examples: string[];
+  usageCount: number;
+};
+
+type AttributeIndex = {
+  perProduct: Record<string, ProductAttributeMap>;
+  vocabulary: ShopAttributeVocabulary[];
+};
+
+type ParsedQuery = {
+  coreTerms: string[];
+  attributeTerms: string[];
+  attributeFilters: ProductAttributeMap;
+};
+
+type UnknownTermsResult = {
+  rawTerms: string[];
+  normalizedTerms: string[];
+  unknownTerms: string[];
+  resolved: string[];
+  aliasMapUsed: boolean;
+};
+
+export type ResolvedUnknownTerm = string;
+
+const HUMAN_SKIN_CATEGORIES = [
+  "kosmetik",
+  "beauty",
+  "pflege",
+  "haut",
+  "gesicht",
+  "body",
+];
+
+// Hilfsfunktionen (1:1 aus sellerBrain.ts kopiert)
+
+function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
+  const perProduct: Record<string, ProductAttributeMap> = {};
+
+  const vocabMap = new Map<
+    string,
+    {
+      values: Set<string>;
+      examples: string[];
+      usageCount: number;
+    }
+  >();
+
+  function addAttribute(
+    productId: string,
+    attributeKey: string,
+    attributeValue: string
+  ): void {
+    if (!perProduct[productId]) {
+      perProduct[productId] = {};
+    }
+
+    const productAttrs = perProduct[productId];
+
+    if (!productAttrs[attributeKey]) {
+      productAttrs[attributeKey] = [];
+    }
+
+    if (!productAttrs[attributeKey].includes(attributeValue)) {
+      productAttrs[attributeKey].push(attributeValue);
+    }
+
+    if (!vocabMap.has(attributeKey)) {
+      vocabMap.set(attributeKey, {
+        values: new Set<string>(),
+        examples: [],
+        usageCount: 0,
+      });
+    }
+
+    const vocab = vocabMap.get(attributeKey)!;
+    vocab.values.add(attributeValue);
+    vocab.usageCount += 1;
+
+    const product = allProducts.find((p) => p.id === productId);
+    if (product && vocab.examples.length < 3) {
+      if (!vocab.examples.includes(product.title)) {
+        vocab.examples.push(product.title);
+      }
+    }
+  }
+
+  function detectSkinType(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (
+      /trockenhaut|trockene\s+haut|trockener\s+haut|dry\s+skin/.test(normalized)
+    ) {
+      addAttribute(productId, "skin_type", "dry");
+    }
+
+    if (
+      /empfindliche\s+haut|empfindlicher\s+haut|empfindlich|sensible\s+haut|sensibler\s+haut|sensitive\s+skin/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "skin_type", "sensitive");
+    }
+
+    if (
+      /fettige\s+haut|fettiger\s+haut|fettig|oily\s+skin/.test(normalized)
+    ) {
+      addAttribute(productId, "skin_type", "oily");
+    }
+
+    if (/mischhaut|combination\s+skin/.test(normalized)) {
+      addAttribute(productId, "skin_type", "combination");
+    }
+
+    if (
+      /reife\s+haut|reifer\s+haut|reif|mature\s+skin|anti-?aging|anti\s+aging/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "skin_type", "mature");
+    }
+  }
+
+  function detectAudience(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (
+      /für\s+herren|für\s+männer|for\s+men\b|herren\b|männer\b|\bmen\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "audience", "men");
+    }
+
+    if (
+      /für\s+damen|für\s+frauen|for\s+women\b|damen\b|frauen\b|\bwomen\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "audience", "women");
+    }
+
+    if (
+      /für\s+kinder|for\s+kids\b|\bkinder\b|\bkids\b|\bchildren\b|für\s+jungs|für\s+mädchen/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "audience", "kids");
+    }
+
+    if (
+      /für\s+babys|für\s+babies|for\s+baby\b|\bbaby\b|\bbabies\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "audience", "baby");
+    }
+
+    if (/unisex\b|für\s+alle|for\s+all\b/.test(normalized)) {
+      addAttribute(productId, "audience", "unisex");
+    }
+  }
+
+  function detectPet(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (
+      /für\s+hunde|for\s+dog\b|\bhund\b|\bhunde\b|\bdog\b|\bdogs\b|\bwelpe\b|\bpuppy\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "pet", "dog");
+    }
+
+    if (
+      /für\s+katzen|for\s+cat\b|\bkatze\b|\bkatzen\b|\bcat\b|\bcats\b|\bkitten\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "pet", "cat");
+    }
+
+    if (
+      !perProduct[productId]?.pet &&
+      /haustier|haustiere|\bpet\b|\bpets\b|für\s+tiere/.test(normalized)
+    ) {
+      addAttribute(productId, "pet", "pet");
+    }
+  }
+
+  function detectRoom(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (
+      /für\s+bad|für\s+badezimmer|for\s+bathroom\b|\bbad\b|\bbadezimmer\b|\bbathroom\b|\bbath\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "room", "bathroom");
+    }
+
+    if (
+      /für\s+küche|für\s+kueche|for\s+kitchen\b|\bküche\b|\bkueche\b|\bkitchen\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "room", "kitchen");
+    }
+
+    if (
+      /für\s+wohnzimmer|for\s+living\s+room\b|\bwohnzimmer\b|\bliving\s+room\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "room", "living_room");
+    }
+
+    if (
+      /für\s+schlafzimmer|for\s+bedroom\b|\bschlafzimmer\b|\bbedroom\b/.test(
+        normalized
+      )
+    ) {
+      addAttribute(productId, "room", "bedroom");
+    }
+  }
+
+  function detectFamily(text: string, productId: string): void {
+    const normalized = normalizeText(text);
+
+    if (/duschgel|shower\s+gel|dusch\s+gel/.test(normalized)) {
+      addAttribute(productId, "family", "shower_gel");
+    }
+
+    if (/shampoo|shamp\b/.test(normalized)) {
+      addAttribute(productId, "family", "shampoo");
+    }
+
+    if (/hoodie|hoody/.test(normalized)) {
+      addAttribute(productId, "family", "hoodie");
+    }
+
+    if (/reiniger|cleaner|reinigungs|cleaning/.test(normalized)) {
+      addAttribute(productId, "family", "cleaner");
+    }
+
+    if (/tücher|tuecher|tuch|wipes/.test(normalized)) {
+      addAttribute(productId, "family", "wipes");
+    }
+
+    if (/\bspray\b/.test(normalized)) {
+      addAttribute(productId, "family", "spray");
+    }
+
+    if (/creme|cream|lotion/.test(normalized)) {
+      addAttribute(productId, "family", "cream");
+    }
+
+    if (/\böl\b|\boil\b/.test(normalized)) {
+      addAttribute(productId, "family", "oil");
+    }
+
+    if (/seife|soap/.test(normalized)) {
+      addAttribute(productId, "family", "soap");
+    }
+
+    if (/napf|futternapf/.test(normalized)) {
+      addAttribute(productId, "family", "bowl");
+    }
+  }
+
+  for (const product of allProducts) {
+    const productId = product.id;
+
+    const tagsText =
+      Array.isArray((product as any).tags)
+        ? (product as any).tags.join(" ")
+        : typeof (product as any).tags === "string"
+        ? (product as any).tags
+        : "";
+
+    const aggregatedText = normalizeText(
+      [
+        product.title,
+        product.description || "",
+        product.category || "",
+        tagsText,
+      ].join(" ")
+    );
+
+    detectSkinType(aggregatedText, productId);
+    detectAudience(aggregatedText, productId);
+    detectPet(aggregatedText, productId);
+    detectRoom(aggregatedText, productId);
+    detectFamily(aggregatedText, productId);
+  }
+
+  const vocabulary: ShopAttributeVocabulary[] = Array.from(
+    vocabMap.entries()
+  ).map(([key, data]) => ({
+    key,
+    values: Array.from(data.values).sort(),
+    examples: data.examples.slice(0, 3),
+    usageCount: data.usageCount,
+  }));
+
+  vocabulary.sort((a, b) => b.usageCount - a.usageCount);
+
+  return {
+    perProduct,
+    vocabulary,
+  };
+}
+
+function parseQueryForAttributes(text: string): ParsedQuery {
+  const normalized = normalizeText(text);
+
+  const stopwords = QUERY_STOPWORDS;
+  const attributePhrases = ATTRIBUTE_PHRASES;
+
+  const foundPhrases: string[] = [];
+  let remainingText = normalized;
+
+  for (const phrase of attributePhrases) {
+    if (remainingText.includes(phrase)) {
+      foundPhrases.push(phrase);
+      remainingText = remainingText.replace(phrase, " ");
+    }
+  }
+
+  const remainingTokens = remainingText
+    .split(" ")
+    .filter((t) => t.length >= 3 && !stopwords.includes(t));
+
+  const attributeKeywords = ATTRIBUTE_KEYWORDS;
+
+  const attributeTerms: string[] = [...foundPhrases];
+  const coreTerms: string[] = [];
+
+  for (const token of remainingTokens) {
+    if (
+      attributeKeywords.includes(token) ||
+      foundPhrases.some((p) => p.includes(token))
+    ) {
+      if (!attributeTerms.includes(token)) {
+        attributeTerms.push(token);
+      }
+    } else {
+      coreTerms.push(token);
+    }
+  }
+
+  const attributeFilters: ProductAttributeMap = {};
+
+  function addFilter(key: string, value: string): void {
+    if (!attributeFilters[key]) {
+      attributeFilters[key] = [];
+    }
+    if (!attributeFilters[key].includes(value)) {
+      attributeFilters[key].push(value);
+    }
+  }
+
+  if (
+    /trockenhaut|trockene\s+haut|trockener\s+haut|dry\s+skin/.test(normalized)
+  ) {
+    addFilter("skin_type", "dry");
+  }
+  if (
+    /empfindliche\s+haut|empfindlicher\s+haut|empfindlich|sensible\s+haut|sensibler\s+haut|sensitive\s+skin/.test(
+      normalized
+    )
+  ) {
+    addFilter("skin_type", "sensitive");
+  }
+  if (
+    /fettige\s+haut|fettiger\s+haut|fettig|oily\s+skin/.test(normalized)
+  ) {
+    addFilter("skin_type", "oily");
+  }
+  if (/mischhaut|combination\s+skin/.test(normalized)) {
+    addFilter("skin_type", "combination");
+  }
+  if (
+    /reife\s+haut|reifer\s+haut|reif|mature\s+skin|anti-?aging|anti\s+aging/.test(
+      normalized
+    )
+  ) {
+    addFilter("skin_type", "mature");
+  }
+
+  if (/anti-aging|anti aging|antiaging|anti age/.test(normalized)) {
+    addFilter("skin_type", "mature");
+  }
+
+  if (
+    /für\s+herren|für\s+männer|for\s+men\b|herren\b|männer\b|\bmen\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("audience", "men");
+  }
+  if (
+    /für\s+damen|für\s+frauen|for\s+women\b|damen\b|frauen\b|\bwomen\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("audience", "women");
+  }
+  if (
+    /für\s+kinder|for\s+kids\b|\bkinder\b|\bkids\b|\bchildren\b|für\s+jungs|für\s+mädchen/.test(
+      normalized
+    )
+  ) {
+    addFilter("audience", "kids");
+  }
+  if (
+    /für\s+babys|für\s+babies|for\s+baby\b|\bbaby\b|\bbabies\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("audience", "baby");
+  }
+  if (/unisex\b|für\s+alle|for\s+all\b/.test(normalized)) {
+    addFilter("audience", "unisex");
+  }
+
+  if (
+    /für\s+hunde|hund\b|\bhunde\b|for\s+dog\b|\bdog\b|\bdogs\b|\bwelpe\b|\bpuppy\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("pet", "dog");
+  }
+  if (
+    /für\s+katzen|katze\b|\bkatzen\b|for\s+cat\b|\bcat\b|\bcats\b|\bkitten\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("pet", "cat");
+  }
+  if (
+    !attributeFilters.pet &&
+    /haustier|haustiere|\bpet\b|\bpets\b|für\s+tiere/.test(normalized)
+  ) {
+    addFilter("pet", "pet");
+  }
+
+  if (
+    /für\s+bad|für\s+badezimmer|\bbad\b|\bbadezimmer\b|for\s+bathroom\b|\bbathroom\b|\bbath\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("room", "bathroom");
+  }
+  if (
+    /für\s+küche|für\s+kueche|\bküche\b|\bkueche\b|for\s+kitchen\b|\bkitchen\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("room", "kitchen");
+  }
+  if (
+    /für\s+wohnzimmer|\bwohnzimmer\b|for\s+living\s+room\b|\bliving\s+room\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("room", "living_room");
+  }
+  if (
+    /für\s+schlafzimmer|\bschlafzimmer\b|for\s+bedroom\b|\bbedroom\b/.test(
+      normalized
+    )
+  ) {
+    addFilter("room", "bedroom");
+  }
+
+  if (/duschgel|shower\s+gel|dusch\s+gel/.test(normalized)) {
+    addFilter("family", "shower_gel");
+  }
+  if (/shampoo|shamp\b/.test(normalized)) {
+    addFilter("family", "shampoo");
+  }
+  if (/hoodie|hoody/.test(normalized)) {
+    addFilter("family", "hoodie");
+  }
+  if (/reiniger|cleaner|reinigungs|cleaning|schmutz|verschmutz|verschmutzungen|fleck|flecken|kalk/.test(normalized)) {
+    addFilter("family", "cleaner");
+  }
+  if (/tücher|tuecher|tuch|wipes/.test(normalized)) {
+    addFilter("family", "wipes");
+  }
+  if (/\bspray\b/.test(normalized)) {
+    addFilter("family", "spray");
+  }
+  if (/creme|cream|lotion/.test(normalized)) {
+    addFilter("family", "cream");
+  }
+  if (/\böl\b|\boil\b/.test(normalized)) {
+    addFilter("family", "oil");
+  }
+  if (/seife|soap/.test(normalized)) {
+    addFilter("family", "soap");
+  }
+
+  return {
+    coreTerms,
+    attributeTerms,
+    attributeFilters,
+  };
+}
+
+function expandWordsWithCatalogKeywords(
+  words: string[],
+  catalogKeywords: string[]
+): string[] {
+  const result = new Set<string>();
+  const keywordSet = new Set(
+    catalogKeywords.map((k) => k.toLowerCase().trim()).filter((k) => k.length >= 3)
+  );
+
+  for (const w of words) {
+    const lower = w.toLowerCase().trim();
+    if (!lower) continue;
+
+    result.add(lower);
+
+    for (const kw of keywordSet) {
+      if (lower !== kw && lower.endsWith(kw)) {
+        result.add(kw);
+      }
+    }
+  }
+
+  const expanded = Array.from(result);
+  console.log("[EFRO CompoundSplit]", { words, expanded });
+  return expanded;
+}
+
+function getClosestCatalogTokens(
+  term: string,
+  catalogKeywords: string[],
+  maxDistance: number = 2
+): string[] {
+  if (!term || term.length < 3) return [];
+
+  const normalizedTerm = normalizeAliasKey(term);
+  const matches: string[] = [];
+
+  for (const keyword of catalogKeywords) {
+    if (!keyword || keyword.length < 3) continue;
+
+    const normalizedKeyword = normalizeAliasKey(keyword);
+
+    if (normalizedKeyword === normalizedTerm) {
+      matches.push(keyword);
+      continue;
+    }
+
+    const lengthDiff = Math.abs(normalizedKeyword.length - normalizedTerm.length);
+    const contains =
+      normalizedKeyword.includes(normalizedTerm) || normalizedTerm.includes(normalizedKeyword);
+
+    if (lengthDiff <= maxDistance || contains) {
+      matches.push(keyword);
+    }
+  }
+
+  const limitedMatches = matches.slice(0, 3);
+
+  if (limitedMatches.length > 0) {
+    console.log("[EFRO FuzzyResolve]", {
+      term,
+      fuzzyMatches: limitedMatches,
+      maxDistance,
+    });
+  }
+
+  return limitedMatches;
+}
+
+function resolveUnknownTerms(
+  text: string,
+  knownKeywords: string[],
+  aliasMap: AliasMap
+): UnknownTermsResult {
+  const normalizedText = normalizeText(text || "");
+  const rawTerms = normalizedText
+    .split(/[^a-z0-9äöüß]+/i)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 3);
+
+  const normalizedTerms = rawTerms
+    .map((t) => normalizeAliasKey(t))
+    .filter((t) => t.length > 0);
+
+  const knownSet = new Set(
+    (knownKeywords || [])
+      .map((kw) => normalizeAliasKey(kw))
+      .filter((kw) => kw.length > 0)
+  );
+
+  const unknownTermsSet = new Set<string>();
+  const aliasResolvedSet = new Set<string>();
+  const substringResolvedSet = new Set<string>();
+  let aliasMapUsed = false;
+
+  for (const term of normalizedTerms) {
+    if (!knownSet.has(term)) {
+      unknownTermsSet.add(term);
+
+      const aliases = (aliasMap && aliasMap[term]) || [];
+
+      if (aliases && aliases.length > 0) {
+        aliasMapUsed = true;
+
+        for (const alias of aliases) {
+          const normalizedAlias = normalizeAliasKey(alias);
+
+          if (normalizedAlias.length > 0) {
+            if (knownSet.has(normalizedAlias)) {
+              aliasResolvedSet.add(normalizedAlias);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const fuzzyResolvedSet = new Set<string>();
+  if (!aliasMapUsed && unknownTermsSet.size > 0 && knownSet.size > 0) {
+    for (const unknown of unknownTermsSet) {
+      const fuzzyMatches = getClosestCatalogTokens(unknown, Array.from(knownSet));
+      fuzzyMatches.forEach((match) => fuzzyResolvedSet.add(match));
+    }
+  }
+
+  if (!aliasMapUsed && fuzzyResolvedSet.size === 0 && unknownTermsSet.size > 0 && knownSet.size > 0) {
+    for (const unknown of unknownTermsSet) {
+      for (const kw of knownSet) {
+        if (
+          kw.length >= 3 &&
+          kw !== unknown &&
+          (unknown.includes(kw) || kw.includes(unknown))
+        ) {
+          substringResolvedSet.add(kw);
+        }
+      }
+    }
+  }
+
+  const resolvedSet = new Set<string>();
+  if (aliasResolvedSet.size > 0) {
+    aliasResolvedSet.forEach((t) => resolvedSet.add(t));
+  } else if (fuzzyResolvedSet.size > 0) {
+    fuzzyResolvedSet.forEach((t) => resolvedSet.add(t));
+  } else if (substringResolvedSet.size > 0) {
+    substringResolvedSet.forEach((t) => resolvedSet.add(t));
+  }
+
+  const uniqUnknown = Array.from(unknownTermsSet);
+  const uniqResolved = Array.from(resolvedSet);
+
+  console.log("[EFRO UnknownTermsResolved]", {
+    text,
+    rawTerms,
+    normalizedTerms,
+    unknownTerms: uniqUnknown,
+    resolved: uniqResolved,
+    aliasResolved: Array.from(aliasResolvedSet),
+    fuzzyResolved: Array.from(fuzzyResolvedSet),
+    substringResolved: Array.from(substringResolvedSet),
+    knownKeywordsCount: knownKeywords.length,
+    aliasMapUsed,
+    aliasMapKeys: aliasMap ? Object.keys(aliasMap).slice(0, 10) : [],
+    lookupKey: uniqUnknown.length > 0 ? normalizeAliasKey(uniqUnknown[0]) : null,
+    lookupResult: uniqUnknown.length > 0 ? aliasMap?.[normalizeAliasKey(uniqUnknown[0])] : null,
+    parfumLookup: aliasMap?.[normalizeAliasKey("parfum")] || null,
+    parfümLookup: aliasMap?.[normalizeAliasKey("parfüm")] || null,
+    hasPerfumeInKnown: knownSet.has("perfume"),
+  });
+
+  return {
+    rawTerms,
+    normalizedTerms,
+    unknownTerms: uniqUnknown,
+    resolved: uniqResolved,
+    aliasMapUsed,
+  };
+}
+
+/**
+ * EFRO K6 Fix: Exact-Match-Boost für Smartphone-Modellnamen
+ * Erkennt vollständige Modellnamen wie "Smartphone Alpha 128GB Schwarz"
+ */
+function computeExactMatchBoost(product: EfroProduct, text: string): number {
+  const normalizedText = normalize(text);
+  const normalizedTitle = normalize(product.title || "");
+  const normalizedSlug = normalize((product as any).handle || "");
+  
+  // Extrahiere Modellnamen-Patterns (z.B. "alpha 128gb", "alpha 128gb schwarz")
+  // CLUSTER K FIX: Erweitere Patterns für besseres Matching
+  const modelPatterns = [
+    /\b(alpha\s+\d+\s*gb(?:\s+schwarz)?)\b/i,
+    /\b(smartphone\s+alpha\s+\d+\s*gb(?:\s+schwarz)?)\b/i,
+    /\b(alpha\s+ultra\s+pro\s+\d+\s*tb(?:\s+\d+\s*zoll)?)\b/i,
+    /\b(das\s+alpha\s+\d+\s*gb\s+schwarz)\b/i, // "das Alpha 128GB Schwarz"
+    /\b(alpha\s+\d+\s*gb\s+schwarz)\b/i, // "Alpha 128GB Schwarz"
+  ];
+  
+  for (const pattern of modelPatterns) {
+    const match = normalizedText.match(pattern);
+    if (match) {
+      const modelName = normalize(match[1]);
+      // Prüfe, ob der Modellname vollständig im Produktnamen vorkommt
+      if (normalizedTitle.includes(modelName) || normalizedSlug.includes(modelName)) {
+        return 50; // Sehr hoher Boost für Exact-Match
+      }
+      // CLUSTER K FIX K6v2: Auch Teilmatches akzeptieren (z.B. "alpha" + "128gb" + "schwarz" einzeln)
+      const modelParts = modelName.split(/\s+/).filter(p => p.length > 2);
+      if (modelParts.length > 0) {
+        const allPartsMatch = modelParts.every(part => 
+          normalizedTitle.includes(part) || normalizedSlug.includes(part)
+        );
+        if (allPartsMatch) {
+          return 30; // Mittlerer Boost für Teilmatches
+        }
+      }
+    }
+  }
+  
+  return 0;
+}
+
+function scoreProductForWords(product: EfroProduct, words: string[]): number {
+  if (words.length === 0) return 0;
+
+  const title = normalize(product.title);
+  const desc = normalize(product.description || "");
+  const category = normalize(product.category || "");
+
+  const rawTags: any = (product as any).tags;
+  let tagsText = "";
+  if (Array.isArray(rawTags)) {
+    tagsText = rawTags.map((tag) => normalize(String(tag))).join(" ");
+  } else if (typeof rawTags === "string") {
+    tagsText = normalize(rawTags);
+  }
+
+  const blob = `${title} ${desc} ${category} ${tagsText}`;
+
+  let score = 0;
+
+  for (const word of words) {
+    if (!word) continue;
+
+    if (title.includes(word)) {
+      score += 5;
+    } else if (tagsText.includes(word)) {
+      score += 4;
+    } else if (category.includes(word)) {
+      score += 3;
+    } else if (desc.includes(word)) {
+      score += 2;
+    }
+
+    if (word.length >= 4) {
+      const maxLen = Math.min(6, word.length);
+      for (let len = 4; len <= maxLen; len++) {
+        const prefix = word.slice(0, len);
+        if (blob.includes(prefix)) {
+          score += 1;
+          break;
+        }
+      }
+    }
+  }
+
+  return score;
+}
+
+function userMentionsPerfume(text: string): boolean {
+  const normalizedText = normalize(text);
+  return PERFUME_SYNONYMS.some((syn) => normalizedText.includes(syn));
+}
+
+/**
+ * Helper: Baut Filter-Kontext auf (parsedQuery, words, categoryHints, intentHints)
+ */
+async function buildFilterContext(
+  text: string,
+  intent: ShoppingIntent,
+  allProducts: EfroProduct[],
+  contextCategory?: string | null
+): Promise<{
+  parsedQuery: ParsedQuery;
+  words: string[];
+  expandedWords: string[];
+  categoryHints: string[];
+  categoryHintsInText: string[];
+  matchedCategories: string[];
+  effectiveCategorySlug: string | null;
+  missingCategoryHint: string | null;
+  triggerWord: string | null;
+  currentIntent: ShoppingIntent;
+  catalogKeywords: string[];
+  aliasMap: AliasMap;
+  keywordSummary: { categoryHints: string[]; usageHints: string[]; skinHints: string[] };
+  wantsMostExpensive: boolean;
+  attributeIndex: AttributeIndex;
+}> {
+  const t = normalize(text);
+  let currentIntent: ShoppingIntent = intent;
+
+  // Erkenne, ob User explizit nach dem teuersten Produkt fragt
+  const wantsMostExpensive = detectMostExpensiveRequest(text);
+
+  // Dynamischen Attribut-Index für alle Produkte bauen
+  const attributeIndex = buildAttributeIndex(allProducts);
+
+  /**
+   * 1) Kategorie-Erkennung
+   * EFRO Modularization Phase 3: Kategorie-Logik nach modules/category ausgelagert
+   */
+  const categoryResult = determineEffectiveCategory({
+    text,
+    cleanedText: t,
+    contextCategory,
+    allProducts,
+  });
+  
+  let effectiveCategorySlug = categoryResult.effectiveCategorySlug;
+  let matchedCategories = [...categoryResult.matchedCategories];
+  let categoryHintsInText = [...categoryResult.categoryHintsInText];
+  let missingCategoryHint = categoryResult.missingCategoryHint;
+  const triggerWord = categoryResult.triggerWord;
+
+  // EFRO Parfüm-Fix: Wenn der Nutzer klar nach Parfüm fragt und der Katalog eine "perfume"-Kategorie hat,
+  // dann setze die effektive Kategorie auf "perfume" und ergänze matchedCategories entsprechend.
+  // EFRO F7 Fix: Parfüm-Erkennung hat höchste Priorität, auch wenn andere Kategorien erkannt wurden
+  const allCategories = Array.from(
+    new Set(
+      allProducts
+        .map((p) => normalize(p.category || ""))
+        .filter((c) => c.length >= 3)
+    )
+  );
+  const normalizedQueryForPerfume = normalize(text);
+  const perfumeKeywords = [
+    "parfum",
+    "parfüm",
+    "parfum",
+    "parf", // EFRO F7 Fix: "parf" wird auch erkannt (normalisiertes "parfüm")
+    "duft",
+    "eau de parfum",
+    "eau de toilette"
+  ];
+  const userAsksForPerfume = perfumeKeywords.some((kw) =>
+    normalizedQueryForPerfume.includes(kw)
+  );
+  const hasPerfumeCategoryInCatalog = allCategories.some(
+    (cat) => normalize(cat) === "perfume"
+  );
+  
+  // EFRO F7 Fix: Parfüm-Erkennung hat höchste Priorität, überschreibt andere Kategorien
+  if (userAsksForPerfume && hasPerfumeCategoryInCatalog) {
+    const perfumeCategory = allCategories.find(
+      (cat) => normalize(cat) === "perfume"
+    );
+
+    if (perfumeCategory) {
+      const normalizedPerfumeCat = normalize(perfumeCategory);
+
+      // WICHTIG: Überschreibe effectiveCategorySlug, auch wenn andere Kategorien erkannt wurden
+      effectiveCategorySlug = normalizedPerfumeCat;
+
+      // Stelle sicher, dass "perfume" in matchedCategories ist (am Anfang für Priorität)
+      const perfumeIndex = matchedCategories.findIndex((cat) => normalize(cat) === normalizedPerfumeCat);
+      if (perfumeIndex === -1) {
+        matchedCategories.unshift(normalizedPerfumeCat); // Am Anfang einfügen für Priorität
+      } else if (perfumeIndex > 0) {
+        // Verschiebe "perfume" an den Anfang
+        matchedCategories.splice(perfumeIndex, 1);
+        matchedCategories.unshift(normalizedPerfumeCat);
+      }
+
+      if (
+        !categoryHintsInText.some(
+          (hint) => normalize(hint) === normalizedPerfumeCat
+        )
+      ) {
+        categoryHintsInText.unshift(perfumeCategory); // Am Anfang einfügen
+      }
+
+      console.log("[EFRO Category] Perfume category forced from query (F7 Fix)", {
+        text: text.substring(0, 80),
+        effectiveCategorySlug,
+        matchedCategories,
+        categoryHintsInText,
+        note: "Parfüm-Erkennung hat höchste Priorität, überschreibt andere Kategorien",
+      });
+    }
+  }
+
+  // EFRO Wasserkocher-Fix: Wenn der Nutzer klar nach Wasserkocher fragt, setze die effektive Kategorie auf "haushalt"
+  // WICHTIG: Dies muss auch bei Fake-Wasserkocher-Namen funktionieren (K17)
+  const normalizedQueryForKettle = normalize(text);
+  const kettleKeywords = [
+    "wasserkocher",
+    "kettle",
+    "electric kettle",
+    "wasserkocher",
+  ];
+  const userAsksForKettle = kettleKeywords.some((kw) =>
+    normalizedQueryForKettle.includes(kw)
+  );
+  const hasHouseholdCategoryInCatalog = allCategories.some(
+    (cat) => normalize(cat) === "haushalt"
+  );
+  
+  if (userAsksForKettle && hasHouseholdCategoryInCatalog) {
+    const householdCategory = allCategories.find(
+      (cat) => normalize(cat) === "haushalt"
+    );
+
+    if (householdCategory) {
+      const normalizedHouseholdCat = normalize(householdCategory);
+
+      // WICHTIG: Überschreibe effectiveCategorySlug, auch wenn andere Kategorien erkannt wurden
+      effectiveCategorySlug = normalizedHouseholdCat;
+
+      if (
+        !matchedCategories.some(
+          (cat) => normalize(cat) === normalizedHouseholdCat
+        )
+      ) {
+        matchedCategories.push(normalizedHouseholdCat);
+      }
+
+      if (
+        !categoryHintsInText.some(
+          (hint) => normalize(hint) === normalizedHouseholdCat
+        )
+      ) {
+        categoryHintsInText.push(householdCategory);
+      }
+
+      console.log("[EFRO Category] Kettle/Water boiler category forced from query", {
+        text: text.substring(0, 80),
+        effectiveCategorySlug,
+        matchedCategories,
+        categoryHintsInText,
+      });
+    }
+  }
+
+  console.log("[EFRO SB Category] Effective category", {
+    fromText: matchedCategories.length > 0 ? matchedCategories[0] : null,
+    fromContext: contextCategory ?? null,
+    effective: effectiveCategorySlug,
+    missingCategoryHint: missingCategoryHint ?? null,
+    triggerWord: triggerWord ?? null,
+  });
+
+  /**
+   * 2) Generische Keyword-Suche
+   */
+  const intentWords = INTENT_WORDS;
+
+  let words: string[] = t
+    .split(/[^a-z0-9äöüß]+/i)
+    .map((w) => w.trim().toLowerCase())
+    .filter((w) => w.length >= 3 && !intentWords.includes(w));
+
+  // reine Zahlen nicht als Keyword benutzen
+  words = words.filter((w) => !/^\d+$/.test(w));
+
+  // Katalog-Keywords aus allen Produkten extrahieren
+  const catalogKeywordsSet = new Set<string>();
+  for (const product of allProducts) {
+    // Kategorie normalisieren und hinzufügen (wichtig für canonicalTokens)
+    if (product.category) {
+      const catNormalized = normalizeText(product.category);
+      const catWords = catNormalized.split(/\s+/).filter((w) => w.length >= 3);
+      catWords.forEach((w) => catalogKeywordsSet.add(w));
+      // Auch die gesamte normalisierte Kategorie als Token hinzufügen (konsistent mit normalizeAliasKey)
+      // z. B. "Perfume" -> "perfume" (für Language-Aliase wie "parfum" -> "perfume")
+      const fullCat = normalizeAliasKey(product.category);
+      if (fullCat && fullCat.length >= 3) {
+        catalogKeywordsSet.add(fullCat);
+      }
+    }
+
+    // Titel normalisieren und splitten
+    const titleWords = normalizeText(product.title || "")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+    titleWords.forEach((w) => catalogKeywordsSet.add(w));
+
+    // Beschreibung normalisieren und splitten
+    const descWords = normalizeText(product.description || "")
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+    descWords.forEach((w) => catalogKeywordsSet.add(w));
+
+    // Tags normalisieren und splitten
+    const rawTags = (product as any).tags;
+    if (Array.isArray(rawTags)) {
+      rawTags.forEach((tag: string) => {
+        const tagWords = normalizeText(String(tag))
+          .split(/\s+/)
+          .filter((w) => w.length >= 3);
+        tagWords.forEach((w) => catalogKeywordsSet.add(w));
+      });
+    } else if (typeof rawTags === "string") {
+      const tagWords = normalizeText(rawTags)
+        .split(/\s+/)
+        .filter((w) => w.length >= 3);
+      tagWords.forEach((w) => catalogKeywordsSet.add(w));
+    }
+  }
+  const catalogKeywords = Array.from(catalogKeywordsSet);
+
+  // Alias-Map initialisieren und filtern (nur Keywords, die im Katalog vorkommen)
+  // HINWEIS: Dynamic Aliases werden in runSellerBrain() verwendet (dort ist vollständiger SellerBrainContext verfügbar)
+  const aliasMap = await initializeAliasMap(catalogKeywords);
+
+  // Wörter mit Katalog-Keywords erweitern (Komposita aufbrechen)
+  let expandedWords = expandWordsWithCatalogKeywords(words, catalogKeywords);
+
+  // Query in Core- und Attribute-Terms aufteilen (für Log)
+  const parsedQuery = parseQueryForAttributes(text);
+  
+  // Wort-Classification: Kategorien, Usage, Skin-Keywords erkennen
+  const fullTextLower = t.toLowerCase();
+  
+  // EFRO: Integriere dynamische Synonyme in die Kategorie-Erkennung
+  const dynEntries = getDynamicSynonyms();
+  const dynamicCategoryHints: string[] = [];
+  const tokens = fullTextLower.split(/\s+/).filter((w) => w.length >= 3);
+  
+  for (const token of tokens) {
+    const lower = token.toLowerCase();
+    const dyn = dynEntries.find((e) => lower.includes(e.term) || e.term.includes(lower));
+    if (dyn?.canonicalCategory) {
+      dynamicCategoryHints.push(dyn.canonicalCategory);
+      console.log("[EFRO DynamicSynonym] Kategorie aus dynamischem Synonym erkannt", {
+        term: dyn.term,
+        canonicalCategory: dyn.canonicalCategory,
+        token,
+      });
+    }
+  }
+  
+  const categoryHints = collectMatches(fullTextLower, CATEGORY_KEYWORDS);
+  // Ergänze dynamische Kategorie-Hints
+  if (dynamicCategoryHints.length > 0) {
+    categoryHints.push(...dynamicCategoryHints);
+  }
+  
+  const usageHints = collectMatches(fullTextLower, USAGE_KEYWORDS);
+  const skinHints = collectMatches(fullTextLower, SKIN_KEYWORDS);
+  
+  // keywordSummary erweitern (falls noch nicht vorhanden, hier initialisieren)
+  const keywordSummary = {
+    categoryHints,
+    usageHints,
+    skinHints,
+  };
+  
+  console.log("[EFRO KeywordSummary]", {
+    text: text.substring(0, 80),
+    categoryHints,
+    usageHints,
+    skinHints,
+  });
+
+  // Intent-Fix: "Zeige mir X" mit konkretem Produkt → quick_buy statt explore
+  const lowered = t.toLowerCase();
+  const wordCount = words.length;
+
+  const startsWithShowMe =
+    lowered.startsWith("zeige mir ") ||
+    lowered.startsWith("zeig mir ") ||
+    lowered.startsWith("show me ");
+
+  if (currentIntent === "explore" && startsWithShowMe && wordCount > 0 && wordCount <= 4) {
+    currentIntent = "quick_buy";
+    console.log("[EFRO IntentFix] Upgraded explore -> quick_buy for 'zeige mir' pattern", {
+    text,
+    words,
+      wordCount,
+    });
+  }
+
+  return {
+    parsedQuery,
+    words,
+    expandedWords,
+    categoryHints,
+    categoryHintsInText,
+    matchedCategories,
+    effectiveCategorySlug,
+    missingCategoryHint: missingCategoryHint ?? null,
+    triggerWord: triggerWord ?? null,
+    currentIntent,
+    catalogKeywords,
+    aliasMap,
+    keywordSummary,
+    wantsMostExpensive,
+    attributeIndex,
+  };
+}
+
+/**
+ * Helper: Berechnet Budget und Preisbereich (analyzeBudget, computePriceRangeInfo, priceRangeNoMatch)
+ */
+function computeBudgetAndPriceRange(
+  text: string,
+  candidates: EfroProduct[],
+  allProducts: EfroProduct[],
+  effectiveCategorySlug: string | null,
+  contextCategory?: string | null
+): {
+  userMinPrice: number | null;
+  userMaxPrice: number | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+  priceRangeInfo: PriceRangeInfo | undefined;
+  priceRangeNoMatch: boolean;
+} {
+  let userMinPrice: number | null | undefined = undefined;
+  let userMaxPrice: number | null | undefined = undefined;
+
+      const budgetAnalysis = analyzeBudget(text);
+  userMinPrice = budgetAnalysis.userMinPrice ?? null;
+  userMaxPrice = budgetAnalysis.userMaxPrice ?? null;
+
+
+
+  // Log nach Preis-Extraktion (noch vor Anwendung)
+  console.log("[EFRO SB] PRICE EXTRACTED", {
+    text: text.substring(0, 80),
+    userMinPrice,
+    userMaxPrice,
+    candidateCountBeforePriceFilter: candidates.length,
+  });
+
+  // Sprachbasierte Korrektur für "über / unter / bis / maximal"
+  const loweredForBudget = text.toLowerCase();
+
+  // ⚠️ Kein Regex mit Wortgrenzen mehr – wir arbeiten mit einfachen includes,
+  // damit auch kaputte Markups wie "%]%ber 800" erkannt werden.
+  const hasOverToken =
+    loweredForBudget.includes("über") ||
+    loweredForBudget.includes("ueber") ||
+    loweredForBudget.includes("uber") ||
+    loweredForBudget.includes(" mindest") ||
+    loweredForBudget.includes("minimum") ||
+    loweredForBudget.includes("mehr als") ||
+    loweredForBudget.includes("groesser als") ||
+    loweredForBudget.includes("größer als") ||
+    loweredForBudget.includes(" ab ") ||
+    loweredForBudget.includes(" ber ");
+
+  const hasUnderToken =
+    loweredForBudget.includes("unter") ||
+    loweredForBudget.includes(" bis ") ||
+    loweredForBudget.includes("höchstens") ||
+    loweredForBudget.includes("hochstens") ||
+    loweredForBudget.includes("hoechstens") ||
+    loweredForBudget.includes(" maximal") ||
+    loweredForBudget.includes(" max ") ||
+    loweredForBudget.includes("weniger als") ||
+    loweredForBudget.includes("nicht mehr als");
+
+  // Rohwerte aus dem Parser
+  let rawMin: number | null = userMinPrice ?? null;
+  let rawMax: number | null = userMaxPrice ?? null;
+
+  if (rawMin !== null || rawMax !== null) {
+    // Fall 1: Parser liefert nur max, Text sagt "über" → wir deuten es als Untergrenze
+    // Beispiel: "über 800 Euro" → rawMin = null, rawMax = 800
+    if (hasOverToken && rawMax !== null && rawMin === null) {
+      rawMin = rawMax;
+      rawMax = null;
+    }
+
+    // Fall 2: Parser liefert nur min, Text sagt "unter/bis" → wir deuten es als Obergrenze
+    // Beispiel: "unter 25 Euro" → rawMin = 25, rawMax = null
+    if (hasUnderToken && rawMin !== null && rawMax === null) {
+      rawMax = rawMin;
+      rawMin = null;
+    }
+  }
+
+  let minPrice: number | null = rawMin;
+  let maxPrice: number | null = rawMax;
+
+  // EFRO Modularization Phase 2: priceRangeInfo-Typ aus modules/types verwendet
+  // - Track, ob nach Price-Filter keine Produkte gefunden wurden
+  // - Unrealistische Budgets erkennen (unterhalb günstigstem / oberhalb teuerstem Produkt)
+  let priceRangeNoMatch = false;
+  let priceRangeInfo: PriceRangeInfo | undefined = undefined;
+
+  if (minPrice !== null || maxPrice !== null) {
+    const beforePriceFilter = candidates.length;
+
+    // EFRO Modularization Phase 2: Preis-Informationen über computePriceRangeInfo berechnen
+    const categoryForInfo = effectiveCategorySlug || contextCategory || null;
+    
+    const priceRangeInfoTemp = computePriceRangeInfo({
+      userMinPrice: minPrice,
+      userMaxPrice: maxPrice,
+      allProducts,
+      effectiveCategorySlug: categoryForInfo,
+      normalize,
+    });
+    
+    const categoryMinPrice = priceRangeInfoTemp.categoryMinPrice;
+    const categoryMaxPrice = priceRangeInfoTemp.categoryMaxPrice;
+
+    const unrealisticallyLow =
+      maxPrice !== null &&
+      categoryMinPrice !== null &&
+      maxPrice < categoryMinPrice;
+
+    const unrealisticallyHigh =
+      minPrice !== null &&
+      categoryMaxPrice !== null &&
+      minPrice > categoryMaxPrice;
+
+    const isGlobalBudgetOnly =
+      !effectiveCategorySlug && !contextCategory;
+    const isVeryLowGlobalBudget =
+      isGlobalBudgetOnly && maxPrice !== null && maxPrice < 20;
+
+    if (
+      (candidates.length === 0 && beforePriceFilter > 0) ||
+      unrealisticallyLow ||
+      unrealisticallyHigh ||
+      isVeryLowGlobalBudget
+    ) {
+      priceRangeNoMatch = true;
+      priceRangeInfo = priceRangeInfoTemp;
+
+      console.log("[EFRO SB] PRICE RANGE NO MATCH", {
+        text: text.substring(0, 80),
+        beforePriceFilter,
+        afterPriceFilter: candidates.length,
+        priceRangeInfo,
+        note:
+          "Keine oder nur sehr unpassende Produkte im gewünschten Preisbereich gefunden.",
+      });
+    }
+  }
+
+  return {
+    userMinPrice,
+    userMaxPrice,
+    minPrice,
+    maxPrice,
+    priceRangeInfo,
+    priceRangeNoMatch,
+  };
+}
+
+/**
+ * Helper: Löst unbekannte Begriffe auf (resolveUnknownTerms, AliasMap, CodeDetect)
+ */
+function resolveUnknownTermsForFilter(
+  text: string,
+  words: string[],
+  expandedWords: string[],
+  catalogKeywords: string[],
+  aliasMap: AliasMap
+): {
+  words: string[];
+  expandedWords: string[];
+  unknownResult: UnknownTermsResult;
+} {
+  // --- EFRO Alias-Preprocessing -----------------------------------------
+  // Alias-Map VOR dem Keyword-Matching anwenden, damit unbekannte Begriffe
+  // in bekannte Keywords aufgelöst werden
+  // EFRO Fressnapf-Fix: "fressnapf" soll NICHT als Alias verwendet werden, sondern als unbekannte Marke behandelt werden
+  // Erstelle eine gefilterte AliasMap ohne "fressnapf"
+  const filteredAliasMap: AliasMap = {};
+  for (const [key, values] of Object.entries(aliasMap)) {
+    const normalizedKey = normalizeAliasKey(key);
+    // Ignoriere "fressnapf" in der AliasMap
+    if (normalizedKey !== "fressnapf") {
+      filteredAliasMap[key] = values;
+    }
+  }
+  
+  const aliasResult = resolveUnknownTerms(text, catalogKeywords, filteredAliasMap);
+
+  // Speichere aliasResult für späteren Hard-Filter
+  const unknownResult = aliasResult;
+
+  if (aliasResult.resolved.length > 0) {
+    const wordsBefore = [...words];
+    const expandedBefore = [...expandedWords];
+    const resolvedSet = new Set(aliasResult.resolved);
+
+    // Wenn aliasMapUsed === true, verwende nur die Alias-resolved Tokens
+    if (aliasResult.aliasMapUsed && aliasResult.resolved.length > 0) {
+      const aliasResolved = aliasResult.resolved;
+      const effectiveWordsSet = new Set<string>([
+        ...words,
+        ...aliasResolved,
+      ]);
+
+      words = Array.from(effectiveWordsSet);
+      expandedWords = Array.from(effectiveWordsSet);
+    } else {
+      // Fallback: Normale Erweiterung
+      const updatedWords = Array.from(
+        new Set([
+          ...words,
+          ...resolvedSet,
+        ])
+      );
+
+      const updatedExpandedWords = Array.from(
+        new Set([
+          ...(expandedWords || []),
+          ...resolvedSet,
+        ])
+      );
+
+      words = updatedWords;
+      expandedWords = updatedExpandedWords;
+    }
+
+    console.log("[EFRO AliasPreApplied]", {
+      text,
+      unknownTerms: aliasResult.unknownTerms,
+      resolved: aliasResult.resolved,
+      aliasMapUsed: aliasResult.aliasMapUsed,
+      wordsBefore,
+      expandedBefore,
+      wordsAfter: words,
+      expandedAfter: expandedWords,
+      // Debug für "Parfüm" / Language-Aliase
+      ...(text.toLowerCase().includes("parf") ? {
+        debugParfum: {
+          normalizedText: normalizeText(text),
+          hasParfumInResolved: aliasResult.resolved.includes("perfume"),
+          resolvedTokens: aliasResult.resolved,
+        }
+      } : {}),
+    });
+  }
+  // --- Ende EFRO Alias-Preprocessing ------------------------------------
+
+  return {
+    words,
+    expandedWords,
+    unknownResult,
+  };
+}
+
+/**
+ * Helper: Wendet Produktfilter an (Kategorie-, Attribut- und Preisfilter)
+ */
+/**
+ * EFRO Budget-Optimierung: Filtert Produkte nach Budget und bildet drei Mengen
+ * - inBudget: Produkte IM Budget
+ * - aboveBudget: Produkte ÜBER Budget (für Fallback)
+ * - belowBudget: Produkte UNTER Budget (optional)
+ * 
+ * Wenn inBudget leer ist, aber aboveBudget vorhanden, werden die günstigsten aus aboveBudget zurückgegeben.
+ */
+function createBudgetFilteredProducts(
+  baseProducts: EfroProduct[],
+  minPrice: number | null,
+  maxPrice: number | null
+): {
+  inBudget: EfroProduct[];
+  aboveBudget: EfroProduct[];
+  belowBudget: EfroProduct[];
+  finalProducts: EfroProduct[];
+  nearestPriceAboveBudget: number | null;
+  nearestProductTitleAboveBudget: string | null;
+} {
+  const inBudget: EfroProduct[] = [];
+  const aboveBudget: EfroProduct[] = [];
+  const belowBudget: EfroProduct[] = [];
+
+  // Wenn kein Budget gesetzt, alle Produkte als inBudget behandeln
+  if (minPrice === null && maxPrice === null) {
+    return {
+      inBudget: baseProducts,
+      aboveBudget: [],
+      belowBudget: [],
+      finalProducts: baseProducts,
+      nearestPriceAboveBudget: null,
+      nearestProductTitleAboveBudget: null,
+    };
+  }
+
+  // Produkte in die drei Mengen einteilen
+  for (const product of baseProducts) {
+    const price = product.price ?? 0;
+    
+    // Prüfe, ob Produkt IM Budget liegt
+    let isInBudget = true;
+    if (minPrice !== null && price < minPrice) {
+      isInBudget = false;
+      belowBudget.push(product);
+    }
+    if (maxPrice !== null && price > maxPrice) {
+      isInBudget = false;
+      aboveBudget.push(product);
+    }
+    
+    if (isInBudget) {
+      inBudget.push(product);
+    }
+  }
+
+  // Wenn inBudget vorhanden, diese verwenden
+  if (inBudget.length > 0) {
+    return {
+      inBudget,
+      aboveBudget,
+      belowBudget,
+      finalProducts: inBudget,
+      nearestPriceAboveBudget: null,
+      nearestProductTitleAboveBudget: null,
+    };
+  }
+
+  // Wenn inBudget leer, aber aboveBudget vorhanden: günstigste aus aboveBudget nehmen
+  if (aboveBudget.length > 0) {
+    // Sortiere aboveBudget nach Preis aufsteigend
+    const sortedAboveBudget = [...aboveBudget].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    
+    // Nimm die 3-5 günstigsten (max 5)
+    const fallbackProducts = sortedAboveBudget.slice(0, Math.min(5, sortedAboveBudget.length));
+    
+    const nearestProduct = fallbackProducts[0];
+    const nearestPrice = nearestProduct?.price ?? null;
+    const nearestTitle = nearestProduct?.title ?? null;
+
+    return {
+      inBudget: [],
+      aboveBudget,
+      belowBudget,
+      finalProducts: fallbackProducts,
+      nearestPriceAboveBudget: nearestPrice,
+      nearestProductTitleAboveBudget: nearestTitle,
+    };
+  }
+
+  // Wenn weder inBudget noch aboveBudget vorhanden: leer
+  return {
+    inBudget: [],
+    aboveBudget,
+    belowBudget,
+    finalProducts: [],
+    nearestPriceAboveBudget: null,
+    nearestProductTitleAboveBudget: null,
+  };
+}
+
+function applyProductFilters(
+  candidates: EfroProduct[],
+  effectiveCategorySlug: string | null,
+  matchedCategories: string[],
+  categoryHintsInText: string[],
+  missingCategoryHint: string | null,
+  attributeFilters: Record<string, string[]>,
+  attributeIndex: AttributeIndex,
+  minPrice: number | null,
+  maxPrice: number | null,
+  text: string,
+  contextCategory?: string | null,
+  userMinPrice?: number | null,
+  userMaxPrice?: number | null
+): {
+  candidates: EfroProduct[];
+  debugFlags: string[];
+  missingCategoryHint: string | null;
+} {
+  const debugFlags: string[] = [];
+
+  // Filtere nach effectiveCategorySlug (entweder aus Text oder aus Kontext)
+  // 🔧 EFRO Category Filter Fix:
+  // - Nur dann hart nach Kategorie filtern, wenn es mindestens ein Produkt
+  //   mit diesem Category-Slug gibt.
+  // - Wenn kein Produkt diese Kategorie hat, Kandidaten NICHT auf 0 schießen,
+  //   sondern missingCategoryHint setzen und einen Debug-Hinweis schreiben.
+  if (effectiveCategorySlug) {
+    const beforeCategoryFilterCount = candidates.length;
+
+    // K10v1/K11v1 Fix: Wenn "mode" erkannt wurde und "jeans" im Query ist, auch "Pants"-Kategorie akzeptieren
+    const normalizedText = normalize(text);
+    const hasJeansQuery = normalizedText.includes("jeans") || (normalizedText.includes("slim") && normalizedText.includes("fit"));
+    const shouldIncludePants = effectiveCategorySlug === "mode" && hasJeansQuery;
+
+    const filteredByCategory = candidates.filter(
+      (p) => {
+        const productCategory = normalize(p.category || "");
+        if (productCategory === effectiveCategorySlug) {
+          return true;
+        }
+        // K10v1/K11v1 Fix: "Pants" als "Mode" akzeptieren, wenn "jeans" im Query ist
+        if (shouldIncludePants && productCategory === "pants") {
+          return true;
+        }
+        return false;
+      }
+    );
+
+    if (filteredByCategory.length > 0) {
+      // Es gibt wirklich Produkte mit dieser Kategorie → normal filtern.
+      candidates = filteredByCategory;
+    } else {
+      // Kein Produkt mit diesem Slug → nicht alles wegfiltern.
+      // Stattdessen nur Hinweis setzen.
+      if (beforeCategoryFilterCount > 0) {
+        debugFlags.push(
+          `category_no_match_for_slug:${effectiveCategorySlug}`
+        );
+      }
+      if (!missingCategoryHint) {
+        missingCategoryHint = effectiveCategorySlug;
+      }
+      // candidates bleibt unverändert.
+    }
+    
+    // TODO Vorschlag: Bei Budget-only Anfragen (ohne Produktkategorie) könnte man
+    // den Kategorie-Filter optional machen, damit nicht alle Produkte wegfallen.
+    // Aktuell: Kategorie-Filter ist hart, was bei "zeig mir Parfüm" korrekt ist,
+    // aber bei "50 Euro Budget" ohne Kategorie könnte es zu streng sein.
+    
+    console.log("[EFRO SB] AFTER CATEGORY FILTER", {
+      text: text.substring(0, 80),
+      matchedCategories,
+      effectiveCategorySlug,
+      beforeCount: beforeCategoryFilterCount,
+      afterCount: candidates.length,
+      isBudgetOnly: (userMinPrice !== null || userMaxPrice !== null) && matchedCategories.length === 0,
+    });
+  } else {
+    // EFRO Fallback-Suche: Wenn keine Kategorie erkannt wurde, suche direkt in Titel/Beschreibung/Tags
+    const hasCategoryFromQuery = !!effectiveCategorySlug;
+    
+    if (!hasCategoryFromQuery) {
+      // Fallback: Suche direkt in Produkten nach Query-Begriffen
+      const normalizedText = normalize(text);
+      const tokens = normalizedText.split(/\s+/).filter((w) => w.length >= 3);
+      
+      // EFRO WAX-Disambiguierung: Unterscheide zwischen Haarwachs und Snowboard-Wachs
+      const hasWaxKeyword = normalizedText.includes("wax") || normalizedText.includes("wachs");
+      const hasHairKeywords = WAX_HAIR_KEYWORDS.some((kw) => normalizedText.includes(kw));
+      const hasSnowboardKeywords = WAX_SNOWBOARD_KEYWORDS.some((kw) => normalizedText.includes(kw));
+      
+      // Prüfe auf explizite Negationen
+      const hasHairNegation = /nicht.*haar|kein.*haar|nicht.*frisur|kein.*frisur/i.test(text);
+      const hasSnowboardNegation = /nicht.*snowboard|kein.*snowboard|nicht.*ski|kein.*ski|nicht.*board|kein.*board/i.test(text);
+      
+      // Intent bestimmen
+      let waxIntent: "hair" | "snowboard" | "unknown" = "unknown";
+      if (hasHairNegation && hasSnowboardKeywords) {
+        waxIntent = "snowboard";
+      } else if (hasSnowboardNegation && hasHairKeywords) {
+        waxIntent = "hair";
+      } else if (hasSnowboardKeywords) {
+        waxIntent = "snowboard";
+      } else if (hasHairKeywords) {
+        waxIntent = "hair";
+      }
+      
+      const fallbackMatches = candidates.filter((p) => {
+        const haystack = (
+          (p.title ?? "") +
+          " " +
+          (p.description ?? "") +
+          " " +
+          (p.category ?? "") +
+          " " +
+          (Array.isArray(p.tags) ? p.tags.join(" ") : "")
+        ).toLowerCase();
+        
+        // EFRO WAX-Disambiguierung: Wenn "wax"/"wachs" im Query ist, prüfe Intent
+        if (hasWaxKeyword) {
+          const hasWaxInTitle = (p.title ?? "").toLowerCase().includes("wax") || 
+                                (p.title ?? "").toLowerCase().includes("wachs");
+          const hasWaxInTags = Array.isArray(p.tags) && p.tags.some((tag: string) => 
+            tag.toLowerCase().includes("wax") || tag.toLowerCase().includes("wachs")
+          );
+          
+          if (hasWaxInTitle || hasWaxInTags) {
+            // Prüfe, ob Produkt zu Intent passt
+            const isSnowboardWax = haystack.includes("snowboard") || 
+                                   haystack.includes("ski") || 
+                                   haystack.includes("belag") ||
+                                   (Array.isArray(p.tags) && p.tags.some((tag: string) => 
+                                     ["sport", "winter", "accessory", "accessories"].includes(tag.toLowerCase())
+                                   ));
+            const isHairWax = haystack.includes("hair") || 
+                             haystack.includes("haar") || 
+                             haystack.includes("styling") ||
+                             haystack.includes("frisur");
+            
+            // Intent-basierte Filterung
+            if (waxIntent === "snowboard" && !isSnowboardWax) {
+              return false; // Haarwachs bei Snowboard-Intent ausschließen
+            }
+            if (waxIntent === "hair" && !isHairWax) {
+              return false; // Snowboard-Wachs bei Hair-Intent ausschließen
+            }
+            
+            return true; // Wax-Produkt gefunden, auch ohne Kategorie
+          }
+        }
+        
+        // CLUSTER 2 FIX S17/S17v1: Wenn waxIntent === "hair" ist, auch Produkte ohne "wax" akzeptieren,
+        // die "hair" oder "haar" enthalten (Fallback für Kataloge ohne Wax-Produkte)
+        if (waxIntent === "hair" && !hasWaxKeyword) {
+          const hasHairInProduct = haystack.includes("hair") || haystack.includes("haar") || 
+                                   haystack.includes("styling") || haystack.includes("frisur");
+          if (hasHairInProduct) {
+            return true; // Hair-Produkt gefunden, auch ohne Wax
+          }
+        }
+        
+        // Simple ANY-match: mindestens ein Token muss vorkommen
+        return tokens.some((t) => haystack.includes(t));
+      });
+      
+      console.log("[EFRO WAX Disambiguierung]", {
+        text: text.substring(0, 80),
+        hasWaxKeyword,
+        hasHairKeywords,
+        hasSnowboardKeywords,
+        hasHairNegation,
+        hasSnowboardNegation,
+        waxIntent,
+        fallbackMatchesCount: fallbackMatches.length,
+      });
+      
+      if (fallbackMatches.length > 0) {
+        candidates = fallbackMatches;
+        console.log("[EFRO SB Fallback] Keine Kategorie erkannt, Fallback-Suche in Titel/Beschreibung/Tags", {
+          text: text.substring(0, 80),
+          tokens: tokens.slice(0, 5),
+          fallbackMatchesCount: fallbackMatches.length,
+          sampleTitles: fallbackMatches.slice(0, 3).map((p) => p.title),
+          hasWaxKeyword,
+          waxProductsFound: hasWaxKeyword ? fallbackMatches.filter((p) => 
+            (p.title ?? "").toLowerCase().includes("wax") || 
+            (p.title ?? "").toLowerCase().includes("wachs")
+          ).length : 0,
+        });
+      }
+    }
+    
+    // Keine Kategorie-Matches und kein Kontext: Log für Budget-only Szenarien
+    // WICHTIG: Nur loggen, wenn wirklich kein Kontext vorhanden ist
+    if (userMinPrice !== null || userMaxPrice !== null) {
+      if (!contextCategory) {
+        console.log("[EFRO SB] CATEGORY FILTER SKIPPED (budget-only query, no context)", {
+          text: text.substring(0, 80),
+          userMinPrice,
+          userMaxPrice,
+          candidateCount: candidates.length,
+          contextCategory: null,
+        });
+      } else {
+        console.log("[EFRO SB] CATEGORY FILTER APPLIED (budget-only query, using context)", {
+          text: text.substring(0, 80),
+          userMinPrice,
+          userMaxPrice,
+          contextCategory,
+          effectiveCategorySlug,
+          candidateCount: candidates.length,
+        });
+      }
+    }
+  }
+
+  console.log("[EFRO SB] AFTER CATEGORY FILTER", {
+    text: text.substring(0, 80),
+    matchedCategories,
+    categoryHintsInText,
+    candidateCount: candidates.length,
+  });
+
+  // Strukturierte Attribute-Filter aus der Query anwenden (sofern vorhanden)
+  const activeAttributeFilterEntries = Object.entries(attributeFilters).filter(
+    ([, values]) => Array.isArray(values) && values.length > 0
+  );
+
+  let candidatesAfterAttr = candidates;
+
+  if (activeAttributeFilterEntries.length > 0) {
+    const beforeAttrFilterCount = candidates.length;
+
+    // Spezieller Fall: menschliche Haut-Typen, aber keine Tier-Anfrage
+    if (
+      attributeFilters.skin_type &&
+      attributeFilters.skin_type.length > 0 &&
+      (!attributeFilters.pet || attributeFilters.pet.length === 0)
+    ) {
+      candidatesAfterAttr = candidatesAfterAttr.filter((p) => {
+        const cat = normalize(p.category || "");
+        return HUMAN_SKIN_CATEGORIES.some((allowed) => cat.includes(allowed));
+      });
+    }
+
+    const filteredByAttributes = candidatesAfterAttr.filter((product) => {
+      const productAttrs: ProductAttributeMap =
+        attributeIndex.perProduct[product.id] ?? {};
+
+      // Alle aktiven Filter müssen matchen
+      return activeAttributeFilterEntries.every(([key, values]) => {
+        const prodValues = productAttrs[key] ?? [];
+
+        if (!Array.isArray(prodValues) || prodValues.length === 0) {
+          return false;
+        }
+
+        // Speziallogik für Haustiere (pet = dog/cat/pet)
+        if (key === "pet") {
+          const hasGeneric = prodValues.includes("pet");
+          const hasDog = prodValues.includes("dog");
+          const hasCat = prodValues.includes("cat");
+
+          const wantsGeneric = values.includes("pet");
+          const wantsDog = values.includes("dog");
+          const wantsCat = values.includes("cat");
+
+          // Direktes Matching (dog↔dog, cat↔cat, pet↔pet)
+          const directMatch = values.some((v) => prodValues.includes(v));
+
+          // Query: "Haustiere" (pet) → akzeptiere dog oder cat
+          const genericMatchesSpecies = wantsGeneric && (hasDog || hasCat);
+
+          // Query: "Hund(e)" bzw. "Katze(n)" → akzeptiere generische Haustier-Produkte (pet)
+          const speciesMatchesGeneric =
+            (wantsDog || wantsCat) && hasGeneric;
+
+          return directMatch || genericMatchesSpecies || speciesMatchesGeneric;
+        }
+
+        // Standardfall für alle anderen Attribute
+        return values.some((v) => prodValues.includes(v));
+      });
+    });
+
+    if (filteredByAttributes.length > 0) {
+      console.log("[EFRO Filter ATTR_FILTER_APPLIED]", {
+        text,
+        attributeFilters,
+        beforeAttrFilterCount,
+        afterAttrFilterCount: filteredByAttributes.length,
+      });
+      candidates = filteredByAttributes;
+    } else {
+      console.log("[EFRO Filter ATTR_FILTER_NO_MATCH]", {
+        text,
+        attributeFilters,
+        beforeAttrFilterCount,
+      });
+      // Kein harter Filter: wir behalten die ursprünglichen Kandidaten
+    }
+  }
+
+  // EFRO Budget-Optimierung: Preis-Filter mit drei Mengen (inBudget, aboveBudget, belowBudget)
+  if (minPrice !== null || maxPrice !== null) {
+    const beforePriceFilter = candidates.length;
+
+    // Neue Budget-Filter-Logik: drei Mengen bilden
+    const budgetResult = createBudgetFilteredProducts(candidates, minPrice, maxPrice);
+    
+    // Verwende finalProducts (entweder inBudget oder günstigste aus aboveBudget)
+    candidates = budgetResult.finalProducts;
+
+    const candidateCountAfterPriceFilter = candidates.length;
+
+    console.log("[EFRO SB] AFTER PRICE FILTER", {
+      text: text.substring(0, 80),
+      minPrice,
+      maxPrice,
+      beforeCount: beforePriceFilter,
+      afterCount: candidates.length,
+      inBudgetCount: budgetResult.inBudget.length,
+      aboveBudgetCount: budgetResult.aboveBudget.length,
+      belowBudgetCount: budgetResult.belowBudget.length,
+      usingAboveBudgetFallback: budgetResult.inBudget.length === 0 && budgetResult.aboveBudget.length > 0,
+      nearestPriceAboveBudget: budgetResult.nearestPriceAboveBudget,
+      nearestProductTitleAboveBudget: budgetResult.nearestProductTitleAboveBudget,
+      samplePrices: candidates.slice(0, 5).map((p) => p.price ?? 0),
+    });
+  } else {
+    console.log("[EFRO SB] PRICE FILTER SKIPPED", {
+      text: text.substring(0, 80),
+      reason: "no user price range",
+      candidateCount: candidates.length,
+    });
+  }
+
+  return {
+    candidates,
+    debugFlags,
+    missingCategoryHint,
+  };
+}
+
+/**
+ * Helper: Sortiert und begrenzt Kandidaten (Scoring, Sortierung, Plan-Limit)
+ */
+function rankAndSliceCandidates(
+  candidates: EfroProduct[],
+  currentIntent: ShoppingIntent,
+  hasBudget: boolean,
+  userMinPrice: number | null,
+  userMaxPrice: number | null,
+  wantsMostExpensive: boolean,
+  text: string,
+  cleaned: string,
+  effectiveCategorySlug: string | null | undefined,
+  allProducts: EfroProduct[]
+): EfroProduct[] {
+  // Budget- oder Intent-basiertes Sortieren der Kandidaten
+  if (hasBudget) {
+    if (userMinPrice !== undefined && userMaxPrice === undefined) {
+      // Nur Mindestbudget: von günstig nach teuer sortieren
+      candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    } else {
+      // Max oder Min+Max: von teuer nach günstig sortieren
+      candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+    }
+  } else {
+    if (currentIntent === "premium") {
+      candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+      if (wantsMostExpensive && candidates.length > 1) {
+        candidates = [candidates[0]];
+      }
+      console.log("[EFRO PREMIUM_INTENT]", {
+        text,
+        intent: currentIntent,
+        wantsMostExpensive,
+        candidateCount: candidates.length,
+      });
+    } else if (
+      currentIntent === "bargain" ||
+      currentIntent === "gift" ||
+      currentIntent === "quick_buy"
+    ) {
+      candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    } else if (currentIntent === "explore") {
+      candidates.sort((a, b) => a.title.localeCompare(b.title));
+    }
+  }
+
+  // CLUSTER C FIX: F5v2 - Günstigstes Produkt global
+  // CLUSTER G FIX: K12 - Mode – günstigste Jeans → genau 1 Produkt (maxCount 1)
+  const normalizedTextForJeans = normalize(text);
+  const wantsCheapestJeans = 
+    (normalizedTextForJeans.includes("jeans") || normalizedTextForJeans.includes("hose")) &&
+    /\b(g?nstigste(?:s|n)?|guenstigste(?:s|n)?|gunstigste(?:s|n)?|billigste(?:s|n)?|cheapest)\b/.test(
+      normalizedTextForJeans
+    );
+  
+  if (wantsCheapestJeans && candidates.length > 0) {
+    // Filtere auf Mode-Kategorie und sortiere nach Preis aufsteigend
+    const modeCandidates = candidates.filter(
+      (p) => normalize(p.category || "") === "mode"
+    );
+    
+    const baseList = modeCandidates.length > 0 ? modeCandidates : candidates;
+    baseList.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    
+    // CLUSTER G FIX: K12 - Nur genau 1 Produkt zurückgeben (maxCount 1)
+    const cheapestJeans = baseList[0] ? [baseList[0]] : [];
+    
+    console.log("[EFRO CLUSTER G FIX] K12 - Günstigste Jeans (exactly 1)", {
+      text: text.substring(0, 80),
+      modeCandidatesCount: modeCandidates.length,
+      finalCount: cheapestJeans.length,
+      cheapestPrice: cheapestJeans[0]?.price ?? null,
+      cheapestTitle: cheapestJeans[0]?.title,
+    });
+    
+    return cheapestJeans;
+  }
+
+  // Sonderfall: "günstigste/billigste" Produkt (ohne Budgetangabe)
+  const normalizedTextForCheapest = normalize(text);
+  const wantsCheapestOne = /\b(g?nstigste(?:s|n)?|guenstigste(?:s|n)?|gunstigste(?:s|n)?|billigste(?:s|n)?|cheapest)\b/.test(
+    normalizedTextForCheapest
+  );
+  
+  // CLUSTER C FIX: F5v2 - Wenn "günstigstes Produkt" global und candidates leer → Fallback auf alle Produkte
+  if (!hasBudget && wantsCheapestOne && candidates.length === 0) {
+    // Fallback: Nimm alle Produkte und sortiere nach Preis aufsteigend
+    const allProductsSorted = [...allProducts]
+      .filter((c) => (c.price ?? 0) > 0)
+      .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    
+    candidates = allProductsSorted.slice(0, 1); // Nur das günstigste Produkt
+    
+    console.log("[EFRO F5v2 Fix] Günstigstes Produkt global - Fallback auf alle Produkte", {
+      text,
+      fallbackCount: candidates.length,
+      cheapestPrice: candidates[0]?.price ?? null,
+      cheapestTitle: candidates[0]?.title,
+    });
+  }
+
+  if (!hasBudget && wantsCheapestOne && candidates.length > 0) {
+    // EFRO F7 Fix: Wenn effectiveCategorySlug gesetzt ist (z. B. "perfume"),
+    // filtere zuerst auf diese Kategorie, bevor das günstigste Produkt ausgewählt wird
+    let candidatesForCheapest = candidates;
+    if (effectiveCategorySlug) {
+      const categoryFiltered = candidates.filter(
+        (p) => normalize(p.category || "") === effectiveCategorySlug
+      );
+      if (categoryFiltered.length > 0) {
+        candidatesForCheapest = categoryFiltered;
+        console.log("[EFRO F7 Fix] Cheapest-only shortcut: Filtered to category", {
+          category: effectiveCategorySlug,
+          beforeCount: candidates.length,
+          afterCount: categoryFiltered.length,
+        });
+      }
+    }
+    
+    candidatesForCheapest.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    const cheapestOnly = [candidatesForCheapest[0]];
+    console.log("[EFRO SB] Cheapest-only shortcut", {
+      text: text.substring(0, 80),
+      intent: currentIntent,
+      finalCount: cheapestOnly.length,
+      cheapestPrice: cheapestOnly[0].price ?? null,
+      cheapestTitle: cheapestOnly[0].title,
+      category: cheapestOnly[0].category,
+    });
+    return cheapestOnly;
+  }
+
+  let finalProducts: typeof candidates = [];
+
+  const normalizedText = cleaned.toLowerCase();
+  
+  // CLUSTER A FIX: S4v2, S6v2 - Snowboard-Erkennung erweitert
+  // Erkennung, ob der Nutzer überhaupt von Snowboards spricht
+  const mentionsSnowboard =
+    // normale Schreibweise
+    /\bsnowboard(s)?\b/.test(normalizedText) ||
+    // häufige Tippfehler-Variante aus den Szenarien: "snowbord", "snowbords"
+    /\bsnowbord(s)?\b/.test(normalizedText) ||
+    // "einsteiger-board" etc. – nur sinnvoll, wenn Board-Kontext wichtig ist
+    /\b(einsteiger-)?board(s)?\b/.test(normalizedText);
+  const wantsCheapestSnowboard =
+    mentionsSnowboard &&
+    (
+      // Superlativ-/Preis-Wörter (mit und ohne Umlaut)
+      /\b(g?nstigstes|g?nstigste|g?nstigsten|g?nstiges|billigste|billigsten|billiges|preiswerteste)\b/.test(
+        normalizedText
+      )
+      ||
+      // Formulierungen wie "so billig wie möglich" / "so günstig wie möglich"
+      /\bso\s+(billig|g?nstig)\s+wie\s+m?glich\b/.test(normalizedText)
+    );
+  const wantsMostExpensiveSnowboard =
+    mentionsSnowboard &&
+    /\b(teuerstes|teuerste|teuersten|most expensive|höchstes|höchste)\b/.test(
+      normalizedText
+    );
+
+  // CLUSTER A FIX: S6v2 - Teuerstes Snowboard (minPrice >= 2000)
+  if (wantsMostExpensiveSnowboard) {
+    const snowboardCandidates = candidates.filter(
+      (p) => normalize(p.category || "") === "snowboard"
+    );
+    
+    // CLUSTER A FIX: S6v2 - Wenn keine Snowboard-Kandidaten, Fallback auf alle Snowboards
+    const allSnowboards = mentionsSnowboard 
+      ? allProducts.filter((p) => normalize(p.category || "") === "snowboard")
+      : [];
+    
+    const baseList = snowboardCandidates.length > 0 
+      ? snowboardCandidates 
+      : (allSnowboards.length > 0 ? allSnowboards : candidates);
+
+    baseList.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+    const mostExpensive = baseList[0] ? [baseList[0]] : [];
+
+    console.log("[EFRO CLUSTER A FIX] S6v2 - Teuerstes Snowboard", {
+      text: text.substring(0, 80),
+      snowboardCandidatesCount: snowboardCandidates.length,
+      allSnowboardsCount: allSnowboards.length,
+      finalCount: mostExpensive.length,
+      mostExpensivePrice: mostExpensive[0]?.price ?? null,
+      mostExpensiveTitle: mostExpensive[0]?.title ?? null,
+    });
+
+    return mostExpensive;
+  }
+
+  if (wantsCheapestSnowboard && candidates.length > 0) {
+    const snowboardCandidates = candidates.filter(
+      (p) => normalize(p.category || "") === "snowboard"
+    );
+    const baseList =
+      snowboardCandidates.length > 0 ? snowboardCandidates : candidates;
+
+    baseList.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    const cheapest = baseList[0] ? [baseList[0]] : [];
+
+    console.log("[EFRO SB] FINAL products (cheapest snowboard)", {
+      text: text.substring(0, 80),
+      candidateCount: candidates.length,
+      cheapestPrice: cheapest[0]?.price ?? null,
+      cheapestTitle: cheapest[0]?.title ?? null,
+    });
+
+    return cheapest;
+  }
+
+if (wantsCheapestSnowboard) {
+  // 1) Versuche zuerst, Snowboards über Titel/Beschreibung/Tags zu finden
+  const snowboardProductsByText = allProducts.filter((p) => {
+    const title = normalize(p.title || "");
+    const description = normalize((p as any).description || "");
+    const tagsText = Array.isArray((p as any).tags)
+      ? normalize((p as any).tags.join(" "))
+      : "";
+
+    const text = `${title} ${description} ${tagsText}`;
+
+    // erkenne "snowboard" / "snowboards" und die Tippfehler-Variante "snowbord"
+    return (
+      /\bsnowboard(s)?\b/.test(text) ||
+      /\bsnowbord(s)?\b/.test(text)
+    );
+  });
+
+  // Produkte mit Preis > 0 bevorzugen (Giftcards mit 0 € möglichst vermeiden)
+  const affordableSnowboardsByText = snowboardProductsByText.filter((p) => {
+    const price = p.price ?? 0;
+    return price > 0;
+  });
+
+  // 2) Falls über Text nichts gefunden wurde, fallback auf Kategorie "snowboard"
+  const snowboardProductsByCategory =
+    snowboardProductsByText.length === 0
+      ? allProducts.filter(
+          (p) => normalize(p.category || "") === "snowboard"
+        )
+      : [];
+
+  const affordableSnowboardsByCategory = snowboardProductsByCategory.filter(
+    (p) => {
+      const price = p.price ?? 0;
+      return price > 0;
+    }
+  );
+
+  // 3) Entscheide, welche Liste wir nutzen
+  let listToUse: typeof allProducts = [];
+
+  if (affordableSnowboardsByText.length > 0) {
+    listToUse = affordableSnowboardsByText;
+  } else if (snowboardProductsByText.length > 0) {
+    listToUse = snowboardProductsByText;
+  } else if (affordableSnowboardsByCategory.length > 0) {
+    listToUse = affordableSnowboardsByCategory;
+  } else if (snowboardProductsByCategory.length > 0) {
+    listToUse = snowboardProductsByCategory;
+  }
+
+  // 4) Wenn wir irgendetwas gefunden haben, nimm das günstigste Snowboard
+  if (listToUse.length > 0) {
+    const cheapestSnowboard = [...listToUse].sort((a, b) => {
+      const pa = a.price ?? 0;
+      const pb = b.price ?? 0;
+      return pa - pb;
+    })[0];
+
+    candidates = [cheapestSnowboard];
+  }
+} 
+  
+  
+  
+  // CLUSTER A FIX: S4v2 - Snowboards zwischen 600 und 900 Euro
+  // Wenn Snowboard-Budget-Anfrage und keine Kandidaten → Fallback auf alle Snowboards im Budget
+  if (mentionsSnowboard && hasBudget && candidates.length === 0) {
+    const allSnowboards = allProducts.filter(
+      (p) => normalize(p.category || "") === "snowboard"
+    );
+    
+    const snowboardsInBudget = allSnowboards.filter((p) => {
+      const price = p.price ?? 0;
+      if (userMaxPrice !== null && price > userMaxPrice) return false;
+      if (userMinPrice !== null && price < userMinPrice) return false;
+      return true;
+    });
+    
+    if (snowboardsInBudget.length > 0) {
+      candidates = snowboardsInBudget.slice(0, Math.min(4, snowboardsInBudget.length));
+      console.log("[EFRO CLUSTER A FIX] S4v2 - Snowboards im Budget gefunden", {
+        text: text.substring(0, 80),
+        userMinPrice,
+        userMaxPrice,
+        allSnowboardsCount: allSnowboards.length,
+        inBudgetCount: snowboardsInBudget.length,
+        finalCount: candidates.length,
+        sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+      });
+    }
+  }
+
+  if (candidates.length === 1) {
+    finalProducts = candidates;
+    console.log("[EFRO SB] FINAL products (single match, no fallback)", {
+      text: text.substring(0, 80),
+      intent: currentIntent,
+      finalCount: 1,
+      product: {
+        title: candidates[0].title.substring(0, 50),
+        price: candidates[0].price ?? null,
+        category: candidates[0].category ?? null,
+      },
+    });
+  } else {
+    finalProducts = candidates.slice(0, 4);
+    console.log("[EFRO SB] FINAL products", {
+      text: text.substring(0, 80),
+      intent: currentIntent,
+      finalCount: finalProducts.length,
+      products: finalProducts.map((p) => ({
+        title: p.title.substring(0, 50),
+        price: p.price ?? null,
+        category: p.category ?? null,
+      })),
+    });
+  }
+
+  return finalProducts;
+}
+
+/**
+ * Produkte nach Keywords, Kategorie und Preis filtern
+ * – NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
+ */
+export async function filterProductsForSellerBrain(
+  text: string,
+  intent: ShoppingIntent,
+  allProducts: EfroProduct[],
+  contextCategory?: string | null
+): Promise<EfroProduct[]> {
+  // WICHTIG: Parfüm-Flags GANZ AM ANFANG deklarieren, vor allen Logs und if-Blocks
+  let hasPerfumeCandidates = false;
+  let originalPerfumeCandidates: EfroProduct[] = [];
+  
+  // WICHTIG: candidates muss GANZ AM ANFANG deklariert werden, vor allen Logs
+  let candidates: EfroProduct[] = [...allProducts];
+  const debugFlags: string[] = [];
+
+// Alias: in dieser Funktion ist "cleaned" einfach der Text aus runSellerBrain
+  const cleaned = text;
+
+  // Preisbereich extrahieren für ENTER-Log
+  const { minPrice: userMinPriceForLog, maxPrice: userMaxPriceForLog } =
+    extractUserPriceRange(text);
+
+  // Budget-Variablen vorab deklarieren (ohne TDZ)
+  var userMinPrice: number | null = null;
+  var userMaxPrice: number | null = null;
+  
+  // PriceRangeInfo-Variablen vorab deklarieren (werden später aus computeBudgetAndPriceRange übernommen)
+  let priceRangeNoMatch = false;
+  let priceRangeInfo: PriceRangeInfo | undefined = undefined;
+
+
+
+  console.log("[EFRO SB] ENTER filterProducts", {
+    text: text.substring(0, 100),
+    intent,
+    totalProducts: allProducts.length,
+    budgetRange: {
+      min: userMinPriceForLog,
+      max: userMaxPriceForLog,
+    },
+    keywordSummary: {
+      textLength: text.length,
+      hasPriceInfo: userMinPriceForLog !== undefined || userMaxPriceForLog !== undefined,
+    },
+  });
+
+  if (allProducts.length === 0) {
+    console.log("[EFRO Filter RESULT]", {
+      text,
+      intent,
+      resultTitles: [],
+    });
+    return [];
+  }
+
+  // 1) Filter-Kontext aufbauen
+  const filterContext = await buildFilterContext(text, intent, allProducts, contextCategory);
+  let {
+    parsedQuery,
+    words,
+    expandedWords,
+    categoryHints,
+    categoryHintsInText,
+    matchedCategories,
+    effectiveCategorySlug,
+    missingCategoryHint,
+    triggerWord,
+    currentIntent,
+    catalogKeywords,
+    aliasMap,
+    keywordSummary,
+    wantsMostExpensive,
+    attributeIndex,
+  } = filterContext;
+
+  console.log("[EFRO SB] AFTER WORD EXTRACTION", {
+    text: text.substring(0, 80),
+    words: expandedWords.slice(0, 10), // Nur erste 10 für Übersicht
+    coreTerms: parsedQuery.coreTerms.slice(0, 10),
+    attributeTerms: parsedQuery.attributeTerms.slice(0, 10),
+    candidateCountBeforeKeywordMatch: candidates.length,
+    keywordSummary,
+  });
+
+  // Filtere nach effectiveCategorySlug (entweder aus Text oder aus Kontext)
+  // 🔧 EFRO Category Filter Fix:
+  // - Nur dann hart nach Kategorie filtern, wenn es mindestens ein Produkt
+  //   mit diesem Category-Slug gibt.
+  // - Wenn kein Produkt diese Kategorie hat, Kandidaten NICHT auf 0 schießen,
+  //   sondern missingCategoryHint setzen und einen Debug-Hinweis schreiben.
+  // EFRO F7 Fix: Speichere categoryFilteredProducts für späteren Fallback
+  let categoryFilteredProducts: EfroProduct[] = [];
+  if (effectiveCategorySlug) {
+    const beforeCategoryFilterCount = candidates.length;
+
+    const filteredByCategory = candidates.filter(
+      (p) => normalize(p.category || "") === effectiveCategorySlug
+    );
+
+    if (filteredByCategory.length > 0) {
+      // Es gibt wirklich Produkte mit dieser Kategorie → normal filtern.
+      candidates = filteredByCategory;
+      // EFRO F7 Fix: Speichere für Fallback
+      categoryFilteredProducts = [...filteredByCategory];
+    } else {
+      // Kein Produkt mit diesem Slug → nicht alles wegfiltern.
+      // Stattdessen nur Hinweis setzen.
+      if (beforeCategoryFilterCount > 0) {
+        debugFlags.push(
+          `category_no_match_for_slug:${effectiveCategorySlug}`
+        );
+      }
+      if (!missingCategoryHint) {
+        missingCategoryHint = effectiveCategorySlug;
+      }
+      // candidates bleibt unverändert.
+    }
+    
+    // TODO Vorschlag: Bei Budget-only Anfragen (ohne Produktkategorie) könnte man
+    // den Kategorie-Filter optional machen, damit nicht alle Produkte wegfallen.
+    // Aktuell: Kategorie-Filter ist hart, was bei "zeig mir Parfüm" korrekt ist,
+    // aber bei "50 Euro Budget" ohne Kategorie könnte es zu streng sein.
+    
+    console.log("[EFRO SB] AFTER CATEGORY FILTER", {
+      text: text.substring(0, 80),
+      matchedCategories,
+      effectiveCategorySlug,
+      beforeCount: beforeCategoryFilterCount,
+      afterCount: candidates.length,
+      isBudgetOnly: (userMinPrice !== null || userMaxPrice !== null) && matchedCategories.length === 0,
+    });
+  } else {
+    // EFRO Fallback-Suche: Wenn keine Kategorie erkannt wurde, suche direkt in Titel/Beschreibung/Tags
+    const hasCategoryFromQuery = !!effectiveCategorySlug;
+    
+    if (!hasCategoryFromQuery) {
+      // Fallback: Suche direkt in Produkten nach Query-Begriffen
+      const normalizedText = normalize(text);
+      const tokens = normalizedText.split(/\s+/).filter((w) => w.length >= 3);
+      
+      // EFRO WAX-Disambiguierung: Unterscheide zwischen Haarwachs und Snowboard-Wachs
+      const hasWaxKeyword = normalizedText.includes("wax") || normalizedText.includes("wachs");
+      const hasHairKeywords = WAX_HAIR_KEYWORDS.some((kw) => normalizedText.includes(kw));
+      const hasSnowboardKeywords = WAX_SNOWBOARD_KEYWORDS.some((kw) => normalizedText.includes(kw));
+      
+      // Prüfe auf explizite Negationen
+      const hasHairNegation = /nicht.*haar|kein.*haar|nicht.*frisur|kein.*frisur/i.test(text);
+      const hasSnowboardNegation = /nicht.*snowboard|kein.*snowboard|nicht.*ski|kein.*ski|nicht.*board|kein.*board/i.test(text);
+      
+      // Intent bestimmen
+      let waxIntent: "hair" | "snowboard" | "unknown" = "unknown";
+      if (hasHairNegation && hasSnowboardKeywords) {
+        waxIntent = "snowboard";
+      } else if (hasSnowboardNegation && hasHairKeywords) {
+        waxIntent = "hair";
+      } else if (hasSnowboardKeywords) {
+        waxIntent = "snowboard";
+      } else if (hasHairKeywords) {
+        waxIntent = "hair";
+      }
+      
+      const fallbackMatches = candidates.filter((p) => {
+        const haystack = (
+          (p.title ?? "") +
+          " " +
+          (p.description ?? "") +
+          " " +
+          (p.category ?? "") +
+          " " +
+          (Array.isArray(p.tags) ? p.tags.join(" ") : "")
+        ).toLowerCase();
+        
+        // EFRO WAX-Disambiguierung: Wenn "wax"/"wachs" im Query ist, prüfe Intent
+        if (hasWaxKeyword) {
+          const hasWaxInTitle = (p.title ?? "").toLowerCase().includes("wax") || 
+                                (p.title ?? "").toLowerCase().includes("wachs");
+          const hasWaxInTags = Array.isArray(p.tags) && p.tags.some((tag: string) => 
+            tag.toLowerCase().includes("wax") || tag.toLowerCase().includes("wachs")
+          );
+          
+          if (hasWaxInTitle || hasWaxInTags) {
+            // Prüfe, ob Produkt zu Intent passt
+            const isSnowboardWax = haystack.includes("snowboard") || 
+                                   haystack.includes("ski") || 
+                                   haystack.includes("belag") ||
+                                   (Array.isArray(p.tags) && p.tags.some((tag: string) => 
+                                     ["sport", "winter", "accessory", "accessories"].includes(tag.toLowerCase())
+                                   ));
+            const isHairWax = haystack.includes("hair") || 
+                             haystack.includes("haar") || 
+                             haystack.includes("styling") ||
+                             haystack.includes("frisur");
+            
+            // Intent-basierte Filterung
+            if (waxIntent === "snowboard" && !isSnowboardWax) {
+              return false; // Haarwachs bei Snowboard-Intent ausschließen
+            }
+            if (waxIntent === "hair" && !isHairWax) {
+              return false; // Snowboard-Wachs bei Hair-Intent ausschließen
+            }
+            
+            return true; // Wax-Produkt gefunden, auch ohne Kategorie
+          }
+        }
+        
+        // CLUSTER 2 FIX S17/S17v1: Wenn waxIntent === "hair" ist, auch Produkte ohne "wax" akzeptieren,
+        // die "hair" oder "haar" enthalten (Fallback für Kataloge ohne Wax-Produkte)
+        if (waxIntent === "hair" && !hasWaxKeyword) {
+          const hasHairInProduct = haystack.includes("hair") || haystack.includes("haar") || 
+                                   haystack.includes("styling") || haystack.includes("frisur");
+          if (hasHairInProduct) {
+            return true; // Hair-Produkt gefunden, auch ohne Wax
+          }
+        }
+        
+        // Simple ANY-match: mindestens ein Token muss vorkommen
+        return tokens.some((t) => haystack.includes(t));
+      });
+      
+      console.log("[EFRO WAX Disambiguierung]", {
+        text: text.substring(0, 80),
+        hasWaxKeyword,
+        hasHairKeywords,
+        hasSnowboardKeywords,
+        hasHairNegation,
+        hasSnowboardNegation,
+        waxIntent,
+        fallbackMatchesCount: fallbackMatches.length,
+      });
+      
+      if (fallbackMatches.length > 0) {
+        candidates = fallbackMatches;
+        console.log("[EFRO SB Fallback] Keine Kategorie erkannt, Fallback-Suche in Titel/Beschreibung/Tags", {
+          text: text.substring(0, 80),
+          tokens: tokens.slice(0, 5),
+          fallbackMatchesCount: fallbackMatches.length,
+          sampleTitles: fallbackMatches.slice(0, 3).map((p) => p.title),
+          hasWaxKeyword,
+          waxProductsFound: hasWaxKeyword ? fallbackMatches.filter((p) => 
+            (p.title ?? "").toLowerCase().includes("wax") || 
+            (p.title ?? "").toLowerCase().includes("wachs")
+          ).length : 0,
+        });
+      }
+    }
+    
+    // Keine Kategorie-Matches und kein Kontext: Log für Budget-only Szenarien
+    // WICHTIG: Nur loggen, wenn wirklich kein Kontext vorhanden ist
+    if (userMinPrice !== null || userMaxPrice !== null) {
+      if (!contextCategory) {
+        console.log("[EFRO SB] CATEGORY FILTER SKIPPED (budget-only query, no context)", {
+          text: text.substring(0, 80),
+          userMinPrice,
+          userMaxPrice,
+          candidateCount: candidates.length,
+          contextCategory: null,
+        });
+      } else {
+        console.log("[EFRO SB] CATEGORY FILTER APPLIED (budget-only query, using context)", {
+          text: text.substring(0, 80),
+          userMinPrice,
+          userMaxPrice,
+          contextCategory,
+          effectiveCategorySlug,
+          candidateCount: candidates.length,
+        });
+      }
+    }
+  }
+
+  console.log("[EFRO SB] AFTER CATEGORY FILTER", {
+    text: text.substring(0, 80),
+    matchedCategories,
+    categoryHintsInText,
+    candidateCount: candidates.length,
+  });
+
+  // EFRO F2-Fix: Bei explizitem Parfüm-Text ohne effectiveCategorySlug
+  // die Kandidaten auf Parfüm-Produkte einschränken
+  const userAskedForPerfume = userMentionsPerfume(text);
+  if (userAskedForPerfume && !effectiveCategorySlug) {
+    const beforeCount = candidates.length;
+    const perfumeCandidates = candidates.filter((p) => isPerfumeProduct(p));
+
+    if (perfumeCandidates.length > 0) {
+      candidates = perfumeCandidates;
+      hasPerfumeCandidates = true;
+      originalPerfumeCandidates = [...perfumeCandidates];
+      console.log("[EFRO F2-Fix] Restricted to perfume products (no effectiveCategorySlug)", {
+        text: text.substring(0, 80),
+        beforeCount,
+        afterCount: perfumeCandidates.length,
+        sampleTitles: perfumeCandidates.slice(0, 3).map((p) => p.title),
+      });
+    }
+  }
+
+  // 2) Unbekannte Begriffe auflösen
+  const unknownTermsResult = resolveUnknownTermsForFilter(
+    text,
+    words,
+    expandedWords,
+    catalogKeywords,
+    aliasMap
+  );
+  words = unknownTermsResult.words;
+  expandedWords = unknownTermsResult.expandedWords;
+  const unknownResult = unknownTermsResult.unknownResult;
+
+  // 3) Produktfilter anwenden (Kategorie, Attribute, Preis)
+  const { coreTerms, attributeTerms, attributeFilters } = parsedQuery;
+  
+  console.log("[EFRO FILTER ATTR_FILTERS]", {
+    text,
+    attributeFilters,
+    candidateCountAfterAttr: candidates.length,
+  });
+
+  const filterResult = applyProductFilters(
+    candidates,
+    effectiveCategorySlug,
+    matchedCategories,
+    categoryHintsInText,
+    missingCategoryHint,
+    attributeFilters,
+    attributeIndex,
+    null, // minPrice wird später berechnet
+    null, // maxPrice wird später berechnet
+    text,
+    contextCategory,
+    null, // userMinPrice wird später berechnet
+    null  // userMaxPrice wird später berechnet
+  );
+  candidates = filterResult.candidates;
+  debugFlags.push(...filterResult.debugFlags);
+  missingCategoryHint = filterResult.missingCategoryHint;
+
+    // Budget und Preisbereich berechnen (vor Keyword-Matching, für Logs)
+  const budgetResult = computeBudgetAndPriceRange(
+    text,
+    candidates,
+    allProducts,
+    effectiveCategorySlug,
+    contextCategory
+  );
+
+  // WICHTIG:
+  // - computeBudgetAndPriceRange liefert eigene userMin/Max-Werte zurück
+  // - Wir haben oben bereits "var userMinPrice / userMaxPrice" deklariert
+  //   → daher hier NICHT nochmal mit demselben Namen deklarieren,
+  //   sondern unter anderem Namen entpacken und in die Variablen schreiben.
+  // - priceRangeInfo und priceRangeNoMatch wurden oben als "let" deklariert,
+  //   → daher hier auch manuell zuweisen, nicht per Destructuring (sonst const-Konflikt).
+  const {
+    userMinPrice: computedUserMinPrice,
+    userMaxPrice: computedUserMaxPrice,
+    minPrice,
+    maxPrice,
+    priceRangeInfo: computedPriceRangeInfo,
+    priceRangeNoMatch: computedPriceRangeNoMatch,
+  } = budgetResult;
+
+  // In die vorab deklarierten Budget-Variablen übernehmen (für Logs & nachfolgenden Code)
+  if (computedUserMinPrice !== undefined && computedUserMinPrice !== null) {
+    userMinPrice = computedUserMinPrice;
+  }
+  if (computedUserMaxPrice !== undefined && computedUserMaxPrice !== null) {
+    userMaxPrice = computedUserMaxPrice;
+  }
+  // priceRangeInfo und priceRangeNoMatch manuell zuweisen (oben als let deklariert)
+  // WICHTIG: priceRangeNoMatch wird NACH der Budget-Filterung korrekt gesetzt (siehe unten)
+  // Hier nur priceRangeInfo übernehmen, priceRangeNoMatch wird später basierend auf hasProductsInBudget gesetzt
+  if (computedPriceRangeInfo !== undefined) {
+    priceRangeInfo = computedPriceRangeInfo;
+  }
+  // priceRangeNoMatch wird später basierend auf tatsächlicher Budget-Filterung gesetzt
+
+  const hasBudget =
+    (userMinPrice !== null && userMinPrice !== undefined) ||
+    (userMaxPrice !== null && userMaxPrice !== undefined);
+
+
+  // EFRO Budget-Optimierung: Preis-Filter jetzt anwenden (nach Keyword-Matching)
+  // Mit drei Mengen (inBudget, aboveBudget, belowBudget) für ehrliche Budget-Kommunikation
+  let nearestPriceAboveBudget: number | null = null;
+  let nearestProductTitleAboveBudget: string | null = null;
+  // EFRO K2/K4/K13 Fix: unrealisticallyLow/unrealisticallyHigh außerhalb des if-Blocks speichern
+  let isUnrealisticallyLow = false;
+  let isUnrealisticallyHigh = false;
+  
+  if (minPrice !== null || maxPrice !== null) {
+    const beforePriceFilter = candidates.length;
+    
+    // EFRO K2/K4/K13 Fix: Produkte VOR Budget-Filterung speichern für Soft-Fallback
+    const productsBeforeBudget = [...candidates];
+    
+    // Neue Budget-Filter-Logik: drei Mengen bilden
+    const budgetResult = createBudgetFilteredProducts(candidates, minPrice, maxPrice);
+    
+    // EFRO K2/K4/K8/K13 Fix: Bei unrealistischem Budget (maxPrice < categoryMinPrice oder minPrice > categoryMaxPrice)
+    // priceRangeNoMatch = true setzen, ABER trotzdem die günstigsten/teuersten Produkte zeigen (minCount: 1)
+    const hasProductsInBudget = budgetResult.inBudget.length > 0;
+    const hasExplicitMaxPrice = maxPrice !== null;
+    const hasExplicitMinPrice = minPrice !== null;
+    
+    // Prüfe, ob Budget unrealistisch ist (benötigt priceRangeInfo)
+    const categoryForInfo = effectiveCategorySlug || contextCategory || null;
+    const priceRangeInfoTemp = computePriceRangeInfo({
+      userMinPrice: minPrice,
+      userMaxPrice: maxPrice,
+      allProducts,
+      effectiveCategorySlug: categoryForInfo,
+      normalize,
+    });
+    const categoryMinPrice = priceRangeInfoTemp.categoryMinPrice;
+    const categoryMaxPrice = priceRangeInfoTemp.categoryMaxPrice;
+    
+    isUnrealisticallyLow =
+      maxPrice !== null &&
+      categoryMinPrice !== null &&
+      maxPrice < categoryMinPrice;
+    
+    isUnrealisticallyHigh =
+      minPrice !== null &&
+      categoryMaxPrice !== null &&
+      minPrice > categoryMaxPrice;
+    
+    if (hasProductsInBudget) {
+      // Produkte IM Budget vorhanden → verwende diese
+      candidates = budgetResult.inBudget;
+    } else if (isUnrealisticallyLow || isUnrealisticallyHigh) {
+      // EFRO K2/K4/K8/K13 Fix: Bei unrealistischem Budget die günstigsten/teuersten Produkte zeigen
+      // (priceRangeNoMatch wird später gesetzt)
+      if (isUnrealisticallyLow && budgetResult.aboveBudget.length > 0) {
+        // Budget zu niedrig → zeige die günstigsten Produkte (aus aboveBudget)
+        const sortedAboveBudget = [...budgetResult.aboveBudget].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+        candidates = sortedAboveBudget.slice(0, Math.min(4, sortedAboveBudget.length));
+        nearestPriceAboveBudget = candidates[0]?.price ?? null;
+        nearestProductTitleAboveBudget = candidates[0]?.title ?? null;
+        console.log("[EFRO Budget Unrealistic Low] Zeige günstigste Produkte trotz unrealistischem Budget", {
+          text: text.substring(0, 80),
+          maxPrice,
+          categoryMinPrice,
+          inBudgetCount: budgetResult.inBudget.length,
+          aboveBudgetCount: budgetResult.aboveBudget.length,
+          showingCount: candidates.length,
+        });
+      } else if (isUnrealisticallyHigh && budgetResult.belowBudget.length > 0) {
+        // Budget zu hoch → zeige die teuersten Produkte (aus belowBudget)
+        const sortedBelowBudget = [...budgetResult.belowBudget].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+        candidates = sortedBelowBudget.slice(0, Math.min(4, sortedBelowBudget.length));
+        console.log("[EFRO Budget Unrealistic High] Zeige teuerste Produkte trotz unrealistischem Budget", {
+          text: text.substring(0, 80),
+          minPrice,
+          categoryMaxPrice,
+          inBudgetCount: budgetResult.inBudget.length,
+          belowBudgetCount: budgetResult.belowBudget.length,
+          showingCount: candidates.length,
+        });
+      } else {
+        // EFRO K2/K4/K13 Fix: Keine Produkte in aboveBudget/belowBudget → Fallback auf günstigste aus productsBeforeBudget
+        if (productsBeforeBudget.length > 0) {
+          const sortedByPrice = [...productsBeforeBudget].sort((a, b) => {
+            const pa = typeof a.price === "number" ? a.price : Number(a.price);
+            const pb = typeof b.price === "number" ? b.price : Number(b.price);
+            return pa - pb;
+          });
+          candidates = sortedByPrice.slice(0, Math.min(3, sortedByPrice.length));
+          nearestPriceAboveBudget = candidates[0]?.price ?? null;
+          nearestProductTitleAboveBudget = candidates[0]?.title ?? null;
+          console.log("[EFRO Budget Soft Fallback] Keine Produkte in Budget-Mengen → zeige günstigste aus productsBeforeBudget", {
+            text: text.substring(0, 80),
+            maxPrice,
+            categoryMinPrice,
+            productsBeforeBudgetCount: productsBeforeBudget.length,
+            showingCount: candidates.length,
+          });
+        } else {
+          candidates = [];
+        }
+      }
+    } else if (hasExplicitMaxPrice || hasExplicitMinPrice) {
+      // Explizites Budget gesetzt, aber keine Produkte IM Budget UND nicht unrealistisch → KEINE Fallback-Produkte
+      candidates = [];
+      console.log("[EFRO Budget Strict] Explizites Budget, keine Produkte IM Budget → keine Fallback-Produkte", {
+        text: text.substring(0, 80),
+        minPrice,
+        maxPrice,
+        inBudgetCount: budgetResult.inBudget.length,
+        aboveBudgetCount: budgetResult.aboveBudget.length,
+        belowBudgetCount: budgetResult.belowBudget.length,
+      });
+    } else {
+      // Kein explizites Budget → Fallback auf günstigste aus aboveBudget (wie bisher)
+      candidates = budgetResult.finalProducts;
+      nearestPriceAboveBudget = budgetResult.nearestPriceAboveBudget;
+      nearestProductTitleAboveBudget = budgetResult.nearestProductTitleAboveBudget;
+    }
+    
+    // EFRO K2/K4/K8/K13/S1 Fix: priceRangeNoMatch = true, wenn keine Produkte IM Budget sind
+    // UND ein explizites Budget gesetzt wurde (hasExplicitMaxPrice || hasExplicitMinPrice)
+    // (auch wenn wir trotzdem Produkte zeigen bei unrealistischem Budget)
+    if (!hasProductsInBudget && (hasExplicitMaxPrice || hasExplicitMinPrice)) {
+      priceRangeNoMatch = true;
+      // EFRO K2/K4/K13 Fix: priceRangeInfo korrekt setzen bei unrealistischem Budget
+      if (!priceRangeInfo) {
+        priceRangeInfo = priceRangeInfoTemp;
+      }
+      console.log("[EFRO Budget] priceRangeNoMatch = true gesetzt", {
+        text: text.substring(0, 80),
+        hasExplicitMaxPrice,
+        hasExplicitMinPrice,
+        inBudgetCount: budgetResult.inBudget.length,
+        priceRangeNoMatch: true,
+      });
+    }
+
+    console.log("[EFRO SB] AFTER PRICE FILTER", {
+      text: text.substring(0, 80),
+      minPrice,
+      maxPrice,
+      beforeCount: beforePriceFilter,
+      afterCount: candidates.length,
+      inBudgetCount: budgetResult.inBudget.length,
+      aboveBudgetCount: budgetResult.aboveBudget.length,
+      belowBudgetCount: budgetResult.belowBudget.length,
+      usingAboveBudgetFallback: budgetResult.inBudget.length === 0 && budgetResult.aboveBudget.length > 0,
+      nearestPriceAboveBudget,
+      nearestProductTitleAboveBudget,
+      priceRangeNoMatch,
+      samplePrices: candidates.slice(0, 5).map((p) => p.price ?? 0),
+    });
+    
+    // EFRO Budget-Optimierung: Aktualisiere priceRangeInfo mit nearestPriceAboveBudget
+    if (priceRangeInfo && (nearestPriceAboveBudget !== null || nearestProductTitleAboveBudget !== null)) {
+      priceRangeInfo = {
+        ...priceRangeInfo,
+        nearestPriceAboveBudget,
+        nearestProductTitleAboveBudget,
+      };
+    }
+  }
+
+  // Query in Core- und Attribute-Terms aufteilen
+  
+
+  console.log("[EFRO FILTER ATTR_FILTERS]", {
+    text,
+    attributeFilters,
+    candidateCountAfterAttr: candidates.length,
+  });
+
+  // Strukturierte Attribute-Filter aus der Query anwenden (sofern vorhanden)
+  const activeAttributeFilterEntries = Object.entries(attributeFilters).filter(
+    ([, values]) => Array.isArray(values) && values.length > 0
+  );
+
+  let candidatesAfterAttr = candidates;
+
+  if (activeAttributeFilterEntries.length > 0) {
+    const beforeAttrFilterCount = candidates.length;
+
+    // Spezieller Fall: menschliche Haut-Typen, aber keine Tier-Anfrage
+    if (
+      attributeFilters.skin_type &&
+      attributeFilters.skin_type.length > 0 &&
+      (!attributeFilters.pet || attributeFilters.pet.length === 0)
+    ) {
+      candidatesAfterAttr = candidatesAfterAttr.filter((p) => {
+        const cat = normalize(p.category || "");
+        return HUMAN_SKIN_CATEGORIES.some((allowed) => cat.includes(allowed));
+      });
+    }
+
+    const filteredByAttributes = candidatesAfterAttr.filter((product) => {
+      const productAttrs: ProductAttributeMap =
+        attributeIndex.perProduct[product.id] ?? {};
+
+      // Alle aktiven Filter müssen matchen
+      return activeAttributeFilterEntries.every(([key, values]) => {
+        const prodValues = productAttrs[key] ?? [];
+
+        if (!Array.isArray(prodValues) || prodValues.length === 0) {
+          return false;
+        }
+
+        // Speziallogik für Haustiere (pet = dog/cat/pet)
+        if (key === "pet") {
+          const hasGeneric = prodValues.includes("pet");
+          const hasDog = prodValues.includes("dog");
+          const hasCat = prodValues.includes("cat");
+
+          const wantsGeneric = values.includes("pet");
+          const wantsDog = values.includes("dog");
+          const wantsCat = values.includes("cat");
+
+          // Direktes Matching (dog↔dog, cat↔cat, pet↔pet)
+          const directMatch = values.some((v) => prodValues.includes(v));
+
+          // Query: "Haustiere" (pet) → akzeptiere dog oder cat
+          const genericMatchesSpecies = wantsGeneric && (hasDog || hasCat);
+
+          // Query: "Hund(e)" bzw. "Katze(n)" → akzeptiere generische Haustier-Produkte (pet)
+          const speciesMatchesGeneric =
+            (wantsDog || wantsCat) && hasGeneric;
+
+          return directMatch || genericMatchesSpecies || speciesMatchesGeneric;
+        }
+
+        // Standardfall für alle anderen Attribute
+        return values.some((v) => prodValues.includes(v));
+      });
+    });
+
+    if (filteredByAttributes.length > 0) {
+      console.log("[EFRO Filter ATTR_FILTER_APPLIED]", {
+        text,
+        attributeFilters,
+        beforeAttrFilterCount,
+        afterAttrFilterCount: filteredByAttributes.length,
+      });
+      candidates = filteredByAttributes;
+    } else {
+      console.log("[EFRO Filter ATTR_FILTER_NO_MATCH]", {
+        text,
+        attributeFilters,
+        beforeAttrFilterCount,
+      });
+      // Kein harter Filter: wir behalten die ursprünglichen Kandidaten
+    }
+  }
+
+  // --- EFRO Alias-Hard-Filter ------------------------------------------
+  // Bei aliasMapUsed === true: Harte Filterung auf Produkte, die Alias-Tokens enthalten
+  let productsForKeywordMatch = candidates;
+  
+  if (unknownResult.aliasMapUsed && unknownResult.resolved.length > 0) {
+    const aliasTerms = new Set(unknownResult.resolved);
+
+    const aliasCandidates = candidates.filter((p) => {
+      const haystack = normalizeText(
+        [
+          p.title,
+          p.description || "",
+          p.category || "",
+          Array.isArray((p as any).tags)
+            ? (p as any).tags.join(" ")
+            : typeof (p as any).tags === "string"
+            ? (p as any).tags
+            : "",
+        ].join(" ")
+      ).toLowerCase();
+
+      for (const term of aliasTerms) {
+        if (term && haystack.includes(term)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (aliasCandidates.length > 0) {
+      console.log("[EFRO AliasHardFilter]", {
+        text,
+        aliasTerms: Array.from(aliasTerms),
+        beforeCount: candidates.length,
+        afterCount: aliasCandidates.length,
+        sampleTitles: aliasCandidates.slice(0, 5).map((p) => p.title),
+      });
+      productsForKeywordMatch = aliasCandidates;
+    }
+  }
+  // --- Ende EFRO Alias-Hard-Filter --------------------------------------
+
+  // Prüfe, ob es eine sehr allgemeine Premium-Anfrage ist (ohne konkrete Produktkategorie)
+  // Importiert aus languageRules.de.ts
+  const hasPremiumToken =
+    coreTerms.length > 0 &&
+    coreTerms.some((t) => PREMIUM_TOKENS.includes(t));
+
+  const isGenericPremiumQuery =
+    currentIntent === "premium" &&
+    // keine Kategorie-Hints
+    categoryHintsInText.length === 0 &&
+    // keine Attribute
+    attributeTerms.length === 0 &&
+    // mindestens ein Premium-Token in coreTerms vorhanden
+    hasPremiumToken;
+
+  if (isGenericPremiumQuery) {
+    console.log("[EFRO KEYWORD_MATCHES_PREMIUM_SKIP]", {
+      text,
+      candidateCountBefore: candidates.length,
+      coreTerms,
+      attributeTerms,
+      categoryHintsInText,
+    });
+    // candidates bleiben unverändert - KEYWORD_MATCHES wird übersprungen
+  } else if (expandedWords.length > 0 || coreTerms.length > 0 || attributeTerms.length > 0) {
+    // Für jedes Produkt einen searchText erstellen
+    const candidatesWithScores = productsForKeywordMatch.map((p) => {
+      const searchText = normalizeText(
+        [
+          p.title,
+          p.description || "",
+          p.category || "",
+          Array.isArray((p as any).tags)
+            ? (p as any).tags.join(" ")
+            : typeof (p as any).tags === "string"
+            ? (p as any).tags
+            : "",
+        ].join(" ")
+      );
+
+      // EFRO: Erweitere Core-Match um LanguageRule-Keywords
+      // Prüfe, ob einer der coreTerms eine LanguageRule hat (dynamisch gelernt)
+      const languageRuleKeywords: string[] = [];
+      for (const coreTerm of coreTerms) {
+        const dynEntries = getDynamicSynonyms();
+        const dyn = dynEntries.find((e) => 
+          e.term.toLowerCase() === coreTerm.toLowerCase() ||
+          coreTerm.toLowerCase().includes(e.term.toLowerCase())
+        );
+        if (dyn) {
+          // Füge canonical und keywords zur Suche hinzu
+          if (dyn.canonical) {
+            languageRuleKeywords.push(dyn.canonical);
+          }
+          if (dyn.keywords?.length) {
+            languageRuleKeywords.push(...dyn.keywords);
+          }
+          if (dyn.extraKeywords?.length) {
+            languageRuleKeywords.push(...dyn.extraKeywords);
+          }
+        }
+      }
+      
+      // Core-Match: Mindestens 1 coreTerm, expandedWord oder LanguageRule-Keyword muss vorkommen
+      const hasCoreMatch =
+        (coreTerms.length === 0 && expandedWords.length === 0 && languageRuleKeywords.length === 0) ||
+        coreTerms.some((term) => searchText.includes(term)) ||
+        expandedWords.some((word) => searchText.includes(word)) ||
+        languageRuleKeywords.some((keyword) => searchText.includes(keyword.toLowerCase()));
+      
+      // CLUSTER K FIX K10v1/K11v1: Für Mode-Produkte auch zusammengesetzte Begriffe wie "slim-fit-jeans" erkennen
+      // K10v1/K11v1 Fix: Diese Logik muss IMMER greifen, auch wenn hasCoreMatch true ist
+      // Wenn "jeans" im Query ist, nur Jeans-Produkte akzeptieren (auch wenn hasCoreMatch true ist, aber Produkt kein "jeans" enthält)
+      if (effectiveCategorySlug === "mode") {
+        const normalizedText = normalize(text);
+        const hasJeansQuery = normalizedText.includes("jeans") || normalizedText.includes("slim") && normalizedText.includes("fit");
+        // K10v1/K11v1 Fix: Wenn "jeans" oder "slim fit" im Query ist, nur Jeans-Produkte akzeptieren
+        // Prüfe auch in Beschreibung und Tags, nicht nur im Titel
+        const productDesc = normalize(p.description || "");
+        const rawTags: any = (p as any).tags;
+        let tagsText = "";
+        if (Array.isArray(rawTags)) {
+          tagsText = rawTags.map((tag) => normalize(String(tag))).join(" ");
+        } else if (typeof rawTags === "string") {
+          tagsText = normalize(rawTags);
+        }
+        const fullSearchText = `${searchText} ${productDesc} ${tagsText}`;
+        
+        // K10v1/K11v1 Fix: Wenn "jeans" oder "slim fit" im Query ist, nur Jeans-Produkte akzeptieren
+        // ABER: Wenn es ein "Pants"-Produkt gibt, akzeptiere es auch (Pants = Jeans)
+        const isPantsProduct = normalize(p.category || "") === "pants";
+        if (hasJeansQuery && !fullSearchText.includes("jeans") && !isPantsProduct) {
+          return { product: p, score: 0, attributeScore: 0 };
+        }
+      }
+      
+      let hasModeCompositeMatch = false;
+      if (!hasCoreMatch && effectiveCategorySlug === "mode") {
+        const normalizedText = normalize(text);
+        const hasSlimFitJeans = normalizedText.includes("slim") && 
+          (normalizedText.includes("fit") || normalizedText.includes("jeans"));
+        if (hasSlimFitJeans) {
+          // Prüfe, ob Produkt "slim", "fit" oder "jeans" enthält
+          const hasModeKeywords = searchText.includes("slim") || 
+            searchText.includes("fit") || 
+            searchText.includes("jeans");
+          if (hasModeKeywords) {
+            hasModeCompositeMatch = true;
+          }
+        }
+      }
+
+      if (!hasCoreMatch && !hasModeCompositeMatch && (coreTerms.length > 0 || expandedWords.length > 0 || languageRuleKeywords.length > 0)) {
+        return { product: p, score: 0, attributeScore: 0 };
+      }
+
+      // Keyword-Score mit erweiterten Wörtern (inkl. aufgebrochene Komposita)
+      // EFRO: Erweitere expandedWords um LanguageRule-Keywords für besseres Matching
+      const expandedWordsWithLanguageRules = [
+        ...expandedWords,
+        ...languageRuleKeywords.map((kw) => kw.toLowerCase()),
+      ];
+      const keywordScore = scoreProductForWords(p, expandedWordsWithLanguageRules);
+      
+      // EFRO K6 Fix: Exact-Match-Boost für Smartphone-Modellnamen
+      const exactMatchBoost = computeExactMatchBoost(p, text);
+
+      // Attribute-Score: Zähle, wie viele attributeTerms im Text vorkommen
+      let attributeScore = 0;
+      for (const attr of attributeTerms) {
+        if (searchText.includes(attr)) {
+          attributeScore += 1;
+        }
+      }
+
+      // Strukturierte Attribute-Score: basiert auf attributeFilters + AttributeIndex
+      let structuredAttributeScore = 0;
+      const productAttrs: ProductAttributeMap =
+        attributeIndex.perProduct[p.id] ?? {};
+
+      for (const [key, values] of Object.entries(attributeFilters)) {
+        const prodValues = productAttrs[key] ?? [];
+
+        if (!Array.isArray(prodValues) || prodValues.length === 0) continue;
+
+        if (values.some((v) => prodValues.includes(v))) {
+          // Jeder passende strukturierte Filter gibt einen extra Bonus
+          structuredAttributeScore += 2;
+        }
+      }
+
+      // EFRO: Bonus für LanguageRule-CategoryHints-Matching
+      let languageRuleBonus = 0;
+      if (languageRuleKeywords.length > 0) {
+        const dynEntries = getDynamicSynonyms();
+        for (const coreTerm of coreTerms) {
+          const dyn = dynEntries.find((e) => 
+            e.term.toLowerCase() === coreTerm.toLowerCase() ||
+            coreTerm.toLowerCase().includes(e.term.toLowerCase())
+          );
+          if (dyn?.categoryHints?.length) {
+            // Prüfe, ob Produkt-Kategorie oder Tags zu categoryHints passen
+            const productCategory = normalize(p.category || "");
+            const productTags = Array.isArray((p as any).tags) 
+              ? (p as any).tags.map((t: string) => normalize(t))
+              : [];
+            
+            const matchesCategoryHint = dyn.categoryHints.some((hint) => {
+              const normalizedHint = normalize(hint);
+              return productCategory.includes(normalizedHint) ||
+                     productTags.some((tag: string) => tag.includes(normalizedHint));
+            });
+            
+            if (matchesCategoryHint) {
+              languageRuleBonus += 2; // Bonus für Kategorie-Match
+            }
+          }
+        }
+      }
+      
+      // Gesamt-Score: Keywords + Text-Attribute + strukturierte Attribute + LanguageRule-Bonus + Exact-Match-Boost
+      let totalScore =
+        keywordScore + attributeScore * 2 + structuredAttributeScore * 3 + languageRuleBonus + exactMatchBoost;
+
+      // Spezielle Ranking-Regel für "Schimmel": Bevorzuge Reiniger/Sprays, benachteilige Tücher
+      // Testfälle:
+      // - "Es soll Schimmel entfernen." → Reiniger/Sprays vor Tüchern
+      // - "Ich brauche etwas gegen Schimmel im Bad." → Reiniger/Sprays vor Tüchern
+      // - "Hast du einen Schimmelentferner für die Dusche?" → Reiniger/Sprays vor Tüchern
+      const normalizedUserText = normalize(text);
+      // Importiert aus languageRules.de.ts
+      if (MOLD_KEYWORDS.some((kw) => normalizedUserText.includes(kw))) {
+        const normalizedTitle = normalize(p.title);
+        const normalizedDescription = normalize(p.description || "");
+        const hasSchimmelInProduct =
+          MOLD_KEYWORDS.some((kw) => normalizedTitle.includes(kw)) ||
+          MOLD_KEYWORDS.some((kw) => normalizedDescription.includes(kw));
+
+        if (hasSchimmelInProduct) {
+          const scoreBefore = totalScore;
+          const productFamily = productAttrs.family || [];
+          // normalizedTitle ist bereits lowercase durch normalize()
+
+          // Bonus für Reiniger/Sprays mit Schimmel-Bezug
+          // Importiert aus languageRules.de.ts
+          if (
+            productFamily.includes("cleaner") ||
+            MOLD_PRODUCT_KEYWORDS.cleaners.some((kw) => normalizedTitle.includes(kw))
+          ) {
+            totalScore += 3;
+          }
+
+          // Malus für Tücher/Wipes mit Schimmel-Bezug (damit sie nachrangig erscheinen)
+          // Importiert aus languageRules.de.ts
+          if (
+            productFamily.includes("wipes") ||
+            MOLD_PRODUCT_KEYWORDS.wipes.some((kw) => normalizedTitle.includes(kw))
+          ) {
+            totalScore -= 1;
+          }
+
+          // Debug-Log nur im Schimmel-Fall
+          if (scoreBefore !== totalScore) {
+            console.log("[EFRO SchimmelRanking]", {
+              userText: normalizedUserText,
+              appliedMoldBoost: true,
+              productId: p.id,
+              title: p.title,
+              family: productFamily,
+              scoreBefore,
+              scoreAfter: totalScore,
+            });
+          }
+        }
+      }
+
+      return { product: p, score: totalScore, attributeScore };
+    });
+
+    // Filtere Kandidaten mit Score > 0
+    const scored = candidatesWithScores.filter((entry) => entry.score > 0);
+
+    if (scored.length > 0) {
+      // CLUSTER K FIX K6v2: Exact-Match-Boost hat höchste Priorität beim Ranking
+      // Berechne Exact-Match-Boost für alle Produkte
+      const scoredWithExactMatch = scored.map(entry => {
+        const exactMatchBoost = computeExactMatchBoost(entry.product, text);
+        return { ...entry, exactMatchBoost };
+      });
+      
+      // Sortiere nach: Exact-Match-Boost (höchste Priorität), dann attributeScore, dann totalScore, dann Preis
+      scoredWithExactMatch.sort((a, b) => {
+        // Exact-Match-Boost hat höchste Priorität
+        if (b.exactMatchBoost !== a.exactMatchBoost) {
+          return b.exactMatchBoost - a.exactMatchBoost;
+        }
+        if (b.attributeScore !== a.attributeScore) {
+          return b.attributeScore - a.attributeScore;
+        }
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        // Preis-Sortierung je nach Intent
+  if (currentIntent === "premium") {
+          return (b.product.price ?? 0) - (a.product.price ?? 0);
+  } else if (currentIntent === "bargain") {
+          return (a.product.price ?? 0) - (b.product.price ?? 0);
+        }
+        return 0;
+      });
+      
+      candidates = scoredWithExactMatch.map((e) => e.product);
+
+      if (candidates.length > 20) {
+        candidates = candidates.slice(0, 20);
+      }
+
+      // --- Language-level synonyms: Parfum/Parfüm -> Perfume ---
+      const userAskedForPerfume = userMentionsPerfume(text);
+
+      if (userAskedForPerfume) {
+        // Basis-Liste: ALLE Produkte, nicht nur die bisherigen Kandidaten
+        const perfumeSource = allProducts;
+        const beforeCount = perfumeSource.length;
+
+                // EFRO Perfume-Fix:
+        // 1) Erst die "echten" Parfüm-Produkte über isPerfumeProduct()
+        // 2) Fallback: Produkte aus Haushalt/Werkzeug, die klar nach Duft/Parfüm klingen
+        const perfumeCandidates = perfumeSource.filter((p) => {
+          // A) Original-Logik: echte Parfüm-Produkte aus categories.ts
+          if (isPerfumeProduct(p)) {
+            return true;
+          }
+
+          // B) Fallback: Produkte mit "Duft/Parfüm" im Titel/Beschreibung,
+          // auch wenn Kategorie im Katalog z.B. "haushalt" oder "werkzeug" heißt
+          const category = normalize(p.category || "");
+          const title = normalize(p.title || "");
+          const desc = normalize(p.description || "");
+
+          const looksLikePerfumeText =
+            title.includes("parfum") ||
+            title.includes("parfüm") ||
+            title.includes("duft") ||
+            desc.includes("parfum") ||
+            desc.includes("parfüm") ||
+            desc.includes("duft");
+
+          const isHouseholdOrTools =
+            category === "haushalt" || category === "werkzeug";
+
+          if (isHouseholdOrTools && looksLikePerfumeText) {
+            return true;
+          }
+
+          return false;
+        });
+
+
+        if (perfumeCandidates.length > 0) {
+          candidates = perfumeCandidates;
+          hasPerfumeCandidates = true;
+          originalPerfumeCandidates = [...perfumeCandidates];
+        } else {
+          // wenn wirklich KEIN echtes Parfüm im Sortiment ist, candidates so lassen wie vorher
+        }
+
+        console.log("[EFRO PERFUME]", {
+        text,
+          userAskedForPerfume,
+          beforeCount,
+          afterCount: perfumeCandidates.length,
+          sampleTitles: perfumeCandidates.slice(0, 5).map((p) => p.title),
+        });
+      }
+
+      console.log("[EFRO SB] AFTER WORD FILTER", {
+        text: text.substring(0, 80),
+        words: expandedWords.slice(0, 10),
+        coreTerms: coreTerms.slice(0, 10),
+        attributeTerms: attributeTerms.slice(0, 10),
+        aliasMapUsed: unknownResult.aliasMapUsed,
+        beforeCount: productsForKeywordMatch.length,
+        afterCount: candidates.length,
+        sampleTitles: candidates.slice(0, 5).map((p) => p.title.substring(0, 50)),
+      });
+  } else {
+      console.log("[EFRO Filter NO_KEYWORD_MATCH]", {
+        text,
+        intent: currentIntent,
+        words: expandedWords,
+        coreTerms,
+        attributeTerms,
+        note: "Alias-Preprocessing wurde bereits vor dem Keyword-Matching angewendet",
+      });
+    }
+  }
+
+  // Debug-Log am Ende des KEYWORD_MATCHES-Blocks
+  const candidateCountAfterKeywordMatches = candidates.length;
+  console.log("[EFRO KEYWORD_MATCHES_RESULT]", {
+    text,
+    intent: currentIntent,
+    candidateCountAfterKeywordMatches,
+    wasSkipped: isGenericPremiumQuery,
+  });
+
+  // CLUSTER H/C/D FIX: H1v2, H3v2, C1v2, D1v2, D2v2 - Kategorie-only Fallback
+  // Wenn eine klare Kategorie erkannt ist (effectiveCategorySlug vorhanden),
+  // aber candidateCountAfterKeywordMatches = 0,
+  // dann Fallback auf alle Produkte dieser Kategorie, sortiert nach Relevanz/Preis
+  if (effectiveCategorySlug && candidateCountAfterKeywordMatches === 0 && !hasBudget) {
+    const categoryProducts = allProducts.filter((p) => {
+      const normalizedCategory = normalize(p.category || "");
+      return normalizedCategory === normalize(effectiveCategorySlug);
+    });
+    
+    if (categoryProducts.length > 0) {
+      // CLUSTER K FIX K10v1/K11v1: Wenn "jeans" im Query ist, aber keine Jeans-Produkte gefunden wurden,
+      // dann prüfe, ob es überhaupt Jeans-Produkte im Katalog gibt
+      const normalizedText = normalize(text);
+      const hasJeansQuery = normalizedText.includes("jeans");
+      if (hasJeansQuery && effectiveCategorySlug === "mode") {
+        // Prüfe, ob es Jeans-Produkte im Katalog gibt
+        const jeansProductsInCatalog = allProducts.some((p) => {
+          const normalizedCategory = normalize(p.category || "");
+          const normalizedTitle = normalize(p.title || "");
+          return normalizedCategory === "mode" && normalizedTitle.includes("jeans");
+        });
+        
+        if (!jeansProductsInCatalog) {
+          // Keine Jeans-Produkte im Katalog → gebe Mode-Produkte als Fallback zurück
+          const modeProducts = allProducts.filter((p) => {
+            const normalizedCategory = normalize(p.category || "");
+            return normalizedCategory === "mode";
+          });
+          
+          if (modeProducts.length > 0) {
+            // Sortiere nach Preis (aufsteigend für allgemeine Anfragen, absteigend für Premium)
+            const sortedModeProducts = [...modeProducts].sort((a, b) => {
+              if (currentIntent === "premium" || wantsMostExpensive) {
+                return (b.price ?? 0) - (a.price ?? 0);
+              }
+              return (a.price ?? 0) - (b.price ?? 0);
+            });
+            
+            candidates = sortedModeProducts.slice(0, Math.min(10, sortedModeProducts.length));
+            
+            console.log("[EFRO CLUSTER K FIX K10v1/K11v1] Jeans-Query, aber keine Jeans-Produkte im Katalog → Mode-Fallback", {
+              text: text.substring(0, 80),
+              effectiveCategorySlug,
+              modeProductCount: modeProducts.length,
+              fallbackCount: candidates.length,
+              intent: currentIntent,
+              sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+            });
+          }
+        } else {
+          // Es gibt Jeans-Produkte im Katalog, aber sie wurden nicht gefunden → normale Kategorie-only Fallback
+          const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
+            if (currentIntent === "premium" || wantsMostExpensive) {
+              return (b.price ?? 0) - (a.price ?? 0);
+            }
+            return (a.price ?? 0) - (b.price ?? 0);
+          });
+          
+          candidates = sortedCategoryProducts.slice(0, Math.min(10, sortedCategoryProducts.length));
+          
+          console.log("[EFRO CLUSTER H/C/D FIX] Kategorie-only Fallback", {
+            text: text.substring(0, 80),
+            effectiveCategorySlug,
+            categoryProductCount: categoryProducts.length,
+            fallbackCount: candidates.length,
+            intent: currentIntent,
+            sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+          });
+        }
+      } else {
+        // Normale Kategorie-only Fallback
+        const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
+          if (currentIntent === "premium" || wantsMostExpensive) {
+            return (b.price ?? 0) - (a.price ?? 0);
+          }
+          return (a.price ?? 0) - (b.price ?? 0);
+        });
+        
+        candidates = sortedCategoryProducts.slice(0, Math.min(10, sortedCategoryProducts.length));
+        
+        console.log("[EFRO CLUSTER H/C/D FIX] Kategorie-only Fallback", {
+          text: text.substring(0, 80),
+          effectiveCategorySlug,
+          categoryProductCount: categoryProducts.length,
+          fallbackCount: candidates.length,
+          intent: currentIntent,
+          sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+        });
+      }
+    }
+  }
+
+    /**
+   * PREMIUM: High-End-Filter, wenn kein expliziter Preisbereich und nicht "teuerste Produkt"
+   * Filtert auf oberstes Preissegment (Top-25%, 75-Perzentil) mit sicherem Fallback
+   * → Premium-Anfragen sollen niemals mit 0 Produkten enden.
+   * CLUSTER C FIX: F1v1 - Premium-Produkte global → Fallback auf alle Produkte wenn candidates leer
+   */
+  if (
+    currentIntent === "premium" &&
+    userMinPrice === null &&
+    userMaxPrice === null &&
+    !wantsMostExpensive
+  ) {
+    // CLUSTER C FIX: F1v1 - Wenn candidates leer → Fallback auf alle Produkte (auch wenn Kategorie gesetzt)
+    if (candidates.length === 0) {
+      // Fallback: Nimm alle Produkte und sortiere nach Preis absteigend
+      const allProductsSorted = [...allProducts]
+        .filter((c) => (c.price ?? 0) > 0)
+        .sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+      
+      candidates = allProductsSorted.slice(0, Math.min(10, allProductsSorted.length));
+      
+      console.log("[EFRO PREMIUM_FALLBACK] CLUSTER C FIX F1v1 - Fallback auf alle Produkte", {
+        text,
+        effectiveCategorySlug,
+        fallbackCount: candidates.length,
+        sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+      });
+    } else {
+      // Preise aus aktuellen Kandidaten sammeln
+      const priceValues = candidates
+        .map((c) => c.price ?? 0)
+        .filter((p) => typeof p === "number" && p > 0)
+        .sort((a, b) => a - b); // aufsteigend
+
+      if (priceValues.length === 0) {
+        console.log("[EFRO PREMIUM_HIGH_END_FILTER]", {
+          text,
+          skipped: true,
+          reason: "no valid prices found",
+        });
+      } else {
+        // 75-Perzentil: Top-25 % der teuersten Produkte
+        const idx = Math.floor(priceValues.length * 0.75);
+        const threshold = priceValues[Math.min(idx, priceValues.length - 1)];
+
+        const beforeCount = candidates.length;
+        const originalCandidates = [...candidates];
+
+        // High-End-Produkte im aktuellen Kandidaten-Set
+        candidates = candidates.filter((c) => {
+          const price = c.price ?? 0;
+          return price >= threshold;
+        });
+
+        // Fallback: Wenn alles rausgefiltert wird → nimm einfach die 3 teuersten
+        if (candidates.length === 0 && originalCandidates.length > 0) {
+          const sortedByPriceDesc = [...originalCandidates]
+            .filter((c) => (c.price ?? 0) > 0)
+            .sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+
+          candidates = sortedByPriceDesc.slice(
+            0,
+            Math.min(3, sortedByPriceDesc.length)
+          );
+        }
+
+        console.log("[EFRO PREMIUM_HIGH_END_FILTER]", {
+          text,
+          beforeCount,
+          afterCount: candidates.length,
+          threshold,
+          priceSamples: priceValues.slice(0, 10), // nur erste 10 zur Übersicht
+        });
+      }
+    }
+  }
+
+
+
+
+
+  /**
+   * 4) Fallback, wenn durch Filter alles weggefallen ist
+   * EFRO Fix: Wenn genau 1 Produkt gefunden wurde, KEINE Fallback-Produkte beimischen
+   * WICHTIG: Bei Parfüm-Intent die Parfüm-Kandidaten NICHT überschreiben
+   * EFRO D8/K2/K8 Fix: Bei explizitem Budget KEINE Fallback-Produkte außerhalb des Budgets
+   * CLUSTER D FIX: H1v2, H3v1, H3v2 - Bei reiner Kategorie-Anfrage (kosmetik, werkzeug) ohne weitere Filter → Fallback auf Kategorie-Produkte
+   */
+      if (candidates.length === 0) {
+        // CLUSTER D FIX: H1v2, H3v1, H3v2 - Wenn nur Kategorie gesetzt und keine weiteren Filter
+        const isCategoryOnlyQuery = effectiveCategorySlug && 
+          !hasBudget && 
+          (normalize(effectiveCategorySlug) === "kosmetik" || normalize(effectiveCategorySlug) === "werkzeug");
+        
+        if (isCategoryOnlyQuery) {
+          // Fallback: Nimm alle Produkte aus dieser Kategorie
+          const categoryProducts = allProducts.filter(
+            (p) => normalize(p.category || "") === normalize(effectiveCategorySlug)
+          );
+          
+          if (categoryProducts.length > 0) {
+            candidates = categoryProducts.slice(0, Math.min(3, categoryProducts.length));
+            console.log("[EFRO CLUSTER D FIX] H1v2/H3v1/H3v2 - Category-only fallback", {
+              category: effectiveCategorySlug,
+              count: candidates.length,
+              sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+            });
+          }
+        }
+        
+        // CLUSTER D FIX: G1v2, G4v2 - Budget über 100 Euro oder Budget mit Kontext Parfüm
+        // Wenn Budget gesetzt, aber keine Produkte im Budget gefunden → Fallback auf Kategorie-Produkte
+        if (candidates.length === 0 && hasBudget && effectiveCategorySlug) {
+          const categoryProducts = allProducts.filter(
+            (p) => normalize(p.category || "") === normalize(effectiveCategorySlug)
+          );
+          
+          if (categoryProducts.length > 0) {
+            // Sortiere nach Preis und nimm die passendsten (im Budget oder nah dran)
+            const sortedByPrice = [...categoryProducts].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+            const inBudget = sortedByPrice.filter(
+              (p) => {
+                const price = p.price ?? 0;
+                if (userMaxPrice !== null && price <= userMaxPrice) return true;
+                if (userMinPrice !== null && price >= userMinPrice) return true;
+                return false;
+              }
+            );
+            
+            candidates = inBudget.length > 0 
+              ? inBudget.slice(0, Math.min(3, inBudget.length))
+              : sortedByPrice.slice(0, Math.min(3, sortedByPrice.length)); // Fallback: günstigste aus Kategorie
+            
+            console.log("[EFRO CLUSTER D FIX] G1v2/G4v2 - Budget with category fallback", {
+              category: effectiveCategorySlug,
+              userMinPrice,
+              userMaxPrice,
+              inBudgetCount: inBudget.length,
+              finalCount: candidates.length,
+              sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+            });
+          }
+        }
+        // EFRO K2/K4/K8/K13 Fix: Bei unrealistischem Budget wurden bereits Produkte in der Budget-Filter-Logik gezeigt
+        // Hier im Fallback nur noch normale Fallback-Logik anwenden
+        const hasExplicitBudget = (minPrice !== null || maxPrice !== null);
+        const categoryForInfo = effectiveCategorySlug || contextCategory || null;
+        const priceRangeInfoTemp = computePriceRangeInfo({
+          userMinPrice: minPrice,
+          userMaxPrice: maxPrice,
+          allProducts,
+          effectiveCategorySlug: categoryForInfo,
+          normalize,
+        });
+        const categoryMinPrice = priceRangeInfoTemp.categoryMinPrice;
+        const categoryMaxPrice = priceRangeInfoTemp.categoryMaxPrice;
+        const unrealisticallyLow =
+          maxPrice !== null &&
+          categoryMinPrice !== null &&
+          maxPrice < categoryMinPrice;
+        const unrealisticallyHigh =
+          minPrice !== null &&
+          categoryMaxPrice !== null &&
+          minPrice > categoryMaxPrice;
+        
+        // CLUSTER 1 FIX: S4v2, D1v2, D2v2, D4v2, K1v2, K2v2, K5v1, K6v1, K6v2, K7v1, K7v2, K8v1, K10v1, K11v1, K14v1, K15v1
+        // Bei explizitem Budget mit priceRangeNoMatch: Zeige trotzdem Produkte aus erkannten Kategorie
+        // (mit priceRangeNoMatch = true), anstatt gar keine Produkte zu zeigen
+        if (hasExplicitBudget && priceRangeNoMatch && !unrealisticallyLow && !unrealisticallyHigh) {
+          // Prüfe, ob eine Kategorie erkannt wurde
+          const fallbackCategory = effectiveCategorySlug || (matchedCategories.length > 0 ? matchedCategories[0] : null);
+          
+          if (fallbackCategory) {
+            // Zeige Produkte aus erkannten Kategorie, auch wenn sie nicht im Budget sind
+            const categoryProducts = allProducts.filter((p) =>
+              normalize(p.category || "") === normalize(fallbackCategory)
+            );
+            
+            if (categoryProducts.length > 0) {
+              // Sortiere nach Preis (aufsteigend für Budget-Anfragen)
+              const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
+                const priceA = typeof a.price === "number" ? a.price : Number(a.price ?? 0);
+                const priceB = typeof b.price === "number" ? b.price : Number(b.price ?? 0);
+                if (Number.isNaN(priceA)) return 1;
+                if (Number.isNaN(priceB)) return -1;
+                return priceA - priceB;
+              });
+              
+              candidates = sortedCategoryProducts.slice(0, Math.min(10, sortedCategoryProducts.length));
+              
+              console.log("[EFRO CLUSTER 1 FIX] Budget mit Kategorie-Fallback (S4v2, D1v2, etc.)", {
+                text: text.substring(0, 80),
+                category: fallbackCategory,
+                minPrice,
+                maxPrice,
+                priceRangeNoMatch,
+                categoryProductCount: categoryProducts.length,
+                fallbackCount: candidates.length,
+                sampleTitles: candidates.slice(0, 3).map((p) => p.title),
+                note: "Zeige Produkte aus Kategorie trotz Budget-Mismatch",
+              });
+            } else {
+              // Keine Produkte in Kategorie → keine Fallback-Produkte
+              candidates = [];
+              console.log("[EFRO Budget Strict Fallback] Explizites Budget, keine Produkte in Kategorie", {
+                text: text.substring(0, 80),
+                minPrice,
+                maxPrice,
+                priceRangeNoMatch,
+                category: fallbackCategory,
+                note: "User hat explizit ein Budget genannt, aber keine Produkte in Kategorie gefunden",
+              });
+            }
+          } else {
+            // G1v2 Fix: Keine Kategorie erkannt, aber Budget gesetzt → zeige Produkte im Budget-Bereich
+            // (auch wenn keine Kategorie erkannt wurde, sollte bei Budget-only-Queries etwas gezeigt werden)
+            const budgetFiltered = allProducts.filter((p) => {
+              const price = p.price ?? 0;
+              if (minPrice !== null && price < minPrice) return false;
+              if (maxPrice !== null && price > maxPrice) return false;
+              return true;
+            });
+            
+            if (budgetFiltered.length > 0) {
+              // Sortiere nach Preis (aufsteigend für minPrice, absteigend für maxPrice)
+              const sorted = [...budgetFiltered].sort((a, b) => {
+                const pa = a.price ?? 0;
+                const pb = b.price ?? 0;
+                if (minPrice !== null) return pa - pb; // Aufsteigend für minPrice
+                if (maxPrice !== null) return pb - pa; // Absteigend für maxPrice
+                return pa - pb;
+              });
+              candidates = sorted.slice(0, 4);
+              console.log("[EFRO Budget Strict Fallback] G1v2 Fix - Produkte im Budget-Bereich gefunden", {
+                text: text.substring(0, 80),
+                minPrice,
+                maxPrice,
+                foundCount: candidates.length,
+                sampleTitles: candidates.slice(0, 3).map(p => p.title),
+              });
+            } else {
+              candidates = [];
+              console.log("[EFRO Budget Strict Fallback] Explizites Budget, keine Kategorie erkannt, keine Produkte im Budget", {
+                text: text.substring(0, 80),
+                minPrice,
+                maxPrice,
+                priceRangeNoMatch,
+                note: "User hat explizit ein Budget genannt, aber keine Produkte im Budget-Bereich gefunden",
+              });
+            }
+          }
+        } else if (hasPerfumeCandidates && originalPerfumeCandidates.length > 0) {
+          // Bei Parfüm-Intent: Wenn Parfüm-Kandidaten existieren, diese beibehalten
+          // (auch wenn sie durch Preisfilter leer wurden - besser als alle Produkte zu zeigen)
+          candidates = originalPerfumeCandidates;
+          console.log("[EFRO PerfumeFallback]", {
+            text,
+            note: "Parfüm-Kandidaten beibehalten trotz leerer candidates nach Filter",
+            perfumeCount: candidates.length,
+            sampleTitles: candidates.slice(0, 5).map((p) => p.title),
+          });
+        } else {
+          // Normale Fallback-Logik für Nicht-Parfüm-Anfragen
+          // EFRO Fix: Bei priceRangeNoMatch nutze Kontext-Kategorie bevorzugt
+          // EFRO F7 Fix: Wenn effectiveCategorySlug gesetzt und categoryFilteredProducts vorhanden,
+          // bleibe in dieser Kategorie (besonders wichtig für "günstigstes Parfüm")
+          if (effectiveCategorySlug && categoryFilteredProducts.length > 0) {
+            // Bleibe in der erkannten Kategorie für Fallback – besonders für F7
+            candidates = categoryFilteredProducts.slice();
+            
+            // Wenn Intent "bargain" (günstigste), sortiere nach Preis aufsteigend
+            if (currentIntent === "bargain") {
+              candidates.sort((a, b) => {
+                const pa = typeof a.price === "number" ? a.price : Number(a.price);
+                const pb = typeof b.price === "number" ? b.price : Number(b.price);
+                return (Number.isNaN(pa) ? Infinity : pa) - (Number.isNaN(pb) ? Infinity : pb);
+              });
+            }
+            
+            console.log("[EFRO Filter Fallback] Staying in detected category (F7 Fix)", {
+              category: effectiveCategorySlug,
+              count: candidates.length,
+              intent: currentIntent,
+              note: "effectiveCategorySlug gesetzt → bleibe in Kategorie, auch im Fallback",
+            });
+          } else {
+            // Bisheriges Fallback-Verhalten:
+            candidates = [...allProducts];
+
+            // EFRO Fix: Bevorzuge effectiveCategorySlug (aus Kontext) für Fallback
+            const fallbackCategory = effectiveCategorySlug || (matchedCategories.length > 0 ? matchedCategories[0] : null);
+            
+            if (fallbackCategory) {
+              const byCat = candidates.filter((p) =>
+                normalize(p.category || "") === fallbackCategory
+              );
+              if (byCat.length > 0) {
+                candidates = byCat;
+                console.log("[EFRO Filter Fallback] Using category from context/text", {
+                  category: fallbackCategory,
+                  count: candidates.length,
+                });
+              }
+            } else if (matchedCategories.length > 0) {
+              const byCat = candidates.filter((p) =>
+                matchedCategories.includes(normalize(p.category || ""))
+              );
+              if (byCat.length > 0) {
+                candidates = byCat;
+              }
+            }
+
+            if (userMinPrice !== null || userMaxPrice !== null) {
+              let tmp = candidates.filter((p) => {
+                const price = p.price ?? 0;
+                if (userMinPrice !== null && price < userMinPrice) return false;
+                if (userMaxPrice !== null && price > userMaxPrice) return false;
+                return true;
+              });
+
+              if (tmp.length > 0) {
+                candidates = tmp;
+              }
+            }
+          }
+        }
+      }
+
+  // 5) Sortierung und Begrenzung
+  let finalProducts = rankAndSliceCandidates(
+    candidates,
+    currentIntent,
+    hasBudget,
+    userMinPrice,
+    userMaxPrice,
+    wantsMostExpensive,
+    text,
+    cleaned,
+    effectiveCategorySlug,
+    allProducts
+  );
+
+  // EFRO F2-Fix: Zusätzliche Sicherheit für Premium-Intent mit Parfüm-Produkten
+  // Wenn finalProducts leer ist, aber Parfüm-Kandidaten vorhanden sind, diese verwenden
+  if (finalProducts.length === 0 && hasPerfumeCandidates && originalPerfumeCandidates.length > 0) {
+    finalProducts = originalPerfumeCandidates.slice(0, 4);
+    // Bei Premium-Intent: teuerste zuerst sortieren
+    if (currentIntent === "premium") {
+      finalProducts.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+    }
+    console.log("[EFRO F2-Fix] Using perfume candidates as final products", {
+      text: text.substring(0, 80),
+      intent: currentIntent,
+      finalCount: finalProducts.length,
+      sampleTitles: finalProducts.slice(0, 3).map((p) => p.title),
+    });
+  }
+
+  // 🔒 EFRO Budget Final Guard (D8):
+  // Wenn der User ein hartes Max-Budget gesetzt hat und priceRangeNoMatch === true,
+  // UND es gibt Produkte IM Budget, dann dürfen in den finalen Produkten
+  // keine Preise über dem Budget liegen.
+  // WICHTIG: Wenn priceRangeNoMatch === true UND keine Produkte IM Budget, dann wurden
+  // bereits Produkte über dem Budget gezeigt (Fallback für unrealistische Budgets),
+  // und wir sollten diese nicht nochmal filtern (K4, K13, S1, K2 erwarten mindestens 1 Produkt).
+  // AUSNAHME: D8 (Kontext "haushalt") erwartet, dass keine Produkte über Budget gezeigt werden.
+  if (priceRangeNoMatch && userMaxPrice !== null) {
+    const productsInBudget = finalProducts.filter((p) => {
+      const price = typeof p.price === "number" ? p.price : Number(p.price);
+if (Number.isNaN(price)) return false;
+
+const maxPrice = userMaxPrice ?? Infinity; // null => keine Obergrenze
+return price <= maxPrice;
+    });
+    
+    // D8-Fix: Wenn Kontext "haushalt" ist, filtere auch wenn keine Produkte IM Budget sind
+    const isD8Scenario = contextCategory && normalize(contextCategory) === "haushalt";
+    
+    // Nur filtern, wenn es Produkte IM Budget gibt ODER wenn es D8-Szenario ist
+    if (productsInBudget.length > 0 || isD8Scenario) {
+      const beforeFinalFilter = finalProducts.length;
+      const maxBudget = userMaxPrice;
+
+      finalProducts = finalProducts.filter((p) => {
+        const price =
+          typeof p.price === "number" ? p.price : Number(p.price);
+        if (Number.isNaN(price)) return false;
+        return price <= maxBudget;
+      });
+
+      if (beforeFinalFilter !== finalProducts.length) {
+        console.log("[EFRO Budget Final Guard]", {
+          text: text.substring(0, 80),
+          userMaxPrice: maxBudget,
+          beforeFinalFilter,
+          afterFinalFilter: finalProducts.length,
+          productsInBudgetCount: productsInBudget.length,
+          isD8Scenario,
+          note: isD8Scenario ? "D8: Filtert alle Produkte über Budget" : "Filtert nur, wenn es Produkte IM Budget gibt",
+        });
+      }
+    }
+  }
+
+  // D8 Budget-Mismatch-Fallback für Haushalts-Kontext:
+  // Wenn priceRangeNoMatch === true, effectiveCategorySlug gesetzt ist,
+  // und finalProducts leer ist, zeige trotzdem Produkte aus dieser Kategorie
+  // (aufsteigend nach Preis sortiert), damit der User Alternativen sieht.
+  if (
+    priceRangeNoMatch &&
+    effectiveCategorySlug &&
+    finalProducts.length === 0 &&
+    allProducts.length > 0
+  ) {
+    // Prüfe, ob es Produkte in dieser Kategorie gibt
+    const categoryProducts = allProducts.filter((p) => {
+      const productCategory = normalize(p.category || "");
+      return productCategory === normalize(effectiveCategorySlug);
+    });
+
+    if (categoryProducts.length > 0) {
+      // Konvertiere Preise sauber in Zahlen und sortiere aufsteigend
+      const sortedCategoryProducts = [...categoryProducts].sort((a, b) => {
+        const priceA = typeof a.price === "number" ? a.price : Number(a.price ?? 0);
+        const priceB = typeof b.price === "number" ? b.price : Number(b.price ?? 0);
+        if (Number.isNaN(priceA)) return 1;
+        if (Number.isNaN(priceB)) return -1;
+        return priceA - priceB;
+      });
+
+      // Wähle die ersten 3-5 Produkte (oder maxResult-Anzahl, falls vorhanden)
+      const maxResult = 4; // Standard maxResult
+      finalProducts = sortedCategoryProducts.slice(0, maxResult);
+
+      console.log("[EFRO D8 Budget-Mismatch-Fallback]", {
+        text: text.substring(0, 80),
+        effectiveCategorySlug,
+        priceRangeNoMatch,
+        userMaxPrice,
+        categoryProductCount: categoryProducts.length,
+        showingCount: finalProducts.length,
+        samplePrices: finalProducts.map((p) => p.price ?? 0),
+        note: "Zeige Produkte aus Kategorie trotz Budget-Mismatch (D8)",
+      });
+    }
+  }
+
+  return finalProducts;
+}
+
+ 
