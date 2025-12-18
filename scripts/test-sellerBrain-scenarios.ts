@@ -28,6 +28,7 @@ import {
 } from "../src/lib/products/mockCatalog";
 import { type SalesAction } from "../src/lib/sales/salesTypes";
 import { normalizeUserInput } from "../src/lib/sales/modules/utils";
+import { generatedScenarios } from "./scenarios/generated"; // neu: zusätzliche Szenarien
 
 /**
  * Lädt Test-Produkte von der EFRO Debug-API
@@ -493,7 +494,7 @@ async function main() {
     const products = await loadTestProducts();
     console.log();
 
-    const baseTests: ScenarioTest[] = [
+    const baseTestsCore: ScenarioTest[] = [
       // =========================================================
       // GRUPPE S – ursprüngliche Szenarien (Snowboard, Haustier, Wax, Fressnapf, etc.)
       // =========================================================
