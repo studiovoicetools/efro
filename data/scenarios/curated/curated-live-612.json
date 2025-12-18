@@ -1,0 +1,4970 @@
+[
+  {
+    "id": "L0001",
+    "title": "Live: Akku-Schrauber 12V (q1)",
+    "query": "Ich suche Akku-Schrauber 12V.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0002",
+    "title": "Live: Akku-Schrauber 12V (q2)",
+    "query": "Zeig mir bitte Akku-Schrauber 12V.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0003",
+    "title": "Live: Akku-Schrauber 12V (q3)",
+    "query": "Hast du Akku-Schrauber 12V?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0004",
+    "title": "Live: Akku-Schrauber 12V (q4)",
+    "query": "Kannst du Akku-Schrauber 12V empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0005",
+    "title": "Live: Akku-Schrauber 12V (q5)",
+    "query": "Ich möchte Akku-Schrauber 12V kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0006",
+    "title": "Live: Akku-Schrauber 12V (q6)",
+    "query": "Gibt es Akku-Schrauber 12V bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0007",
+    "title": "Live: Akku-Schrauber 12V (q7)",
+    "query": "Ich interessiere mich für Akku-Schrauber 12V.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0008",
+    "title": "Live: Akku-Schrauber 12V (q8)",
+    "query": "Zeig mir Details zu Akku-Schrauber 12V.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0009",
+    "title": "Live: Akku-Schrauber 12V (q9)",
+    "query": "Ich brauche Akku-Schrauber 12V.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0010",
+    "title": "Live: Akku-Schrauber 12V (q10)",
+    "query": "Suche: Akku-Schrauber 12V",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0011",
+    "title": "Live: Akku-Schrauber 12V (q11)",
+    "query": "Bitte Akku-Schrauber 12V anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0012",
+    "title": "Live: Akku-Schrauber 12V (q12)",
+    "query": "Hast du so etwas wie Akku-Schrauber 12V?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0013",
+    "title": "Live: Aroma Duschgel Citrus (q1)",
+    "query": "Ich suche Aroma Duschgel Citrus.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0014",
+    "title": "Live: Aroma Duschgel Citrus (q2)",
+    "query": "Zeig mir bitte Aroma Duschgel Citrus.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0015",
+    "title": "Live: Aroma Duschgel Citrus (q3)",
+    "query": "Hast du Aroma Duschgel Citrus?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0016",
+    "title": "Live: Aroma Duschgel Citrus (q4)",
+    "query": "Kannst du Aroma Duschgel Citrus empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0017",
+    "title": "Live: Aroma Duschgel Citrus (q5)",
+    "query": "Ich möchte Aroma Duschgel Citrus kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0018",
+    "title": "Live: Aroma Duschgel Citrus (q6)",
+    "query": "Gibt es Aroma Duschgel Citrus bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0019",
+    "title": "Live: Aroma Duschgel Citrus (q7)",
+    "query": "Ich interessiere mich für Aroma Duschgel Citrus.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0020",
+    "title": "Live: Aroma Duschgel Citrus (q8)",
+    "query": "Zeig mir Details zu Aroma Duschgel Citrus.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0021",
+    "title": "Live: Aroma Duschgel Citrus (q9)",
+    "query": "Ich brauche Aroma Duschgel Citrus.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0022",
+    "title": "Live: Aroma Duschgel Citrus (q10)",
+    "query": "Suche: Aroma Duschgel Citrus",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0023",
+    "title": "Live: Aroma Duschgel Citrus (q11)",
+    "query": "Bitte Aroma Duschgel Citrus anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0024",
+    "title": "Live: Aroma Duschgel Citrus (q12)",
+    "query": "Hast du so etwas wie Aroma Duschgel Citrus?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0025",
+    "title": "Live: Bauklötze Set 100-teilig (q1)",
+    "query": "Ich suche Bauklötze Set 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0026",
+    "title": "Live: Bauklötze Set 100-teilig (q2)",
+    "query": "Zeig mir bitte Bauklötze Set 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0027",
+    "title": "Live: Bauklötze Set 100-teilig (q3)",
+    "query": "Hast du Bauklötze Set 100-teilig?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0028",
+    "title": "Live: Bauklötze Set 100-teilig (q4)",
+    "query": "Kannst du Bauklötze Set 100-teilig empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0029",
+    "title": "Live: Bauklötze Set 100-teilig (q5)",
+    "query": "Ich möchte Bauklötze Set 100-teilig kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0030",
+    "title": "Live: Bauklötze Set 100-teilig (q6)",
+    "query": "Gibt es Bauklötze Set 100-teilig bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0031",
+    "title": "Live: Bauklötze Set 100-teilig (q7)",
+    "query": "Ich interessiere mich für Bauklötze Set 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0032",
+    "title": "Live: Bauklötze Set 100-teilig (q8)",
+    "query": "Zeig mir Details zu Bauklötze Set 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0033",
+    "title": "Live: Bauklötze Set 100-teilig (q9)",
+    "query": "Ich brauche Bauklötze Set 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0034",
+    "title": "Live: Bauklötze Set 100-teilig (q10)",
+    "query": "Suche: Bauklötze Set 100-teilig",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0035",
+    "title": "Live: Bauklötze Set 100-teilig (q11)",
+    "query": "Bitte Bauklötze Set 100-teilig anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0036",
+    "title": "Live: Bauklötze Set 100-teilig (q12)",
+    "query": "Hast du so etwas wie Bauklötze Set 100-teilig?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0037",
+    "title": "Live: Bio Gesichtscreme (q1)",
+    "query": "Ich suche Bio Gesichtscreme.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0038",
+    "title": "Live: Bio Gesichtscreme (q2)",
+    "query": "Zeig mir bitte Bio Gesichtscreme.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0039",
+    "title": "Live: Bio Gesichtscreme (q3)",
+    "query": "Hast du Bio Gesichtscreme?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0040",
+    "title": "Live: Bio Gesichtscreme (q4)",
+    "query": "Kannst du Bio Gesichtscreme empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0041",
+    "title": "Live: Bio Gesichtscreme (q5)",
+    "query": "Ich möchte Bio Gesichtscreme kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0042",
+    "title": "Live: Bio Gesichtscreme (q6)",
+    "query": "Gibt es Bio Gesichtscreme bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0043",
+    "title": "Live: Bio Gesichtscreme (q7)",
+    "query": "Ich interessiere mich für Bio Gesichtscreme.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0044",
+    "title": "Live: Bio Gesichtscreme (q8)",
+    "query": "Zeig mir Details zu Bio Gesichtscreme.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0045",
+    "title": "Live: Bio Gesichtscreme (q9)",
+    "query": "Ich brauche Bio Gesichtscreme.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0046",
+    "title": "Live: Bio Gesichtscreme (q10)",
+    "query": "Suche: Bio Gesichtscreme",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0047",
+    "title": "Live: Bio Gesichtscreme (q11)",
+    "query": "Bitte Bio Gesichtscreme anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0048",
+    "title": "Live: Bio Gesichtscreme (q12)",
+    "query": "Hast du so etwas wie Bio Gesichtscreme?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0049",
+    "title": "Live: Bluetooth Kopfhörer X2 (q1)",
+    "query": "Ich suche Bluetooth Kopfhörer X2.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0050",
+    "title": "Live: Bluetooth Kopfhörer X2 (q2)",
+    "query": "Zeig mir bitte Bluetooth Kopfhörer X2.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0051",
+    "title": "Live: Bluetooth Kopfhörer X2 (q3)",
+    "query": "Hast du Bluetooth Kopfhörer X2?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0052",
+    "title": "Live: Bluetooth Kopfhörer X2 (q4)",
+    "query": "Kannst du Bluetooth Kopfhörer X2 empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0053",
+    "title": "Live: Bluetooth Kopfhörer X2 (q5)",
+    "query": "Ich möchte Bluetooth Kopfhörer X2 kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0054",
+    "title": "Live: Bluetooth Kopfhörer X2 (q6)",
+    "query": "Gibt es Bluetooth Kopfhörer X2 bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0055",
+    "title": "Live: Bluetooth Kopfhörer X2 (q7)",
+    "query": "Ich interessiere mich für Bluetooth Kopfhörer X2.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0056",
+    "title": "Live: Bluetooth Kopfhörer X2 (q8)",
+    "query": "Zeig mir Details zu Bluetooth Kopfhörer X2.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0057",
+    "title": "Live: Bluetooth Kopfhörer X2 (q9)",
+    "query": "Ich brauche Bluetooth Kopfhörer X2.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0058",
+    "title": "Live: Bluetooth Kopfhörer X2 (q10)",
+    "query": "Suche: Bluetooth Kopfhörer X2",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0059",
+    "title": "Live: Bluetooth Kopfhörer X2 (q11)",
+    "query": "Bitte Bluetooth Kopfhörer X2 anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0060",
+    "title": "Live: Bluetooth Kopfhörer X2 (q12)",
+    "query": "Hast du so etwas wie Bluetooth Kopfhörer X2?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0061",
+    "title": "Live: Damen Sneaker Comfort (q1)",
+    "query": "Ich suche Damen Sneaker Comfort.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0062",
+    "title": "Live: Damen Sneaker Comfort (q2)",
+    "query": "Zeig mir bitte Damen Sneaker Comfort.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0063",
+    "title": "Live: Damen Sneaker Comfort (q3)",
+    "query": "Hast du Damen Sneaker Comfort?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0064",
+    "title": "Live: Damen Sneaker Comfort (q4)",
+    "query": "Kannst du Damen Sneaker Comfort empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0065",
+    "title": "Live: Damen Sneaker Comfort (q5)",
+    "query": "Ich möchte Damen Sneaker Comfort kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0066",
+    "title": "Live: Damen Sneaker Comfort (q6)",
+    "query": "Gibt es Damen Sneaker Comfort bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0067",
+    "title": "Live: Damen Sneaker Comfort (q7)",
+    "query": "Ich interessiere mich für Damen Sneaker Comfort.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0068",
+    "title": "Live: Damen Sneaker Comfort (q8)",
+    "query": "Zeig mir Details zu Damen Sneaker Comfort.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0069",
+    "title": "Live: Damen Sneaker Comfort (q9)",
+    "query": "Ich brauche Damen Sneaker Comfort.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0070",
+    "title": "Live: Damen Sneaker Comfort (q10)",
+    "query": "Suche: Damen Sneaker Comfort",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0071",
+    "title": "Live: Damen Sneaker Comfort (q11)",
+    "query": "Bitte Damen Sneaker Comfort anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0072",
+    "title": "Live: Damen Sneaker Comfort (q12)",
+    "query": "Hast du so etwas wie Damen Sneaker Comfort?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0073",
+    "title": "Live: Duschgel Fresh Orange (q1)",
+    "query": "Ich suche Duschgel Fresh Orange.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0074",
+    "title": "Live: Duschgel Fresh Orange (q2)",
+    "query": "Zeig mir bitte Duschgel Fresh Orange.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0075",
+    "title": "Live: Duschgel Fresh Orange (q3)",
+    "query": "Hast du Duschgel Fresh Orange?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0076",
+    "title": "Live: Duschgel Fresh Orange (q4)",
+    "query": "Kannst du Duschgel Fresh Orange empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0077",
+    "title": "Live: Duschgel Fresh Orange (q5)",
+    "query": "Ich möchte Duschgel Fresh Orange kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0078",
+    "title": "Live: Duschgel Fresh Orange (q6)",
+    "query": "Gibt es Duschgel Fresh Orange bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0079",
+    "title": "Live: Duschgel Fresh Orange (q7)",
+    "query": "Ich interessiere mich für Duschgel Fresh Orange.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0080",
+    "title": "Live: Duschgel Fresh Orange (q8)",
+    "query": "Zeig mir Details zu Duschgel Fresh Orange.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0081",
+    "title": "Live: Duschgel Fresh Orange (q9)",
+    "query": "Ich brauche Duschgel Fresh Orange.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0082",
+    "title": "Live: Duschgel Fresh Orange (q10)",
+    "query": "Suche: Duschgel Fresh Orange",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0083",
+    "title": "Live: Duschgel Fresh Orange (q11)",
+    "query": "Bitte Duschgel Fresh Orange anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0084",
+    "title": "Live: Duschgel Fresh Orange (q12)",
+    "query": "Hast du so etwas wie Duschgel Fresh Orange?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0085",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q1)",
+    "query": "Ich suche Edelstahl Besteckset 24-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0086",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q2)",
+    "query": "Zeig mir bitte Edelstahl Besteckset 24-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0087",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q3)",
+    "query": "Hast du Edelstahl Besteckset 24-teilig?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0088",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q4)",
+    "query": "Kannst du Edelstahl Besteckset 24-teilig empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0089",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q5)",
+    "query": "Ich möchte Edelstahl Besteckset 24-teilig kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0090",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q6)",
+    "query": "Gibt es Edelstahl Besteckset 24-teilig bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0091",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q7)",
+    "query": "Ich interessiere mich für Edelstahl Besteckset 24-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0092",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q8)",
+    "query": "Zeig mir Details zu Edelstahl Besteckset 24-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0093",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q9)",
+    "query": "Ich brauche Edelstahl Besteckset 24-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0094",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q10)",
+    "query": "Suche: Edelstahl Besteckset 24-teilig",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0095",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q11)",
+    "query": "Bitte Edelstahl Besteckset 24-teilig anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0096",
+    "title": "Live: Edelstahl Besteckset 24-teilig (q12)",
+    "query": "Hast du so etwas wie Edelstahl Besteckset 24-teilig?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0097",
+    "title": "Live: Example Hat (q1)",
+    "query": "Ich suche Example Hat.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0098",
+    "title": "Live: Example Hat (q2)",
+    "query": "Zeig mir bitte Example Hat.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0099",
+    "title": "Live: Example Hat (q3)",
+    "query": "Hast du Example Hat?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0100",
+    "title": "Live: Example Hat (q4)",
+    "query": "Kannst du Example Hat empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0101",
+    "title": "Live: Example Hat (q5)",
+    "query": "Ich möchte Example Hat kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0102",
+    "title": "Live: Example Hat (q6)",
+    "query": "Gibt es Example Hat bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0103",
+    "title": "Live: Example Hat (q7)",
+    "query": "Ich interessiere mich für Example Hat.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0104",
+    "title": "Live: Example Hat (q8)",
+    "query": "Zeig mir Details zu Example Hat.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0105",
+    "title": "Live: Example Hat (q9)",
+    "query": "Ich brauche Example Hat.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0106",
+    "title": "Live: Example Hat (q10)",
+    "query": "Suche: Example Hat",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0107",
+    "title": "Live: Example Hat (q11)",
+    "query": "Bitte Example Hat anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0108",
+    "title": "Live: Example Hat (q12)",
+    "query": "Hast du so etwas wie Example Hat?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0109",
+    "title": "Live: Example Pants (q1)",
+    "query": "Ich suche Example Pants.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0110",
+    "title": "Live: Example Pants (q2)",
+    "query": "Zeig mir bitte Example Pants.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0111",
+    "title": "Live: Example Pants (q3)",
+    "query": "Hast du Example Pants?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0112",
+    "title": "Live: Example Pants (q4)",
+    "query": "Kannst du Example Pants empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0113",
+    "title": "Live: Example Pants (q5)",
+    "query": "Ich möchte Example Pants kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0114",
+    "title": "Live: Example Pants (q6)",
+    "query": "Gibt es Example Pants bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0115",
+    "title": "Live: Example Pants (q7)",
+    "query": "Ich interessiere mich für Example Pants.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0116",
+    "title": "Live: Example Pants (q8)",
+    "query": "Zeig mir Details zu Example Pants.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0117",
+    "title": "Live: Example Pants (q9)",
+    "query": "Ich brauche Example Pants.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0118",
+    "title": "Live: Example Pants (q10)",
+    "query": "Suche: Example Pants",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0119",
+    "title": "Live: Example Pants (q11)",
+    "query": "Bitte Example Pants anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0120",
+    "title": "Live: Example Pants (q12)",
+    "query": "Hast du so etwas wie Example Pants?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0121",
+    "title": "Live: Example Perfume (q1)",
+    "query": "Ich suche Example Perfume.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0122",
+    "title": "Live: Example Perfume (q2)",
+    "query": "Zeig mir bitte Example Perfume.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0123",
+    "title": "Live: Example Perfume (q3)",
+    "query": "Hast du Example Perfume?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0124",
+    "title": "Live: Example Perfume (q4)",
+    "query": "Kannst du Example Perfume empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0125",
+    "title": "Live: Example Perfume (q5)",
+    "query": "Ich möchte Example Perfume kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0126",
+    "title": "Live: Example Perfume (q6)",
+    "query": "Gibt es Example Perfume bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0127",
+    "title": "Live: Example Perfume (q7)",
+    "query": "Ich interessiere mich für Example Perfume.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0128",
+    "title": "Live: Example Perfume (q8)",
+    "query": "Zeig mir Details zu Example Perfume.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0129",
+    "title": "Live: Example Perfume (q9)",
+    "query": "Ich brauche Example Perfume.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0130",
+    "title": "Live: Example Perfume (q10)",
+    "query": "Suche: Example Perfume",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0131",
+    "title": "Live: Example Perfume (q11)",
+    "query": "Bitte Example Perfume anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0132",
+    "title": "Live: Example Perfume (q12)",
+    "query": "Hast du so etwas wie Example Perfume?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0133",
+    "title": "Live: Example T-Shirt (q1)",
+    "query": "Ich suche Example T-Shirt.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0134",
+    "title": "Live: Example T-Shirt (q2)",
+    "query": "Zeig mir bitte Example T-Shirt.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0135",
+    "title": "Live: Example T-Shirt (q3)",
+    "query": "Hast du Example T-Shirt?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0136",
+    "title": "Live: Example T-Shirt (q4)",
+    "query": "Kannst du Example T-Shirt empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0137",
+    "title": "Live: Example T-Shirt (q5)",
+    "query": "Ich möchte Example T-Shirt kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0138",
+    "title": "Live: Example T-Shirt (q6)",
+    "query": "Gibt es Example T-Shirt bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0139",
+    "title": "Live: Example T-Shirt (q7)",
+    "query": "Ich interessiere mich für Example T-Shirt.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0140",
+    "title": "Live: Example T-Shirt (q8)",
+    "query": "Zeig mir Details zu Example T-Shirt.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0141",
+    "title": "Live: Example T-Shirt (q9)",
+    "query": "Ich brauche Example T-Shirt.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0142",
+    "title": "Live: Example T-Shirt (q10)",
+    "query": "Suche: Example T-Shirt",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0143",
+    "title": "Live: Example T-Shirt (q11)",
+    "query": "Bitte Example T-Shirt anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0144",
+    "title": "Live: Example T-Shirt (q12)",
+    "query": "Hast du so etwas wie Example T-Shirt?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0145",
+    "title": "Live: Gift Card (q1)",
+    "query": "Ich suche Gift Card.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0146",
+    "title": "Live: Gift Card (q2)",
+    "query": "Zeig mir bitte Gift Card.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0147",
+    "title": "Live: Gift Card (q3)",
+    "query": "Hast du Gift Card?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0148",
+    "title": "Live: Gift Card (q4)",
+    "query": "Kannst du Gift Card empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0149",
+    "title": "Live: Gift Card (q5)",
+    "query": "Ich möchte Gift Card kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0150",
+    "title": "Live: Gift Card (q6)",
+    "query": "Gibt es Gift Card bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0151",
+    "title": "Live: Gift Card (q7)",
+    "query": "Ich interessiere mich für Gift Card.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0152",
+    "title": "Live: Gift Card (q8)",
+    "query": "Zeig mir Details zu Gift Card.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0153",
+    "title": "Live: Gift Card (q9)",
+    "query": "Ich brauche Gift Card.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0154",
+    "title": "Live: Gift Card (q10)",
+    "query": "Suche: Gift Card",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0155",
+    "title": "Live: Gift Card (q11)",
+    "query": "Bitte Gift Card anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0156",
+    "title": "Live: Gift Card (q12)",
+    "query": "Hast du so etwas wie Gift Card?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0157",
+    "title": "Live: Herren Hoodie Classic (q1)",
+    "query": "Ich suche Herren Hoodie Classic.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0158",
+    "title": "Live: Herren Hoodie Classic (q2)",
+    "query": "Zeig mir bitte Herren Hoodie Classic.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0159",
+    "title": "Live: Herren Hoodie Classic (q3)",
+    "query": "Hast du Herren Hoodie Classic?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0160",
+    "title": "Live: Herren Hoodie Classic (q4)",
+    "query": "Kannst du Herren Hoodie Classic empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0161",
+    "title": "Live: Herren Hoodie Classic (q5)",
+    "query": "Ich möchte Herren Hoodie Classic kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0162",
+    "title": "Live: Herren Hoodie Classic (q6)",
+    "query": "Gibt es Herren Hoodie Classic bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0163",
+    "title": "Live: Herren Hoodie Classic (q7)",
+    "query": "Ich interessiere mich für Herren Hoodie Classic.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0164",
+    "title": "Live: Herren Hoodie Classic (q8)",
+    "query": "Zeig mir Details zu Herren Hoodie Classic.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0165",
+    "title": "Live: Herren Hoodie Classic (q9)",
+    "query": "Ich brauche Herren Hoodie Classic.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0166",
+    "title": "Live: Herren Hoodie Classic (q10)",
+    "query": "Suche: Herren Hoodie Classic",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0167",
+    "title": "Live: Herren Hoodie Classic (q11)",
+    "query": "Bitte Herren Hoodie Classic anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0168",
+    "title": "Live: Herren Hoodie Classic (q12)",
+    "query": "Hast du so etwas wie Herren Hoodie Classic?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0169",
+    "title": "Live: Hunde Napfset (q1)",
+    "query": "Ich suche Hunde Napfset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0170",
+    "title": "Live: Hunde Napfset (q2)",
+    "query": "Zeig mir bitte Hunde Napfset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0171",
+    "title": "Live: Hunde Napfset (q3)",
+    "query": "Hast du Hunde Napfset?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0172",
+    "title": "Live: Hunde Napfset (q4)",
+    "query": "Kannst du Hunde Napfset empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0173",
+    "title": "Live: Hunde Napfset (q5)",
+    "query": "Ich möchte Hunde Napfset kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0174",
+    "title": "Live: Hunde Napfset (q6)",
+    "query": "Gibt es Hunde Napfset bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0175",
+    "title": "Live: Hunde Napfset (q7)",
+    "query": "Ich interessiere mich für Hunde Napfset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0176",
+    "title": "Live: Hunde Napfset (q8)",
+    "query": "Zeig mir Details zu Hunde Napfset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0177",
+    "title": "Live: Hunde Napfset (q9)",
+    "query": "Ich brauche Hunde Napfset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0178",
+    "title": "Live: Hunde Napfset (q10)",
+    "query": "Suche: Hunde Napfset",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0179",
+    "title": "Live: Hunde Napfset (q11)",
+    "query": "Bitte Hunde Napfset anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0180",
+    "title": "Live: Hunde Napfset (q12)",
+    "query": "Hast du so etwas wie Hunde Napfset?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0181",
+    "title": "Live: Katzenspielzeug Federstab (q1)",
+    "query": "Ich suche Katzenspielzeug Federstab.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0182",
+    "title": "Live: Katzenspielzeug Federstab (q2)",
+    "query": "Zeig mir bitte Katzenspielzeug Federstab.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0183",
+    "title": "Live: Katzenspielzeug Federstab (q3)",
+    "query": "Hast du Katzenspielzeug Federstab?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0184",
+    "title": "Live: Katzenspielzeug Federstab (q4)",
+    "query": "Kannst du Katzenspielzeug Federstab empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0185",
+    "title": "Live: Katzenspielzeug Federstab (q5)",
+    "query": "Ich möchte Katzenspielzeug Federstab kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0186",
+    "title": "Live: Katzenspielzeug Federstab (q6)",
+    "query": "Gibt es Katzenspielzeug Federstab bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0187",
+    "title": "Live: Katzenspielzeug Federstab (q7)",
+    "query": "Ich interessiere mich für Katzenspielzeug Federstab.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0188",
+    "title": "Live: Katzenspielzeug Federstab (q8)",
+    "query": "Zeig mir Details zu Katzenspielzeug Federstab.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0189",
+    "title": "Live: Katzenspielzeug Federstab (q9)",
+    "query": "Ich brauche Katzenspielzeug Federstab.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0190",
+    "title": "Live: Katzenspielzeug Federstab (q10)",
+    "query": "Suche: Katzenspielzeug Federstab",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0191",
+    "title": "Live: Katzenspielzeug Federstab (q11)",
+    "query": "Bitte Katzenspielzeug Federstab anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0192",
+    "title": "Live: Katzenspielzeug Federstab (q12)",
+    "query": "Hast du so etwas wie Katzenspielzeug Federstab?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0193",
+    "title": "Live: Keramik Frühstücksset (q1)",
+    "query": "Ich suche Keramik Frühstücksset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0194",
+    "title": "Live: Keramik Frühstücksset (q2)",
+    "query": "Zeig mir bitte Keramik Frühstücksset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0195",
+    "title": "Live: Keramik Frühstücksset (q3)",
+    "query": "Hast du Keramik Frühstücksset?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0196",
+    "title": "Live: Keramik Frühstücksset (q4)",
+    "query": "Kannst du Keramik Frühstücksset empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0197",
+    "title": "Live: Keramik Frühstücksset (q5)",
+    "query": "Ich möchte Keramik Frühstücksset kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0198",
+    "title": "Live: Keramik Frühstücksset (q6)",
+    "query": "Gibt es Keramik Frühstücksset bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0199",
+    "title": "Live: Keramik Frühstücksset (q7)",
+    "query": "Ich interessiere mich für Keramik Frühstücksset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0200",
+    "title": "Live: Keramik Frühstücksset (q8)",
+    "query": "Zeig mir Details zu Keramik Frühstücksset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0201",
+    "title": "Live: Keramik Frühstücksset (q9)",
+    "query": "Ich brauche Keramik Frühstücksset.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0202",
+    "title": "Live: Keramik Frühstücksset (q10)",
+    "query": "Suche: Keramik Frühstücksset",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0203",
+    "title": "Live: Keramik Frühstücksset (q11)",
+    "query": "Bitte Keramik Frühstücksset anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0204",
+    "title": "Live: Keramik Frühstücksset (q12)",
+    "query": "Hast du so etwas wie Keramik Frühstücksset?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0205",
+    "title": "Live: LED Duftkerze (q1)",
+    "query": "Ich suche LED Duftkerze.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0206",
+    "title": "Live: LED Duftkerze (q2)",
+    "query": "Zeig mir bitte LED Duftkerze.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0207",
+    "title": "Live: LED Duftkerze (q3)",
+    "query": "Hast du LED Duftkerze?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0208",
+    "title": "Live: LED Duftkerze (q4)",
+    "query": "Kannst du LED Duftkerze empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0209",
+    "title": "Live: LED Duftkerze (q5)",
+    "query": "Ich möchte LED Duftkerze kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0210",
+    "title": "Live: LED Duftkerze (q6)",
+    "query": "Gibt es LED Duftkerze bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0211",
+    "title": "Live: LED Duftkerze (q7)",
+    "query": "Ich interessiere mich für LED Duftkerze.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0212",
+    "title": "Live: LED Duftkerze (q8)",
+    "query": "Zeig mir Details zu LED Duftkerze.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0213",
+    "title": "Live: LED Duftkerze (q9)",
+    "query": "Ich brauche LED Duftkerze.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0214",
+    "title": "Live: LED Duftkerze (q10)",
+    "query": "Suche: LED Duftkerze",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0215",
+    "title": "Live: LED Duftkerze (q11)",
+    "query": "Bitte LED Duftkerze anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0216",
+    "title": "Live: LED Duftkerze (q12)",
+    "query": "Hast du so etwas wie LED Duftkerze?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0217",
+    "title": "Live: LED Streifen RGB (q1)",
+    "query": "Ich suche LED Streifen RGB.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0218",
+    "title": "Live: LED Streifen RGB (q2)",
+    "query": "Zeig mir bitte LED Streifen RGB.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0219",
+    "title": "Live: LED Streifen RGB (q3)",
+    "query": "Hast du LED Streifen RGB?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0220",
+    "title": "Live: LED Streifen RGB (q4)",
+    "query": "Kannst du LED Streifen RGB empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0221",
+    "title": "Live: LED Streifen RGB (q5)",
+    "query": "Ich möchte LED Streifen RGB kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0222",
+    "title": "Live: LED Streifen RGB (q6)",
+    "query": "Gibt es LED Streifen RGB bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0223",
+    "title": "Live: LED Streifen RGB (q7)",
+    "query": "Ich interessiere mich für LED Streifen RGB.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0224",
+    "title": "Live: LED Streifen RGB (q8)",
+    "query": "Zeig mir Details zu LED Streifen RGB.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0225",
+    "title": "Live: LED Streifen RGB (q9)",
+    "query": "Ich brauche LED Streifen RGB.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0226",
+    "title": "Live: LED Streifen RGB (q10)",
+    "query": "Suche: LED Streifen RGB",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0227",
+    "title": "Live: LED Streifen RGB (q11)",
+    "query": "Bitte LED Streifen RGB anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0228",
+    "title": "Live: LED Streifen RGB (q12)",
+    "query": "Hast du so etwas wie LED Streifen RGB?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0229",
+    "title": "Live: Lernroboter Max (q1)",
+    "query": "Ich suche Lernroboter Max.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0230",
+    "title": "Live: Lernroboter Max (q2)",
+    "query": "Zeig mir bitte Lernroboter Max.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0231",
+    "title": "Live: Lernroboter Max (q3)",
+    "query": "Hast du Lernroboter Max?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0232",
+    "title": "Live: Lernroboter Max (q4)",
+    "query": "Kannst du Lernroboter Max empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0233",
+    "title": "Live: Lernroboter Max (q5)",
+    "query": "Ich möchte Lernroboter Max kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0234",
+    "title": "Live: Lernroboter Max (q6)",
+    "query": "Gibt es Lernroboter Max bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0235",
+    "title": "Live: Lernroboter Max (q7)",
+    "query": "Ich interessiere mich für Lernroboter Max.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0236",
+    "title": "Live: Lernroboter Max (q8)",
+    "query": "Zeig mir Details zu Lernroboter Max.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0237",
+    "title": "Live: Lernroboter Max (q9)",
+    "query": "Ich brauche Lernroboter Max.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0238",
+    "title": "Live: Lernroboter Max (q10)",
+    "query": "Suche: Lernroboter Max",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0239",
+    "title": "Live: Lernroboter Max (q11)",
+    "query": "Bitte Lernroboter Max anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0240",
+    "title": "Live: Lernroboter Max (q12)",
+    "query": "Hast du so etwas wie Lernroboter Max?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0241",
+    "title": "Live: Luxury Bundle (q1)",
+    "query": "Ich suche Luxury Bundle.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0242",
+    "title": "Live: Luxury Bundle (q2)",
+    "query": "Zeig mir bitte Luxury Bundle.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0243",
+    "title": "Live: Luxury Bundle (q3)",
+    "query": "Hast du Luxury Bundle?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0244",
+    "title": "Live: Luxury Bundle (q4)",
+    "query": "Kannst du Luxury Bundle empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0245",
+    "title": "Live: Luxury Bundle (q5)",
+    "query": "Ich möchte Luxury Bundle kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0246",
+    "title": "Live: Luxury Bundle (q6)",
+    "query": "Gibt es Luxury Bundle bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0247",
+    "title": "Live: Luxury Bundle (q7)",
+    "query": "Ich interessiere mich für Luxury Bundle.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0248",
+    "title": "Live: Luxury Bundle (q8)",
+    "query": "Zeig mir Details zu Luxury Bundle.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0249",
+    "title": "Live: Luxury Bundle (q9)",
+    "query": "Ich brauche Luxury Bundle.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0250",
+    "title": "Live: Luxury Bundle (q10)",
+    "query": "Suche: Luxury Bundle",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0251",
+    "title": "Live: Luxury Bundle (q11)",
+    "query": "Bitte Luxury Bundle anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0252",
+    "title": "Live: Luxury Bundle (q12)",
+    "query": "Hast du so etwas wie Luxury Bundle?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0253",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q1)",
+    "query": "Ich suche Mikrofaser Reinigungstuch“, „Küchenschwamm Set.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0254",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q2)",
+    "query": "Zeig mir bitte Mikrofaser Reinigungstuch“, „Küchenschwamm Set.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0255",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q3)",
+    "query": "Hast du Mikrofaser Reinigungstuch“, „Küchenschwamm Set?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0256",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q4)",
+    "query": "Kannst du Mikrofaser Reinigungstuch“, „Küchenschwamm Set empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0257",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q5)",
+    "query": "Ich möchte Mikrofaser Reinigungstuch“, „Küchenschwamm Set kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0258",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q6)",
+    "query": "Gibt es Mikrofaser Reinigungstuch“, „Küchenschwamm Set bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0259",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q7)",
+    "query": "Ich interessiere mich für Mikrofaser Reinigungstuch“, „Küchenschwamm Set.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0260",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q8)",
+    "query": "Zeig mir Details zu Mikrofaser Reinigungstuch“, „Küchenschwamm Set.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0261",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q9)",
+    "query": "Ich brauche Mikrofaser Reinigungstuch“, „Küchenschwamm Set.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0262",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q10)",
+    "query": "Suche: Mikrofaser Reinigungstuch“, „Küchenschwamm Set",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0263",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q11)",
+    "query": "Bitte Mikrofaser Reinigungstuch“, „Küchenschwamm Set anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0264",
+    "title": "Live: Mikrofaser Reinigungstuch“, „Küchenschwamm Set (q12)",
+    "query": "Hast du so etwas wie Mikrofaser Reinigungstuch“, „Küchenschwamm Set?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0265",
+    "title": "Live: Minimalistische Wandvase (q1)",
+    "query": "Ich suche Minimalistische Wandvase.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0266",
+    "title": "Live: Minimalistische Wandvase (q2)",
+    "query": "Zeig mir bitte Minimalistische Wandvase.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0267",
+    "title": "Live: Minimalistische Wandvase (q3)",
+    "query": "Hast du Minimalistische Wandvase?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0268",
+    "title": "Live: Minimalistische Wandvase (q4)",
+    "query": "Kannst du Minimalistische Wandvase empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0269",
+    "title": "Live: Minimalistische Wandvase (q5)",
+    "query": "Ich möchte Minimalistische Wandvase kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0270",
+    "title": "Live: Minimalistische Wandvase (q6)",
+    "query": "Gibt es Minimalistische Wandvase bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0271",
+    "title": "Live: Minimalistische Wandvase (q7)",
+    "query": "Ich interessiere mich für Minimalistische Wandvase.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0272",
+    "title": "Live: Minimalistische Wandvase (q8)",
+    "query": "Zeig mir Details zu Minimalistische Wandvase.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0273",
+    "title": "Live: Minimalistische Wandvase (q9)",
+    "query": "Ich brauche Minimalistische Wandvase.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0274",
+    "title": "Live: Minimalistische Wandvase (q10)",
+    "query": "Suche: Minimalistische Wandvase",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0275",
+    "title": "Live: Minimalistische Wandvase (q11)",
+    "query": "Bitte Minimalistische Wandvase anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0276",
+    "title": "Live: Minimalistische Wandvase (q12)",
+    "query": "Hast du so etwas wie Minimalistische Wandvase?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0277",
+    "title": "Live: Parfüm (q1)",
+    "query": "Ich suche Parfüm.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0278",
+    "title": "Live: Parfüm (q2)",
+    "query": "Zeig mir bitte Parfüm.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0279",
+    "title": "Live: Parfüm (q3)",
+    "query": "Hast du Parfüm?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0280",
+    "title": "Live: Parfüm (q4)",
+    "query": "Kannst du Parfüm empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0281",
+    "title": "Live: Parfüm (q5)",
+    "query": "Ich möchte Parfüm kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0282",
+    "title": "Live: Parfüm (q6)",
+    "query": "Gibt es Parfüm bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0283",
+    "title": "Live: Parfüm (q7)",
+    "query": "Ich interessiere mich für Parfüm.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0284",
+    "title": "Live: Parfüm (q8)",
+    "query": "Zeig mir Details zu Parfüm.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0285",
+    "title": "Live: Parfüm (q9)",
+    "query": "Ich brauche Parfüm.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0286",
+    "title": "Live: Parfüm (q10)",
+    "query": "Suche: Parfüm",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0287",
+    "title": "Live: Parfüm (q11)",
+    "query": "Bitte Parfüm anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0288",
+    "title": "Live: Parfüm (q12)",
+    "query": "Hast du so etwas wie Parfüm?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0289",
+    "title": "Live: Pflanzensprüher Glas (q1)",
+    "query": "Ich suche Pflanzensprüher Glas.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0290",
+    "title": "Live: Pflanzensprüher Glas (q2)",
+    "query": "Zeig mir bitte Pflanzensprüher Glas.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0291",
+    "title": "Live: Pflanzensprüher Glas (q3)",
+    "query": "Hast du Pflanzensprüher Glas?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0292",
+    "title": "Live: Pflanzensprüher Glas (q4)",
+    "query": "Kannst du Pflanzensprüher Glas empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0293",
+    "title": "Live: Pflanzensprüher Glas (q5)",
+    "query": "Ich möchte Pflanzensprüher Glas kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0294",
+    "title": "Live: Pflanzensprüher Glas (q6)",
+    "query": "Gibt es Pflanzensprüher Glas bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0295",
+    "title": "Live: Pflanzensprüher Glas (q7)",
+    "query": "Ich interessiere mich für Pflanzensprüher Glas.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0296",
+    "title": "Live: Pflanzensprüher Glas (q8)",
+    "query": "Zeig mir Details zu Pflanzensprüher Glas.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0297",
+    "title": "Live: Pflanzensprüher Glas (q9)",
+    "query": "Ich brauche Pflanzensprüher Glas.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0298",
+    "title": "Live: Pflanzensprüher Glas (q10)",
+    "query": "Suche: Pflanzensprüher Glas",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0299",
+    "title": "Live: Pflanzensprüher Glas (q11)",
+    "query": "Bitte Pflanzensprüher Glas anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0300",
+    "title": "Live: Pflanzensprüher Glas (q12)",
+    "query": "Hast du so etwas wie Pflanzensprüher Glas?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0301",
+    "title": "Live: Selling Plans Ski Wax (q1)",
+    "query": "Ich suche Selling Plans Ski Wax.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0302",
+    "title": "Live: Selling Plans Ski Wax (q2)",
+    "query": "Zeig mir bitte Selling Plans Ski Wax.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0303",
+    "title": "Live: Selling Plans Ski Wax (q3)",
+    "query": "Hast du Selling Plans Ski Wax?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0304",
+    "title": "Live: Selling Plans Ski Wax (q4)",
+    "query": "Kannst du Selling Plans Ski Wax empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0305",
+    "title": "Live: Selling Plans Ski Wax (q5)",
+    "query": "Ich möchte Selling Plans Ski Wax kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0306",
+    "title": "Live: Selling Plans Ski Wax (q6)",
+    "query": "Gibt es Selling Plans Ski Wax bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0307",
+    "title": "Live: Selling Plans Ski Wax (q7)",
+    "query": "Ich interessiere mich für Selling Plans Ski Wax.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0308",
+    "title": "Live: Selling Plans Ski Wax (q8)",
+    "query": "Zeig mir Details zu Selling Plans Ski Wax.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0309",
+    "title": "Live: Selling Plans Ski Wax (q9)",
+    "query": "Ich brauche Selling Plans Ski Wax.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0310",
+    "title": "Live: Selling Plans Ski Wax (q10)",
+    "query": "Suche: Selling Plans Ski Wax",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0311",
+    "title": "Live: Selling Plans Ski Wax (q11)",
+    "query": "Bitte Selling Plans Ski Wax anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0312",
+    "title": "Live: Selling Plans Ski Wax (q12)",
+    "query": "Hast du so etwas wie Selling Plans Ski Wax?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0313",
+    "title": "Live: Smartwatch Nova (q1)",
+    "query": "Ich suche Smartwatch Nova.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0314",
+    "title": "Live: Smartwatch Nova (q2)",
+    "query": "Zeig mir bitte Smartwatch Nova.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0315",
+    "title": "Live: Smartwatch Nova (q3)",
+    "query": "Hast du Smartwatch Nova?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0316",
+    "title": "Live: Smartwatch Nova (q4)",
+    "query": "Kannst du Smartwatch Nova empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0317",
+    "title": "Live: Smartwatch Nova (q5)",
+    "query": "Ich möchte Smartwatch Nova kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0318",
+    "title": "Live: Smartwatch Nova (q6)",
+    "query": "Gibt es Smartwatch Nova bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0319",
+    "title": "Live: Smartwatch Nova (q7)",
+    "query": "Ich interessiere mich für Smartwatch Nova.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0320",
+    "title": "Live: Smartwatch Nova (q8)",
+    "query": "Zeig mir Details zu Smartwatch Nova.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0321",
+    "title": "Live: Smartwatch Nova (q9)",
+    "query": "Ich brauche Smartwatch Nova.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0322",
+    "title": "Live: Smartwatch Nova (q10)",
+    "query": "Suche: Smartwatch Nova",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0323",
+    "title": "Live: Smartwatch Nova (q11)",
+    "query": "Bitte Smartwatch Nova anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0324",
+    "title": "Live: Smartwatch Nova (q12)",
+    "query": "Hast du so etwas wie Smartwatch Nova?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0325",
+    "title": "Live: Solar Gartenleuchte (q1)",
+    "query": "Ich suche Solar Gartenleuchte.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0326",
+    "title": "Live: Solar Gartenleuchte (q2)",
+    "query": "Zeig mir bitte Solar Gartenleuchte.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0327",
+    "title": "Live: Solar Gartenleuchte (q3)",
+    "query": "Hast du Solar Gartenleuchte?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0328",
+    "title": "Live: Solar Gartenleuchte (q4)",
+    "query": "Kannst du Solar Gartenleuchte empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0329",
+    "title": "Live: Solar Gartenleuchte (q5)",
+    "query": "Ich möchte Solar Gartenleuchte kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0330",
+    "title": "Live: Solar Gartenleuchte (q6)",
+    "query": "Gibt es Solar Gartenleuchte bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0331",
+    "title": "Live: Solar Gartenleuchte (q7)",
+    "query": "Ich interessiere mich für Solar Gartenleuchte.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0332",
+    "title": "Live: Solar Gartenleuchte (q8)",
+    "query": "Zeig mir Details zu Solar Gartenleuchte.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0333",
+    "title": "Live: Solar Gartenleuchte (q9)",
+    "query": "Ich brauche Solar Gartenleuchte.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0334",
+    "title": "Live: Solar Gartenleuchte (q10)",
+    "query": "Suche: Solar Gartenleuchte",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0335",
+    "title": "Live: Solar Gartenleuchte (q11)",
+    "query": "Bitte Solar Gartenleuchte anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0336",
+    "title": "Live: Solar Gartenleuchte (q12)",
+    "query": "Hast du so etwas wie Solar Gartenleuchte?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0337",
+    "title": "Live: The 3p Fulfilled Snowboard (q1)",
+    "query": "Ich suche The 3p Fulfilled Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0338",
+    "title": "Live: The 3p Fulfilled Snowboard (q2)",
+    "query": "Zeig mir bitte The 3p Fulfilled Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0339",
+    "title": "Live: The 3p Fulfilled Snowboard (q3)",
+    "query": "Hast du The 3p Fulfilled Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0340",
+    "title": "Live: The 3p Fulfilled Snowboard (q4)",
+    "query": "Kannst du The 3p Fulfilled Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0341",
+    "title": "Live: The 3p Fulfilled Snowboard (q5)",
+    "query": "Ich möchte The 3p Fulfilled Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0342",
+    "title": "Live: The 3p Fulfilled Snowboard (q6)",
+    "query": "Gibt es The 3p Fulfilled Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0343",
+    "title": "Live: The 3p Fulfilled Snowboard (q7)",
+    "query": "Ich interessiere mich für The 3p Fulfilled Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0344",
+    "title": "Live: The 3p Fulfilled Snowboard (q8)",
+    "query": "Zeig mir Details zu The 3p Fulfilled Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0345",
+    "title": "Live: The 3p Fulfilled Snowboard (q9)",
+    "query": "Ich brauche The 3p Fulfilled Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0346",
+    "title": "Live: The 3p Fulfilled Snowboard (q10)",
+    "query": "Suche: The 3p Fulfilled Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0347",
+    "title": "Live: The 3p Fulfilled Snowboard (q11)",
+    "query": "Bitte The 3p Fulfilled Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0348",
+    "title": "Live: The 3p Fulfilled Snowboard (q12)",
+    "query": "Hast du so etwas wie The 3p Fulfilled Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0349",
+    "title": "Live: The Archived Snowboard (q1)",
+    "query": "Ich suche The Archived Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0350",
+    "title": "Live: The Archived Snowboard (q2)",
+    "query": "Zeig mir bitte The Archived Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0351",
+    "title": "Live: The Archived Snowboard (q3)",
+    "query": "Hast du The Archived Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0352",
+    "title": "Live: The Archived Snowboard (q4)",
+    "query": "Kannst du The Archived Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0353",
+    "title": "Live: The Archived Snowboard (q5)",
+    "query": "Ich möchte The Archived Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0354",
+    "title": "Live: The Archived Snowboard (q6)",
+    "query": "Gibt es The Archived Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0355",
+    "title": "Live: The Archived Snowboard (q7)",
+    "query": "Ich interessiere mich für The Archived Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0356",
+    "title": "Live: The Archived Snowboard (q8)",
+    "query": "Zeig mir Details zu The Archived Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0357",
+    "title": "Live: The Archived Snowboard (q9)",
+    "query": "Ich brauche The Archived Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0358",
+    "title": "Live: The Archived Snowboard (q10)",
+    "query": "Suche: The Archived Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0359",
+    "title": "Live: The Archived Snowboard (q11)",
+    "query": "Bitte The Archived Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0360",
+    "title": "Live: The Archived Snowboard (q12)",
+    "query": "Hast du so etwas wie The Archived Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0361",
+    "title": "Live: The Collection Snowboard: Hydrogen (q1)",
+    "query": "Ich suche The Collection Snowboard: Hydrogen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0362",
+    "title": "Live: The Collection Snowboard: Hydrogen (q2)",
+    "query": "Zeig mir bitte The Collection Snowboard: Hydrogen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0363",
+    "title": "Live: The Collection Snowboard: Hydrogen (q3)",
+    "query": "Hast du The Collection Snowboard: Hydrogen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0364",
+    "title": "Live: The Collection Snowboard: Hydrogen (q4)",
+    "query": "Kannst du The Collection Snowboard: Hydrogen empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0365",
+    "title": "Live: The Collection Snowboard: Hydrogen (q5)",
+    "query": "Ich möchte The Collection Snowboard: Hydrogen kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0366",
+    "title": "Live: The Collection Snowboard: Hydrogen (q6)",
+    "query": "Gibt es The Collection Snowboard: Hydrogen bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0367",
+    "title": "Live: The Collection Snowboard: Hydrogen (q7)",
+    "query": "Ich interessiere mich für The Collection Snowboard: Hydrogen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0368",
+    "title": "Live: The Collection Snowboard: Hydrogen (q8)",
+    "query": "Zeig mir Details zu The Collection Snowboard: Hydrogen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0369",
+    "title": "Live: The Collection Snowboard: Hydrogen (q9)",
+    "query": "Ich brauche The Collection Snowboard: Hydrogen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0370",
+    "title": "Live: The Collection Snowboard: Hydrogen (q10)",
+    "query": "Suche: The Collection Snowboard: Hydrogen",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0371",
+    "title": "Live: The Collection Snowboard: Hydrogen (q11)",
+    "query": "Bitte The Collection Snowboard: Hydrogen anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0372",
+    "title": "Live: The Collection Snowboard: Hydrogen (q12)",
+    "query": "Hast du so etwas wie The Collection Snowboard: Hydrogen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0373",
+    "title": "Live: The Collection Snowboard: Liquid (q1)",
+    "query": "Ich suche The Collection Snowboard: Liquid.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0374",
+    "title": "Live: The Collection Snowboard: Liquid (q2)",
+    "query": "Zeig mir bitte The Collection Snowboard: Liquid.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0375",
+    "title": "Live: The Collection Snowboard: Liquid (q3)",
+    "query": "Hast du The Collection Snowboard: Liquid?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0376",
+    "title": "Live: The Collection Snowboard: Liquid (q4)",
+    "query": "Kannst du The Collection Snowboard: Liquid empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0377",
+    "title": "Live: The Collection Snowboard: Liquid (q5)",
+    "query": "Ich möchte The Collection Snowboard: Liquid kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0378",
+    "title": "Live: The Collection Snowboard: Liquid (q6)",
+    "query": "Gibt es The Collection Snowboard: Liquid bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0379",
+    "title": "Live: The Collection Snowboard: Liquid (q7)",
+    "query": "Ich interessiere mich für The Collection Snowboard: Liquid.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0380",
+    "title": "Live: The Collection Snowboard: Liquid (q8)",
+    "query": "Zeig mir Details zu The Collection Snowboard: Liquid.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0381",
+    "title": "Live: The Collection Snowboard: Liquid (q9)",
+    "query": "Ich brauche The Collection Snowboard: Liquid.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0382",
+    "title": "Live: The Collection Snowboard: Liquid (q10)",
+    "query": "Suche: The Collection Snowboard: Liquid",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0383",
+    "title": "Live: The Collection Snowboard: Liquid (q11)",
+    "query": "Bitte The Collection Snowboard: Liquid anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0384",
+    "title": "Live: The Collection Snowboard: Liquid (q12)",
+    "query": "Hast du so etwas wie The Collection Snowboard: Liquid?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0385",
+    "title": "Live: The Collection Snowboard: Oxygen (q1)",
+    "query": "Ich suche The Collection Snowboard: Oxygen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0386",
+    "title": "Live: The Collection Snowboard: Oxygen (q2)",
+    "query": "Zeig mir bitte The Collection Snowboard: Oxygen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0387",
+    "title": "Live: The Collection Snowboard: Oxygen (q3)",
+    "query": "Hast du The Collection Snowboard: Oxygen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0388",
+    "title": "Live: The Collection Snowboard: Oxygen (q4)",
+    "query": "Kannst du The Collection Snowboard: Oxygen empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0389",
+    "title": "Live: The Collection Snowboard: Oxygen (q5)",
+    "query": "Ich möchte The Collection Snowboard: Oxygen kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0390",
+    "title": "Live: The Collection Snowboard: Oxygen (q6)",
+    "query": "Gibt es The Collection Snowboard: Oxygen bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0391",
+    "title": "Live: The Collection Snowboard: Oxygen (q7)",
+    "query": "Ich interessiere mich für The Collection Snowboard: Oxygen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0392",
+    "title": "Live: The Collection Snowboard: Oxygen (q8)",
+    "query": "Zeig mir Details zu The Collection Snowboard: Oxygen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0393",
+    "title": "Live: The Collection Snowboard: Oxygen (q9)",
+    "query": "Ich brauche The Collection Snowboard: Oxygen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0394",
+    "title": "Live: The Collection Snowboard: Oxygen (q10)",
+    "query": "Suche: The Collection Snowboard: Oxygen",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0395",
+    "title": "Live: The Collection Snowboard: Oxygen (q11)",
+    "query": "Bitte The Collection Snowboard: Oxygen anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0396",
+    "title": "Live: The Collection Snowboard: Oxygen (q12)",
+    "query": "Hast du so etwas wie The Collection Snowboard: Oxygen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0397",
+    "title": "Live: The Compare at Price Snowboard (q1)",
+    "query": "Ich suche The Compare at Price Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0398",
+    "title": "Live: The Compare at Price Snowboard (q2)",
+    "query": "Zeig mir bitte The Compare at Price Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0399",
+    "title": "Live: The Compare at Price Snowboard (q3)",
+    "query": "Hast du The Compare at Price Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0400",
+    "title": "Live: The Compare at Price Snowboard (q4)",
+    "query": "Kannst du The Compare at Price Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0401",
+    "title": "Live: The Compare at Price Snowboard (q5)",
+    "query": "Ich möchte The Compare at Price Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0402",
+    "title": "Live: The Compare at Price Snowboard (q6)",
+    "query": "Gibt es The Compare at Price Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0403",
+    "title": "Live: The Compare at Price Snowboard (q7)",
+    "query": "Ich interessiere mich für The Compare at Price Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0404",
+    "title": "Live: The Compare at Price Snowboard (q8)",
+    "query": "Zeig mir Details zu The Compare at Price Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0405",
+    "title": "Live: The Compare at Price Snowboard (q9)",
+    "query": "Ich brauche The Compare at Price Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0406",
+    "title": "Live: The Compare at Price Snowboard (q10)",
+    "query": "Suche: The Compare at Price Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0407",
+    "title": "Live: The Compare at Price Snowboard (q11)",
+    "query": "Bitte The Compare at Price Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0408",
+    "title": "Live: The Compare at Price Snowboard (q12)",
+    "query": "Hast du so etwas wie The Compare at Price Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0409",
+    "title": "Live: The Complete Snowboard (q1)",
+    "query": "Ich suche The Complete Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0410",
+    "title": "Live: The Complete Snowboard (q2)",
+    "query": "Zeig mir bitte The Complete Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0411",
+    "title": "Live: The Complete Snowboard (q3)",
+    "query": "Hast du The Complete Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0412",
+    "title": "Live: The Complete Snowboard (q4)",
+    "query": "Kannst du The Complete Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0413",
+    "title": "Live: The Complete Snowboard (q5)",
+    "query": "Ich möchte The Complete Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0414",
+    "title": "Live: The Complete Snowboard (q6)",
+    "query": "Gibt es The Complete Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0415",
+    "title": "Live: The Complete Snowboard (q7)",
+    "query": "Ich interessiere mich für The Complete Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0416",
+    "title": "Live: The Complete Snowboard (q8)",
+    "query": "Zeig mir Details zu The Complete Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0417",
+    "title": "Live: The Complete Snowboard (q9)",
+    "query": "Ich brauche The Complete Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0418",
+    "title": "Live: The Complete Snowboard (q10)",
+    "query": "Suche: The Complete Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0419",
+    "title": "Live: The Complete Snowboard (q11)",
+    "query": "Bitte The Complete Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0420",
+    "title": "Live: The Complete Snowboard (q12)",
+    "query": "Hast du so etwas wie The Complete Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0421",
+    "title": "Live: The Draft Snowboard (q1)",
+    "query": "Ich suche The Draft Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0422",
+    "title": "Live: The Draft Snowboard (q2)",
+    "query": "Zeig mir bitte The Draft Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0423",
+    "title": "Live: The Draft Snowboard (q3)",
+    "query": "Hast du The Draft Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0424",
+    "title": "Live: The Draft Snowboard (q4)",
+    "query": "Kannst du The Draft Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0425",
+    "title": "Live: The Draft Snowboard (q5)",
+    "query": "Ich möchte The Draft Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0426",
+    "title": "Live: The Draft Snowboard (q6)",
+    "query": "Gibt es The Draft Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0427",
+    "title": "Live: The Draft Snowboard (q7)",
+    "query": "Ich interessiere mich für The Draft Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0428",
+    "title": "Live: The Draft Snowboard (q8)",
+    "query": "Zeig mir Details zu The Draft Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0429",
+    "title": "Live: The Draft Snowboard (q9)",
+    "query": "Ich brauche The Draft Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0430",
+    "title": "Live: The Draft Snowboard (q10)",
+    "query": "Suche: The Draft Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0431",
+    "title": "Live: The Draft Snowboard (q11)",
+    "query": "Bitte The Draft Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0432",
+    "title": "Live: The Draft Snowboard (q12)",
+    "query": "Hast du so etwas wie The Draft Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0433",
+    "title": "Live: The Hidden Snowboard (q1)",
+    "query": "Ich suche The Hidden Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0434",
+    "title": "Live: The Hidden Snowboard (q2)",
+    "query": "Zeig mir bitte The Hidden Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0435",
+    "title": "Live: The Hidden Snowboard (q3)",
+    "query": "Hast du The Hidden Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0436",
+    "title": "Live: The Hidden Snowboard (q4)",
+    "query": "Kannst du The Hidden Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0437",
+    "title": "Live: The Hidden Snowboard (q5)",
+    "query": "Ich möchte The Hidden Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0438",
+    "title": "Live: The Hidden Snowboard (q6)",
+    "query": "Gibt es The Hidden Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0439",
+    "title": "Live: The Hidden Snowboard (q7)",
+    "query": "Ich interessiere mich für The Hidden Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0440",
+    "title": "Live: The Hidden Snowboard (q8)",
+    "query": "Zeig mir Details zu The Hidden Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0441",
+    "title": "Live: The Hidden Snowboard (q9)",
+    "query": "Ich brauche The Hidden Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0442",
+    "title": "Live: The Hidden Snowboard (q10)",
+    "query": "Suche: The Hidden Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0443",
+    "title": "Live: The Hidden Snowboard (q11)",
+    "query": "Bitte The Hidden Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0444",
+    "title": "Live: The Hidden Snowboard (q12)",
+    "query": "Hast du so etwas wie The Hidden Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0445",
+    "title": "Live: The Inventory Not Tracked Snowboard (q1)",
+    "query": "Ich suche The Inventory Not Tracked Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0446",
+    "title": "Live: The Inventory Not Tracked Snowboard (q2)",
+    "query": "Zeig mir bitte The Inventory Not Tracked Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0447",
+    "title": "Live: The Inventory Not Tracked Snowboard (q3)",
+    "query": "Hast du The Inventory Not Tracked Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0448",
+    "title": "Live: The Inventory Not Tracked Snowboard (q4)",
+    "query": "Kannst du The Inventory Not Tracked Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0449",
+    "title": "Live: The Inventory Not Tracked Snowboard (q5)",
+    "query": "Ich möchte The Inventory Not Tracked Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0450",
+    "title": "Live: The Inventory Not Tracked Snowboard (q6)",
+    "query": "Gibt es The Inventory Not Tracked Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0451",
+    "title": "Live: The Inventory Not Tracked Snowboard (q7)",
+    "query": "Ich interessiere mich für The Inventory Not Tracked Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0452",
+    "title": "Live: The Inventory Not Tracked Snowboard (q8)",
+    "query": "Zeig mir Details zu The Inventory Not Tracked Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0453",
+    "title": "Live: The Inventory Not Tracked Snowboard (q9)",
+    "query": "Ich brauche The Inventory Not Tracked Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0454",
+    "title": "Live: The Inventory Not Tracked Snowboard (q10)",
+    "query": "Suche: The Inventory Not Tracked Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0455",
+    "title": "Live: The Inventory Not Tracked Snowboard (q11)",
+    "query": "Bitte The Inventory Not Tracked Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0456",
+    "title": "Live: The Inventory Not Tracked Snowboard (q12)",
+    "query": "Hast du so etwas wie The Inventory Not Tracked Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0457",
+    "title": "Live: The Minimal Snowboard (q1)",
+    "query": "Ich suche The Minimal Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0458",
+    "title": "Live: The Minimal Snowboard (q2)",
+    "query": "Zeig mir bitte The Minimal Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0459",
+    "title": "Live: The Minimal Snowboard (q3)",
+    "query": "Hast du The Minimal Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0460",
+    "title": "Live: The Minimal Snowboard (q4)",
+    "query": "Kannst du The Minimal Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0461",
+    "title": "Live: The Minimal Snowboard (q5)",
+    "query": "Ich möchte The Minimal Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0462",
+    "title": "Live: The Minimal Snowboard (q6)",
+    "query": "Gibt es The Minimal Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0463",
+    "title": "Live: The Minimal Snowboard (q7)",
+    "query": "Ich interessiere mich für The Minimal Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0464",
+    "title": "Live: The Minimal Snowboard (q8)",
+    "query": "Zeig mir Details zu The Minimal Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0465",
+    "title": "Live: The Minimal Snowboard (q9)",
+    "query": "Ich brauche The Minimal Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0466",
+    "title": "Live: The Minimal Snowboard (q10)",
+    "query": "Suche: The Minimal Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0467",
+    "title": "Live: The Minimal Snowboard (q11)",
+    "query": "Bitte The Minimal Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0468",
+    "title": "Live: The Minimal Snowboard (q12)",
+    "query": "Hast du so etwas wie The Minimal Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0469",
+    "title": "Live: The Multi-location Snowboard (q1)",
+    "query": "Ich suche The Multi-location Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0470",
+    "title": "Live: The Multi-location Snowboard (q2)",
+    "query": "Zeig mir bitte The Multi-location Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0471",
+    "title": "Live: The Multi-location Snowboard (q3)",
+    "query": "Hast du The Multi-location Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0472",
+    "title": "Live: The Multi-location Snowboard (q4)",
+    "query": "Kannst du The Multi-location Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0473",
+    "title": "Live: The Multi-location Snowboard (q5)",
+    "query": "Ich möchte The Multi-location Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0474",
+    "title": "Live: The Multi-location Snowboard (q6)",
+    "query": "Gibt es The Multi-location Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0475",
+    "title": "Live: The Multi-location Snowboard (q7)",
+    "query": "Ich interessiere mich für The Multi-location Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0476",
+    "title": "Live: The Multi-location Snowboard (q8)",
+    "query": "Zeig mir Details zu The Multi-location Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0477",
+    "title": "Live: The Multi-location Snowboard (q9)",
+    "query": "Ich brauche The Multi-location Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0478",
+    "title": "Live: The Multi-location Snowboard (q10)",
+    "query": "Suche: The Multi-location Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0479",
+    "title": "Live: The Multi-location Snowboard (q11)",
+    "query": "Bitte The Multi-location Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0480",
+    "title": "Live: The Multi-location Snowboard (q12)",
+    "query": "Hast du so etwas wie The Multi-location Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0481",
+    "title": "Live: The Multi-managed Snowboard (q1)",
+    "query": "Ich suche The Multi-managed Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0482",
+    "title": "Live: The Multi-managed Snowboard (q2)",
+    "query": "Zeig mir bitte The Multi-managed Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0483",
+    "title": "Live: The Multi-managed Snowboard (q3)",
+    "query": "Hast du The Multi-managed Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0484",
+    "title": "Live: The Multi-managed Snowboard (q4)",
+    "query": "Kannst du The Multi-managed Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0485",
+    "title": "Live: The Multi-managed Snowboard (q5)",
+    "query": "Ich möchte The Multi-managed Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0486",
+    "title": "Live: The Multi-managed Snowboard (q6)",
+    "query": "Gibt es The Multi-managed Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0487",
+    "title": "Live: The Multi-managed Snowboard (q7)",
+    "query": "Ich interessiere mich für The Multi-managed Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0488",
+    "title": "Live: The Multi-managed Snowboard (q8)",
+    "query": "Zeig mir Details zu The Multi-managed Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0489",
+    "title": "Live: The Multi-managed Snowboard (q9)",
+    "query": "Ich brauche The Multi-managed Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0490",
+    "title": "Live: The Multi-managed Snowboard (q10)",
+    "query": "Suche: The Multi-managed Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0491",
+    "title": "Live: The Multi-managed Snowboard (q11)",
+    "query": "Bitte The Multi-managed Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0492",
+    "title": "Live: The Multi-managed Snowboard (q12)",
+    "query": "Hast du so etwas wie The Multi-managed Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0493",
+    "title": "Live: The Out of Stock Snowboard (q1)",
+    "query": "Ich suche The Out of Stock Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0494",
+    "title": "Live: The Out of Stock Snowboard (q2)",
+    "query": "Zeig mir bitte The Out of Stock Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0495",
+    "title": "Live: The Out of Stock Snowboard (q3)",
+    "query": "Hast du The Out of Stock Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0496",
+    "title": "Live: The Out of Stock Snowboard (q4)",
+    "query": "Kannst du The Out of Stock Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0497",
+    "title": "Live: The Out of Stock Snowboard (q5)",
+    "query": "Ich möchte The Out of Stock Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0498",
+    "title": "Live: The Out of Stock Snowboard (q6)",
+    "query": "Gibt es The Out of Stock Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0499",
+    "title": "Live: The Out of Stock Snowboard (q7)",
+    "query": "Ich interessiere mich für The Out of Stock Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0500",
+    "title": "Live: The Out of Stock Snowboard (q8)",
+    "query": "Zeig mir Details zu The Out of Stock Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0501",
+    "title": "Live: The Out of Stock Snowboard (q9)",
+    "query": "Ich brauche The Out of Stock Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0502",
+    "title": "Live: The Out of Stock Snowboard (q10)",
+    "query": "Suche: The Out of Stock Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0503",
+    "title": "Live: The Out of Stock Snowboard (q11)",
+    "query": "Bitte The Out of Stock Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0504",
+    "title": "Live: The Out of Stock Snowboard (q12)",
+    "query": "Hast du so etwas wie The Out of Stock Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0505",
+    "title": "Live: The Videographer Snowboard (q1)",
+    "query": "Ich suche The Videographer Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0506",
+    "title": "Live: The Videographer Snowboard (q2)",
+    "query": "Zeig mir bitte The Videographer Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0507",
+    "title": "Live: The Videographer Snowboard (q3)",
+    "query": "Hast du The Videographer Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0508",
+    "title": "Live: The Videographer Snowboard (q4)",
+    "query": "Kannst du The Videographer Snowboard empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0509",
+    "title": "Live: The Videographer Snowboard (q5)",
+    "query": "Ich möchte The Videographer Snowboard kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0510",
+    "title": "Live: The Videographer Snowboard (q6)",
+    "query": "Gibt es The Videographer Snowboard bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0511",
+    "title": "Live: The Videographer Snowboard (q7)",
+    "query": "Ich interessiere mich für The Videographer Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0512",
+    "title": "Live: The Videographer Snowboard (q8)",
+    "query": "Zeig mir Details zu The Videographer Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0513",
+    "title": "Live: The Videographer Snowboard (q9)",
+    "query": "Ich brauche The Videographer Snowboard.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0514",
+    "title": "Live: The Videographer Snowboard (q10)",
+    "query": "Suche: The Videographer Snowboard",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0515",
+    "title": "Live: The Videographer Snowboard (q11)",
+    "query": "Bitte The Videographer Snowboard anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0516",
+    "title": "Live: The Videographer Snowboard (q12)",
+    "query": "Hast du so etwas wie The Videographer Snowboard?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0517",
+    "title": "Live: Tischlampe Retro (q1)",
+    "query": "Ich suche Tischlampe Retro.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0518",
+    "title": "Live: Tischlampe Retro (q2)",
+    "query": "Zeig mir bitte Tischlampe Retro.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0519",
+    "title": "Live: Tischlampe Retro (q3)",
+    "query": "Hast du Tischlampe Retro?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0520",
+    "title": "Live: Tischlampe Retro (q4)",
+    "query": "Kannst du Tischlampe Retro empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0521",
+    "title": "Live: Tischlampe Retro (q5)",
+    "query": "Ich möchte Tischlampe Retro kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0522",
+    "title": "Live: Tischlampe Retro (q6)",
+    "query": "Gibt es Tischlampe Retro bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0523",
+    "title": "Live: Tischlampe Retro (q7)",
+    "query": "Ich interessiere mich für Tischlampe Retro.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0524",
+    "title": "Live: Tischlampe Retro (q8)",
+    "query": "Zeig mir Details zu Tischlampe Retro.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0525",
+    "title": "Live: Tischlampe Retro (q9)",
+    "query": "Ich brauche Tischlampe Retro.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0526",
+    "title": "Live: Tischlampe Retro (q10)",
+    "query": "Suche: Tischlampe Retro",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0527",
+    "title": "Live: Tischlampe Retro (q11)",
+    "query": "Bitte Tischlampe Retro anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0528",
+    "title": "Live: Tischlampe Retro (q12)",
+    "query": "Hast du so etwas wie Tischlampe Retro?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0529",
+    "title": "Live: Werkzeugkoffer 100-teilig (q1)",
+    "query": "Ich suche Werkzeugkoffer 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0530",
+    "title": "Live: Werkzeugkoffer 100-teilig (q2)",
+    "query": "Zeig mir bitte Werkzeugkoffer 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0531",
+    "title": "Live: Werkzeugkoffer 100-teilig (q3)",
+    "query": "Hast du Werkzeugkoffer 100-teilig?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0532",
+    "title": "Live: Werkzeugkoffer 100-teilig (q4)",
+    "query": "Kannst du Werkzeugkoffer 100-teilig empfehlen?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0533",
+    "title": "Live: Werkzeugkoffer 100-teilig (q5)",
+    "query": "Ich möchte Werkzeugkoffer 100-teilig kaufen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0534",
+    "title": "Live: Werkzeugkoffer 100-teilig (q6)",
+    "query": "Gibt es Werkzeugkoffer 100-teilig bei dir?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0535",
+    "title": "Live: Werkzeugkoffer 100-teilig (q7)",
+    "query": "Ich interessiere mich für Werkzeugkoffer 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0536",
+    "title": "Live: Werkzeugkoffer 100-teilig (q8)",
+    "query": "Zeig mir Details zu Werkzeugkoffer 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0537",
+    "title": "Live: Werkzeugkoffer 100-teilig (q9)",
+    "query": "Ich brauche Werkzeugkoffer 100-teilig.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0538",
+    "title": "Live: Werkzeugkoffer 100-teilig (q10)",
+    "query": "Suche: Werkzeugkoffer 100-teilig",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0539",
+    "title": "Live: Werkzeugkoffer 100-teilig (q11)",
+    "query": "Bitte Werkzeugkoffer 100-teilig anzeigen.",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0540",
+    "title": "Live: Werkzeugkoffer 100-teilig (q12)",
+    "query": "Hast du so etwas wie Werkzeugkoffer 100-teilig?",
+    "expected": {
+      "minCount": 1
+    }
+  },
+  {
+    "id": "L0541",
+    "title": "Live: category elektronik (q1)",
+    "query": "Zeig mir elektronik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0542",
+    "title": "Live: category elektronik (q2)",
+    "query": "Ich suche Produkte aus der Kategorie elektronik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0543",
+    "title": "Live: category elektronik (q3)",
+    "query": "Was hast du an elektronik?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0544",
+    "title": "Live: category elektronik (q4)",
+    "query": "Empfiehl mir etwas aus elektronik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0545",
+    "title": "Live: category elektronik (q5)",
+    "query": "Ich möchte etwas aus elektronik kaufen.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0546",
+    "title": "Live: category elektronik (q6)",
+    "query": "Zeig mir die besten elektronik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0547",
+    "title": "Live: category elektronik (q7)",
+    "query": "Welche elektronik hast du?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0548",
+    "title": "Live: category elektronik (q8)",
+    "query": "Gib mir Vorschläge für elektronik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0549",
+    "title": "Live: category elektronik (q9)",
+    "query": "Ich brauche elektronik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "elektronik"
+    }
+  },
+  {
+    "id": "L0550",
+    "title": "Live: category garten (q1)",
+    "query": "Zeig mir garten.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0551",
+    "title": "Live: category garten (q2)",
+    "query": "Ich suche Produkte aus der Kategorie garten.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0552",
+    "title": "Live: category garten (q3)",
+    "query": "Was hast du an garten?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0553",
+    "title": "Live: category garten (q4)",
+    "query": "Empfiehl mir etwas aus garten.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0554",
+    "title": "Live: category garten (q5)",
+    "query": "Ich möchte etwas aus garten kaufen.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0555",
+    "title": "Live: category garten (q6)",
+    "query": "Zeig mir die besten garten.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0556",
+    "title": "Live: category garten (q7)",
+    "query": "Welche garten hast du?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0557",
+    "title": "Live: category garten (q8)",
+    "query": "Gib mir Vorschläge für garten.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0558",
+    "title": "Live: category garten (q9)",
+    "query": "Ich brauche garten.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "garten"
+    }
+  },
+  {
+    "id": "L0559",
+    "title": "Live: category haushalt (q1)",
+    "query": "Zeig mir haushalt.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0560",
+    "title": "Live: category haushalt (q2)",
+    "query": "Ich suche Produkte aus der Kategorie haushalt.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0561",
+    "title": "Live: category haushalt (q3)",
+    "query": "Was hast du an haushalt?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0562",
+    "title": "Live: category haushalt (q4)",
+    "query": "Empfiehl mir etwas aus haushalt.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0563",
+    "title": "Live: category haushalt (q5)",
+    "query": "Ich möchte etwas aus haushalt kaufen.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0564",
+    "title": "Live: category haushalt (q6)",
+    "query": "Zeig mir die besten haushalt.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0565",
+    "title": "Live: category haushalt (q7)",
+    "query": "Welche haushalt hast du?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0566",
+    "title": "Live: category haushalt (q8)",
+    "query": "Gib mir Vorschläge für haushalt.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0567",
+    "title": "Live: category haushalt (q9)",
+    "query": "Ich brauche haushalt.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haushalt"
+    }
+  },
+  {
+    "id": "L0568",
+    "title": "Live: category haustier (q1)",
+    "query": "Zeig mir haustier.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0569",
+    "title": "Live: category haustier (q2)",
+    "query": "Ich suche Produkte aus der Kategorie haustier.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0570",
+    "title": "Live: category haustier (q3)",
+    "query": "Was hast du an haustier?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0571",
+    "title": "Live: category haustier (q4)",
+    "query": "Empfiehl mir etwas aus haustier.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0572",
+    "title": "Live: category haustier (q5)",
+    "query": "Ich möchte etwas aus haustier kaufen.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0573",
+    "title": "Live: category haustier (q6)",
+    "query": "Zeig mir die besten haustier.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0574",
+    "title": "Live: category haustier (q7)",
+    "query": "Welche haustier hast du?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0575",
+    "title": "Live: category haustier (q8)",
+    "query": "Gib mir Vorschläge für haustier.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0576",
+    "title": "Live: category haustier (q9)",
+    "query": "Ich brauche haustier.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "haustier"
+    }
+  },
+  {
+    "id": "L0577",
+    "title": "Live: category kosmetik (q1)",
+    "query": "Zeig mir kosmetik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0578",
+    "title": "Live: category kosmetik (q2)",
+    "query": "Ich suche Produkte aus der Kategorie kosmetik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0579",
+    "title": "Live: category kosmetik (q3)",
+    "query": "Was hast du an kosmetik?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0580",
+    "title": "Live: category kosmetik (q4)",
+    "query": "Empfiehl mir etwas aus kosmetik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0581",
+    "title": "Live: category kosmetik (q5)",
+    "query": "Ich möchte etwas aus kosmetik kaufen.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0582",
+    "title": "Live: category kosmetik (q6)",
+    "query": "Zeig mir die besten kosmetik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0583",
+    "title": "Live: category kosmetik (q7)",
+    "query": "Welche kosmetik hast du?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0584",
+    "title": "Live: category kosmetik (q8)",
+    "query": "Gib mir Vorschläge für kosmetik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0585",
+    "title": "Live: category kosmetik (q9)",
+    "query": "Ich brauche kosmetik.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "kosmetik"
+    }
+  },
+  {
+    "id": "L0586",
+    "title": "Live: category mode (q1)",
+    "query": "Zeig mir mode.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0587",
+    "title": "Live: category mode (q2)",
+    "query": "Ich suche Produkte aus der Kategorie mode.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0588",
+    "title": "Live: category mode (q3)",
+    "query": "Was hast du an mode?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0589",
+    "title": "Live: category mode (q4)",
+    "query": "Empfiehl mir etwas aus mode.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0590",
+    "title": "Live: category mode (q5)",
+    "query": "Ich möchte etwas aus mode kaufen.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0591",
+    "title": "Live: category mode (q6)",
+    "query": "Zeig mir die besten mode.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0592",
+    "title": "Live: category mode (q7)",
+    "query": "Welche mode hast du?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0593",
+    "title": "Live: category mode (q8)",
+    "query": "Gib mir Vorschläge für mode.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0594",
+    "title": "Live: category mode (q9)",
+    "query": "Ich brauche mode.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "mode"
+    }
+  },
+  {
+    "id": "L0595",
+    "title": "Live: category perfume (q1)",
+    "query": "Zeig mir perfume.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0596",
+    "title": "Live: category perfume (q2)",
+    "query": "Ich suche Produkte aus der Kategorie perfume.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0597",
+    "title": "Live: category perfume (q3)",
+    "query": "Was hast du an perfume?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0598",
+    "title": "Live: category perfume (q4)",
+    "query": "Empfiehl mir etwas aus perfume.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0599",
+    "title": "Live: category perfume (q5)",
+    "query": "Ich möchte etwas aus perfume kaufen.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0600",
+    "title": "Live: category perfume (q6)",
+    "query": "Zeig mir die besten perfume.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0601",
+    "title": "Live: category perfume (q7)",
+    "query": "Welche perfume hast du?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0602",
+    "title": "Live: category perfume (q8)",
+    "query": "Gib mir Vorschläge für perfume.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0603",
+    "title": "Live: category perfume (q9)",
+    "query": "Ich brauche perfume.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "perfume"
+    }
+  },
+  {
+    "id": "L0604",
+    "title": "Live: category snowboard (q1)",
+    "query": "Zeig mir snowboard.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  },
+  {
+    "id": "L0605",
+    "title": "Live: category snowboard (q2)",
+    "query": "Ich suche Produkte aus der Kategorie snowboard.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  },
+  {
+    "id": "L0606",
+    "title": "Live: category snowboard (q3)",
+    "query": "Was hast du an snowboard?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  },
+  {
+    "id": "L0607",
+    "title": "Live: category snowboard (q4)",
+    "query": "Empfiehl mir etwas aus snowboard.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  },
+  {
+    "id": "L0608",
+    "title": "Live: category snowboard (q5)",
+    "query": "Ich möchte etwas aus snowboard kaufen.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  },
+  {
+    "id": "L0609",
+    "title": "Live: category snowboard (q6)",
+    "query": "Zeig mir die besten snowboard.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  },
+  {
+    "id": "L0610",
+    "title": "Live: category snowboard (q7)",
+    "query": "Welche snowboard hast du?",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  },
+  {
+    "id": "L0611",
+    "title": "Live: category snowboard (q8)",
+    "query": "Gib mir Vorschläge für snowboard.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  },
+  {
+    "id": "L0612",
+    "title": "Live: category snowboard (q9)",
+    "query": "Ich brauche snowboard.",
+    "expected": {
+      "minCount": 1,
+      "categorySlug": "snowboard"
+    }
+  }
+]
