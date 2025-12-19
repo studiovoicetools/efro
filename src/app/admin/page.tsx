@@ -298,7 +298,7 @@ export default function AdminDashboard() {
                           apiKeys: {...currentShop.apiKeys, mascotbot: e.target.value}
                         })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        placeholder="sk-mascotbot-..."
+                        placeholder="EXAMPLE_MASCOT_TOKEN"
                       />
                     </div>
                     
