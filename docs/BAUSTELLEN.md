@@ -15,46 +15,45 @@ Mini-TOC
 
 ## Data
 
-T1 — /api/shopify-products missing
-- Symptom: Code/docs reference `/api/shopify-products` but route file not present in working set.
-- Kategorie: Daten
-- Dateien: expected `src/app/api/shopify-products/route.ts` (UNBEKANNT)
-- Next Action:
-  1. Add or provide `src/app/api/shopify-products/route.ts`.
-  2. Document query params and response schema (fields used by UI/tests).
-  3. Wire to Supabase or Shopify as required.
+T1 — /api/shopify-products (present)
+- Symptom: route exists and proxies Shopify Admin API.
+- Kategorie: Data
+- Dateien: `src/app/api/shopify-products/route.ts`
+- Evidence: file contains `export async function GET()` and env checks for `SHOPIFY_STORE_DOMAIN` / `SHOPIFY_ADMIN_ACCESS_TOKEN`.
+- Note: Response is the raw Shopify Admin API JSON plus `source: "shopify-admin"` — consumers should use `GET /api/efro/products?shop=...` for normalized EfroProduct output.
 - Risk/Impact: high (frontend & tests rely on product API)
 
-T2 — /api/explain-product missing
-- Symptom: Docs reference `/api/explain-product` but no implementation found.
-- Kategorie: Daten
-- Dateien: expected `src/app/api/explain-product/route.ts` (UNBEKANNT)
-- Next Action:
-  1. Provide the route implementation file.
-  2. Ensure POST contract (body: { handle, question }) is implemented.
-- Risk/Impact: medium (product explanation feature unavailable)
+T2 — /api/explain-product (present)
+- Symptom: route implemented as an OpenAI-backed product explainer.
+- Kategorie: Data
+- Dateien: `src/app/api/explain-product/route.ts`
+- Evidence: file exposes `export async function POST(req: Request)` and expects `{ handle, question }` in body; calls `/api/shopify-products?handle=...` and OpenAI.
+- Note: Returns `{ ok: true, answer }` on success; 400/404/502/500 on error cases.
+- Risk/Impact: medium
 
-T3 — Supabase `products` schema unknown
-- Symptom: debug-products queries `.from("products").select("*")` but column mapping used by SellerBrain unclear.
-- Kategorie: Daten
-- Dateien: c:\efro_fast\efro_work_fixed\src\app\api\efro\debug-products\route.ts
-- Next Action:
-  1. Provide DB schema / SQL migration for `products` table.
-  2. Document fields required by SellerBrain (id, title, handle, price, category, available).
-- Risk/Impact: high (misaligned schema causes runtime errors)
+T3 — Supabase `products` schema unknown (ACTION REQUIRED)
+- Symptom: `src/app/api/efro/debug-products/route.ts` queries Supabase `.from("products")` but the repository's expected column set is not documented in repo migrations.
+- Kategorie: Data
+- Dateien: `src/app/api/efro/debug-products/route.ts`, `src/lib/efro/efroSupabaseRepository.ts` (repo accessors)
+- Root cause hypothesis: migrations or SQL schema files not checked into repo (or located externally in infra repo).
+- Next Actions:
+  1. Add SQL migration (e.g., `migrations/xxxx_create_products_table.sql`) documenting required columns: id, title, handle, price, category, available, shop.
+  2. Add a short `docs/PRODUCTS_SCHEMA.md` listing fields and example row.
+  3. Update `docs/OPS_RUNBOOK.md` with expected Supabase envs and a sample query.
+- Definition of Done (DoD): a committed migration file + `docs/PRODUCTS_SCHEMA.md` with example, and `GET /api/efro/products?shop=demo` returns `source: "shopify"|"mock"` with expected product fields in CI smoke test.
+- Risk/Impact: high
 
 ---
 
 ## Brain
 
-T4 — sellerBrain.ts implementation missing
-- Symptom: Runners import `runSellerBrain` but the implementation file is not in working set.
+T4 — SellerBrain implementation (present)
+- Symptom: implementation exists at `src/lib/sales/sellerBrain.ts` and orchestration in `src/lib/sales/brain/orchestrator.ts`.
 - Kategorie: Brain
-- Dateien: expected `src/lib/sales/sellerBrain.ts` (UNBEKANNT)
-- Next Action:
-  1. Add/provide `src/lib/sales/sellerBrain.ts`.
-  2. Brief doc describing architecture and module entry points (intent detection, budget parsing, ranking).
-- Risk/Impact: high (core logic missing)
+- Dateien: `src/lib/sales/sellerBrain.ts`, `src/lib/sales/brain/orchestrator.ts`
+- Evidence: `runSellerBrain()` exports and `runOrchestrator()` implementation present. Orchestrator documents SellerBrainResult shape and filter pipeline.
+- Note: internal module breakdown is in `brain/orchestrator.ts` (large file). Please review if further decomposition needed.
+- Risk/Impact: high
 
 T5 — Enforcement of business rules not verifiable
 - Symptom: AGENTS.md requires rules (e.g., cheapest snowboard cap ≤700) but enforcement points are not present/visible.
@@ -124,4 +123,61 @@ T10 — Fixture fallback policy ambiguous
 ## Search log (what I looked for in working set)
 - Searched for files/strings: `render.yaml`, `shopify-products`, `explain-product`, `runSellerBrain`, `sellerBrain`, `MascotClient`, `MascotRive`, `sentry`, `posthog`, `datadog`.
 - Where not found I listed UNBEKANNT and exact search terms above.
+
+---
+
+## Top-5 Ticket Templates (precise)
+
+T-A: Supabase `products` schema (Data)
+- Symptom: API queries `.from("products")` but no migration/schema in repo.
+- Root cause hypothesis: schema maintained externally (infra) or missing migration.
+- Files & anchors: `src/app/api/efro/debug-products/route.ts` (uses Supabase), `src/lib/efro/efroSupabaseRepository.ts`
+- Next actions:
+  1. Add SQL migration `migrations/0001_create_products_table.sql` with required columns.
+  2. Add `docs/PRODUCTS_SCHEMA.md` with example row and mapping to `EfroProduct` fields.
+  3. Add CI smoke test that calls `GET /api/efro/products?shop=demo` and validates fields.
+- Definition of Done: migration and docs committed; CI smoke test passes on branch.
+- Risk & Rollback: schema migration is additive; rollback by reverting migration commit.
+
+T-B: Centralized telemetry (Ops)
+- Symptom: No Sentry/Posthog/Datadog instrumentation found.
+- Root cause hypothesis: telemetry intentionally not integrated yet.
+- Files & anchors: candidate integration points: `src/app/api/efro/debug-products/route.ts`, `src/lib/sales/brain/orchestrator.ts`
+- Next actions:
+  1. Decide provider (Sentry recommended for errors) and add DSN to envs.
+  2. Add minimal init (server-side) and wrap critical endpoints with error capture.
+  3. Add an alerting policy doc in `docs/OPS_RUNBOOK.md`.
+- Definition of Done: errors captured in chosen provider from production; basic alerts configured.
+- Risk & Rollback: config-only change; rollback by removing SDK initialization.
+
+T-C: Product API contract harmonization (Data)
+- Symptom: `/api/shopify-products` returns raw Shopify admin JSON, while consumers expect normalized `EfroProduct` shape via `/api/efro/products`.
+- Root cause hypothesis: historical dual endpoints; inconsistency leads to fragile consumers.
+- Files & anchors: `src/app/api/shopify-products/route.ts`, `src/app/api/efro/products/route.ts`, `src/lib/products/efroProductLoader.ts`
+- Next actions:
+  1. Decide authoritative endpoint for app (recommend `GET /api/efro/products?shop=` with normalized shape).
+  2. Add docs in README and `docs/EFRO_SYSTEM_MAP.md` showing expected shapes.
+  3. Optionally change `shopify-products` to return normalized shape or add adapter endpoint.
+- Definition of Done: consumers use `/api/efro/products`; smoke tests validate normalized fields.
+- Risk & Rollback: API contract change may break external integrators; release with compatibility adapter.
+
+T-D: Endpoint smoke-tests & CI (Ops/QA)
+- Symptom: No automated smoke tests validating key endpoints in CI.
+- Root cause hypothesis: tests exist locally (scripts) but not executed in CI pipeline.
+- Files & anchors: scripts/test-sellerBrain-scenarios.ts, scripts/test-sellerBrain-scenarios-curated.ts
+- Next actions:
+  1. Add GitHub Actions or CI job to run `pnpm sellerbrain:scenarios` and a small bash smoke test set (`curl` calls to `/api/efro/debug-products` and `/api/efro/products`).
+  2. Fail the job on non-200 or missing fields.
+- Definition of Done: CI pipeline runs smoke-tests on PRs to `main` and feature branches.
+- Risk & Rollback: CI flakiness — mitigate with retries and timeouts.
+
+T-E: Render deployment env mapping (Ops)
+- Symptom: `render.yaml` exists but repo lacks mapping doc tying code env vars to Render env vars.
+- Root cause hypothesis: envs configured ad-hoc in Render dashboard.
+- Files & anchors: `render.yaml`, `.env.example`, `docs/ENVIRONMENT.md`
+- Next actions:
+  1. Add `docs/RENDER_ENV_MAPPING.md` listing required Render env keys and sample values.
+  2. Ensure `render.yaml` branch and service name documented in README.
+- Definition of Done: `docs/RENDER_ENV_MAPPING.md` committed and ops person can reproduce deploy with documented envs.
+- Risk & Rollback: misconfiguring env values may break runtime; document rollback and reminder to not commit secrets.
 

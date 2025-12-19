@@ -111,6 +111,42 @@ Fallback policy:
 
 ---
 
+### API Routes (extracted)
+
+- `/api/shopify-products` (GET)
+  - Path: src/app/api/shopify-products/route.ts
+  - Method: GET
+  - Query params: none required (route fetches admin products list).
+  - Response: proxies Shopify Admin API JSON and adds `source: "shopify-admin"`.
+    Example: { source: "shopify-admin", products: [ ... ] }
+  - Errors: 500 if SHOPIFY env vars missing or fetch fails. (see fetch error handling in file)
+  - Evidence (grep): `src/app/api/shopify-products/route.ts` contains `export async function GET()` and env checks for `SHOPIFY_STORE_DOMAIN` / `SHOPIFY_ADMIN_ACCESS_TOKEN`.
+
+- `/api/explain-product` (POST)
+  - Path: src/app/api/explain-product/route.ts
+  - Method: POST
+  - Body schema: { handle: string, question: string }
+  - Response: { ok: true, answer: string } on success
+  - Errors: 400 if missing fields, 500 if OPENAI_API_KEY missing, 502 if upstream (shopify-products or OpenAI) fails.
+  - Evidence (grep): `export async function POST(req: Request)` and body parsing in file.
+
+- `/api/get-signed-url` and `/api/get-signed-url-seller` (POST)
+  - Path: src/app/api/get-signed-url/route.ts and src/app/api/get-signed-url-seller/route.ts
+  - Method: POST
+  - Body schema: { dynamicVariables?: Record<string,string> }
+  - Response: { signedUrl: string }
+  - Errors: 500 if MASCOT_BOT_API_KEY or ELEVENLABS envs missing, or Mascot API errors returned as 500 with details.
+  - Evidence (grep): files contain `createSignedUrlFromMascot(...)` and `export async function POST(...)` returning `{ signedUrl }`.
+
+- `/api/efro/products` (GET)
+  - Path: src/app/api/efro/products/route.ts
+  - Method: GET
+  - Query params: `shop` (optional). `shop=demo` returns fixture/mock; otherwise attempts Supabase repository then Shopify fallback.
+  - Response: { success: boolean, source: "shopify"|"mock"|"none", products: EfroProduct[], shopDomain?: string, error?: string }
+  - Evidence: uses `loadProductsForShop` (src/lib/products/efroProductLoader.ts) and Supabase repository calls.
+
+Notes: Full route inventory and method list is in the OPS Runbook (extracted from src/app/api/**/route.ts). Where earlier docs showed `UNBEKANNT`, concrete files exist and are referenced above.
+
 ## 3) Brain (SellerBrain)
 
 Evidence of callers:

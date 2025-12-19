@@ -38,9 +38,40 @@ Mini-TOC
   - scripts/test-sellerBrain-scenarios-curated.ts — logs expansion counts and results.
   - src/lib/sales/modules/filter/index.ts — context.debug used conditionally; example:
     if (context?.debug) { context.debug("budget-filter", "selected ...", {...}) }
-- Centralized telemetry (Sentry/Datadog/Posthog) — UNBEKANNT / not found.
-  - Search terms used: "sentry", "datadog", "posthog", "telemetry", "captureException", "logEvent", "analytics"
-  - Result: no matches in working set.
+ - Centralized telemetry (Sentry/Datadog/Posthog) — NOT FOUND in codebase.
+   - Search terms used: "sentry", "datadog", "posthog", "telemetry", "captureException", "logEvent", "analytics"
+   - Result: no matches in working set. Action: create Ops ticket to add telemetry instrumentation.
+
+### API Contracts (selected / extracted)
+
+- `GET /api/efro/debug-products?dataset=scenarios`
+  - File: src/app/api/efro/debug-products/route.ts
+  - Query params: `dataset=scenarios` → returns fixture JSON `{ products: [...], source: "fixture" }` (200)
+
+- `GET /api/shopify-products`
+  - File: src/app/api/shopify-products/route.ts
+  - Method: GET
+  - Response: proxies Shopify Admin API JSON, returns `{ source: "shopify-admin", ... }`.
+  - Errors: 500 when `SHOPIFY_STORE_DOMAIN` or `SHOPIFY_ADMIN_ACCESS_TOKEN` missing.
+
+- `GET /api/efro/products?shop=<domain>`
+  - File: src/app/api/efro/products/route.ts
+  - Query: `shop` optional. Behavior: uses Supabase repository if available, otherwise falls back to Shopify or mockCatalog.
+  - Response shape: `{ success: boolean, source: "shopify"|"mock"|"none", products: EfroProduct[], shopDomain?: string, error?: string }`
+
+- `POST /api/explain-product`
+  - File: src/app/api/explain-product/route.ts
+  - Body: `{ handle: string, question: string }`
+  - Success: `200 { ok: true, answer: string }`
+  - Errors: `400` (missing fields), `404` (no product), `502` (upstream failure), `500` (server error / missing OPENAI_API_KEY)
+
+- `POST /api/get-signed-url` and `POST /api/get-signed-url-seller`
+  - Files: src/app/api/get-signed-url/route.ts, src/app/api/get-signed-url-seller/route.ts
+  - Body: `{ dynamicVariables?: Record<string,string> }`
+  - Success: `200 { signedUrl: string }`
+  - Errors: `500` if Mascot or ElevenLabs env vars missing or Mascot API returns error (details returned in body).
+
+Refer to the source files under `src/app/api/**/route.ts` for full method implementations and additional endpoints.
 
 ## Failures & Troubleshooting
 - If tests fail due to missing products:
