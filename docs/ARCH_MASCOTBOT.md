@@ -2,6 +2,12 @@
 
 ## Evidence & required components
 
+Mini-TOC
+
+- [Evidence & required components](#evidence--required-components)
+- [Unknowns / To provide](#unknowns--to-provide)
+- Related docs: [EFRO System Map](EFRO_SYSTEM_MAP.md), [Environment](ENVIRONMENT.md), [OPS Runbook](OPS_RUNBOOK.md)
+
 - ElevenLabs signed URL route expected:
   - Prescribed file: src/app/api/get-signed-url/route.ts
   - Prescribed code pattern (from .github/copilot-instructions.md):

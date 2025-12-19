@@ -2,6 +2,14 @@
 
 ## Quick checks & smoke tests
 
+Mini-TOC
+
+- [Quick checks & smoke tests](#quick-checks--smoke-tests)
+- [Logging & Monitoring](#logging--monitoring-current-state)
+- [Failures & Troubleshooting](#failures--troubleshooting)
+- [Monitoring / Alerts](#monitoring--alerts-minimal-plan)
+- Related docs: [Environment](ENVIRONMENT.md), [CHECKLIST Go Live](CHECKLIST_GO_LIVE.md), [Baustellen](BAUSTELLEN.md)
+
 1) Verify debug-products fixture endpoint (stable scenario set)
    - URL: GET /api/efro/debug-products?dataset=scenarios
    - File: src/app/api/efro/debug-products/route.ts

@@ -6,12 +6,21 @@ Hinweis: Alle Aussagen basieren ausschließlich auf Dateien im aktuellen Working
 
 ---
 
+Mini-TOC
+
+- [Overview](#1-deploy--ops)
+- [Data Flow](#2-datenfluss-produkte-diagram-evidence-backed)
+- [Brain](#3-brain-sellerbrain)
+- [UI](#4-ui)
+- [Observability](#5-observability--logs--monitoring)
+- Related docs: [ARCH: SellerBrain](ARCH_SELLERBRAIN.md), [ARCH: MascotBot](ARCH_MASCOTBOT.md), [OPS Runbook](OPS_RUNBOOK.md), [Baustellen](BAUSTELLEN.md), [Environment](ENVIRONMENT.md), [Go-Live Checklist](CHECKLIST_GO_LIVE.md)
+
 ## 1) Deploy / Ops
 
 - Render / deploy manifest
-  - Status: UNBEKANNT
-  - Suche durchgeführt: repo root nach `render.yaml`, `render.yml`, `Dockerfile`, `Procfile`, README "render"
-  - Ergebnis: keine dieser Dateien im Working Set gefunden.
+  - Status: gefunden
+  - File: c:\efro_fast\efro_work_fixed\render.yaml
+  - Note: `render.yaml` exists in repo root and defines a service `efro-prod` (see render.yaml). Other deployment-specific env vars are expected to be configured in the Render service settings.
 
 - package.json scripts (evidence of test/run commands)
   - File: c:\efro_fast\efro_work_fixed\package.json

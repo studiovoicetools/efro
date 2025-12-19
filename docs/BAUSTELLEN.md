@@ -1,10 +1,19 @@
 # Baustellen (Tickets)
 
-Priorisiert: Daten → Brain → UI → Ops
+Priorisiert: Data → Brain → UI → Ops
 
 ---
 
-## Daten
+Mini-TOC
+
+- [Data](#data)
+- [Brain](#brain)
+- [UI](#ui)
+- [Ops](#ops)
+- Related docs: [EFRO System Map](EFRO_SYSTEM_MAP.md), [OPS Runbook](OPS_RUNBOOK.md), [CHECKLIST Go Live](CHECKLIST_GO_LIVE.md)
+
+
+## Data
 
 T1 — /api/shopify-products missing
 - Symptom: Code/docs reference `/api/shopify-products` but route file not present in working set.

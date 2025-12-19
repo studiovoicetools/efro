@@ -2,6 +2,13 @@
 
 This document contains the SellerBrain architecture evidence from the repo and highlights unknowns.
 
+Mini-TOC
+
+- [Evidence of orchestrator usage](#evidence-of-orchestrator-usage-tests--runners)
+- [SellerBrain implementation file](#sellerbrain-implementation-file)
+- [Architecture summary](#architecture-what-we-can-assert-from-evidence)
+- Related docs: [EFRO System Map](EFRO_SYSTEM_MAP.md), [Baustellen](BAUSTELLEN.md), [OPS Runbook](OPS_RUNBOOK.md)
+
 ## Evidence of orchestrator usage (tests / runners)
 
 - Runner that calls SellerBrain:

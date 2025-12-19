@@ -2,6 +2,12 @@
 
 List of environment variables used in repository code and where referenced.
 
+Mini-TOC
+
+- [Env vars found](#env-vars-found)
+- [Render / Deployment note](#render--deployment-note)
+- Related files: [.env.example](../.env.example), [render.yaml](../render.yaml)
+
 - EFRO_DEBUG_PRODUCTS_URL
   - Used in: scripts/test-sellerBrain-scenarios.ts
   - Excerpt:
@@ -34,4 +40,7 @@ List of environment variables used in repository code and where referenced.
 
 ## Notes / Missing
 - Confirm names and values of production env vars deployed on Render (render.yaml or Render dashboard) — UNBEKANNT (no render manifest found in repo).
+
+## Render / Deployment note
+- `render.yaml` exists at repository root and sets `NODE_VERSION` and `NODE_ENV` for the `efro-prod` service. Other runtime secrets (eg. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `ELEVENLABS_API_KEY`) are expected to be configured in the deployment environment (Render service env settings). See `../render.yaml` and `.env.example` for the list of vars referenced by code.
 
