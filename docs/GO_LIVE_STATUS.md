@@ -49,3 +49,7 @@ Rule: Facts only. Every claim needs evidence (URL + statuscode or command output
   - src/app/api/shopify-webhook/route.ts upserts into table 'products' (onConflict: sku)
 - Conclusion: Shopify is source of truth; Supabase is cache/storage for products.
 - Supabase read check: GET /api/supabase-products?shop=local-dev => 500 (needs env/schema/auth fix)
+### Supabase read (fixed)
+- GET /api/supabase-products?shop=local-dev => success=true count=49 (2025-12-19)
+- Root cause: env var mismatch. Route expects NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_KEY.
+- Fix applied: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.local (server-side only).
