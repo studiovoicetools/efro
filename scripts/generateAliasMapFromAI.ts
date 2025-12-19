@@ -1,4 +1,4 @@
-﻿// scripts/generateAliasMapFromAI.ts
+// scripts/generateAliasMapFromAI.ts
 //
 // Dieses Script generiert automatisch eine Alias-Map fÃ¼r EFRO per OpenAI-API.
 // Die Alias-Map ordnet unbekannte Kundenbegriffe bekannten Katalog-Keywords zu.
