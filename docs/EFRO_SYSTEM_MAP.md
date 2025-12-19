@@ -2,186 +2,167 @@
 
 "Wenn ein Problem auftaucht: Erst zuordnen zu (Daten / Brain / UI / Ops). Alles andere kommt als Ticket in ‘Baustellen’."
 
-This document maps components, entry points and data flows that are visible in the current working set. Each fact is backed by a file path and a short code excerpt. If something is not present in the working set it is marked UNBEKANNT and I list the exact search I performed.
+Hinweis: Alle Aussagen basieren ausschließlich auf Dateien im aktuellen Working Set. Jede Aussage enthält mindestens eine Dateiquelle + kurzen Codeauszug als Beleg. Wo etwas nicht gefunden wurde steht "UNBEKANNT" plus genaue Suchbegriffe.
 
 ---
 
 ## 1) Deploy / Ops
 
-- Render manifest
+- Render / deploy manifest
   - Status: UNBEKANNT
-  - What I searched: repository root for `render.yaml`, `render.yml`, `Dockerfile`, `Procfile`, README references to render.
-  - Reason: no render manifest file was found in working set.
+  - Suche durchgeführt: repo root nach `render.yaml`, `render.yml`, `Dockerfile`, `Procfile`, README "render"
+  - Ergebnis: keine dieser Dateien im Working Set gefunden.
 
-- package.json scripts (evidence of commands)
+- package.json scripts (evidence of test/run commands)
   - File: c:\efro_fast\efro_work_fixed\package.json
-  - Evidence (added scripts earlier — excerpt from earlier changes):
+  - Excerpt (scripts added in working set):
     "sellerbrain:scenarios:core": "tsx scripts/test-sellerBrain-scenarios.ts",
     "sellerbrain:scenarios:curated": "tsx scripts/test-sellerBrain-scenarios-curated.ts"
-  - Note: full package.json not printed here; presence of those script names was added in the working set.
+  - Note: These scripts are used to run scenario runners locally.
 
-- Base URLs / local dev
-  - Local: tests and scripts call the local API URL:
-    - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios.ts
-    - Excerpt:
-      const DEBUG_PRODUCTS_URL = process.env.EFRO_DEBUG_PRODUCTS_URL ?? "http://localhost:3000/api/efro/debug-products?shop=local-dev";
-  - Production: UNBEKANNT (no render manifest found to show production URL)
+- Local base URL used by tests
+  - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios.ts
+  - Excerpt:
+    const DEBUG_PRODUCTS_URL =
+      process.env.EFRO_DEBUG_PRODUCTS_URL ??
+      "http://localhost:3000/api/efro/debug-products?shop=local-dev";
 
-- Env vars referenced in repo (Ops-relevant)
-  - File: c:\efro_fast\efro_work_fixed\src\app\api\efro\debug-products\route.ts
-    Excerpt:
-      const SUPABASE_URL = process.env.SUPABASE_URL;
-      const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
-  - File: c:\efro_fast\efro_work_fixed\scripts\lib\loadDebugProducts.ts
-    Excerpt (allow fallback default):
-      const allowFixtureFallback = opts.allowFixtureFallback ?? (process.env.EFRO_ALLOW_FIXTURE_FALLBACK === "1");
-  - Other env mentions in working set: EFRO_SCENARIO_TARGET, EFRO_DEBUG_PRODUCTS_URL, EFRO_ALLOW_FIXTURE_FALLBACK (see scripts files).
-
-- How to debug Prod without downtime
-  - Based only on files in working set: use the dataset=scenarios fixture endpoint for reproducible data:
+- Env vars referenced (Ops-relevant)
+  - SUPABASE_URL / SUPABASE_ANON_KEY
     - File: c:\efro_fast\efro_work_fixed\src\app\api\efro\debug-products\route.ts
     - Excerpt:
-      if (dataset === "scenarios") { return NextResponse.json({ products: debugProductsScenarios, source: "fixture" }); }
-  - No evidence of blue/green deploy, feature flags, or traffic shadowing in working set → UNBEKANNT for advanced zero-downtime debug mechanisms.
+      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+  - EFRO_ALLOW_FIXTURE_FALLBACK
+    - File: c:\efro_fast\efro_work_fixed\scripts\lib\loadDebugProducts.ts
+    - Excerpt:
+      const allowFixtureFallback = opts.allowFixtureFallback ?? (process.env.EFRO_ALLOW_FIXTURE_FALLBACK === "1");
+  - EFRO_SCENARIO_TARGET (runner)
+    - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios-curated.ts
+    - Excerpt:
+      if (process.env.EFRO_SCENARIO_TARGET && Number(process.env.EFRO_SCENARIO_TARGET) > 0) { fail(...) }
+
+- How to debug Prod without downtime (based on working set)
+  - Use dataset fixture endpoint to reproduce tests with stable data:
+    - File: c:\efro_fast\efro_work_fixed\src\app\api\efro\debug-products\route.ts
+    - Excerpt:
+      if (dataset === "scenarios") {
+        return NextResponse.json({ products: debugProductsScenarios, source: "fixture" });
+      }
+  - Advanced zero-downtime methods (traffic shadowing, blue/green) — UNBEKANNT (no evidence in working set).
 
 ---
 
-## 2) Datenfluss Produkte (diagram)
+## 2) Datenfluss Produkte (Diagram, evidence-backed)
 
-Flow (based only on present files):
+Flow (files show arrows / calls):
 
 scripts/fixtures/products.local.json (fixture)
-  ↘ used by scripts/lib/loadDebugProducts.ts when API fetch fails or fixture mode
+  ↘ (used by) scripts/lib/loadDebugProducts.ts (fallback)
+    - File: c:\efro_fast\efro_work_fixed\scripts\lib\loadDebugProducts.ts
+    - Excerpt:
+      return { products, source: "fixture" };
+
 src/data/debugProducts.scenarios.ts (re-exports fixture)
   ↘ imported by
 src/app/api/efro/debug-products/route.ts
-  - ?dataset=scenarios → returns fixture (source: "fixture")
-  - ?shop=... → queries Supabase (source: "supabase") (see evidence below)
-  ↘ client code (test runners) hit:
-    scripts/test-sellerBrain-scenarios.ts → loads products via DEBUG_PRODUCTS_URL (defaults to /api/efro/debug-products?shop=local-dev)
-
-Concrete evidence (file + excerpt):
-
-- loadDebugProducts usage & fallback:
-  - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios.ts
-  - Excerpt:
-    const { products, source } = await loadDebugProducts<EfroProduct[]>({
-      url: DEBUG_PRODUCTS_URL,
-      fixturePath: "scripts/fixtures/products.local.json",
-      timeoutMs: 4000,
-      allowFixtureFallback,
-    });
-
-- debug-products API implementation:
   - File: c:\efro_fast\efro_work_fixed\src\app\api\efro\debug-products\route.ts
   - Excerpts:
-    // dataset=scenarios -> stable fixture
-    return NextResponse.json({ products: debugProductsScenarios, source: "fixture" });
-    ...
+    import { debugProductsScenarios } from "../../../../src/data/debugProducts.scenarios";
+    if (dataset === "scenarios") { return NextResponse.json({ products: debugProductsScenarios, source: "fixture" }); }
     const { data, error } = await supabase.from("products").select("*").eq("shop", shop);
 
-- Fixture re-export:
-  - File: c:\efro_fast\efro_work_fixed\src\data\debugProducts.scenarios.ts
-  - Excerpt:
-    import productsLocal from "../../../scripts/fixtures/products.local.json";
-    export const debugProductsScenarios = products;
+scripts/test-sellerBrain-scenarios.ts (consumer)
+  - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios.ts
+  - Excerpts:
+    const DEBUG_PRODUCTS_URL = process.env.EFRO_DEBUG_PRODUCTS_URL ?? "http://localhost:3000/api/efro/debug-products?shop=local-dev";
+    const { products, source } = await loadDebugProducts<EfroProduct[]>({ url: DEBUG_PRODUCTS_URL, fixturePath: "scripts/fixtures/products.local.json", timeoutMs: 4000 });
 
-Routes referenced but NOT found in working set:
-
+Routes present / absent in working set:
+- /api/efro/debug-products
+  - Implemented: c:\efro_fast\efro_work_fixed\src\app\api\efro\debug-products\route.ts (see excerpts above).
+  - Supports `?dataset=scenarios` (fixture) and `?shop=` (Supabase).
 - /api/shopify-products
-  - Status: UNBEKANNT (search for "shopify-products" under src/app/api returned no matching file in the working set)
-  - I searched: all files in src/app/api and root for the string `shopify-products` and found no route file to document.
-
+  - Status: UNBEKANNT (search for `shopify-products` under src/app/api returned no matching file in working set).
+  - Searched for: filename `src/app/api/shopify-products/route.ts` and string `shopify-products`.
 - /api/explain-product
-  - Status: UNBEKANNT (search for "explain-product" under src/app/api returned no matching file in the working set)
-  - I searched: the working set for `explain-product` and found no route implementation.
+  - Status: UNBEKANNT (search for `explain-product` under src/app/api returned no matching file in working set).
+  - Searched for: filename `src/app/api/explain-product/route.ts` and string `explain-product`.
 
-- /api/efro/products
-  - Status: UNBEKANNT (search for `efro/products` path — no file found in working set)
+Supabase usage (live):
+- File: c:\efro_fast\efro_work_fixed\src\app\api\efro\debug-products\route.ts
+- Excerpt:
+  const { data, error } = await supabase.from("products").select("*").eq("shop", shop);
+- Note: exact `products` table schema (columns) is not present in working set → UNBEKANNT (provide DB schema).
 
-Fallbacks / Data sources:
-- Fixture fallback: scripts/fixtures/products.local.json (used when API fetch fails and allowFixtureFallback true).
-  - Evidence: scripts/test-sellerBrain-scenarios.ts and scripts/lib/loadDebugProducts.ts.
-- Supabase live fetch:
-  - Evidence: src/app/api/efro/debug-products/route.ts uses createClient and `.from("products").select("*").eq("shop", shop)`.
+Fallback policy:
+- loadDebugProducts supports fixture fallback controlled by EFRO_ALLOW_FIXTURE_FALLBACK.
+  - File: c:\efro_fast\efro_work_fixed\scripts\lib\loadDebugProducts.ts
+  - Excerpt shows default of environment var.
 
 ---
 
 ## 3) Brain (SellerBrain)
 
-What is visible in working set:
-
+Evidence of callers:
 - Runners call runSellerBrain:
   - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios.ts
-  - Excerpt (call):
-    const result: SellerBrainResult = await runSellerBrain(
-      test.query,
-      initialIntent,
-      products,
-      plan,
-      previousRecommended,
-      sellerContext
-    );
+  - Excerpt:
+    const result: SellerBrainResult = await runSellerBrain(test.query, initialIntent, products, plan, previousRecommended, sellerContext);
 
-- Curated runner uses same function:
+- Curated runner similarly calls runSellerBrain:
   - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios-curated.ts
-  - Excerpt: also calls runSellerBrain with same signature.
+  - Excerpts: same call signature.
 
-What is UNBEKANNT:
-- The implementation file src/lib/sales/sellerBrain.ts is not present in the working set (search for `export function runSellerBrain` / filename returned no result).
-  - I searched for: `runSellerBrain`, `sellerBrain`, `createRecommendations`, `handleUserTextInput`, `orchestrator` across `src/` and scripts; only imports were found in runner scripts but no implementation in working set.
-- Because the implementation is missing, the following details are UNBEKANNT unless sellerBrain.ts is provided:
-  - Exact orchestration steps (intent detection, budget parsing, ranking, filter order).
-  - Where limits such as "cheapest snowboard cap <=700" are enforced.
-  - Concrete SellerBrainResult shape (beyond what tests reference).
+What is missing:
+- Implementation file `src/lib/sales/sellerBrain.ts` is UNBEKANNT in the working set (search for `runSellerBrain` shows only imports in runners).
+  - Searched for: `runSellerBrain` symbol and `sellerBrain.ts` file under src/lib.
 
-Visible modules touched by tests and edits:
-- src/lib/sales/modules/filter/index.ts — we made edits here (budget-filter related).
+Modules we can point to (present in working set):
+- Budget filter modifications exist:
+  - File: c:\efro_fast\efro_work_fixed\src\lib\sales\modules\filter\index.ts
   - Excerpt:
     let nearestPriceBelowBudget: number | null = null;
     let nearestProductTitleBelowBudget: string | null = null;
-  - This shows budget filter logic exists in working set.
+- Tests expect SellerBrainResult fields:
+  - priceRangeInfo, priceRangeNoMatch, intent, aiTrigger, recommended, sales
+  - Evidence: many `evaluation` checks in scripts/test-sellerBrain-scenarios.ts (see function evaluateScenario).
+
+Conclusions:
+- Entry point (callers) are present; actual orchestrator code is missing from working set → UNBEKANNT where exact orchestration lives.
 
 ---
 
 ## 4) UI
 
-What is visible:
-- There's no explicit avatar-seller page in working set files provided to me, except that .github/copilot-instructions.md references `src/app/page.tsx` and `src/app/embed/`.
-- The working set contains test scripts and API routes but not the Next.js pages that render the Mascot and chat UI.
-  - I searched for `MascotClient`, `MascotRive`, `avatar-seller` across src/ and found no usage in the working set.
+- Evidence of UI files rendering mascot / avatar — UNBEKANNT in working set.
+  - Search performed: `MascotClient`, `MascotRive`, `avatar-seller`, `avatar` in src/app; no page.tsx or avatar-seller page found in working set.
 
-Debug parameters used by clients/runners:
-- `shop` query param used by /api/efro/debug-products (evidence: debug-products route).
-- `dataset=scenarios` used to request the scenarios fixture (evidence: debug-products route).
-- Environment flags:
-  - EFRO_ALLOW_FIXTURE_FALLBACK
-  - EFRO_DEBUG_PRODUCTS_URL
-  - EFRO_SCENARIO_TARGET
+- Debug query params used by API (documented):
+  - `?dataset=scenarios` (debug fixture) — File: src/app/api/efro/debug-products/route.ts
+  - `?shop=` used by debug-products endpoint — File: src/app/api/efro/debug-products/route.ts
 
 ---
 
 ## 5) Observability / Logs / Monitoring
 
-What exists in working set:
-- console logging in scripts:
-  - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios.ts (many console.log lines for test progress)
-- Conditional debug logging in filter module:
+- Console logging
+  - File: c:\efro_fast\efro_work_fixed\scripts\test-sellerBrain-scenarios.ts
+  - Excerpt: many `console.log` calls showing scenario progress.
+- Conditional debug
   - File: c:\efro_fast\efro_work_fixed\src\lib\sales\modules\filter\index.ts
   - Excerpt:
     if (context?.debug) { context.debug("budget-filter", "selected ...", {...}) }
 
-What is UNBEKANNT or missing:
-- No evidence in working set of Sentry / Datadog / PostHog / telemetry SDKs.
-  - I searched for: `sentry`, `datadog`, `posthog`, `telemetry`, `captureException`, `logEvent`, `analytics` — no matches in working set -> therefore UNBEKANNT / not present.
-- No centralized logging pipeline described in repo files present.
+- Central telemetry (Sentry/Datadog/Posthog): UNBEKANNT
+  - Searched for: `sentry`, `datadog`, `posthog`, `telemetry`, `captureException`, `logEvent` — no matches in working set.
 
 ---
 
-## Open Questions / Missing Info (only items not found in working set)
-- /api/shopify-products implementation — UNBEKANNT (searched for `shopify-products` under `src/app/api`).
-- /api/explain-product implementation — UNBEKANNT (searched for `explain-product` under `src/app/api`).
-- SellerBrain implementation src/lib/sales/sellerBrain.ts — UNBEKANNT (search for file and exports).
-- Main UI pages that render Mascot (e.g., src/app/page.tsx, src/app/avatar-seller/page.tsx) — UNBEKANNT (searched for `MascotClient`, `MascotRive`).
-- Render manifest / deployment config (render.yaml) — UNBEKANNT (searched repo root).
+## Open Questions (must be provided to continue)
+
+- Provide `src/lib/sales/sellerBrain.ts` implementation (currently UNBEKANNT).
+- Provide `src/app/api/shopify-products/route.ts` and `src/app/api/explain-product/route.ts` if they exist (currently UNBEKANNT).
+- Provide UI page(s) (e.g., `src/app/page.tsx`, `src/app/avatar-seller/page.tsx`) that render Mascot (UNBEKANNT).
+- Provide render deployment manifest (render.yaml) if exists (UNBEKANNT).
 
