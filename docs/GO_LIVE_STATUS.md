@@ -53,3 +53,7 @@ Rule: Facts only. Every claim needs evidence (URL + statuscode or command output
 - GET /api/supabase-products?shop=local-dev => success=true count=49 (2025-12-19)
 - Root cause: env var mismatch. Route expects NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_KEY.
 - Fix applied: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.local (server-side only).
+### Brain status (verified)
+- pnpm sellerbrain:scenarios => 388/388 PASS (2025-12-19)
+- pnpm sellerbrain:scenarios:curated => 892/1000 PASS (108 FAIL) (2025-12-19)
+- Next: cluster the 108 fails (top 3 root causes) and create tickets.
