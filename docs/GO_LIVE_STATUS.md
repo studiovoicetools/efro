@@ -1,4 +1,17 @@
-﻿# GO LIVE STATUS (Source of Truth)
+### Snapshot (aktuell)
+- Date: 2025-12-20
+- Command: pnpm sellerbrain:scenarios:curated
+- Result: 892/1000 PASS (108 FAIL)
+- Log: logs\curated-1000-<DEIN_TIMESTAMP>.log
+- Note: EFRO_SCENARIO_TARGET darf für curated NICHT gesetzt sein (sonst Abbruch).
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ # GO LIVE STATUS (Source of Truth)
 
 Last updated: 2025-12-19 18:49
 
