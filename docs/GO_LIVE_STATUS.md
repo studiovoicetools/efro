@@ -40,3 +40,12 @@ Rule: Facts only. Every claim needs evidence (URL + statuscode or command output
 
 ## D) Change Log
 - 2025-12-19: created initial status doc
+### Auto Snapshot 2025-12-19 18:49
+- Fixture: http://localhost:3000/api/efro/debug-products?dataset=scenarios => status 200 source 'debug-products'
+- Live:    http://localhost:3000/api/efro/debug-products?shop=local-dev => status 200 source 'debug-products'
+
+### Supabase usage (evidence)
+- Supabase is used for Shopify -> Supabase sync via webhook:
+  - src/app/api/shopify-webhook/route.ts upserts into table 'products' (onConflict: sku)
+- Conclusion: Shopify is source of truth; Supabase is cache/storage for products.
+- Supabase read check: GET /api/supabase-products?shop=local-dev => 500 (needs env/schema/auth fix)
