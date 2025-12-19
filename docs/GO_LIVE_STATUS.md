@@ -1,0 +1,42 @@
+﻿# GO LIVE STATUS (Source of Truth)
+
+Last updated: 2025-12-19 18:49
+
+Rule: Facts only. Every claim needs evidence (URL + statuscode or command output).
+
+## A) Reality Snapshot (Evidence)
+
+### Data (Supabase / Products)
+- [ ] /api/efro/debug-products?dataset=scenarios  => (status: __) (source: __)
+- [ ] /api/efro/debug-products?shop=local-dev     => (status: __) (source: __)
+
+### Voice (MascotBot + ElevenLabs)
+- [ ] Avatar speaks + mouth movement => Evidence: (page/url + note)
+- [ ] /api/get-signed-url observed in Network => (yes/no) Evidence: __
+
+### UI (Landing / Widget / Avatar Seller)
+- [ ] /avatar-seller?shop=demo&debug=1 => (status: __) Evidence: __
+- [ ] Widget bottom-right, no overlap => (ok/not ok) Evidence: __
+
+### Brain (SellerBrain / Scenarios)
+- [ ] pnpm sellerbrain:scenarios => (__/__ pass) Evidence: __
+- [ ] pnpm sellerbrain:scenarios:curated => (pass/fail) Evidence: __
+
+### Ops (Render / Env / Logs)
+- [ ] Render URL reachable => Evidence: __
+- [ ] Render: /api/efro/debug-products?dataset=scenarios => (status: __) Evidence: __
+
+## B) Go/No-Go Gates
+- Gate 1 (Demo UI reachable): [ ] GO / [ ] NO-GO
+- Gate 2 (Products reachable: fixture + supabase): [ ] GO / [ ] NO-GO
+- Gate 3 (Scenarios stable): [ ] GO / [ ] NO-GO
+- Gate 4 (Deploy parity): [ ] GO / [ ] NO-GO
+- Gate 5 (Minimal logs): [ ] GO / [ ] NO-GO
+
+## C) Next 3 actions (max)
+1)
+2)
+3)
+
+## D) Change Log
+- 2025-12-19: created initial status doc
