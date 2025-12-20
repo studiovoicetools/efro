@@ -1,0 +1,20 @@
+table_name,constraint_name,constraint_type,definition
+cache_audio,cache_audio_pkey,p,PRIMARY KEY (id)
+cache_audio,cache_audio_provider_voice_id_text_hash_key,u,"UNIQUE (provider, voice_id, text_hash)"
+cache_responses,cache_responses_pkey,p,PRIMARY KEY (id)
+cache_responses,cache_responses_shop_id_fkey,f,FOREIGN KEY (shop_id) REFERENCES efro_shops(id) ON DELETE CASCADE
+efro_events,efro_events_pkey,p,PRIMARY KEY (id)
+efro_shop_settings,efro_shop_settings_pkey,p,PRIMARY KEY (shop)
+efro_shops,efro_shops_pkey,p,PRIMARY KEY (id)
+efro_shops,efro_shops_shop_domain_key,u,UNIQUE (shop_domain)
+events,events_pkey,p,PRIMARY KEY (id)
+product_embeddings,product_embeddings_pkey,p,PRIMARY KEY (id)
+product_embeddings,product_embeddings_shop_id_fkey,f,FOREIGN KEY (shop_id) REFERENCES efro_shops(id) ON DELETE CASCADE
+products,products_pkey,p,PRIMARY KEY (id)
+products,products_sku_key,u,UNIQUE (sku)
+products_demo,products_demo_pkey,p,PRIMARY KEY (id)
+products_demo,products_demo_sku_key,u,UNIQUE (sku)
+shops,shops_pkey,p,PRIMARY KEY (id)
+shops,shops_shop_key,u,UNIQUE (shop)
+subscriptions,subscriptions_pkey,p,PRIMARY KEY (id)
+users,users_pkey,p,PRIMARY KEY (id)

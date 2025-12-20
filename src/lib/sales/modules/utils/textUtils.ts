@@ -1,11 +1,60 @@
 ﻿// src/lib/sales/modules/utils/textUtils.ts
+
+function looksLikeMojibake(s: string): boolean {
+  // typische UTF8->Latin1 Fehl-Decodierung (Ã¼, Ã¶, Ã¤, â€“, â€™, Â etc.)
+  return /Ã|Â|â€|â€™|â€œ|â€�|â€“|â€¦/.test(s);
+}
+
+function fixMojibakeUtf8(s: string): string {
+  if (!s) return s;
+  if (!looksLikeMojibake(s)) return s;
+
+  try {
+    // Node / Server
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const B: any = (globalThis as any).Buffer;
+    if (typeof B !== "undefined") {
+      const out = B.from(s, "latin1").toString("utf8");
+      return out || s;
+    }
+  } catch {}
+
+  try {
+    // Browser / Edge
+    if (typeof TextDecoder !== "undefined") {
+      const bytes = Uint8Array.from(s, (c) => c.charCodeAt(0) & 0xff);
+      const out = new TextDecoder("utf-8").decode(bytes);
+      return out || s;
+    }
+  } catch {}
+
+  return s;
+}
+
+
+
+
+
+
+
 export function normalizeText(input: string): string {
-  return input
+  const fixed = fixMojibakeUtf8(input || "")
+    // häufige Euro-Mojibake-Fälle (dein Beispiel)
+    .replace(/Ã¢âÂ¬/g, "€")
+    .replace(/â\uFFFD¬/g, "€") // "â�¬" = â + U+FFFD + ¬
+    .replace(/â‚¬/g, "€")
+    // häufiges "Â" als Artefakt (z. B. "10Â €")
+    .replace(/Â/g, "");
+
+  return fixed
     .toLowerCase()
-    .replace(/[^a-z0-9äöüß\s]/gi, " ")
+    // WICHTIG: das ist die ursprüngliche Logik aus deinem Backup – nur mit € ergänzt
+    .replace(/[^a-z0-9äöüß€\s]/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
+
+
 
 export function normalize(text: string): string {
   return normalizeText(text);

@@ -1,6 +1,6 @@
 // scripts/generateAliasMapFromAI.ts
 //
-// Dieses Script generiert automatisch eine Alias-Map für EFRO per OpenAI-API.
+// Dieses Script generiert automatisch eine Alias-Map fÃ¼r EFRO per OpenAI-API.
 // Die Alias-Map ordnet unbekannte Kundenbegriffe bekannten Katalog-Keywords zu.
 //
 // PRODUKTQUELLEN:
@@ -13,7 +13,7 @@
 // da die Funktion dort nicht exportiert ist.
 //
 // USAGE:
-//   OPENAI_API_KEY=sk-... npx tsx scripts/generateAliasMapFromAI.ts
+//   OPENAI_API_KEY=EXAMPLE_KEY npx tsx scripts/generateAliasMapFromAI.ts
 //
 // WICHTIG:
 // - Bestehende manuelle Aliase (z. B. fressnapf) haben Vorrang vor AI-generierten.
@@ -23,7 +23,7 @@ import { writeFile, readFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// TypeScript-Pfad-Auflösung für ES-Module
+// TypeScript-Pfad-AuflÃ¶sung fÃ¼r ES-Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -44,12 +44,12 @@ const aliasMapPath = join(projectRoot, "src", "lib", "sales", "generatedAliasMap
 
 /**
  * Normalisiert Text exakt wie in sellerBrain.ts
- * (gleiche Logik für Konsistenz)
+ * (gleiche Logik fÃ¼r Konsistenz)
  */
 function normalizeText(input: string): string {
   return input
     .toLowerCase()
-    .replace(/[^a-z0-9äöüß\s]/gi, " ")
+    .replace(/[^a-z0-9Ã¤Ã¶Ã¼ÃŸ\s]/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -62,13 +62,13 @@ function normalizeAliasKey(key: string): string {
   if (!key) return "";
   return key
     .toLowerCase()
-    .replace(/[^a-z0-9äöüß]/gi, "") // Alle Sonderzeichen entfernen
+    .replace(/[^a-z0-9Ã¤Ã¶Ã¼ÃŸ]/gi, "") // Alle Sonderzeichen entfernen
     .trim();
 }
 
 /**
- * Lädt die bestehende Alias-Map aus generatedAliasMap.json
- * Falls Datei nicht existiert oder Fehler → leeres Objekt
+ * LÃ¤dt die bestehende Alias-Map aus generatedAliasMap.json
+ * Falls Datei nicht existiert oder Fehler â†’ leeres Objekt
  */
 async function loadExistingAliasMap(): Promise<AliasMap> {
   try {
@@ -85,14 +85,14 @@ async function loadExistingAliasMap(): Promise<AliasMap> {
  * Konsolidiert alle Produktlisten, die auch im Avatar-Seller verwendet werden
  * 
  * Verwendet efroAttributeTestProducts aus src/lib/catalog/efro-attribute-test-products.ts
- * Diese Datei enthält die wichtigsten Test-Produkte für die Attribut-Engine.
+ * Diese Datei enthÃ¤lt die wichtigsten Test-Produkte fÃ¼r die Attribut-Engine.
  * 
  * Da die Datei @/ Imports verwendet, die in ts-node nicht funktionieren,
  * verwenden wir einen dynamischen Import mit relativem Pfad ohne Extension.
  */
 async function getAllProductsForAliasGeneration(): Promise<EFROProduct[]> {
   // Nutze NUR die Produkte aus efro-attribute-test-products.ts
-  // Verwende absoluten file:// URL für ts-node Kompatibilität
+  // Verwende absoluten file:// URL fÃ¼r ts-node KompatibilitÃ¤t
   const efroAttributeTestProductsPath = join(projectRoot, "src", "lib", "catalog", "efro-attribute-test-products.ts");
   const efroAttributeTestProductsUrl = pathToFileURL(efroAttributeTestProductsPath).href;
   
@@ -110,7 +110,7 @@ async function getAllProductsForAliasGeneration(): Promise<EFROProduct[]> {
 
 /**
  * Extrahiert alle Katalog-Keywords aus Produkten
- * (gleiche Logik wie in sellerBrain.ts für catalogKeywords)
+ * (gleiche Logik wie in sellerBrain.ts fÃ¼r catalogKeywords)
  */
 function buildCatalogKeywords(products: EFROProduct[]): string[] {
   const tokenSet = new Set<string>();
@@ -130,7 +130,7 @@ function buildCatalogKeywords(products: EFROProduct[]): string[] {
     for (const token of rawTokens) {
       const t = token.trim();
       if (!t) continue;
-      if (t.length < 3) continue; // zu kurz, eher Stoppwörter
+      if (t.length < 3) continue; // zu kurz, eher StoppwÃ¶rter
       tokenSet.add(t);
     }
   }
@@ -140,15 +140,15 @@ function buildCatalogKeywords(products: EFROProduct[]): string[] {
 
 /**
  * Filtert Katalog-Keywords auf relevante canonicalTokens
- * (Kategorien, wichtige Titelwörter, Tags - keine Stopwörter)
+ * (Kategorien, wichtige TitelwÃ¶rter, Tags - keine StopwÃ¶rter)
  */
 function buildCanonicalTokens(products: EFROProduct[]): string[] {
   const tokenSet = new Set<string>();
   const stopWords = new Set([
-    "für", "und", "oder", "der", "die", "das", "den", "dem", "des",
+    "fÃ¼r", "und", "oder", "der", "die", "das", "den", "dem", "des",
     "mit", "von", "zu", "auf", "in", "an", "aus", "bei", "nach",
     "ist", "sind", "war", "waren", "wird", "werden", "hat", "haben",
-    "kann", "können", "soll", "sollen", "muss", "müssen",
+    "kann", "kÃ¶nnen", "soll", "sollen", "muss", "mÃ¼ssen",
     "alle", "jede", "jeder", "jedes", "manche", "viele", "wenige",
     "mehr", "weniger", "sehr", "ganz", "etwas", "nichts",
   ]);
@@ -183,11 +183,11 @@ function buildCanonicalTokens(products: EFROProduct[]): string[] {
       });
     }
 
-    // Wichtige Titelwörter (erste 2-3 Wörter)
+    // Wichtige TitelwÃ¶rter (erste 2-3 WÃ¶rter)
     if (product.title) {
       const titleNormalized = normalizeText(product.title);
       const titleTokens = titleNormalized.split(/\s+/).filter((t) => t.length >= 3);
-      // Erste 3 Wörter sind meist wichtig
+      // Erste 3 WÃ¶rter sind meist wichtig
       titleTokens.slice(0, 3).forEach((t) => {
         if (!stopWords.has(t)) {
           tokenSet.add(t);
@@ -200,7 +200,7 @@ function buildCanonicalTokens(products: EFROProduct[]): string[] {
 }
 
 /**
- * Ruft OpenAI-API auf, um Synonyme für einen einzelnen canonicalToken zu generieren
+ * Ruft OpenAI-API auf, um Synonyme fÃ¼r einen einzelnen canonicalToken zu generieren
  */
 async function callOpenAIForTokenSynonyms(canonicalToken: string): Promise<string[]> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -209,20 +209,20 @@ async function callOpenAIForTokenSynonyms(canonicalToken: string): Promise<strin
   }
 
   const systemPrompt = `
-Du bist ein E-Commerce-Suchassistent für einen Online-Shop.
-Ich gebe dir ein Katalog-Token, das als interne Kategorie oder Produkt-Schlüssel dient.
+Du bist ein E-Commerce-Suchassistent fÃ¼r einen Online-Shop.
+Ich gebe dir ein Katalog-Token, das als interne Kategorie oder Produkt-SchlÃ¼ssel dient.
 
 Deine Aufgabe:
-Gib mir eine Liste typischer deutscher Kundensuchbegriffe und alternativer Schreibweisen, mit denen echte Kunden nach genau diesem Produkt suchen würden.
+Gib mir eine Liste typischer deutscher Kundensuchbegriffe und alternativer Schreibweisen, mit denen echte Kunden nach genau diesem Produkt suchen wÃ¼rden.
 
-Berücksichtige:
-- andere Schreibweisen (z. B. parfum, parfüm)
+BerÃ¼cksichtige:
+- andere Schreibweisen (z. B. parfum, parfÃ¼m)
 - mundartliche Begriffe
 - Singular/Plural
-- aber KEINE Begriffe, die zu anderen Kategorien gehören.
+- aber KEINE Begriffe, die zu anderen Kategorien gehÃ¶ren.
 
-Gib als Antwort NUR eine JSON-Liste von Strings, z. B.: ["parfum","parfüm","duftspray"].
-KEINE Erklärungen, KEIN Markdown, KEINE Kommentare.
+Gib als Antwort NUR eine JSON-Liste von Strings, z. B.: ["parfum","parfÃ¼m","duftspray"].
+KEINE ErklÃ¤rungen, KEIN Markdown, KEINE Kommentare.
 `.trim();
 
   const userPrompt = `
@@ -248,7 +248,7 @@ KATALOG-TOKEN: ${canonicalToken}
 
     if (!response.ok) {
       const text = await response.text();
-      console.warn(`[EFRO AliasBatch] OpenAI-Fehler für Token "${canonicalToken}": ${response.status} ${response.statusText}`);
+      console.warn(`[EFRO AliasBatch] OpenAI-Fehler fÃ¼r Token "${canonicalToken}": ${response.status} ${response.statusText}`);
       return [];
     }
 
@@ -256,7 +256,7 @@ KATALOG-TOKEN: ${canonicalToken}
     const text = data.choices?.[0]?.message?.content?.trim();
 
     if (!text) {
-      console.warn(`[EFRO AliasBatch] OpenAI-Antwort ohne Content für Token "${canonicalToken}"`);
+      console.warn(`[EFRO AliasBatch] OpenAI-Antwort ohne Content fÃ¼r Token "${canonicalToken}"`);
       return [];
     }
 
@@ -269,13 +269,13 @@ KATALOG-TOKEN: ${canonicalToken}
         .trim();
       parsed = JSON.parse(cleaned);
     } catch (err) {
-      console.warn(`[EFRO AliasBatch] Konnte JSON für Token "${canonicalToken}" nicht parsen: ${(err as Error).message}`);
+      console.warn(`[EFRO AliasBatch] Konnte JSON fÃ¼r Token "${canonicalToken}" nicht parsen: ${(err as Error).message}`);
       return [];
     }
 
-    // Prüfe, ob es ein Array ist
+    // PrÃ¼fe, ob es ein Array ist
     if (!Array.isArray(parsed)) {
-      console.warn(`[EFRO AliasBatch] Antwort für Token "${canonicalToken}" ist kein Array`);
+      console.warn(`[EFRO AliasBatch] Antwort fÃ¼r Token "${canonicalToken}" ist kein Array`);
       return [];
     }
 
@@ -285,45 +285,45 @@ KATALOG-TOKEN: ${canonicalToken}
       .filter((s) => s.length > 0)
       .map((s) => normalizeAliasKey(s)); // Konsistente Normalisierung
   } catch (err) {
-    console.warn(`[EFRO AliasBatch] Fehler beim Aufruf für Token "${canonicalToken}": ${(err as Error).message}`);
+    console.warn(`[EFRO AliasBatch] Fehler beim Aufruf fÃ¼r Token "${canonicalToken}": ${(err as Error).message}`);
     return [];
   }
 }
 
 /**
- * Generiert Alias-Map für alle canonicalTokens
+ * Generiert Alias-Map fÃ¼r alle canonicalTokens
  */
 async function generateAliasMapForTokens(canonicalTokens: string[]): Promise<AliasMap> {
   const aliasMap: AliasMap = {};
   const limitedTokens = canonicalTokens.slice(0, 100); // Begrenze auf 100 Tokens
 
-  console.log(`[EFRO AliasBatch] Generiere Aliase für ${limitedTokens.length} canonicalTokens...`);
+  console.log(`[EFRO AliasBatch] Generiere Aliase fÃ¼r ${limitedTokens.length} canonicalTokens...`);
 
   for (let i = 0; i < limitedTokens.length; i++) {
     const token = limitedTokens[i];
     // Normalisiere den canonicalToken (konsistent mit catalogKeywords)
     const normalizedCanonical = normalizeAliasKey(token);
     
-    if (!normalizedCanonical) continue; // Überspringe leere Tokens
+    if (!normalizedCanonical) continue; // Ãœberspringe leere Tokens
     
     const synonyms = await callOpenAIForTokenSynonyms(token);
 
     if (synonyms.length > 0) {
-      // Für jedes Synonym: Key = Synonym, Value = [canonicalToken]
+      // FÃ¼r jedes Synonym: Key = Synonym, Value = [canonicalToken]
       for (const synonym of synonyms) {
         const normalizedSynonym = normalizeAliasKey(synonym);
         
-        // Überspringe leere Synonyme oder Self-Mappings
+        // Ãœberspringe leere Synonyme oder Self-Mappings
         if (!normalizedSynonym || normalizedSynonym === normalizedCanonical) {
           continue;
         }
         
-        // Initialisiere Array falls nötig
+        // Initialisiere Array falls nÃ¶tig
         if (!aliasMap[normalizedSynonym]) {
           aliasMap[normalizedSynonym] = [];
         }
         
-        // Nur hinzufügen, wenn noch nicht vorhanden
+        // Nur hinzufÃ¼gen, wenn noch nicht vorhanden
         if (!aliasMap[normalizedSynonym].includes(normalizedCanonical)) {
           aliasMap[normalizedSynonym].push(normalizedCanonical);
         }
@@ -346,10 +346,10 @@ async function generateAliasMapForTokens(canonicalTokens: string[]): Promise<Ali
 
 /**
  * Filtert Alias-Map: Nur Ziel-Tokens (Values), die auch im Katalog existieren
- * Keys (Aliase) bleiben unberührt, auch wenn sie nicht im Katalog vorkommen
+ * Keys (Aliase) bleiben unberÃ¼hrt, auch wenn sie nicht im Katalog vorkommen
  */
 function filterAliasMapAgainstCatalog(aliasMap: AliasMap, catalogKeywords: string[]): AliasMap {
-  // Normalisiere catalogKeywords für Vergleich
+  // Normalisiere catalogKeywords fÃ¼r Vergleich
   const known = new Set(
     catalogKeywords.map((k) => normalizeAliasKey(k))
   );
@@ -369,7 +369,7 @@ function filterAliasMapAgainstCatalog(aliasMap: AliasMap, catalogKeywords: strin
       )
     );
 
-    // Nur Einträge behalten, die mindestens einen gültigen Target haben
+    // Nur EintrÃ¤ge behalten, die mindestens einen gÃ¼ltigen Target haben
     if (alias && cleanedTargets.length > 0) {
       result[alias] = cleanedTargets;
     }
@@ -379,26 +379,26 @@ function filterAliasMapAgainstCatalog(aliasMap: AliasMap, catalogKeywords: strin
 }
 
 /**
- * Liste von Language-Alias-Keys, die NIEMALS von AI überschrieben werden dürfen
- * (generische Sprach-Aliase, die für alle Shops gelten)
+ * Liste von Language-Alias-Keys, die NIEMALS von AI Ã¼berschrieben werden dÃ¼rfen
+ * (generische Sprach-Aliase, die fÃ¼r alle Shops gelten)
  */
 const PROTECTED_LANGUAGE_ALIAS_KEYS = new Set([
-  "parfum", "parfüm", "perfüm", "parfume", "perfume",
+  "parfum", "parfÃ¼m", "perfÃ¼m", "parfume", "perfume",
   "fressnapf", "napf", "napfset", // Bestehende manuelle Aliase
 ]);
 
 /**
  * Merged bestehende (manuelle) und AI-generierte Alias-Maps
- * Bestehende haben Vorrang (überschreiben/ergänzen AI-Einträge)
- * Language-Aliase werden NIEMALS überschrieben
+ * Bestehende haben Vorrang (Ã¼berschreiben/ergÃ¤nzen AI-EintrÃ¤ge)
+ * Language-Aliase werden NIEMALS Ã¼berschrieben
  */
 function mergeAliasMaps(existing: AliasMap, aiGenerated: AliasMap): AliasMap {
-  // Starte mit AI-generierten Einträgen
+  // Starte mit AI-generierten EintrÃ¤gen
   const merged: AliasMap = { ...aiGenerated };
 
-  // Bestehende (manuelle) Einträge haben Vorrang
+  // Bestehende (manuelle) EintrÃ¤ge haben Vorrang
   for (const [alias, targets] of Object.entries(existing)) {
-    // Überspringe Metadaten-Keys
+    // Ãœberspringe Metadaten-Keys
     if (alias.startsWith("_")) continue;
     
     const key = normalizeAliasKey(alias);
@@ -408,7 +408,7 @@ function mergeAliasMaps(existing: AliasMap, aiGenerated: AliasMap): AliasMap {
     
     const existingTargets = new Set<string>();
 
-    // Füge alle Targets aus bestehender Map hinzu
+    // FÃ¼ge alle Targets aus bestehender Map hinzu
     for (const t of targets) {
       const normalizedTarget = normalizeAliasKey(t);
       if (normalizedTarget) {
@@ -416,7 +416,7 @@ function mergeAliasMaps(existing: AliasMap, aiGenerated: AliasMap): AliasMap {
       }
     }
 
-    // Wenn bereits AI-Einträge vorhanden UND nicht geschützt:
+    // Wenn bereits AI-EintrÃ¤ge vorhanden UND nicht geschÃ¼tzt:
     // Mergen (deduplizieren), aber bestehende Targets haben Vorrang
     if (merged[key] && !isProtected) {
       const aiTargets = merged[key].map((t) => normalizeAliasKey(t));
@@ -425,19 +425,19 @@ function mergeAliasMaps(existing: AliasMap, aiGenerated: AliasMap): AliasMap {
       });
     }
 
-    // Geschützte Language-Aliase: IMMER überschreiben (bestehende haben absoluten Vorrang)
+    // GeschÃ¼tzte Language-Aliase: IMMER Ã¼berschreiben (bestehende haben absoluten Vorrang)
     // Andere: Mergen
     if (isProtected || existingTargets.size > 0) {
       merged[key] = Array.from(existingTargets);
     }
   }
 
-  // Entferne AI-generierte Einträge, die geschützte Keys überschreiben würden
+  // Entferne AI-generierte EintrÃ¤ge, die geschÃ¼tzte Keys Ã¼berschreiben wÃ¼rden
   for (const protectedKey of PROTECTED_LANGUAGE_ALIAS_KEYS) {
     if (merged[protectedKey] && !existing[protectedKey]) {
-      // Falls AI einen geschützten Key generiert hat, aber existing ihn nicht hat,
-      // behalte den AI-Eintrag (kann als Ergänzung dienen)
-      // Aber wenn existing ihn hat, wurde er bereits oben überschrieben
+      // Falls AI einen geschÃ¼tzten Key generiert hat, aber existing ihn nicht hat,
+      // behalte den AI-Eintrag (kann als ErgÃ¤nzung dienen)
+      // Aber wenn existing ihn hat, wurde er bereits oben Ã¼berschrieben
     }
   }
 
@@ -473,7 +473,7 @@ async function main() {
 
   await writeFile(aliasMapPath, JSON.stringify(finalAliasMap, null, 2), "utf8");
   console.log("[EFRO AliasBatch] Alias-Map gespeichert unter:", aliasMapPath);
-  console.log("[EFRO AliasBatch] ✅ Fertig!");
+  console.log("[EFRO AliasBatch] âœ… Fertig!");
 }
 
 main().catch((err) => {

@@ -4,6 +4,7 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 // src/app/api/shopify-products/route.ts
 import { NextResponse } from "next/server";
+import { jsonUtf8 } from "@/lib/http/jsonUtf8";
 
 const SHOP_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN;
 const ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
@@ -16,7 +17,7 @@ export async function GET() {
         hasToken: !!ADMIN_TOKEN,
       });
 
-      return NextResponse.json(
+      return jsonUtf8(
         { error: "Shopify env vars missing on server" },
         { status: 500 }
       );
@@ -42,7 +43,7 @@ export async function GET() {
         bodyText,
       });
 
-      return NextResponse.json(
+      return jsonUtf8(
         {
           error: "Shopify products fetch failed",
           status: res.status,
@@ -55,12 +56,12 @@ export async function GET() {
     const data = await res.json();
 
     // optional: eine klare Source kennzeichnen
-    return NextResponse.json({
+    return jsonUtf8({
       source: "shopify-admin",
       ...data,
     });
   } catch (err) {
     console.error("[Shopify Products] Fetch threw", err);
-    return NextResponse.json({ error: "failed" }, { status: 500 });
+    return jsonUtf8({ error: "failed" }, { status: 500 });
   }
 }

@@ -1,0 +1,324 @@
+﻿L0006 FAIL - Live: Akku-Schrauber 12V (q6)
+  FAIL: count 0 < minCount 1
+L0007 FAIL - Live: Akku-Schrauber 12V (q7)
+  FAIL: count 0 < minCount 1
+L0009 FAIL - Live: Akku-Schrauber 12V (q9)
+  FAIL: count 0 < minCount 1
+L0011 FAIL - Live: Akku-Schrauber 12V (q11)
+  FAIL: count 0 < minCount 1
+L0012 FAIL - Live: Akku-Schrauber 12V (q12)
+  FAIL: count 0 < minCount 1
+L0028 FAIL - Live: Baukl├Âtze Set 100-teilig (q4)
+  FAIL: count 0 < minCount 1
+L0030 FAIL - Live: Baukl├Âtze Set 100-teilig (q6)
+  FAIL: count 0 < minCount 1
+L0031 FAIL - Live: Baukl├Âtze Set 100-teilig (q7)
+  FAIL: count 0 < minCount 1
+L0032 FAIL - Live: Baukl├Âtze Set 100-teilig (q8)
+  FAIL: count 0 < minCount 1
+L0033 FAIL - Live: Baukl├Âtze Set 100-teilig (q9)
+  FAIL: count 0 < minCount 1
+L0035 FAIL - Live: Baukl├Âtze Set 100-teilig (q11)
+  FAIL: count 0 < minCount 1
+L0036 FAIL - Live: Baukl├Âtze Set 100-teilig (q12)
+  FAIL: count 0 < minCount 1
+L0051 FAIL - Live: Bluetooth Kopfh├Ârer X2 (q3)
+  FAIL: count 0 < minCount 1
+L0054 FAIL - Live: Bluetooth Kopfh├Ârer X2 (q6)
+  FAIL: count 0 < minCount 1
+L0055 FAIL - Live: Bluetooth Kopfh├Ârer X2 (q7)
+  FAIL: count 0 < minCount 1
+L0057 FAIL - Live: Bluetooth Kopfh├Ârer X2 (q9)
+  FAIL: count 0 < minCount 1
+L0059 FAIL - Live: Bluetooth Kopfh├Ârer X2 (q11)
+  FAIL: count 0 < minCount 1
+L0060 FAIL - Live: Bluetooth Kopfh├Ârer X2 (q12)
+  FAIL: count 0 < minCount 1
+L0099 FAIL - Live: Example Hat (q3)
+  FAIL: count 0 < minCount 1
+L0102 FAIL - Live: Example Hat (q6)
+  FAIL: count 0 < minCount 1
+L0103 FAIL - Live: Example Hat (q7)
+  FAIL: count 0 < minCount 1
+L0105 FAIL - Live: Example Hat (q9)
+  FAIL: count 0 < minCount 1
+L0111 FAIL - Live: Example Pants (q3)
+  FAIL: count 0 < minCount 1
+L0114 FAIL - Live: Example Pants (q6)
+  FAIL: count 0 < minCount 1
+L0115 FAIL - Live: Example Pants (q7)
+  FAIL: count 0 < minCount 1
+L0117 FAIL - Live: Example Pants (q9)
+  FAIL: count 0 < minCount 1
+L0123 FAIL - Live: Example Perfume (q3)
+  FAIL: count 0 < minCount 1
+L0126 FAIL - Live: Example Perfume (q6)
+  FAIL: count 0 < minCount 1
+L0127 FAIL - Live: Example Perfume (q7)
+  FAIL: count 0 < minCount 1
+L0129 FAIL - Live: Example Perfume (q9)
+  FAIL: count 0 < minCount 1
+L0150 FAIL - Live: Gift Card (q6)
+  FAIL: count 0 < minCount 1
+L0151 FAIL - Live: Gift Card (q7)
+  FAIL: count 0 < minCount 1
+L0153 FAIL - Live: Gift Card (q9)
+  FAIL: count 0 < minCount 1
+L0155 FAIL - Live: Gift Card (q11)
+  FAIL: count 0 < minCount 1
+L0156 FAIL - Live: Gift Card (q12)
+  FAIL: count 0 < minCount 1
+L0159 FAIL - Live: Herren Hoodie Classic (q3)
+  FAIL: count 0 < minCount 1
+L0162 FAIL - Live: Herren Hoodie Classic (q6)
+  FAIL: count 0 < minCount 1
+L0163 FAIL - Live: Herren Hoodie Classic (q7)
+  FAIL: count 0 < minCount 1
+L0165 FAIL - Live: Herren Hoodie Classic (q9)
+  FAIL: count 0 < minCount 1
+L0219 FAIL - Live: LED Streifen RGB (q3)
+  FAIL: count 0 < minCount 1
+L0220 FAIL - Live: LED Streifen RGB (q4)
+  FAIL: count 0 < minCount 1
+L0222 FAIL - Live: LED Streifen RGB (q6)
+  FAIL: count 0 < minCount 1
+L0223 FAIL - Live: LED Streifen RGB (q7)
+  FAIL: count 0 < minCount 1
+L0224 FAIL - Live: LED Streifen RGB (q8)
+  FAIL: count 0 < minCount 1
+L0225 FAIL - Live: LED Streifen RGB (q9)
+  FAIL: count 0 < minCount 1
+L0227 FAIL - Live: LED Streifen RGB (q11)
+  FAIL: count 0 < minCount 1
+L0228 FAIL - Live: LED Streifen RGB (q12)
+  FAIL: count 0 < minCount 1
+L0231 FAIL - Live: Lernroboter Max (q3)
+  FAIL: count 0 < minCount 1
+L0232 FAIL - Live: Lernroboter Max (q4)
+  FAIL: count 0 < minCount 1
+L0234 FAIL - Live: Lernroboter Max (q6)
+  FAIL: count 0 < minCount 1
+L0235 FAIL - Live: Lernroboter Max (q7)
+  FAIL: count 0 < minCount 1
+L0236 FAIL - Live: Lernroboter Max (q8)
+  FAIL: count 0 < minCount 1
+L0237 FAIL - Live: Lernroboter Max (q9)
+  FAIL: count 0 < minCount 1
+L0239 FAIL - Live: Lernroboter Max (q11)
+  FAIL: count 0 < minCount 1
+L0240 FAIL - Live: Lernroboter Max (q12)
+  FAIL: count 0 < minCount 1
+L0246 FAIL - Live: Luxury Bundle (q6)
+  FAIL: count 0 < minCount 1
+L0247 FAIL - Live: Luxury Bundle (q7)
+  FAIL: count 0 < minCount 1
+L0249 FAIL - Live: Luxury Bundle (q9)
+  FAIL: count 0 < minCount 1
+L0251 FAIL - Live: Luxury Bundle (q11)
+  FAIL: count 0 < minCount 1
+L0267 FAIL - Live: Minimalistische Wandvase (q3)
+  FAIL: count 0 < minCount 1
+L0270 FAIL - Live: Minimalistische Wandvase (q6)
+  FAIL: count 0 < minCount 1
+L0271 FAIL - Live: Minimalistische Wandvase (q7)
+  FAIL: count 0 < minCount 1
+L0273 FAIL - Live: Minimalistische Wandvase (q9)
+  FAIL: count 0 < minCount 1
+L0275 FAIL - Live: Minimalistische Wandvase (q11)
+  FAIL: count 0 < minCount 1
+L0276 FAIL - Live: Minimalistische Wandvase (q12)
+  FAIL: count 0 < minCount 1
+L0280 FAIL - Live: Parf├╝m (q4)
+  FAIL: count 0 < minCount 1
+L0282 FAIL - Live: Parf├╝m (q6)
+  FAIL: count 0 < minCount 1
+L0283 FAIL - Live: Parf├╝m (q7)
+  FAIL: count 0 < minCount 1
+L0284 FAIL - Live: Parf├╝m (q8)
+  FAIL: count 0 < minCount 1
+L0285 FAIL - Live: Parf├╝m (q9)
+  FAIL: count 0 < minCount 1
+L0287 FAIL - Live: Parf├╝m (q11)
+  FAIL: count 0 < minCount 1
+L0288 FAIL - Live: Parf├╝m (q12)
+  FAIL: count 0 < minCount 1
+L0291 FAIL - Live: Pflanzenspr├╝her Glas (q3)
+  FAIL: count 0 < minCount 1
+L0292 FAIL - Live: Pflanzenspr├╝her Glas (q4)
+  FAIL: count 0 < minCount 1
+L0294 FAIL - Live: Pflanzenspr├╝her Glas (q6)
+  FAIL: count 0 < minCount 1
+L0295 FAIL - Live: Pflanzenspr├╝her Glas (q7)
+  FAIL: count 0 < minCount 1
+L0296 FAIL - Live: Pflanzenspr├╝her Glas (q8)
+  FAIL: count 0 < minCount 1
+L0297 FAIL - Live: Pflanzenspr├╝her Glas (q9)
+  FAIL: count 0 < minCount 1
+L0299 FAIL - Live: Pflanzenspr├╝her Glas (q11)
+  FAIL: count 0 < minCount 1
+L0300 FAIL - Live: Pflanzenspr├╝her Glas (q12)
+  FAIL: count 0 < minCount 1
+L0303 FAIL - Live: Selling Plans Ski Wax (q3)
+  FAIL: count 0 < minCount 1
+L0306 FAIL - Live: Selling Plans Ski Wax (q6)
+  FAIL: count 0 < minCount 1
+L0307 FAIL - Live: Selling Plans Ski Wax (q7)
+  FAIL: count 0 < minCount 1
+L0309 FAIL - Live: Selling Plans Ski Wax (q9)
+  FAIL: count 0 < minCount 1
+L0311 FAIL - Live: Selling Plans Ski Wax (q11)
+  FAIL: count 0 < minCount 1
+L0312 FAIL - Live: Selling Plans Ski Wax (q12)
+  FAIL: count 0 < minCount 1
+L0315 FAIL - Live: Smartwatch Nova (q3)
+  FAIL: count 0 < minCount 1
+L0318 FAIL - Live: Smartwatch Nova (q6)
+  FAIL: count 0 < minCount 1
+L0319 FAIL - Live: Smartwatch Nova (q7)
+  FAIL: count 0 < minCount 1
+L0321 FAIL - Live: Smartwatch Nova (q9)
+  FAIL: count 0 < minCount 1
+L0323 FAIL - Live: Smartwatch Nova (q11)
+  FAIL: count 0 < minCount 1
+L0324 FAIL - Live: Smartwatch Nova (q12)
+  FAIL: count 0 < minCount 1
+L0327 FAIL - Live: Solar Gartenleuchte (q3)
+  FAIL: count 0 < minCount 1
+L0330 FAIL - Live: Solar Gartenleuchte (q6)
+  FAIL: count 0 < minCount 1
+L0331 FAIL - Live: Solar Gartenleuchte (q7)
+  FAIL: count 0 < minCount 1
+L0333 FAIL - Live: Solar Gartenleuchte (q9)
+  FAIL: count 0 < minCount 1
+L0519 FAIL - Live: Tischlampe Retro (q3)
+  FAIL: count 0 < minCount 1
+L0522 FAIL - Live: Tischlampe Retro (q6)
+  FAIL: count 0 < minCount 1
+L0523 FAIL - Live: Tischlampe Retro (q7)
+  FAIL: count 0 < minCount 1
+L0525 FAIL - Live: Tischlampe Retro (q9)
+  FAIL: count 0 < minCount 1
+L0527 FAIL - Live: Tischlampe Retro (q11)
+  FAIL: count 0 < minCount 1
+L0528 FAIL - Live: Tischlampe Retro (q12)
+  FAIL: count 0 < minCount 1
+L0548 FAIL - Live: category elektronik (q8)
+  FAIL: count 0 < minCount 1
+L0549 FAIL - Live: category elektronik (q9)
+  FAIL: count 0 < minCount 1
+L0557 FAIL - Live: category garten (q8)
+  FAIL: count 0 < minCount 1
+L0558 FAIL - Live: category garten (q9)
+  FAIL: count 0 < minCount 1
+L0602 FAIL - Live: category perfume (q8)
+  FAIL: count 0 < minCount 1
+L0603 FAIL - Live: category perfume (q9)
+  FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1
+    ÔåÆ FAIL: count 0 < minCount 1

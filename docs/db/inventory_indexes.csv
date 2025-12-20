@@ -1,0 +1,29 @@
+schemaname,tablename,indexname,indexdef
+public,cache_audio,cache_audio_pkey,CREATE UNIQUE INDEX cache_audio_pkey ON public.cache_audio USING btree (id)
+public,cache_audio,cache_audio_provider_voice_id_text_hash_key,"CREATE UNIQUE INDEX cache_audio_provider_voice_id_text_hash_key ON public.cache_audio USING btree (provider, voice_id, text_hash)"
+public,cache_responses,cache_responses_pkey,CREATE UNIQUE INDEX cache_responses_pkey ON public.cache_responses USING btree (id)
+public,cache_responses,cache_responses_shop_question_locale_idx,"CREATE UNIQUE INDEX cache_responses_shop_question_locale_idx ON public.cache_responses USING btree (shop_id, question_hash, locale)"
+public,efro_events,efro_events_pkey,CREATE UNIQUE INDEX efro_events_pkey ON public.efro_events USING btree (id)
+public,efro_events,idx_efro_events_had_error_created_at,"CREATE INDEX idx_efro_events_had_error_created_at ON public.efro_events USING btree (had_error, created_at DESC)"
+public,efro_events,idx_efro_events_shop_created,"CREATE INDEX idx_efro_events_shop_created ON public.efro_events USING btree (shop_domain, created_at DESC)"
+public,efro_events,idx_efro_events_shop_created_at,"CREATE INDEX idx_efro_events_shop_created_at ON public.efro_events USING btree (shop_domain, created_at DESC)"
+public,efro_shop_settings,efro_shop_settings_pkey,CREATE UNIQUE INDEX efro_shop_settings_pkey ON public.efro_shop_settings USING btree (shop)
+public,efro_shop_settings,efro_shop_settings_shop_idx,CREATE UNIQUE INDEX efro_shop_settings_shop_idx ON public.efro_shop_settings USING btree (shop)
+public,efro_shops,efro_shops_pkey,CREATE UNIQUE INDEX efro_shops_pkey ON public.efro_shops USING btree (id)
+public,efro_shops,efro_shops_shop_domain_key,CREATE UNIQUE INDEX efro_shops_shop_domain_key ON public.efro_shops USING btree (shop_domain)
+public,efro_shops,idx_efro_shops_shop_domain,CREATE UNIQUE INDEX idx_efro_shops_shop_domain ON public.efro_shops USING btree (shop_domain)
+public,events,events_pkey,CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)
+public,product_embeddings,product_embeddings_pkey,CREATE UNIQUE INDEX product_embeddings_pkey ON public.product_embeddings USING btree (id)
+public,product_embeddings,product_embeddings_product_id_idx,CREATE INDEX product_embeddings_product_id_idx ON public.product_embeddings USING btree (product_id)
+public,product_embeddings,product_embeddings_shop_id_idx,CREATE INDEX product_embeddings_shop_id_idx ON public.product_embeddings USING btree (shop_id)
+public,products,idx_products_shop_domain,CREATE INDEX idx_products_shop_domain ON public.products USING btree (shop_domain)
+public,products,products_pkey,CREATE UNIQUE INDEX products_pkey ON public.products USING btree (id)
+public,products,products_sku_key,CREATE UNIQUE INDEX products_sku_key ON public.products USING btree (sku)
+public,products_demo,idx_products_demo_category,CREATE INDEX idx_products_demo_category ON public.products_demo USING btree (category)
+public,products_demo,idx_products_demo_title,CREATE INDEX idx_products_demo_title ON public.products_demo USING btree (title)
+public,products_demo,products_demo_pkey,CREATE UNIQUE INDEX products_demo_pkey ON public.products_demo USING btree (id)
+public,products_demo,products_demo_sku_key,CREATE UNIQUE INDEX products_demo_sku_key ON public.products_demo USING btree (sku)
+public,shops,shops_pkey,CREATE UNIQUE INDEX shops_pkey ON public.shops USING btree (id)
+public,shops,shops_shop_key,CREATE UNIQUE INDEX shops_shop_key ON public.shops USING btree (shop)
+public,subscriptions,subscriptions_pkey,CREATE UNIQUE INDEX subscriptions_pkey ON public.subscriptions USING btree (id)
+public,users,users_pkey,CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)

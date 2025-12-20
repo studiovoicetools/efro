@@ -1,0 +1,2 @@
+shop,avatar_id,voice_id,locale,tts_enabled,created_at,updated_at,currency,product_source,voice_enabled,enable_cross_sell,debug_overlay_enabled
+avatarsalespro-dev.myshopify.com,null,null,de-DE,false,2025-12-20 09:17:36.849754+00,2025-12-20 10:27:15.569009+00,EUR,shopify,false,true,false

@@ -38,11 +38,16 @@
   ],
 
   "exclude": [
-    
-    "src/efro_legacy/**/*","node_modules",
-    "src_backup"
-    
-  ]
+  "src/efro_legacy/**/*",
+  "node_modules",
+  "src_backup",
+  "_backups/**/*",
+
+  "**/*.bak",
+  "**/*.bak_*",
+  "**/*.BROKEN*"
+]
+
 }
 
 

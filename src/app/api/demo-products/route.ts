@@ -2,24 +2,33 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 // -----------------------------------------------------
-// Supabase Setup
+// Supabase Setup (runtime-safe: NO top-level createClient / NO top-level env crash)
 // -----------------------------------------------------
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-// Service Role hat Vorrang (wegen voller Rechte)
-const SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY || "";
-
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error("❌ SUPABASE_URL oder SUPABASE_KEY nicht gesetzt!");
+function env(name: string): string {
+  return (process.env[name] ?? "").trim();
 }
 
-const supabase =
-  SUPABASE_URL && SUPABASE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_KEY)
-    : null;
+function getSupabaseCreds() {
+  const url = env("SUPABASE_URL") || env("NEXT_PUBLIC_SUPABASE_URL");
+
+  // Server-only first: Service key (your preferred name), then legacy fallbacks
+  const key =
+    env("SUPABASE_SERVICE_KEY") ||
+    env("SUPABASE_SERVICE_ROLE_KEY") ||
+    env("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+
+  return { url, key };
+}
+
+function createSupabaseOrNull() {
+  const { url, key } = getSupabaseCreds();
+  if (!url || !key) return null;
+
+  return createClient(url, key, {
+    auth: { persistSession: false },
+  });
+}
 
 // -----------------------------------------------------
 // GET /api/demo-products
@@ -27,19 +36,20 @@ const supabase =
 
 export async function GET() {
   try {
+    const supabase = createSupabaseOrNull();
+
     if (!supabase) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Supabase ist nicht konfiguriert. Bitte SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY setzen.",
+          error: "missing SUPABASE_URL / SUPABASE_SERVICE_KEY",
         },
         { status: 500 }
       );
     }
 
     // -----------------------------------------------------
-    // WIR FRAGEN NUR SPALTEN AB, DIE ES WIRKLICH GIBT:
+    // Only select columns that exist:
     // id, category, title, description, price
     // -----------------------------------------------------
 
@@ -50,34 +60,29 @@ export async function GET() {
       .limit(100);
 
     if (error) {
-      console.error("❌ Supabase Fehler:", error);
       return NextResponse.json(
-        {
-          success: false,
-          error: `Supabase-Fehler: ${error.message}`,
-        },
+        { success: false, error: `Supabase error: ${error.message}` },
         { status: 500 }
       );
     }
 
-    const products = (data || []).map((row: any) => ({
+    const products = (data ?? []).map((row: any) => ({
       id: row.id,
       title: row.title,
       description: row.description,
       category: row.category,
       price: row.price,
       available: true,
-      // Shopify-API verlangt Felder – wir liefern Dummy/Platzhalter
-      handle: row.id,
+
+      // Shopify-like placeholders
+      handle: String(row.id),
       imageUrl: null,
       imageAlt: row.title,
       compareAtPrice: null,
       url: "#",
     }));
 
-    // -----------------------------------------------------
-    // Extra: product_details für ElevenLabs Agent
-    // -----------------------------------------------------
+    // Extra: product_details for Agent / tools
     const product_details = products.map((p) => ({
       title: p.title,
       description: p.description,
@@ -94,11 +99,10 @@ export async function GET() {
       product_details,
     });
   } catch (err: any) {
-    console.error("❌ API /demo-products Fehler:", err);
     return NextResponse.json(
       {
         success: false,
-        error: `Serverfehler: ${err?.message || String(err)}`,
+        error: `Server error: ${err?.message || String(err)}`,
       },
       { status: 500 }
     );
