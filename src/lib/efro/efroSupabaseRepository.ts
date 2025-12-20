@@ -15,7 +15,7 @@ function isServerSide(): boolean {
   return (
     typeof window === "undefined" &&
     typeof process !== "undefined" &&
-    !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    !!(process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)
   );
 }
 
