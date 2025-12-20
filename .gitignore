@@ -100,3 +100,9 @@ _build_check*.log
 _local_bak/
 tsconfig.json.bak_*
 
+
+# local backups / broken artifacts
+_backups/
+*.bak_*
+*.BROKEN_*
+*utf16fix*
