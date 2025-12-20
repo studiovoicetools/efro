@@ -16,7 +16,7 @@ interface ShopSettingsPayload {
 // Helper function to create Supabase client with service role key
 function createServiceRoleClient() {
   const url = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
     console.error("[EFRO shop-settings] Missing Supabase envs", {
