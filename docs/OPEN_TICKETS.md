@@ -2,7 +2,7 @@
 
 Last updated: 2025-12-20  
 Commit: c3cc7c2dc2aaddeec3322f9eac6d265b669d3b70  
-Branch: feature/curated1000  
+Branch: docs/update-inventory-2025-12-20
 Maintainer: Derin
 
 ## P0 (Go-Live Blocker)
@@ -18,3 +18,11 @@ Maintainer: Derin
 
 ## P2
 - [ ] Landing polish
+
+---
+## P0 – Tenant/Shop Normalization (Drift Fix)
+
+- [ ] P0: Zentrale normalizeShopDomain() als Single Source of Truth (Code-Location festlegen)
+- [ ] P0: Zentrale Helper-Funktion getShopDomainFromRequest() (shop + legacy shopDomain → shopDomain normalized)
+- [ ] P0: Alle API Routes vereinheitlichen (keine neuen Tenant Keys; shopId nur intern für repo/cache)
+- [ ] P0: INTERFACES.md aktualisieren: pro Route canonical tenant key + legacy acceptance (shopDomain) markieren
