@@ -26,3 +26,72 @@ Maintainer: Derin
 - [ ] P0: Zentrale Helper-Funktion getShopDomainFromRequest() (shop + legacy shopDomain → shopDomain normalized)
 - [ ] P0: Alle API Routes vereinheitlichen (keine neuen Tenant Keys; shopId nur intern für repo/cache)
 - [ ] P0: INTERFACES.md aktualisieren: pro Route canonical tenant key + legacy acceptance (shopDomain) markieren
+
+
+
+
+OPEN TICKETS (Stand: 2025-12-21)
+P0 (sofort / Go-Live relevant)
+
+Shopify Embed (Demo Storefront)
+
+EFRO Widget unten rechts einbetten
+
+Sicherstellen: keine Überlappung mit wichtigen UI-Elementen
+
+Shop-Domain Handling prüfen (shop=...myshopify.com)
+
+Onboarding → Lipsync / Mascot Conversation Flow
+
+Ziel: Onboarding nutzt denselben stabilen Flow wie der Avatar-Chat (damit Lipsync zuverlässig ist)
+
+Risiko: nicht „nebenbei“ refactoren → kontrolliertes Ticket
+
+Render ENV Konsistenz
+
+Sicherstellen, dass Render ENV sowohl im Build- als auch Runtime-Kontext verfügbar ist
+
+Besonders: SUPABASE_URL, SUPABASE_SERVICE_KEY, NEXT_PUBLIC_SUPABASE_URL
+
+P1 (Profi-Seller / Qualität)
+
+Recommendation UX / Produktkarten
+
+Produktkarten sauberer, schneller, glaubwürdiger
+
+Ranking/Filters checken
+
+Event Logs / Operator View
+
+Standardisierte Events
+
+Debug-Ansicht für Pro/Enterprise
+
+Scenario Suite ausbauen (Curated 1000)
+
+Ziel: deutlich mehr Testszenarien, realistische Queries
+
+Tools existieren (scripts/test-sellerBrain-scenarios-curated.ts etc.)
+
+P2 (Skalierung / Kosten / Monetarisierung)
+
+Cache-System (AI + TTS)
+
+Antwort-Cache + TTS-Cache (Credits sparen)
+
+Knowledge Base Modul (Store Truth)
+
+Versand/Retouren/Garantie/Zahlung/Supportzeiten
+
+nicht als Ersatz für SellerBrain, sondern Profi-Modul
+
+Hygiene / DevEx
+
+Backup-Dateien / Logs / große Binärfiles
+
+Aufräumen oder sauber ignorieren (gitignore)
+
+Große Logs nicht dauerhaft im Repo lassen (wenn möglich)
+'@ | Set-Content -Encoding UTF8 .\docs\OPEN_TICKETS.md
+
+@'
