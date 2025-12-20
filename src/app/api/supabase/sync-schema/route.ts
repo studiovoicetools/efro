@@ -18,8 +18,8 @@ function getEnv(name: string): string {
 function getSupabaseAdmin() {
   const url = getEnv("SUPABASE_URL") || getEnv("NEXT_PUBLIC_SUPABASE_URL");
   const key =
-    getEnv("SUPABASE_SERVICE_ROLE_KEY") ||
     getEnv("SUPABASE_SERVICE_KEY") ||
+    getEnv("SUPABASE_SERVICE_ROLE_KEY") ||
     getEnv("SUPABASE_SERVICE_ROLE");
 
   if (!url || !key) return null;
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json(
-      { ok: false, error: "missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY" },
+      { ok: false, error: "missing SUPABASE_URL / SUPABASE_SERVICE_KEY" },
       { status: 500 }
     );
   }
