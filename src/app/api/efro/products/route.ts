@@ -5,6 +5,7 @@ export const fetchCache = "force-no-store";
 
 // src/app/api/efro/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { jsonUtf8 } from "@/lib/http/jsonUtf8";
 import { loadProductsForShop, type LoadProductsResult } from "@/lib/products/efroProductLoader";
 import { getEfroShopByDomain, getEfroDemoShop, getProductsForShop } from "@/lib/efro/efroSupabaseRepository";
 import type { EfroProduct } from "@/lib/products/mockCatalog";
@@ -22,15 +23,6 @@ type ShopifyProduct = {
   images?: { src?: string | null }[];
 };
 
-function jsonUtf8(data: unknown, init?: ResponseInit) {
-  const headers = new Headers(init?.headers);
-  headers.set("Content-Type", "application/json; charset=utf-8");
-
-  // FINAL: egal was irgendwo kaputt reinkommt -> niemals kaputt rausgeben
-  const safe = sanitizeDeep(data);
-
-  return new NextResponse(JSON.stringify(safe), { ...init, headers });
-}
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();

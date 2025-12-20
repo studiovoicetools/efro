@@ -24,3 +24,13 @@ Notiz: Kann mit echter Shopify-Embed-Integration kollidieren (später eliminiere
 ### src/efro_legacy/experimental-pages/onboarding/page.tsx
 Status: HIGH RISK
 Notiz: Onboarding muss später eindeutig sein (prod flow). Diese Seite kann verwirren.
+
+### src/efro_legacy/experimental-pages/*
+Decision: delete (legacy experiments; not referenced; not routed under src/app; recoverable via git history).
+
+Files:
+- avatar/page.tsx
+- efro-admin/page.tsx
+- embed/page.tsx
+- onboarding/page.tsx
+

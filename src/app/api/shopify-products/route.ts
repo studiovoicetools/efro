@@ -4,6 +4,7 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 // src/app/api/shopify-products/route.ts
 import { NextResponse } from "next/server";
+import { jsonUtf8 } from "@/lib/http/jsonUtf8";
 
 const SHOP_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN;
 const ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;

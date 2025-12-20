@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from "next/server";
+import { jsonUtf8 } from "@/lib/http/jsonUtf8";
 import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
