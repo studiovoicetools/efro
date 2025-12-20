@@ -3,7 +3,7 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Erstellt einen Supabase-Client fÃ¼r EFRO-Server-Routen.
+ * Erstellt einen Supabase-Client für EFRO-Server-Routen.
  * Verwendet SUPABASE_URL und SUPABASE_SERVICE_KEY (Fallback: SUPABASE_SERVICE_ROLE_KEY).
  * 
  * @returns SupabaseClient oder null, falls ENV-Variablen nicht gesetzt sind
