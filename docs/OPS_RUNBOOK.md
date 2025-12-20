@@ -1,4 +1,4 @@
-# OPS Runbook — EFRO
+﻿# OPS Runbook — EFRO
 
 ## Quick checks & smoke tests
 
@@ -46,7 +46,7 @@ Mini-TOC
 
 - `GET /api/efro/debug-products?dataset=scenarios`
   - File: src/app/api/efro/debug-products/route.ts
-  - Query params: `dataset=scenarios` → returns fixture JSON `{ products: [...], source: "fixture" }` (200)
+  - Query params: `dataset=scenarios` â†’ returns fixture JSON `{ products: [...], source: "fixture" }` (200)
 
 - `GET /api/shopify-products`
   - File: src/app/api/shopify-products/route.ts
@@ -85,4 +85,26 @@ Refer to the source files under `src/app/api/**/route.ts` for full method implem
 - Provide /api/explain-product implementation and document expected inputs/outputs.
 - Provide SellerBrain implementation file(s) to extract the module-level architecture and where pricing/sales policy rules are enforced.
 - Add centralized telemetry & error tracking (Sentry/Datadog) and wire up to critical routes and SellerBrain errors.
+
+
+---
+
+## Encoding / Mojibake Guard (wichtig)
+Problem:
+- In API-Responses gab es Mojibake-Zeichen (z. B. <MOJIBAKE_BYTES>, <CTRL_CHARS>).
+
+Fix/Mechanik:
+- Zentrale Text-Reparatur: src/lib/text/encoding.ts (deep-fix für alle Strings; cleanText + Tag-Normalisierung).
+- Products API finalisiert immer: finalizeEfroProducts() auf alle Quellen (Shopify/Repo/Supabase/Loader/Mock).
+- API erzwingt UTF-8 JSON Antwort: Content-Type: application/json; charset=utf-8.
+
+Guard:
+- scripts/guard-mojibake.mjs + pnpm guard:mojibake
+- Guard läuft als Commit-Check und blockt Commits, wenn Mojibake wieder auftaucht.
+
+Bonus (Line Endings):
+- .gitattributes verschärft (LF erzwungen) + Repo renormalisiert.
+- Empfohlen lokal: core.autocrlf=false, core.eol=lf, core.safecrlf=warn
+
+
 
