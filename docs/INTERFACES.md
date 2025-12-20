@@ -72,3 +72,167 @@ Contracts (Body/Headers/Outputs) pro Route aus Code extrahieren:
 - searchParams.get(...)
 - await request.json()
 - headers.get(...)
+
+
+
+
+
+
+
+
+INCIDENT: Render Build Crash – Supabase ENV / Top-Level Client
+
+Datum: 2025-12-20 → 2025-12-21
+
+Symptom
+
+Render Build:
+
+„Collecting page data …“
+
+Console: ❌ SUPABASE_URL oder SUPABASE_KEY nicht gesetzt!
+
+Error: supabaseKey is required
+
+Build failed: Failed to collect page data for /api/supabase/sync-schema
+
+Parallel:
+
+/api/supabase-products auf Render gab: {"error":"supabaseUrl is required."}
+
+Ursache
+
+A) Branch/Commit mismatch
+
+Render deployte main (Commit 807bf10)
+
+Fixes lagen in feature/curated1000
+
+B) Build-Kontext führt Code aus
+
+Supabase Client wurde zu früh erstellt (Module-Top-Level)
+
+Wenn ENV im Build-Kontext fehlt/anders ist → Crash
+
+C) NEXT_PUBLIC_SUPABASE_URL fehlte auf Render
+
+route /api/supabase-products brauchte NEXT_PUBLIC_SUPABASE_URL
+
+Fix
+
+NEXT_PUBLIC_SUPABASE_URL auf Render gesetzt
+
+API Routes build-safe gemacht:
+
+createClient() nur im Handler
+
+Wenn ENV fehlt: return 500 JSON statt throw
+
+feature/curated1000 in main gemerged und main gepusht
+
+Prevention / Regeln
+
+Render-Branch klar festlegen (main) und Fixes immer nach main mergen.
+
+Keine ENV-abhängigen Clients auf Module-Top-Level.
+
+Render ENV immer inkl. NEXT_PUBLIC_SUPABASE_URL setzen, wenn Route es nutzt.
+'@ | Set-Content -Encoding UTF8 .\docs\INCIDENT_RENDER_BUILD_SUPABASE_ENV_2025-12-20.md
+
+
+---
+
+# C) Prüfen, was geändert wurde
+
+```powershell
+git status
+git diff --stat
+
+D) Commit + Push (Docs)
+git add .\docs
+git commit -m "docs: update status + render incident + next steps (2025-12-21)"
+git push origin main
+
+E) Go-Live Checkliste (als Datei + als Befehle)
+1) Datei erzeugen: docs/CHECKLIST_GO_LIVE_COMMANDS.md
+@'
+# GO-LIVE CHECKLIST (COMMANDS) – Stand: 2025-12-21
+
+## 0) Basis: Repo / Branch / Clean
+```powershell
+cd C:\efro_fast\efro_work_fixed
+git checkout main
+git pull origin main
+git status
+
+1) Render Smoke Test (MUSS GRÜN)
+$BASE="https://efro-prod.onrender.com"
+irm "$BASE/api/health"
+irm "$BASE/api/efro/products?shop=avatarsalespro-dev.myshopify.com" | select success,source
+irm "$BASE/api/supabase-products?shop=avatarsalespro-dev.myshopify.com" | select success,count
+irm "$BASE/api/shopify-products?shop=avatarsalespro-dev.myshopify.com" | select source,products
+
+
+Expected:
+
+/api/health -> ok:true
+
+efro/products -> source: products_demo
+
+supabase-products -> count: 49
+
+shopify-products -> source: shopify-admin
+
+2) Render ENV Pflichtfelder prüfen (manuell in Render UI)
+
+SUPABASE_URL
+
+SUPABASE_SERVICE_KEY
+
+NEXT_PUBLIC_SUPABASE_URL
+
+(optional) NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+3) Shopify Embed (P0 – Go-Live Blocker)
+
+Ziel: EFRO Widget im Shopify Demo-Storefront sichtbar, unten rechts, ohne Überlappungen.
+Nach Implementierung:
+
+# Nach jedem Deploy:
+irm "$BASE/api/health"
+
+4) Onboarding + Lipsync (P0)
+
+Ticket: Onboarding auf stabilen Conversation-Flow umstellen, damit Lipsync zuverlässig ist.
+Nach Implementierung: Onboarding-Seite im Browser testen (Voice/Avatar/Chat).
+
+5) Event Logs / Telemetrie (P0/P1)
+
+Events: session_start, intent_detected, recommendation_served, cta_clicked, error.
+Nach Implementierung: Logs prüfen (Server + Client).
+
+6) Curated Suite erweitern (P1)
+pnpm -s guard:mojibake
+pnpm test
+# wenn vorhanden:
+pnpm sellerbrain:scenarios
+
+
+'@ | Set-Content -Encoding UTF8 .\docs\CHECKLIST_GO_LIVE_COMMANDS.md
+
+
+## 2) Commit + Push
+
+```powershell
+git add .\docs\CHECKLIST_GO_LIVE_COMMANDS.md
+git commit -m "docs: add go-live checklist with commands"
+git push origin main
+
+F) Mini-Tooling Hinweis (damit du nie wieder “findstr” suchst)
+
+In PowerShell statt findstr:
+
+git log --oneline --all | Select-String -SimpleMatch "807bf10"
+
+
+

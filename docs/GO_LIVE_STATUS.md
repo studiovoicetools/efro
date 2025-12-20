@@ -70,3 +70,75 @@ Rule: Facts only. Every claim needs evidence (URL + statuscode or command output
 - pnpm sellerbrain:scenarios => 388/388 PASS (2025-12-19)
 - pnpm sellerbrain:scenarios:curated => 892/1000 PASS (108 FAIL) (2025-12-19)
 - Next: cluster the 108 fails (top 3 root causes) and create tickets.
+
+
+
+
+
+GO LIVE STATUS (Stand: 2025-12-21)
+Grün (funktioniert)
+
+Render Build + Deploy: ✅ grün
+
+Health Endpoint: ✅
+
+Supabase Products Endpoint: ✅ (49 Produkte)
+
+EFRO Products Endpoint: ✅ (source: products_demo)
+
+Shopify Products Endpoint: ✅ (source: shopify-admin)
+
+Local Setup: ✅ läuft wieder stabil (pnpm dev)
+
+Gelb (funktioniert, aber nicht „Profi-Level“)
+
+ESLint Warnings (Hooks deps / img statt next/image) → aktuell nicht blockierend
+
+Produktkarten/Recommendation-UX: läuft, aber Feinschliff nötig (Profi-Seller Feeling)
+
+Logs/Operator-Sicht: vorhanden, aber muss „Go-Live-ready“ strukturiert werden
+
+Rot (Go-Live Blocker / echte Baustellen)
+
+Shopify Embed
+
+EFRO muss sauber in Shopify Demo-Storefront eingebettet werden (Script/Widget).
+
+Ziel: EFRO unten rechts, darf keine Landing-Blocks überlappen.
+
+Onboarding + Lipsync
+
+Lipsync im Onboarding ist noch nicht zuverlässig im gleichen Flow wie „Mascot Conversation“ integriert.
+
+Ticket: Onboarding auf den stabilen Conversation-Flow umstellen, damit Lipsync auch dort funktioniert.
+
+Event Logs / Telemetrie
+
+Ziel: nachvollziehbare Events (Session start, intent detected, recommendation served, CTA clicked, error).
+
+Operator-Ansicht für Pro/Enterprise (später).
+
+Definition of Done (Go-Live minimal)
+
+Render deployt main stabil
+
+Shopify Embed in Demo-Store sichtbar + klickbar
+
+EFRO kann auf Demo-Store Produkte empfehlen (shop param)
+
+Keine „ENV fehlt“ Crashes mehr im Build (build-safe routes)
+
+Minimaler Monitoring/Runbook-Workflow dokumentiert (Render Ops)
+
+Definition of Done (Profi-Seller)
+
+Kategorie/Budget/Intent stabil in vielen realen Queries (Suite erweitern)
+
+KB / Store-Policies (Versand/Retoure/FAQ) anbindbar
+
+Caching (AI/TTS) aktiv, um Kosten zu senken
+
+Onboarding + Voice wirken „premium“
+'@ | Set-Content -Encoding UTF8 .\docs\GO_LIVE_STATUS.md
+
+@'
