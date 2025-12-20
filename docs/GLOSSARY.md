@@ -60,4 +60,3 @@ Diese Datei verhindert Naming-Drift (Zeitkiller). Wenn ein Begriff hier anders s
 - extern: canonical URL key bleibt shop
 - intern: shopDomain bleibt canonical im Code
 - endpoints akzeptieren langfristig shop (extern) und mappen intern zu shopDomain
-
