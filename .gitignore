@@ -106,3 +106,7 @@ _backups/
 *.bak_*
 *.BROKEN_*
 *utf16fix*
+
+# Supabase CLI temp
+supabase/.temp/
+
