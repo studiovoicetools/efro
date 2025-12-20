@@ -10,6 +10,12 @@ Maintainer: Derin
 - Evidence-first: Method/Parameter werden aus Code abgeleitet, sonst TODO.
 - Tenant/Shop Begriffe: siehe docs/GLOSSARY.md
 
+## Tenant-Key Regel (P0)
+- External (URL Query): canonical key ist `shop`.
+- Internal (Code): canonical variable ist `shopDomain`.
+- Legacy: `shopDomain` als Query-Key ist erlaubt, aber nur als Übergang (nicht weiter ausbauen).
+- Jede neue Route MUSS `shop` akzeptieren und intern nach `shopDomain` mappen (siehe docs/GLOSSARY.md).
+
 ## API Routes (Inventur – Methods + Tenant-Key)
 Quelle: src/app/api/**/route.ts + rg export async function GET/POST + searchParams.get(...)
 
