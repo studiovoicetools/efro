@@ -1,76 +1,54 @@
-﻿// src/app/api/supabase/sync-schema/route.ts
-import { NextResponse } from "next/server";
+﻿export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+/**
+ * PROD-SAFE:
+ * - Kein createClient() auf Module-Top-Level (sonst Build-Crash bei fehlenden ENV)
+ * - Secret-Guard, damit niemand den Endpoint öffentlich nutzen kann
+ */
+function getEnv(name: string): string {
+  return (process.env[name] || "").trim();
+}
 
-export const dynamic = "force-dynamic";
+function getSupabaseAdmin() {
+  const url = getEnv("SUPABASE_URL") || getEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const key =
+    getEnv("SUPABASE_SERVICE_ROLE_KEY") ||
+    getEnv("SUPABASE_SERVICE_KEY") ||
+    getEnv("SUPABASE_SERVICE_ROLE");
 
-// gewÃ¼nschtes Schema
-const requiredColumns = [
-  { name: "id", type: "text" },
-  { name: "title", type: "text" },
-  { name: "handle", type: "text" },
-  { name: "description", type: "text" },
-  { name: "featuredImage", type: "text" },
-];
+  if (!url || !key) return null;
 
-export async function GET() {
-  try {
-    // 1ï¸âƒ£ vorhandene Spalten abrufen
-    const { data: columns, error } = await supabase.rpc("get_table_columns", {
-      table_name: "products",
-    });
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
-    if (error) {
-      console.log("âš ï¸ Keine Funktion get_table_columns gefunden, wird erstellt â€¦");
-
-      // ğŸ”§ Funktion einmalig erstellen
-      const { error: fnError } = await supabase.rpc("exec_sql", {
-        sql: `
-          CREATE OR REPLACE FUNCTION get_table_columns(table_name text)
-          RETURNS TABLE(column_name text, data_type text)
-          LANGUAGE plpgsql AS $$
-          BEGIN
-            RETURN QUERY
-            SELECT column_name, data_type
-            FROM information_schema.columns
-            WHERE table_name = table_name;
-          END; $$;
-        `,
-      });
-
-      if (fnError) throw fnError;
-
-      return NextResponse.json({
-        success: false,
-        message: "Funktion erstellt. Bitte Route erneut aufrufen.",
-      });
-    }
-
-    const existingCols = columns.map((c: any) => c.column_name);
-    const missing = requiredColumns.filter(c => !existingCols.includes(c.name));
-
-    if (missing.length === 0) {
-      return NextResponse.json({ success: true, message: "Schema ist vollstÃ¤ndig âœ…" });
-    }
-
-    // 2ï¸âƒ£ Fehlende Spalten hinzufÃ¼gen
-    for (const col of missing) {
-      const query = `ALTER TABLE products ADD COLUMN IF NOT EXISTS ${col.name} ${col.type};`;
-      await supabase.rpc("exec_sql", { sql: query });
-      console.log(`â• Spalte hinzugefÃ¼gt: ${col.name}`);
-    }
-
-    return NextResponse.json({
-      success: true,
-      added: missing.map(m => m.name),
-    });
-  } catch (err: any) {
-    console.error("âŒ Schema Sync Fehler:", err.message);
-    return NextResponse.json({ success: false, error: err.message });
+export async function GET(req: NextRequest) {
+  // Secret Guard
+  const secret = getEnv("SYNC_SCHEMA_SECRET");
+  const provided = req.nextUrl.searchParams.get("secret") || "";
+  if (!secret || provided !== secret) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { ok: false, error: "missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY" },
+      { status: 500 }
+    );
+  }
+
+  // NOTE: Schema wird ab jetzt professionell per Migration gemacht.
+  // Diese Route ist nur noch ein geschütztes Admin-Tool (Smoke/Health).
+  return NextResponse.json({
+    ok: true,
+    note: "Schema handled via migrations. This endpoint is intentionally non-destructive.",
+  });
 }
