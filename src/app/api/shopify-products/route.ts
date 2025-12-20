@@ -16,7 +16,7 @@ export async function GET() {
         hasToken: !!ADMIN_TOKEN,
       });
 
-      return NextResponse.json(
+      return jsonUtf8(
         { error: "Shopify env vars missing on server" },
         { status: 500 }
       );
@@ -42,7 +42,7 @@ export async function GET() {
         bodyText,
       });
 
-      return NextResponse.json(
+      return jsonUtf8(
         {
           error: "Shopify products fetch failed",
           status: res.status,
@@ -55,12 +55,12 @@ export async function GET() {
     const data = await res.json();
 
     // optional: eine klare Source kennzeichnen
-    return NextResponse.json({
+    return jsonUtf8({
       source: "shopify-admin",
       ...data,
     });
   } catch (err) {
     console.error("[Shopify Products] Fetch threw", err);
-    return NextResponse.json({ error: "failed" }, { status: 500 });
+    return jsonUtf8({ error: "failed" }, { status: 500 });
   }
 }

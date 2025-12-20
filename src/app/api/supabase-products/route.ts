@@ -13,13 +13,13 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json({
+    return jsonUtf8({
       success: true,
       count: data.length,
       products: data
     });
   } catch (err: any) {
-    return NextResponse.json(
+    return jsonUtf8(
       { success: false, error: err.message },
       { status: 500 }
     );

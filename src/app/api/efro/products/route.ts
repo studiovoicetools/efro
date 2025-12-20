@@ -9,6 +9,7 @@ import { loadProductsForShop, type LoadProductsResult } from "@/lib/products/efr
 import { getEfroShopByDomain, getEfroDemoShop, getProductsForShop } from "@/lib/efro/efroSupabaseRepository";
 import type { EfroProduct } from "@/lib/products/mockCatalog";
 import { mockCatalog } from "@/lib/products/mockCatalog";
+import { fixEncodingDeep, normalizeTags, cleanText, sanitizeDeep } from "@/lib/text/encoding";
 
 type ShopifyProduct = {
   id: string | number;
@@ -21,97 +22,78 @@ type ShopifyProduct = {
   images?: { src?: string | null }[];
 };
 
+function jsonUtf8(data: unknown, init?: ResponseInit) {
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", "application/json; charset=utf-8");
+
+  // FINAL: egal was irgendwo kaputt reinkommt -> niemals kaputt rausgeben
+  const safe = sanitizeDeep(data);
+
+  return new NextResponse(JSON.stringify(safe), { ...init, headers });
+}
+
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function looksLikeMojibake(s: string): boolean {
-  // typische UTF8->Latin1 Fehl-Decodierung + häufige Sonderfälle (€, Anführungszeichen etc.)
-  return /Ã|Â|â€|â€™|â€œ|â€�|â€“|â€¦|â‚¬|â¬/.test(s);
-}
-
-function repairMojibakeUtf8(input: unknown): string {
-  const original = typeof input === "string" ? input : "";
-  if (!original) return original;
-
-  let out = original;
-
-  try {
-    // runtime=nodejs -> Buffer vorhanden
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const B: any = (globalThis as any).Buffer;
-
-    if (typeof B !== "undefined") {
-      // bis zu 3 Durchläufe: manche Strings sind doppelt kaputt (z.B. Ã¢âÂ¬)
-      for (let i = 0; i < 3; i++) {
-        if (!looksLikeMojibake(out)) break;
-        const prev = out;
-        out = B.from(out, "latin1").toString("utf8");
-        if (out === prev) break;
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  // letzte Kante: Euro taucht manchmal als â‚¬ oder â¬ auf
-  out = out.replace(/â‚¬/g, "€").replace(/â¬/g, "€");
-
-  return out;
-}
-
-function normalizeTags(tags: unknown): string[] {
-  if (!tags) return [];
-  if (Array.isArray(tags)) return tags.map((t) => repairMojibakeUtf8(t)).map((t) => String(t).trim()).filter(Boolean);
-
-  // Shopify tags kommen oft als CSV-String
-  if (typeof tags === "string") {
-    const fixed = repairMojibakeUtf8(tags);
-    return fixed
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-  }
-
-  return [];
-}
-
-function normalizeEfroProductShape(p: any): EfroProduct | null {
-  if (!p || typeof p !== "object") return null;
-
-  const idRaw = p.id ?? p.product_id ?? p.handle ?? p.sku ?? "";
-  const titleRaw = p.title ?? p.name ?? "";
-  if (!idRaw || !titleRaw) return null;
-
-  const title = repairMojibakeUtf8(titleRaw);
-  const description = repairMojibakeUtf8(p.description ?? p.body ?? p.body_html ?? title);
-  const price = Number.parseFloat(String(p.price ?? p.price_amount ?? 0)) || 0;
-
-  const imageUrl =
-    repairMojibakeUtf8(
-      p.imageUrl ?? p.image_url ?? p.image ?? p.image_src ?? p.featured_image ?? ""
-    ) || "";
-
-  const category = repairMojibakeUtf8(p.category ?? p.product_type ?? p.type ?? "supabase") || "supabase";
-  const tags = normalizeTags(p.tags);
-
-  return {
-    id: String(idRaw),
-    title,
-    description: typeof description === "string" && description.trim().length > 0 ? description : title,
-    price,
-    imageUrl,
-    tags,
-    category,
-  };
-}
-
-function repairProducts(products: any[]): EfroProduct[] {
+/**
+ * FINAL: normalisiert garantiert die EFRO-Produktform + repariert Encoding + Tags.
+ * Diese Funktion ist bewusst "hart" und wird am Ende auf ALLE Outputs angewandt.
+ */
+function finalizeEfroProducts(raw: unknown): EfroProduct[] {
+  const arr = Array.isArray(raw) ? raw : [];
   const out: EfroProduct[] = [];
-  for (const p of products || []) {
-    const n = normalizeEfroProductShape(p);
-    if (n) out.push(n);
+
+  for (const pAny of arr) {
+    if (!pAny || typeof pAny !== "object") continue;
+
+    // Deep-Fix: alle Strings im Objekt reparieren (Ã¤ / â¬ usw.)
+    const p = fixEncodingDeep(pAny) as any;
+
+    const idRaw = p.id ?? p.product_id ?? p.handle ?? p.sku ?? "";
+    const titleRaw = p.title ?? p.name ?? "";
+    if (!idRaw || !titleRaw) continue;
+
+    const title = cleanText(titleRaw);
+
+    const descCandidate =
+      (typeof p.body_html === "string" && p.body_html.trim().length > 0 ? stripHtml(p.body_html) : "") ||
+      p.description ||
+      p.body ||
+      title;
+
+    const description = cleanText(descCandidate) || title;
+
+    // Price: versuch mehrere Felder, ansonsten 0
+    const price = Number.parseFloat(String(p.price ?? p.price_amount ?? p.amount ?? 0)) || 0;
+
+    const imageUrl = cleanText(
+      p.imageUrl ??
+        p.image_url ??
+        p.image ??
+        p.image_src ??
+        p.featured_image ??
+        p.imageSrc ??
+        (p.images && p.images[0]?.src) ??
+        ""
+    );
+
+    const category = cleanText(p.category ?? p.product_type ?? p.type ?? "unknown") || "unknown";
+
+    // Tags: Array, CSV, Semikolon, etc.
+    const tags = normalizeTags(p.tags);
+
+    out.push({
+      id: String(idRaw),
+      title,
+      description,
+      price,
+      imageUrl: imageUrl || "",
+      tags,
+      category,
+    });
   }
+
   return out;
 }
 
@@ -120,15 +102,13 @@ function mapShopifyToEfro(sp: ShopifyProduct): EfroProduct {
     sp.variants && sp.variants.length > 0 && sp.variants[0]?.price ? sp.variants[0].price! : "0";
   const price = Number.parseFloat(priceRaw) || 0;
 
-  const title = repairMojibakeUtf8(sp.title);
-
+  const title = cleanText(sp.title);
   const category =
-    sp.product_type && sp.product_type.trim().length > 0 ? repairMojibakeUtf8(sp.product_type) : "shopify";
+    cleanText(sp.product_type && sp.product_type.trim().length > 0 ? sp.product_type : "shopify") || "shopify";
 
-  const description =
-    sp.body_html && sp.body_html.trim().length > 0 ? repairMojibakeUtf8(stripHtml(sp.body_html)) : title;
+  const description = sp.body_html && sp.body_html.trim().length > 0 ? cleanText(stripHtml(sp.body_html)) : title;
 
-  const imageUrl = repairMojibakeUtf8((sp.image && sp.image.src) || (sp.images && sp.images[0]?.src) || "") || "";
+  const imageUrl = cleanText((sp.image && sp.image.src) || (sp.images && sp.images[0]?.src) || "") || "";
 
   const tags = normalizeTags(sp.tags);
 
@@ -147,9 +127,11 @@ async function tryFetchSupabaseProducts(baseUrl: string): Promise<EfroProduct[] 
   try {
     const res = await fetch(`${baseUrl}/api/supabase-products`, { cache: "no-store" });
     if (!res.ok) return null;
+
     const data = await res.json();
-    const raw = Array.isArray(data?.products) ? data.products : [];
-    const normalized = repairProducts(raw);
+    const raw = Array.isArray((data as any)?.products) ? (data as any).products : [];
+    const normalized = finalizeEfroProducts(raw);
+
     return normalized.length > 0 ? normalized : null;
   } catch {
     return null;
@@ -157,89 +139,81 @@ async function tryFetchSupabaseProducts(baseUrl: string): Promise<EfroProduct[] 
 }
 
 export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const { searchParams } = url;
+
+  const debug = searchParams.get("debug") === "1";
+  const shopDomainRaw = searchParams.get("shop");
+  const shopDomain = shopDomainRaw ? shopDomainRaw.trim() : null;
+
+  const baseUrl = `${url.protocol}//${url.host}`;
+
   try {
-    const { searchParams } = new URL(request.url);
-    const shopDomainRaw = searchParams.get("shop");
-    const shopDomain = shopDomainRaw ? shopDomainRaw.trim() : null;
-
-    const url = new URL(request.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
-
     // 1) shop=demo -> Shopify-API (oder mock als fallback)
     if (shopDomain?.toLowerCase() === "demo") {
       try {
         const res = await fetch(`${baseUrl}/api/shopify-products`, { cache: "no-store" });
-        if (!res.ok) {
-          return NextResponse.json({
-            success: true,
-            source: "mock",
-            products: repairProducts(mockCatalog as any[]),
-            shopDomain: "demo",
-          });
-        }
 
-        const data = await res.json();
-        const rawProducts: ShopifyProduct[] = Array.isArray(data.products) ? data.products : [];
-        if (rawProducts.length === 0) {
-          return NextResponse.json({
-            success: true,
-            source: "mock",
-            products: repairProducts(mockCatalog as any[]),
-            shopDomain: "demo",
-          });
-        }
+        if (res.ok) {
+          const data = await res.json();
+          const rawProducts: ShopifyProduct[] = Array.isArray((data as any).products) ? (data as any).products : [];
+          const products = finalizeEfroProducts(rawProducts.map(mapShopifyToEfro));
 
-        const products = rawProducts.map(mapShopifyToEfro);
-        return NextResponse.json({
-          success: true,
-          source: "shopify",
-          products: repairProducts(products as any[]),
-          shopDomain: "demo",
-        });
+          const payload: any = { success: true, source: "shopify", products, shopDomain: "demo" };
+          if (debug) payload.debug = { shopDomain: "demo", isDemo: true, preferredSource: "shopify", forcedSource: null };
+          return jsonUtf8(payload);
+        }
       } catch {
-        return NextResponse.json({
-          success: true,
-          source: "mock",
-          products: repairProducts(mockCatalog as any[]),
-          shopDomain: "demo",
-        });
+        // ignore -> fallback
       }
+
+      const products = finalizeEfroProducts(mockCatalog as any[]);
+      const payload: any = { success: true, source: "mock", products, shopDomain: "demo" };
+      if (debug) payload.debug = { shopDomain: "demo", isDemo: true, preferredSource: "mock", forcedSource: null };
+      return jsonUtf8(payload);
     }
 
     // 2) Repository (Supabase-Repo) bevorzugen
     let shop = shopDomain ? await getEfroShopByDomain(shopDomain) : null;
-    if (!shop) shop = await getEfroDemoShop(); // fallback nur um "irgendeinen" Shop-Kontext zu haben
+    if (!shop) shop = await getEfroDemoShop(); // fallback: irgendein Shop-Kontext
 
     if (shop) {
       const repoResult = await getProductsForShop(shop);
-      if (repoResult?.products?.length > 0) {
-        return NextResponse.json({
+      const repoProducts = finalizeEfroProducts((repoResult as any)?.products ?? []);
+
+      if (repoProducts.length > 0) {
+        const payload: any = {
           success: true,
-          source: repoResult.source,
-          products: repairProducts(repoResult.products as any[]),
+          source: (repoResult as any)?.source ?? "repo",
+          products: repoProducts,
           shopDomain: shopDomain || null,
-        });
+        };
+        if (debug) payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "repo", forcedSource: null };
+        return jsonUtf8(payload);
       }
     }
 
-    // 3) WICHTIG: Wenn Repo leer ist, aber Supabase lokal Produkte hat -> supabase-products fallback
+    // 3) Supabase products fallback (wenn Repo leer)
     const supaFallback = await tryFetchSupabaseProducts(baseUrl);
     if (supaFallback && supaFallback.length > 0) {
-      return NextResponse.json({
-        success: true,
-        source: "supabase-fallback",
-        products: supaFallback,
-        shopDomain: shopDomain || null,
-      });
+      const payload: any = { success: true, source: "supabase-fallback", products: supaFallback, shopDomain: shopDomain || null };
+      if (debug) {
+        payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "supabase-fallback", forcedSource: null };
+      }
+      return jsonUtf8(payload);
     }
 
     // 4) Final fallback: Loader (Shopify/Mock)
     const result: LoadProductsResult = await loadProductsForShop(shopDomain || null);
-    const safeProducts = repairProducts((result?.products || []) as any[]);
-    return NextResponse.json({ ...result, products: safeProducts });
+    const safeProducts = finalizeEfroProducts(((result as any)?.products ?? []) as any[]);
+
+    const payload: any = { ...(result as any), products: safeProducts };
+    if (debug) payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "loader", forcedSource: null };
+    return jsonUtf8(payload);
   } catch (err: any) {
     console.error("[EFRO Products API] Unexpected error", err);
-    return NextResponse.json(
+
+    return jsonUtf8(
       {
         success: false,
         source: "none" as const,

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "next dev -H 127.0.0.1",
+	"guard:mojibake": "node scripts/guard-mojibake.mjs",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
