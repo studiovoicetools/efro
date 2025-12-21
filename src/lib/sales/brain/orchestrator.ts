@@ -3853,6 +3853,30 @@ const isExplicitShoppingQuery =
     normalizedForOffTopicGate
   );
 
+const normalizedCleaned = normalizeText(cleaned);
+
+// Category-only Heuristik: wenn Text (sehr kurz) eine bekannte Kategorie ist,
+// dann behandeln wir es als produktbezogen, auch wenn der Klassifizierer "false" sagt.
+const categorySet = new Set(
+  allProducts
+    .map((p) => normalizeText(((p as any).category ?? "") as string))
+    .filter(Boolean)
+);
+
+const CATEGORY_ALIASES: Record<string, string[]> = {
+  elektronik: ["elektronik", "electronics", "electronic", "tech", "technik"],
+  garten: ["garten", "garden"],
+  perfume: ["perfume", "parfum", "fragrance", "duft"],
+};
+
+const isCategoryOnlyQuery =
+  normalizedCleaned.split(/\s+/).filter(Boolean).length <= 2 &&
+  (
+    categorySet.has(normalizedCleaned) ||
+    Object.values(CATEGORY_ALIASES).some((alts) => alts.includes(normalizedCleaned))
+  );
+
+
 
   if (
     !isProductRelated(cleaned) &&
@@ -3862,7 +3886,8 @@ const isExplicitShoppingQuery =
     !isBudgetWithUnknownTerms &&
     !isBudgetOnlyQueryForOffTopic &&
     !hasUnknownTermsWithContext &&
-	!isExplicitShoppingQuery
+	!isExplicitShoppingQuery &&
+	!isCategoryOnlyQuery
   ) {
     const recommended = previousRecommended
       ? previousRecommended.slice(0, maxRecommendations)
