@@ -3,17 +3,25 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 
-const MOJIBAKE_RE =
-  /Ãƒ|Ã‚|Ã¢â‚¬|Ã¢â‚¬â„¢|Ã¢â‚¬Å“|Ã¢â‚¬ï¿½|Ã¢â‚¬â€œ|Ã¢â‚¬â€|Ã¢â‚¬Â¦|Ã¢â€šÂ¬|Ã¢â€Â¢|Ã¢Â¬|ï¿½|�/;
+const MOJIBAKE_RE = new RegExp(
+  [
+    "\\u00C3[\\u0080-\\u00BF]",                 // "Ã" + UTF-8 continuation byte
+    "\\u00C2[\\u0080-\\u00BF]",                 // "a" + UTF-8 continuation byte
+    "\\u00E2\\u20AC[\\u2018\\u2019\\u201C\\u201D\\u0153\\u00A6\\u00A2\\u2013\\u2014]", // "UTF8-mojibake cluster" cluster
+    "\\u00E2\\u201E\\u00A2",                    // "UTF8-mojibake TM"
+    "\\u00EF\\u00BF\\u00BD",                    // "ï¿½"
+    "\\uFFFD"                                   // Unicode replacement char
+  ].join("|")
+);
 
-// Wichtig: der Guard enthält absichtlich Mojibake-Patterns (Regex) und würde sich sonst selbst triggern.
+// Wichtig: der Guard enthÃ¤lt absichtlich Mojibake-Patterns (Regex) und wÃ¼rde sich sonst selbst triggern.
 const IGNORE_STAGED_FILES = new Set([
   "scripts/guard-mojibake.mjs",
   ".githooks/pre-commit",
 ]);
 
 function isProbablyBinary(buf) {
-  // Null-Bytes => sehr wahrscheinlich binär
+  // Null-Bytes => sehr wahrscheinlich binÃ¤r
   for (let i = 0; i < buf.length; i++) {
     if (buf[i] === 0) return true;
   }
@@ -61,7 +69,7 @@ async function main() {
   const files = getStagedFiles();
 
   if (files.length === 0) {
-    console.log("[guard-mojibake] OK – no staged files to scan (after ignore list).");
+    console.log("[guard-mojibake] OK - no staged files to scan (after ignore list).");
     return;
   }
 
@@ -100,10 +108,11 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("[guard-mojibake] OK – no mojibake detected.");
+  console.log("[guard-mojibake] OK - no mojibake detected.");
 }
 
 main().catch((e) => {
   console.error("[guard-mojibake] unexpected error", e);
   process.exit(2);
 });
+
