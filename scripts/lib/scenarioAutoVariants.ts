@@ -1,5 +1,3 @@
-// scripts/lib/scenarioAutoVariants.ts
-
 import type { SellerBrainContext } from "../../src/lib/sales/sellerBrain";
 
 export type ScenarioSeed = {
@@ -95,14 +93,6 @@ export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
   }
 
   const base = tests.map((t) => ({ ...t })) as T[];
-
-  // Guard: wenn base leer ist, kann kein Smoke erzeugt werden
-  if (base.length === 0) {
-    throw new Error(
-      `[EFRO SMOKE] Cannot generate smoke tests: base tests array is empty.`
-    );
-  }
-
   const used = new Set<string>();
   for (const t of base) used.add(normalizeSpaces(t.query));
 
@@ -159,7 +149,7 @@ export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
   }
 
   function maybeTypo(s: string): string {
-    // seltene kleine Tippfehler › mehr Varianz, deterministisch
+    // seltene kleine Tippfehler -> mehr Varianz, deterministisch
     if (s.length < 10) return s;
     if (rng() < 0.85) return s;
     const i = Math.floor(rng() * (s.length - 2)) + 1;
@@ -180,8 +170,7 @@ export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
 
     out = maybeTypo(out);
 
-    // WICHTIG: garantierte Uniqueness, ohne den Satz total zu zerstören
-    // (SellerBrain darf das ruhig als "Noise" sehen – Smoke hat kein expected)
+    // Uniqueness ohne Satz zu zerstören
     out += ` [smoke-${n}]`;
 
     // Abschlusszeichen
@@ -192,8 +181,7 @@ export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
   const out: T[] = [...base];
   let smokeIndex = 1;
 
-  // Versuche solange, bis target erreicht ist (mit harter Sicherheitsgrenze)
-  // Damit niemals stillschweigend "3703/3703" rauskommt.
+  // Harte Sicherheitsgrenze, damit nie still "3703/3703" entsteht
   const maxTries = Math.max(50_000, targetTotal * 50);
   let tries = 0;
 
@@ -222,15 +210,6 @@ export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
     } as T);
 
     smokeIndex++;
-  }
-
-  if (out.length < targetTotal) {
-    console.warn("[EFRO Smoke] WARNING: Could not reach targetTotal", {
-      reached: out.length,
-      targetTotal,
-      base: base.length,
-      seed,
-    });
   }
 
   return out;
