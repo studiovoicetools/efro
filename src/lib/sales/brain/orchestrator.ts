@@ -3588,8 +3588,27 @@ function isAmbiguousBoardQuery(text: string): boolean {
   const hasBudgetNumberForOffTopic = /\b(\d+)\s*(euro|eur|€)\b/i.test(cleaned);
   const hasBudgetWordForOffTopicCheck = /\b(budget|preis|kosten|maximal|mindestens|höchstens|unter|über|bis|ab)\b/i.test(cleaned);
   const isBudgetOnlyQueryForOffTopic = hasBudgetNumberForOffTopic || hasBudgetWordForOffTopicCheck;
+
+  // curated1000: if text looks like a direct catalog product name, skip off-topic guard
+  const hasDirectCatalogNameHitForOffTopic = (() => {
+    const stripped = normalizedForOffTopic
+      .replace(
+        /\b(ich|mich|mir|bitte|brauche|suche|such|moechte|will|zeige|zeig|interessiere|interessiert|interessieren|interesse|details|detail|gibt|gib)\b/g,
+        " "
+      )
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (stripped.length < 3) return false;
+
+    return allProducts.some((p) => {
+      const name = ((p as any).name ?? (p as any).title ?? "") as string;
+      const pn = normalize(name);
+      return pn.includes(stripped) || stripped.includes(pn);
+    });
+  })();
   
-  if (!isProductRelated(cleaned) && !isBudgetWithContext && !isElektronikContextWithAttributes && !isBudgetWithUnknownTerms && !isBudgetOnlyQueryForOffTopic && !hasUnknownTermsWithContext) {
+  if (!isProductRelated(cleaned) && !hasDirectCatalogNameHitForOffTopic && !isBudgetWithContext && !isElektronikContextWithAttributes && !isBudgetWithUnknownTerms && !isBudgetOnlyQueryForOffTopic && !hasUnknownTermsWithContext) {
     const recommended = previousRecommended
       ? previousRecommended.slice(0, maxRecommendations)
       : [];
