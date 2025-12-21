@@ -3876,7 +3876,63 @@ const isCategoryOnlyQuery =
     Object.values(CATEGORY_ALIASES).some((alts) => alts.includes(normalizedCleaned))
   );
 
+// --- BEGIN: category mention should bypass off-topic gate ---
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/gi, " ")
+    .trim();
 
+const cleanedNorm = ` ${norm(cleaned)} `;
+
+const isSuggestionQuery =
+  /\b(vorschl(a|ä)g(e|en)?|empfehl(ung|ungen)|ideen|inspiration)\b/i.test(cleanedNorm);
+
+const knownCategories = Array.from(
+  new Set(
+    (allProducts ?? [])
+      .map((p: any) => norm(String(p.category ?? "")))
+      .filter(Boolean)
+  )
+);
+
+// true z.B. bei "gib mir vorschläge für elektronik"
+const hasKnownCategoryMention = knownCategories.some((cat) =>
+  cleanedNorm.includes(` ${cat} `)
+);
+
+// robust gegen Umlaut/Encoding: "vorschl" matcht auch bei "Vorschläge"
+const hasSuggestionIntent =
+  cleanedNorm.includes(" vorschl") ||
+  cleanedNorm.includes(" empfehl") ||
+  cleanedNorm.includes(" ideen") ||
+  cleanedNorm.includes(" inspiration") ||
+  cleanedNorm.includes(" auswahl") ||
+  cleanedNorm.includes(" empfiehl") ||
+  cleanedNorm.includes(" empfehle") ||
+  cleanedNorm.includes(" empfehlung") ||
+  cleanedNorm.includes(" recommend") ||
+  cleanedNorm.includes(" vorschlagen") ||
+  cleanedNorm.includes(" vorschlag") ||
+  cleanedNorm.includes(" zeig") ||
+  cleanedNorm.includes(" zeige");
+
+
+const bypassOffTopicBecauseCategorySuggestion =
+  hasKnownCategoryMention && hasSuggestionIntent;
+
+
+
+// --- END ---
+
+console.log("[EFRO OffTopicGate Debug]", {
+  cleaned,
+  cleanedNorm,
+  knownCategoriesCount: knownCategories.length,
+  hasKnownCategoryMention,
+  hasSuggestionIntent,
+  bypassOffTopicBecauseCategorySuggestion,
+});
 
   if (
     !isProductRelated(cleaned) &&
@@ -3887,7 +3943,8 @@ const isCategoryOnlyQuery =
     !isBudgetOnlyQueryForOffTopic &&
     !hasUnknownTermsWithContext &&
 	!isExplicitShoppingQuery &&
-	!isCategoryOnlyQuery
+	!isCategoryOnlyQuery &&
+	!bypassOffTopicBecauseCategorySuggestion
   ) {
     const recommended = previousRecommended
       ? previousRecommended.slice(0, maxRecommendations)
@@ -3896,10 +3953,10 @@ const isCategoryOnlyQuery =
     const offTopicReply =
       "Ich bin hier, um dir bei der Produktsuche zu helfen. Stell mir bitte Fragen zu Produkten aus dem Shop.";
 
-    console.log("[EFRO SellerBrain] Off-topic detected, no new filtering", {
-      text: cleaned,
-      previousCount: previousRecommended ? previousRecommended.length : 0,
-      usedCount: recommended.length,
+       console.log("[EFRO SellerBrain] Off-topic detected, no new filtering", {
+       text: cleaned,
+       previousCount: previousRecommended ? previousRecommended.length : 0,
+       usedCount: recommended.length,
     });
 
     // Auch bei Off-Topic Sales-Entscheidung berechnen (für PROFI-Szenarien)
@@ -6009,22 +6066,23 @@ const isCategoryOnlyQuery =
   }
 
   const nextContext: SellerBrainContext | undefined = effectiveCategorySlug
-    ? { activeCategorySlug: effectiveCategorySlug }
-    : undefined;
+  ? { activeCategorySlug: effectiveCategorySlug }
+  : undefined;
 
   console.log("[EFRO SB Context] Outgoing nextContext", {
-    activeCategorySlug: nextContext?.activeCategorySlug ?? null,
-  });
+  activeCategorySlug: nextContext?.activeCategorySlug ?? null,
+});
 
-  // Spezialfall: Bei unbekanntem Produktcode keine Produkte anzeigen
-  // WICHTIG:
-  // - Nur wenn es KEINE Budget-Only-Query ist
-  // - UND KEIN erfolgreicher AliasMatch vorhanden ist
-  // - UND nach der Ranking-Phase wirklich KEINE Produkte ?brig sind (finalCount === 0)
-  //
-  // Wenn trotz unbekanntem Produktcode noch Produkte gefunden wurden (finalCount > 0),
-  // sollen diese weiterhin angezeigt werden. In diesem Fall wird NUR der AI-Trigger
-  // verwendet, um den unbekannten Begriff zu kl?ren ? die Empfehlungen bleiben erhalten.
+// Spezialfall: „Unbekannter Produktcode“ → keine Produkte anzeigen
+//
+// WICHTIG: Nur dann „hart“ auf 0 Produkte setzen, wenn ALLES zutrifft:
+// 1) Es ist KEINE reine Budget-Only-Query
+// 2) Es gab KEINEN erfolgreichen Alias-Match
+// 3) Nach der Ranking-Phase sind wirklich KEINE Produkte übrig (finalCount === 0)
+//
+// Wenn trotz unbekanntem Produktcode noch Produkte gefunden wurden (finalCount > 0):
+// - Empfehlungen weiterhin anzeigen
+// - Zusätzlich nur den AI-Trigger nutzen, um den unbekannten Begriff zu klären
   if (
     aiTrigger?.reason === "unknown_product_code_only" &&
     !hasBudgetWord &&
