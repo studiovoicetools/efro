@@ -16,6 +16,16 @@
 import { loadDebugProducts } from "./lib/loadDebugProducts";
 import { addSmokeTestsToReachTarget } from "./lib/scenarioAutoVariants";
 
+import fs from "node:fs";
+import path from "node:path";
+
+const target = (() => {
+  const idx = process.argv.indexOf("--target");
+  const v = idx >= 0 ? process.argv[idx + 1] : undefined;
+  return (v ?? "").toString();
+})();
+
+
 
 import {
   runSellerBrain,
@@ -2646,10 +2656,49 @@ async function main() {
       },
     ];
 	
-	const baseTests: ScenarioTest[] = [
-  ...baseTestsCore,
-  ...(Array.isArray(generatedScenarios) ? (generatedScenarios as any as ScenarioTest[]) : []),
-];
+	  function readJsonFile<T>(relPath: string): T {
+    const abs = path.resolve(process.cwd(), relPath);
+    const raw = fs.readFileSync(abs, "utf8");
+    return JSON.parse(raw) as T;
+  }
+
+  function stripVariantQueries(t: ScenarioTest): ScenarioTest {
+    const { variantQueries, ...rest } = t as any;
+    return rest as ScenarioTest;
+  }
+
+  function loadCurated1000BaseTests(): ScenarioTest[] {
+    const core = readJsonFile<ScenarioTest[]>(
+      "data/scenarios/curated/curated-core-388.json"
+    ).map(stripVariantQueries);
+
+    const live = readJsonFile<ScenarioTest[]>(
+      "data/scenarios/curated/curated-live-612.json"
+    ).map(stripVariantQueries);
+
+    const merged = [...core, ...live];
+
+    if (merged.length !== 1000) {
+      throw new Error(`[curated1000] Expected 1000 tests, got ${merged.length}`);
+    }
+
+    return merged;
+  }
+
+	
+	
+	
+	
+	  const baseTests: ScenarioTest[] =
+    target === "curated1000"
+      ? loadCurated1000BaseTests()
+      : [
+          ...baseTestsCore,
+          ...(Array.isArray(generatedScenarios)
+            ? (generatedScenarios as any as ScenarioTest[])
+            : []),
+        ];
+
 
 
     // Expandiere Basis-Szenarien mit Varianten
@@ -2659,7 +2708,7 @@ async function main() {
       expandedTests.push(base);
 
       // 2) Optionale Varianten erzeugen (falls vorhanden)
-      if (base.variantQueries && base.variantQueries.length > 0) {
+      if (target !== "curated1000" && base.variantQueries && base.variantQueries.length > 0) {
         let variantIndex = 1;
 
         for (const q of base.variantQueries) {
@@ -2679,7 +2728,8 @@ async function main() {
       }
     }
 
-    const targetTotal = Number(process.env.EFRO_SCENARIO_TARGET ?? "0");
+    const envTargetTotal = Number(process.env.EFRO_SCENARIO_TARGET ?? "0");
+    const targetTotal = target === "curated1000" ? 0 : envTargetTotal;
 const seed = Number(process.env.EFRO_SCENARIO_SEED ?? "1");
 
 const tests: ScenarioTest[] = targetTotal && targetTotal > expandedTests.length
