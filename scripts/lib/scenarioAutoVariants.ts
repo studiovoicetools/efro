@@ -1,3 +1,5 @@
+// scripts/lib/scenarioAutoVariants.ts
+
 import type { SellerBrainContext } from "../../src/lib/sales/sellerBrain";
 
 export type ScenarioSeed = {
@@ -93,6 +95,14 @@ export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
   }
 
   const base = tests.map((t) => ({ ...t })) as T[];
+
+  // Guard: wenn base leer ist, kann kein Smoke erzeugt werden
+  if (base.length === 0) {
+    throw new Error(
+      `[EFRO SMOKE] Cannot generate smoke tests: base tests array is empty.`
+    );
+  }
+
   const used = new Set<string>();
   for (const t of base) used.add(normalizeSpaces(t.query));
 
@@ -212,6 +222,15 @@ export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
     } as T);
 
     smokeIndex++;
+  }
+
+  if (out.length < targetTotal) {
+    console.warn("[EFRO Smoke] WARNING: Could not reach targetTotal", {
+      reached: out.length,
+      targetTotal,
+      base: base.length,
+      seed,
+    });
   }
 
   return out;

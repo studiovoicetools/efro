@@ -1,6 +1,6 @@
-# ============================
-# Node & Package Manager
-# ============================
+# =========================================================
+# Node / Package Manager
+# =========================================================
 node_modules/
 .pnp/
 .pnp.js
@@ -10,103 +10,126 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ============================
+# =========================================================
 # Build Outputs / Coverage
-# ============================
+# =========================================================
 .next/
 out/
 build/
 dist/
 coverage/
 
-# ============================
-# Environment Files (never commit)
-# ============================
+# =========================================================
+# Environment (never commit)
+# =========================================================
 .env
 .env.*
 !.env.example
 
-# ============================
+# =========================================================
 # TypeScript / Next
-# ============================
+# =========================================================
 *.tsbuildinfo
 next-env.d.ts
 
-# ============================
-# Caches
-# ============================
+# =========================================================
+# Tooling / Caches
+# =========================================================
 .eslintcache
 .turbo/
 .swc/
 .cache/
 
-# ============================
+# =========================================================
 # OS / Editor
-# ============================
+# =========================================================
 .DS_Store
 Thumbs.db
-
 .vscode/
 .idea/
 
-# ============================
+# =========================================================
 # Keys / Certs
-# ============================
+# =========================================================
 *.pem
 
-# ============================
-# Hosting
-# ============================
+# =========================================================
+# Hosting / Deploy
+# =========================================================
 .vercel/
 .render/
 
-# ============================
+# =========================================================
 # Project Specific
-# ============================
+# =========================================================
 # Mascot Bot SDK packages (local)
 mascotbot-sdk-react-*.tgz
 
-# Backup / Utility scripts
+# Utility scripts (local only)
 syncfix.sh
 syncfix.cmd
 
-# ============================
-# EFRO local scratch / codex helpers
-# ============================
+# =========================================================
+# EFRO: local logs / crash outputs
+# =========================================================
+logs/
+_build_check*.log
+
+sellerbrain-scenarios*.log
+_sellerbrain_run*.log
+
 _fails_*.log
 _fails_*.txt
 _fails_refactor_*.log
 
-_checkpoint_*.patch
+_out.txt
+
+# =========================================================
+# EFRO: local scratch / patches / codex helpers (never commit)
+# =========================================================
+_backup/
+_backups/
+_patches/
+_wip_backup*/
+_checkpoint*/
+_local_bak/
+
+_checkpoint*.patch
+*_checkpoint.patch
+_wip*.patch
+
 _diff_before_*.patch
 _codex_*.patch
 _fix_*.patch
 
-_out.txt
-_show.js
-_*.cjs
-_*.js
-
-
-sellerbrain-scenarios-*.log
-src/lib/sales/brain/steps/08_reply.ts.bak-*
+# =========================================================
+# EFRO: editor/manual backups
+# =========================================================
 *.bak-*
-
-
-# build logs
-_build_check*.log
-
-
-_local_bak/
-tsconfig.json.bak_*
-
-
-# local backups / broken artifacts
-_backups/
+*.backup-*
 *.bak_*
 *.BROKEN_*
+tsconfig.json.bak_*
 *utf16fix*
 
+# Specific known backup pattern (keeps it explicit)
+src/lib/sales/brain/steps/08_reply.ts.bak-*
+
+# =========================================================
 # Supabase CLI temp
+# =========================================================
 supabase/.temp/
 
+
+
+# =========================================================
+# EFRO: lokale Helper-Skripte (niemals committen)
+# (nur Repo-Root + scripts/, nicht irgendwo im src/)
+# =========================================================
+/_*.js
+/_*.cjs
+/_*.mjs
+
+scripts/_*.js
+scripts/_*.cjs
+scripts/_*.mjs
