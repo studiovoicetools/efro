@@ -7,7 +7,7 @@ export type ScenarioSeed = {
   note?: string;
   context?: any;
 
-  // Optional: Felder, die ScenarioTest kennt (damit Smoke-Tests sie l�schen d�rfen)
+  // Optional: Felder, die ScenarioTest kennt (damit Smoke-Tests sie löschen dürfen)
   expected?: unknown;
   variants?: unknown;
   variantQueries?: unknown;
@@ -69,7 +69,7 @@ function safeCandidates(q: string): string[] {
   out.push(t + " danke");
   out.push(t + " ??");
 
-  // Case-Noise (f�r Smoke ok)
+  // Case-Noise (für Smoke ok)
   out.push(t.toLowerCase());
 
   // niemals identisch
@@ -78,8 +78,8 @@ function safeCandidates(q: string): string[] {
 }
 
 /**
- * Erh�ht die Gesamtanzahl deterministisch durch zus�tzliche "SMOKE"-Tests.
- * Diese Tests haben KEIN expected => sie pr�fen nur: SellerBrain l�uft durch.
+ * Erhöht die Gesamtanzahl deterministisch durch zusätzliche "SMOKE"-Tests.
+ * Diese Tests haben KEIN expected => sie prüfen nur: SellerBrain läuft durch.
  */
 export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
   tests: T[],
@@ -93,45 +93,126 @@ export function addSmokeTestsToReachTarget<T extends ScenarioSeed>(
   }
 
   const base = tests.map((t) => ({ ...t })) as T[];
-const used = new Set<string>();
+  const used = new Set<string>();
   for (const t of base) used.add(normalizeSpaces(t.query));
 
-  const rngGlobal = mulberry32(hashString("EFRO_SMOKE") + seed);
+  const rng = mulberry32(hashString("EFRO_SMOKE") + seed);
+
+  // Templates/Tokenpools (deterministisch, aber "menschlicher" als nur Nummern)
+  const prefixes = [
+    "Hey,",
+    "Hi,",
+    "Kurze Frage:",
+    "Kannst du mir helfen:",
+    "Ich suche",
+    "Ich brauche",
+    "Bitte zeig mir",
+    "Hast du Empfehlungen für",
+    "Was empfiehlst du für",
+  ];
+
+  const intents = [
+    "günstig",
+    "Preis-Leistung",
+    "Premium",
+    "für Anfänger",
+    "für Fortgeschrittene",
+    "als Geschenk",
+    "für Alltag",
+    "für Reisen",
+    "für Büro",
+    "für Zuhause",
+  ];
+
+  const constraints = [
+    "unter 50 €",
+    "unter 100 €",
+    "unter 200 €",
+    "bis 300 €",
+    "maximal 400 €",
+    "so günstig wie möglich",
+    "nicht zu teuer",
+    "mit gutem Preis",
+  ];
+
+  const suffixes = [
+    "Welche Optionen gibt es?",
+    "Was passt am besten?",
+    "Zeig mir bitte ein paar.",
+    "Was würdest du nehmen?",
+    "Ich will schnell entscheiden.",
+    "Bitte kurz und konkret.",
+  ];
+
+  function pick<TT>(arr: TT[]): TT {
+    return arr[Math.floor(rng() * arr.length)];
+  }
+
+  function maybeTypo(s: string): string {
+    // seltene kleine Tippfehler › mehr Varianz, deterministisch
+    if (s.length < 10) return s;
+    if (rng() < 0.85) return s;
+    const i = Math.floor(rng() * (s.length - 2)) + 1;
+    return s.slice(0, i) + s[i + 1] + s[i] + s.slice(i + 2);
+  }
+
+  function makeSmokeQuery(baseQuery: string, n: number): string {
+    const q = normalizeSpaces(baseQuery).replace(/[.?!]+$/, "");
+
+    // Mischvarianten aus "real wirkenden" Bausteinen
+    let out =
+      rng() < 0.5
+        ? `${pick(prefixes)} ${q}`
+        : `${pick(prefixes)} ${q} ${pick(intents)}`;
+
+    if (rng() < 0.65) out += `, ${pick(constraints)}`;
+    if (rng() < 0.55) out += ` — ${pick(suffixes)}`;
+
+    out = maybeTypo(out);
+
+    // WICHTIG: garantierte Uniqueness, ohne den Satz total zu zerstören
+    // (SellerBrain darf das ruhig als "Noise" sehen – Smoke hat kein expected)
+    out += ` [smoke-${n}]`;
+
+    // Abschlusszeichen
+    if (!/[.?!]$/.test(out)) out += rng() < 0.7 ? "?" : ".";
+    return out;
+  }
 
   const out: T[] = [...base];
   let smokeIndex = 1;
 
-  for (let i = 0; out.length < targetTotal; i++) {
-    const t = base[i % base.length];
-    const candidates = safeCandidates(t.query);
+  // Versuche solange, bis target erreicht ist (mit harter Sicherheitsgrenze)
+  // Damit niemals stillschweigend "3703/3703" rauskommt.
+  const maxTries = Math.max(50_000, targetTotal * 50);
+  let tries = 0;
 
-    // deterministisch mischen
-    const shuffled = [...candidates].sort(() => rngGlobal() - 0.5);
-
-    for (const c of shuffled) {
-      if (out.length >= targetTotal) break;
-      const key = normalizeSpaces(c);
-      if (used.has(key)) continue;
-
-      out.push({
-        id: `${t.id}__sm${smokeIndex}`,
-        title: `${t.title} (SMOKE ${smokeIndex})`,
-        query: c,
-        note: "auto-smoke",
-        context: t.context,
-        expected: undefined,
-        variants: undefined,
-        variantQueries: undefined,
-      } as T);
-
-      used.add(key);
-      smokeIndex++;
+  while (out.length < targetTotal) {
+    tries++;
+    if (tries > maxTries) {
+      throw new Error(
+        `[EFRO SMOKE] Could not reach targetTotal=${targetTotal}. ` +
+          `Got=${out.length}. used=${used.size}. tries=${tries}. ` +
+          `Increase maxTries or adjust generator.`
+      );
     }
 
-    // Safety � aber sehr gro�z�gig
-    if (i > base.length * 500) break;
+    const t = base[Math.floor(rng() * base.length)];
+    const candidate = makeSmokeQuery(t.query, smokeIndex);
+    const key = normalizeSpaces(candidate);
+
+    if (used.has(key)) continue;
+    used.add(key);
+
+    out.push({
+      id: `${t.id}__sm${smokeIndex}`,
+      title: `${t.title} (SMOKE ${smokeIndex})`,
+      query: candidate,
+      note: "auto-smoke",
+    } as T);
+
+    smokeIndex++;
   }
 
   return out;
 }
-
