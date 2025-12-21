@@ -66,6 +66,52 @@ const HUMAN_SKIN_CATEGORIES = [
   "gesicht",
   "body",
 ];
+// Curated1000 Live-Fix:
+// Viele Live-Queries enthalten Gesprächs-/Füllwörter ("hast", "gibt", "ich brauche", "bitte", "zeig mir", ...)
+// Diese Wörter dürfen nicht als CoreTerms im Keyword-Matching landen, sonst wird alles auf 0 gefiltert.
+const VAGUE_QUERY_STOPWORDS = [
+     // Pronomen / Füllwörter (>=3, sonst fallen sie sowieso raus)
+  "ich",
+  "mich",
+  "mir",
+  "dir",
+  "uns",
+  "euch",
+
+  // typische Frage-/Hilfsverben
+  "hast",
+  "habt",
+  "habe",
+  "haben",
+  "gibt",
+  "gib",
+  "kann",
+  "kannst",
+  "koennen",
+  "koennt",
+  "moechte",
+  "will",
+
+  // Gesprächs-/Intent-Wörter
+  "bitte",
+  "brauche",
+  "suche",
+  "such",
+  "interessiere",
+  "interessiert",
+  "vorschlag",
+  "vorschlaege",
+  "vorschlage",
+  "zeige",
+  "zeig",
+
+  // Präpositionen/kleine Tokens (>=3)
+  "bei",
+  "fuer",
+  "fur",
+  "von",
+  "mit",
+ ];
 
 // Hilfsfunktionen (1:1 aus sellerBrain.ts kopiert)
 
@@ -349,7 +395,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
 function parseQueryForAttributes(text: string): ParsedQuery {
   const normalized = normalizeText(text);
 
-  const stopwords = QUERY_STOPWORDS;
+  const stopwords = [...QUERY_STOPWORDS, ...VAGUE_QUERY_STOPWORDS].map((w) => normalizeText(w));
   const attributePhrases = ATTRIBUTE_PHRASES;
 
   const foundPhrases: string[] = [];
@@ -3769,3 +3815,6 @@ return price <= maxPrice;
 }
 
  
+
+
+
