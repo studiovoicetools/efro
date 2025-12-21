@@ -1,42 +1,102 @@
 // scripts/guard-mojibake.mjs
-const MOJIBAKE_RE = /Ã|Â|â€|â€™|â€œ|â€�|â€“|â€”|â€¦|â‚¬|â„¢|â¬|�/;
+import fs from "node:fs";
+import path from "node:path";
+import { execSync } from "node:child_process";
 
-function scanValue(path, v, hits) {
-  if (v == null) return;
-  if (typeof v === "string") {
-    if (MOJIBAKE_RE.test(v)) hits.push({ path, value: v.slice(0, 180) });
-    return;
+const MOJIBAKE_RE =
+  /Ãƒ|Ã‚|Ã¢â‚¬|Ã¢â‚¬â„¢|Ã¢â‚¬Å“|Ã¢â‚¬ï¿½|Ã¢â‚¬â€œ|Ã¢â‚¬â€|Ã¢â‚¬Â¦|Ã¢â€šÂ¬|Ã¢â€Â¢|Ã¢Â¬|ï¿½|�/;
+
+// Wichtig: der Guard enthält absichtlich Mojibake-Patterns (Regex) und würde sich sonst selbst triggern.
+const IGNORE_STAGED_FILES = new Set([
+  "scripts/guard-mojibake.mjs",
+  ".githooks/pre-commit",
+]);
+
+function isProbablyBinary(buf) {
+  // Null-Bytes => sehr wahrscheinlich binär
+  for (let i = 0; i < buf.length; i++) {
+    if (buf[i] === 0) return true;
   }
-  if (Array.isArray(v)) {
-    v.forEach((x, i) => scanValue(`${path}[${i}]`, x, hits));
-    return;
+  return false;
+}
+
+function scanText(filePath, text, hits) {
+  if (!text) return;
+  if (MOJIBAKE_RE.test(text)) {
+    const idx = text.search(MOJIBAKE_RE);
+    const start = Math.max(0, idx - 60);
+    const end = Math.min(text.length, idx + 120);
+    hits.push({
+      file: filePath,
+      snippet: text.slice(start, end),
+    });
   }
-  if (typeof v === "object") {
-    for (const [k, x] of Object.entries(v)) scanValue(`${path}.${k}`, x, hits);
+}
+
+function getStagedFiles() {
+  const out = execSync("git diff --cached --name-only --diff-filter=ACMR", {
+    stdio: ["ignore", "pipe", "ignore"],
+    encoding: "utf8",
+  })
+    .split(/\r?\n/g)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((p) => !IGNORE_STAGED_FILES.has(p));
+
+  return out;
+}
+
+function readFileSafe(filePath) {
+  try {
+    const buf = fs.readFileSync(filePath);
+    if (isProbablyBinary(buf)) return { ok: true, skipped: true, reason: "binary" };
+    const text = buf.toString("utf8");
+    return { ok: true, skipped: false, text };
+  } catch (e) {
+    return { ok: false, error: e };
   }
 }
 
 async function main() {
-  const base = process.env.EFRO_BASE_URL || "http://127.0.0.1:3000";
-  const url = `${base}/api/efro/products?shop=demo&debug=1`;
+  const files = getStagedFiles();
 
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    console.error(`[guard-mojibake] HTTP ${res.status} ${res.statusText} for ${url}`);
-    process.exit(2);
+  if (files.length === 0) {
+    console.log("[guard-mojibake] OK – no staged files to scan (after ignore list).");
+    return;
   }
 
-  const data = await res.json();
   const hits = [];
-  scanValue("response", data, hits);
+  const missing = [];
+
+  for (const rel of files) {
+    const filePath = path.resolve(process.cwd(), rel);
+    if (!fs.existsSync(filePath)) {
+      missing.push(rel);
+      continue;
+    }
+
+    const r = readFileSafe(filePath);
+    if (!r.ok) {
+      console.error(`[guard-mojibake] ERROR reading: ${rel}`);
+      console.error(r.error);
+      process.exit(2);
+    }
+
+    if (r.skipped) continue;
+    scanText(rel, r.text, hits);
+  }
+
+  if (missing.length > 0) {
+    console.warn("[guard-mojibake] WARNING: staged paths not found (maybe deleted/renamed):", missing);
+  }
 
   if (hits.length > 0) {
-    console.error(`\n[guard-mojibake] FOUND ${hits.length} mojibake hit(s) in API response:`);
+    console.error(`\n[guard-mojibake] FOUND ${hits.length} mojibake hit(s) in staged files:`);
     for (const h of hits.slice(0, 25)) {
-      console.error(`- ${h.path}: ${JSON.stringify(h.value)}`);
+      console.error(`- ${h.file}: ${JSON.stringify(h.snippet)}`);
     }
     if (hits.length > 25) console.error(`... and ${hits.length - 25} more`);
-    console.error("\nFix: DB sanitize/repair must make this go to ZERO.\n");
+    console.error("\nFix: Datei-Encoding/Text reparieren (UTF-8) bis das 0 ist.\n");
     process.exit(1);
   }
 
