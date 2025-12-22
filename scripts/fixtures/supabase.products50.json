@@ -1,0 +1,723 @@
+[
+  {
+    "id": "TEST-ELEC-003",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "4K Smart TV 55 Zoll",
+    "description": "55'' 4K UHD Smart TV mit Streaming-Apps und HDR-Unterstützung.",
+    "price": 699,
+    "currency": null,
+    "category": "elektronik",
+    "tags": [
+      "elektronik;tv;4k"
+    ],
+    "imageUrl": "https://picsum.photos/seed/ELEC-TV-001/600/600",
+    "productUrl": "/4k-smart-tv-55-zoll"
+  },
+  {
+    "id": "TEST-GIFT-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "50€ Geschenkkarte",
+    "description": "Digitale Geschenkkarte im Wert von 50€ – ideal als Geschenk.",
+    "price": 50,
+    "currency": null,
+    "category": "gutscheine",
+    "tags": [
+      "gutschein;geschenkkarte"
+    ],
+    "imageUrl": "https://picsum.photos/seed/GIFT-001/600/600",
+    "productUrl": "/50-euro-geschenkkarte"
+  },
+  {
+    "id": "TEST-FASH-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Basic T-Shirt Weiß Unisex",
+    "description": "Klassisches weißes T-Shirt aus Baumwolle, Regular Fit, Unisex.",
+    "price": 13.99,
+    "currency": null,
+    "category": "mode",
+    "tags": [
+      "mode;tshirt;baumwolle;unisex"
+    ],
+    "imageUrl": "https://picsum.photos/seed/FASH-TSHIRT-001/600/600",
+    "productUrl": "/basic-t-shirt-weiss-unisex"
+  },
+  {
+    "id": "baustein-set-120",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Baustein-Set 120-teilig",
+    "description": "Farbige Bausteine für Kinder ab 3 Jahren.",
+    "price": 24.9,
+    "currency": null,
+    "category": "spielzeug",
+    "tags": [
+      "spielzeug",
+      "bausteine",
+      "kinder"
+    ],
+    "imageUrl": "https://example.com/images/bausteine.jpg",
+    "productUrl": "/https://example.com/images/bausteine.jpg"
+  },
+  {
+    "id": "TEST-TOY-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Baustein-Set 500 Teile",
+    "description": "Kreatives Baustein-Set mit 500 Teilen für Kinder ab 6 Jahren.",
+    "price": 39.9,
+    "currency": null,
+    "category": "spielzeug",
+    "tags": [
+      "spielzeug;bausteine;kinder"
+    ],
+    "imageUrl": "https://picsum.photos/seed/TOY-001/600/600",
+    "productUrl": "/baustein-set-500-teile"
+  },
+  {
+    "id": "TEST-BEAUTY-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Beauty Geschenkset Basic",
+    "description": "Set aus Duschgel, Bodylotion und Handcreme mit blumigem Duft.",
+    "price": 45.92,
+    "currency": null,
+    "category": "kosmetik",
+    "tags": [
+      "kosmetik;geschenk;set"
+    ],
+    "imageUrl": "https://picsum.photos/seed/BEAUTY-SET-001/600/600",
+    "productUrl": "/beauty-geschenkset-basic"
+  },
+  {
+    "id": "bluetooth-kopfhoerer-pro",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Bluetooth Kopfhörer Pro",
+    "description": "Kabellose Kopfhörer mit Geräuschunterdrückung.",
+    "price": 89.9,
+    "currency": null,
+    "category": "elektronik",
+    "tags": [
+      "elektronik",
+      "audio",
+      "kopfhörer"
+    ],
+    "imageUrl": "https://example.com/images/kopfhoerer.jpg",
+    "productUrl": "/https://example.com/images/kopfhoerer.jpg"
+  },
+  {
+    "id": "TEST-PARF-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "City Night Eau de Parfum 50ml",
+    "description": "Eleganter Duft mit Noten von Vanille, Jasmin und Sandelholz – ideal für den Abend.",
+    "price": 59.9,
+    "currency": null,
+    "category": "kosmetik",
+    "tags": [
+      "parfüm;abend;vanille;jasmin"
+    ],
+    "imageUrl": "https://picsum.photos/seed/PARF-001/600/600",
+    "productUrl": "/city-night-eau-de-parfum-50ml"
+  },
+  {
+    "id": "deluxe-hundebett",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Deluxe Hundebett",
+    "description": "Weiches Hundebett mit rutschfester Unterseite.",
+    "price": 59.9,
+    "currency": null,
+    "category": "haustier",
+    "tags": [
+      "haustier",
+      "hund",
+      "schlafplatz"
+    ],
+    "imageUrl": "https://example.com/images/hundebett.jpg",
+    "productUrl": "/https://example.com/images/hundebett.jpg"
+  },
+  {
+    "id": "TEST-KITCHEN-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Edelstahl Kochmesser 20cm",
+    "description": "Scharfes Kochmesser aus Edelstahl mit ergonomischem Griff.",
+    "price": 45.93,
+    "currency": null,
+    "category": "haushalt",
+    "tags": [
+      "haushalt;küche;messer"
+    ],
+    "imageUrl": "https://picsum.photos/seed/KITCHEN-001/600/600",
+    "productUrl": "/edelstahl-kochmesser-20cm"
+  },
+  {
+    "id": "TEST-PARF-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Fresh Morning Eau de Toilette 100ml",
+    "description": "Frischer Zitrusduft für jeden Tag, mit Limette, Bergamotte und grünen Noten.",
+    "price": 39.9,
+    "currency": null,
+    "category": "kosmetik",
+    "tags": [
+      "parfüm;tag;zitrus;frisch"
+    ],
+    "imageUrl": "https://picsum.photos/seed/PARF-002/600/600",
+    "productUrl": "/fresh-morning-eau-de-toilette-100ml"
+  },
+  {
+    "id": "TEST-HOME-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Glas- & Spiegelreiniger 500ml",
+    "description": "Streifenfreier Glasreiniger für Fenster, Spiegel und Glastische.",
+    "price": 17,
+    "currency": null,
+    "category": "haushalt",
+    "tags": [
+      "haushalt;glas;reiniger"
+    ],
+    "imageUrl": "https://picsum.photos/seed/HOME-002/600/600",
+    "productUrl": "/glas-spiegelreiniger-500ml"
+  },
+  {
+    "id": "TEST-TOY-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Holz-Puzzle Tiere 24 Teile",
+    "description": "Kindgerechtes Holzpuzzle mit Tiermotiven, fördert Motorik und Wahrnehmung.",
+    "price": 45.91,
+    "currency": null,
+    "category": "spielzeug",
+    "tags": [
+      "spielzeug;puzzle;holz"
+    ],
+    "imageUrl": "https://picsum.photos/seed/TOY-002/600/600",
+    "productUrl": "/holz-puzzle-tiere-24-teile"
+  },
+  {
+    "id": "holzeisenbahn-starterset",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Holzeisenbahn Starterset",
+    "description": "Holzeisenbahn mit Schienen und Lokomotive.",
+    "price": 34.9,
+    "currency": null,
+    "category": "spielzeug",
+    "tags": [
+      "spielzeug",
+      "eisenbahn",
+      "holz"
+    ],
+    "imageUrl": "https://example.com/images/holzeisenbahn.jpg",
+    "productUrl": "/https://example.com/images/holzeisenbahn.jpg"
+  },
+  {
+    "id": "katzenfutter-huhn-2kg",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Katzenfutter Huhn 2kg",
+    "description": "Alleinfuttermittel für ausgewachsene Katzen mit frischem Huhn.",
+    "price": 14.9,
+    "currency": null,
+    "category": "haustier",
+    "tags": [
+      "haustier",
+      "katze",
+      "futter"
+    ],
+    "imageUrl": "https://example.com/images/katzenfutter.jpg",
+    "productUrl": "/https://example.com/images/katzenfutter.jpg"
+  },
+  {
+    "id": "TEST-OFFICE-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Kugelschreiber-Set 10 Stück",
+    "description": "Set aus 10 blau schreibenden Kugelschreibern, ideal fürs Büro.",
+    "price": 36.25,
+    "currency": null,
+    "category": "bürobedarf",
+    "tags": [
+      "büro;kugelschreiber;stifte"
+    ],
+    "imageUrl": "https://picsum.photos/seed/OFFICE-002/600/600",
+    "productUrl": "/kugelschreiber-set-10-stueck"
+  },
+  {
+    "id": "TEST-SPORT-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Kurzhantel-Set 2x5kg",
+    "description": "Kurzhantel-Set mit zwei Hanteln à 5kg, ideal für Zuhause.",
+    "price": 39.9,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "sport;hantel;fitness"
+    ],
+    "imageUrl": "https://picsum.photos/seed/SPORT-DUMB-001/600/600",
+    "productUrl": "/kurzhantel-set-2x5kg"
+  },
+  {
+    "id": "GARDEN-0001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "LED Gartenlichterkette 10m",
+    "description": "Wetterfeste Lichterkette für Garten und Balkon.",
+    "price": 29.9,
+    "currency": null,
+    "category": "garten",
+    "tags": [
+      "garten",
+      "deko",
+      "licht"
+    ],
+    "imageUrl": "https://example.com/images/gartenlichterkette.jpg",
+    "productUrl": "/null"
+  },
+  {
+    "id": "multi-zerkleinerer",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Multi-Zerkleinerer 500W",
+    "description": "Universeller Zerkleinerer für Gemüse Kräuter und Nüsse",
+    "price": 39.9,
+    "currency": null,
+    "category": "haushalt",
+    "tags": [
+      "haushalt",
+      "küche",
+      "zerkleinerer"
+    ],
+    "imageUrl": "https://example.com/images/zerkleinerer.jpg",
+    "productUrl": "/https://example.com/images/zerkleinerer.jpg"
+  },
+  {
+    "id": "TEST-OFFICE-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Notizbuch A5 Kariert 200 Seiten",
+    "description": "Hochwertiges Notizbuch im A5-Format mit karierten Seiten.",
+    "price": 3,
+    "currency": null,
+    "category": "bürobedarf",
+    "tags": [
+      "büro;notizbuch;schreiben"
+    ],
+    "imageUrl": "https://picsum.photos/seed/OFFICE-001/600/600",
+    "productUrl": "/notizbuch-a5-kariert-200-seiten"
+  },
+  {
+    "id": "TEST-PET-003",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Pet Fresh Fell-Spray 150ml",
+    "description": "Sanftes Fell-Spray für Hunde und Katzen, neutralisiert Gerüche und pflegt das Fell.",
+    "price": 45.91,
+    "currency": null,
+    "category": "tiere",
+    "tags": [
+      "tiere;parfüm;fell;spray"
+    ],
+    "imageUrl": "https://picsum.photos/seed/PET-PARF-001/600/600",
+    "productUrl": "/pet-fresh-fell-spray-150ml"
+  },
+  {
+    "id": "TEST-PET-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Premium Hundefutter Rind 5kg",
+    "description": "Vollwertiges Trockenfutter mit hohem Fleischanteil für ausgewachsene Hunde.",
+    "price": 45.92,
+    "currency": null,
+    "category": "tiere",
+    "tags": [
+      "tiere;hund;futter"
+    ],
+    "imageUrl": "https://picsum.photos/seed/PET-FOOD-001/600/600",
+    "productUrl": "/premium-hundefutter-rind-5kg"
+  },
+  {
+    "id": "premium-wasserkocher",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Premium Wasserkocher 17 l",
+    "description": "Eleganter Wasserkocher mit Temperaturwahl und Warmhaltefunktion.",
+    "price": 49.9,
+    "currency": null,
+    "category": "haushalt",
+    "tags": [
+      "haushalt",
+      "küche",
+      "wasserkocher"
+    ],
+    "imageUrl": "https://example.com/images/wasserkocher.jpg",
+    "productUrl": "/https://example.com/images/wasserkocher.jpg"
+  },
+  {
+    "id": "TEST-PET-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Sensitive Katzenfutter Lachs 2kg",
+    "description": "Getreidefreies Trockenfutter mit Lachs für sensible Katzen.",
+    "price": 45.92,
+    "currency": null,
+    "category": "tiere",
+    "tags": [
+      "tiere;katze;futter;sensitiv"
+    ],
+    "imageUrl": "https://picsum.photos/seed/PET-FOOD-002/600/600",
+    "productUrl": "/sensitive-katzenfutter-lachs-2kg"
+  },
+  {
+    "id": "TEST-FASH-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Slim Fit Jeans Blau",
+    "description": "Bequeme Slim-Fit-Jeans in klassischem Blau mit leichtem Stretch.",
+    "price": 49.9,
+    "currency": null,
+    "category": "mode",
+    "tags": [
+      "mode;jeans;stretch"
+    ],
+    "imageUrl": "https://picsum.photos/seed/FASH-JEANS-001/600/600",
+    "productUrl": "/slim-fit-jeans-blau"
+  },
+  {
+    "id": "smarthome-led-lampe",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "SmartHome LED-Lampe",
+    "description": "Energiesparende LED-Lampe mit App-Steuerung.",
+    "price": 19.99,
+    "currency": null,
+    "category": "elektronik",
+    "tags": [
+      "elektronik",
+      "licht",
+      "smarthome"
+    ],
+    "imageUrl": "https://example.com/images/led-lampe.jpg",
+    "productUrl": "/https://example.com/images/led-lampe.jpg"
+  },
+  {
+    "id": "TEST-ELEC-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Smartphone Alpha 128GB Schwarz",
+    "description": "Modernes Smartphone mit 6,5'' Display, 128GB Speicher und Dual-Kamera.",
+    "price": 499,
+    "currency": null,
+    "category": "elektronik",
+    "tags": [
+      "elektronik;smartphone;android"
+    ],
+    "imageUrl": "https://picsum.photos/seed/ELEC-PHONE-001/600/600",
+    "productUrl": "/smartphone-alpha-128gb-schwarz"
+  },
+  {
+    "id": "TEST-PARF-003",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Soft Cotton Unisex Parfum 30ml",
+    "description": "Sanfter, sauberer Duft, erinnert an frisch gewaschene Wäsche. Unisex.",
+    "price": 45,
+    "currency": null,
+    "category": "kosmetik",
+    "tags": [
+      "parfüm;unisex;clean"
+    ],
+    "imageUrl": "https://picsum.photos/seed/PARF-003/600/600",
+    "productUrl": "/soft-cotton-unisex-parfum-30ml"
+  },
+  {
+    "id": "the-active-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Active Snowboard",
+    "description": "An active snowboard used in multiple campaigns.\"",
+    "price": 629.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "active"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_6.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_6_large.jpg"
+  },
+  {
+    "id": "the-archived-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Archived Snowboard",
+    "description": "An archived snowboard kept only for reference.\"",
+    "price": 579.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "archived"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_7.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_7_large.jpg"
+  },
+  {
+    "id": "the-bundle-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Bundle Snowboard",
+    "description": "A snowboard that is sold only as part of a bundle.\"",
+    "price": 749.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "bundle"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_12.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_12_large.jpg"
+  },
+  {
+    "id": "the-coming-soon-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Coming Soon Snowboard",
+    "description": "This snowboard will be available soon.\"",
+    "price": 599.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "comingsoon"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_4.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_4_large.jpg"
+  },
+  {
+    "id": "TEST-SNOW-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Compact Snowboard",
+    "description": "Kompaktes Snowboard für Einsteiger, leicht zu kontrollieren.",
+    "price": 299.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "sport;snowboard;einsteiger"
+    ],
+    "imageUrl": "https://picsum.photos/seed/SNOW-001/600/600",
+    "productUrl": "/the-compact-snowboard"
+  },
+  {
+    "id": "the-discounted-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Discounted Snowboard",
+    "description": "A discounted snowboard for sale campaigns.\"",
+    "price": 499.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "discount"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_11.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_11_large.jpg"
+  },
+  {
+    "id": "the-draft-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Draft Snowboard",
+    "description": "This snowboard is still in draft mode.\"",
+    "price": 549.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "draft"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_5.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_5_large.jpg"
+  },
+  {
+    "id": "example-perfume",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Example Perfume",
+    "description": "A sample perfume product for testing.\"",
+    "price": 39.95,
+    "currency": null,
+    "category": "kosmetik",
+    "tags": [
+      "parfüm",
+      "duft",
+      "beispiel"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/perfume_example.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/perfume_example_large.jpg"
+  },
+  {
+    "id": "the-gift-card-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Gift Card Snowboard",
+    "description": "A snowboard used as a placeholder for gift cards.\"",
+    "price": 0,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "giftcard"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_13.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_13_large.jpg"
+  },
+  {
+    "id": "the-hidden-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Hidden Snowboard",
+    "description": "This snowboard is hidden from the online store.\"",
+    "price": 649.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "hidden"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_10.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_10_large.jpg"
+  },
+  {
+    "id": "the-inventory-not-tracked-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Inventory Not Tracked Snowboard",
+    "description": "This snowboard is super fast.\"",
+    "price": 699.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "inventory"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_1.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_1_large.jpg"
+  },
+  {
+    "id": "the-limited-edition-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Limited Edition Snowboard",
+    "description": "A limited edition snowboard with special graphics.\"",
+    "price": 899.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "limited"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_9.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_9_large.jpg"
+  },
+  {
+    "id": "TEST-SNOW-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Minimal Snowboard",
+    "description": "Minimalistisches Snowboard für All-Mountain-Fahrer.",
+    "price": 399.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "sport;snowboard;allmountain"
+    ],
+    "imageUrl": "https://picsum.photos/seed/SNOW-002/600/600",
+    "productUrl": "/the-minimal-snowboard"
+  },
+  {
+    "id": "the-out-of-stock-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Out of Stock Snowboard",
+    "description": "This snowboard is currently out of stock.\"",
+    "price": 799.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "outofstock"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_2.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_2_large.jpg"
+  },
+  {
+    "id": "the-preorder-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Preorder Snowboard",
+    "description": "This snowboard can be pre-ordered for the upcoming season.\"",
+    "price": 649.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "preorder"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_3.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_3_large.jpg"
+  },
+  {
+    "id": "the-seo-optimized-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The SEO Optimized Snowboard",
+    "description": "A snowboard with SEO-optimized title and description.\"",
+    "price": 679.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "seo"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_15.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_15_large.jpg"
+  },
+  {
+    "id": "the-snowboard-with-very-long-title",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Snowboard With Very Long Title",
+    "description": "This snowboard has a very long title for testing purposes.\"",
+    "price": 699.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "longtitle"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_8.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_8_large.jpg"
+  },
+  {
+    "id": "the-subscription-snowboard",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "The Subscription Snowboard",
+    "description": "A snowboard that is sold as a subscription product.\"",
+    "price": 799.95,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "snowboard",
+      "subscription"
+    ],
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_14.jpg",
+    "productUrl": "/https://cdn.shopify.com/s/files/1/0000/0001/products/snowboard_14_large.jpg"
+  },
+  {
+    "id": "TEST-ELEC-002",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Ultrabook Light 14'' 16GB/512GB",
+    "description": "Leichtes Ultrabook für Office & Reisen, mit 16GB RAM und 512GB SSD.",
+    "price": 999,
+    "currency": null,
+    "category": "elektronik",
+    "tags": [
+      "elektronik;laptop;office"
+    ],
+    "imageUrl": "https://picsum.photos/seed/ELEC-LAP-001/600/600",
+    "productUrl": "/ultrabook-light-14-16gb-512gb"
+  },
+  {
+    "id": "TEST-HOME-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Universal Allzweckreiniger 1L",
+    "description": "Starker Allzweckreiniger für Küche, Bad und Böden mit frischem Zitronenduft.",
+    "price": 36,
+    "currency": null,
+    "category": "haushalt",
+    "tags": [
+      "haushalt;reiniger;boden"
+    ],
+    "imageUrl": "https://picsum.photos/seed/HOME-001/600/600",
+    "productUrl": "/universal-allzweckreiniger-1l"
+  },
+  {
+    "id": "TEST-SPORT-001",
+    "shopId": "5ebba938-fe2b-4d0e-b030-370c7f5ac02d",
+    "title": "Yoga-Matte Rutschfest 6mm",
+    "description": "Rutschfeste Yoga-Matte mit 6mm Stärke, ideal für Yoga und Pilates.",
+    "price": 45.92,
+    "currency": null,
+    "category": "sport",
+    "tags": [
+      "sport;yoga;matte"
+    ],
+    "imageUrl": "https://picsum.photos/seed/SPORT-MAT-001/600/600",
+    "productUrl": "/yoga-matte-rutschfest-6mm"
+  }
+]

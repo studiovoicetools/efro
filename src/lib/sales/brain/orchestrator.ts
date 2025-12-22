@@ -4034,6 +4034,8 @@ console.log("[EFRO OffTopicGate Debug]", {
     /\b(günstigst(?:e|en|es)|guenstigst(?:e|en|es)|billigst(?:e|en|es)|am günstigsten|am guenstigsten|so billig wie möglich|so billig wie moeglich|so günstig wie möglich|so guenstig wie moeglich|cheapest|lowest price|most affordable)\b/i.test(
       cleaned,
     );
+	const hasAnyCandidates = Array.isArray(filterResult) && filterResult.length > 0;
+
 
   if (
     isBudgetAmbiguous &&
@@ -4042,8 +4044,9 @@ console.log("[EFRO OffTopicGate Debug]", {
     !effectiveCategorySlug &&
     !isPriceObjection &&
     !isPremiumWithMostExpensive &&
-    !isCheapestLikeQuery
-  ) {
+    !isCheapestLikeQuery &&
+    !hasAnyCandidates
+    ) {
     console.log(
       "[EFRO SB Budget Ambiguous] Vages Budget erkannt, keine Produktempfehlungen, KEIN AI-Trigger",
       {
@@ -4098,8 +4101,9 @@ console.log("[EFRO OffTopicGate Debug]", {
     !effectiveCategorySlug &&
     !isPriceObjection &&
     !isPremiumWithMostExpensive &&
-    !isCheapestLikeQuery
-  ) {
+    !isCheapestLikeQuery &&
+    !hasAnyCandidates
+    ) {
     console.log(
       "[EFRO SB Budget Missing Category] Vages Budget ohne Kategorie erkannt, keine Produktempfehlungen, KEIN AI-Trigger",
       {
