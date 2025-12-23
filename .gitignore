@@ -138,3 +138,6 @@ patch-fix-mojibake-gen.patch
 
 # generated conversation fixtures (reproducible via scripts)
 scripts/fixtures/conversations*.json
+
+# local backups
+*.bak.*
