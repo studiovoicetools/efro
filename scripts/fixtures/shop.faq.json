@@ -1,0 +1,185 @@
+{
+  "version": 2,
+  "language": "de",
+  "topics": [
+    {
+      "id": "shipping_time",
+      "title": "Versand & Lieferzeit",
+      "keywords": [
+        "lieferzeit",
+        "versanddauer",
+        "wie lange dauert",
+        "wie schnell liefert",
+        "wann kommt meine lieferung",
+        "werktage",
+        "lieferung dauert",
+        "zustellung dauert",
+        "versandzeit"
+      ],
+      "answer": "Wir versenden i.d.R. in 1–2 Werktagen. Lieferzeit meist 2–5 Werktage. Tracking vorhanden."
+    },
+    {
+      "id": "returns",
+      "title": "Retoure & Rückgabe",
+      "keywords": [
+        "retoure",
+        "rückgabe",
+        "rueckgabe",
+        "umtausch",
+        "widerruf",
+        "zurückschicken",
+        "rücksendeetikett",
+        "ruecksendeetikett",
+        "rückgabefrist",
+        "wie lange kann ich zurückgeben",
+        "tage rückgabe",
+        "frist"
+      ],
+      "answer": "Du kannst innerhalb von 30 Tagen retournieren. Erstattung 3–7 Werktage nach Eingang."
+    },
+    {
+      "id": "payments",
+      "title": "Zahlungsarten",
+      "keywords": [
+        "zahlung",
+        "zahlungsarten",
+        "bezahlen",
+        "paypal",
+        "kreditkarte",
+        "klarna",
+        "apple pay",
+        "raten"
+      ],
+      "answer": "Wir akzeptieren PayPal, Kreditkarte, Klarna und Apple Pay. Rechnung ist möglich."
+    },
+    {
+      "id": "order_status",
+      "title": "Bestellung, Status, Storno, Adresse",
+      "keywords": [
+        "tracking",
+        "sendungsverfolgung",
+        "sendungsnummer",
+        "lieferstatus",
+        "wo ist meine bestellung",
+        "wo ist mein paket",
+        "paket",
+        "zugestellt",
+        "nicht angekommen",
+        "status meiner bestellung",
+        "adresse ändern",
+        "lieferadresse ändern",
+        "lieferadresse",
+        "adresse wechseln",
+        "bestellung stornieren",
+        "stornieren",
+        "storno",
+        "canceln",
+        "bestellung ändern",
+        "keine bestellbestätigung",
+        "bestellbestätigung fehlt",
+        "keine bestätigung",
+        "bestellung bestätigt",
+        "bestätigungsmail",
+        "mail nicht bekommen",
+        "zahlung bestätigt aber keine mail"
+      ],
+      "answer": "Status: bestellt→bezahlt→gepackt→versendet→zugestellt. Änderungen/Storno nur vor Versand."
+    },
+    {
+      "id": "promos",
+      "title": "Gutscheine & Aktionen",
+      "keywords": [
+        "gutschein",
+        "rabatt",
+        "coupon",
+        "code",
+        "aktion",
+        "giftcard",
+        "geschenkgutschein",
+        "funktioniert nicht"
+      ],
+      "answer": "1 Code pro Bestellung, nicht kombinierbar. Giftcards sind möglich. Wenn ein Code nicht klappt: Bedingungen prüfen."
+    },
+    {
+      "id": "support",
+      "title": "Support & Kontakt",
+      "keywords": [
+        "kontakt",
+        "support",
+        "hilfe",
+        "kundenservice",
+        "erreichbar",
+        "telefon",
+        "mail",
+        "beschwerde"
+      ],
+      "answer": "Kontakt per E-Mail/Kontaktformular. Antwort meist in 24–48h."
+    },
+    {
+      "id": "warranty",
+      "title": "Garantie, Defekt, Reklamation",
+      "keywords": [
+        "garantie",
+        "gewährleistung",
+        "defekt",
+        "kaputt",
+        "reklamation",
+        "transportschaden",
+        "austausch",
+        "ersatz"
+      ],
+      "answer": "24 Monate Gewährleistung. Bei Defekt bitte Foto/Video senden, dann Austausch/Erstattung."
+    },
+    {
+      "id": "legal",
+      "title": "Rechtliches (DSGVO/AGB)",
+      "keywords": [
+        "datenschutz",
+        "dsgvo",
+        "agb",
+        "impressum",
+        "cookies",
+        "rechtliches"
+      ],
+      "answer": "Datenschutz/AGB/Impressum findest du im Footer. (Demo-Text)"
+    },
+    {
+      "id": "product_help",
+      "title": "Produktinfos (Größe/Pflege/Kompatibilität)",
+      "keywords": [
+        "größe",
+        "groessentabelle",
+        "passt mir",
+        "material",
+        "pflege",
+        "inhaltsstoffe",
+        "allergie",
+        "verträglichkeit",
+        "kompatibel",
+        "kompatibilität",
+        "anleitung",
+        "wie benutzt man",
+        "bedienung",
+        "geeignet für"
+      ],
+      "answer": "Größe/Pflege/Kompatibilität stehen in der Produktbeschreibung und Specs."
+    },
+    {
+      "id": "tax_invoice",
+      "title": "MwSt & Rechnungen",
+      "keywords": [
+        "rechnung",
+        "firmenrechnung",
+        "mwst",
+        "vat",
+        "steuer",
+        "steuerrechnung",
+        "rechnungskopie",
+        "invoice",
+        "steuer-id",
+        "umsatzsteuer"
+      ],
+      "answer": "Preise inkl. MwSt. Rechnung kommt per E-Mail nach Versand."
+    }
+  ]
+}

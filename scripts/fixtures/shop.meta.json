@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "language": "de",
+  "currency": "EUR",
+  "country": "DE",
+  "shop_name": "Demo-Shop",
+  "b2b_enabled": false,
+  "tax_included_prices": true
+}

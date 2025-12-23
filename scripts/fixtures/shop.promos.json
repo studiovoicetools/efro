@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "giftcards": true,
+  "discount_codes": true,
+  "newsletter": true
+}

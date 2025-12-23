@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "standard_delivery_time": "2-4 Werktage",
+  "processing_time": "0-1 Werktage",
+  "shipping_costs": [
+    {
+      "zone": "DE",
+      "cost_eur": 4.9,
+      "free_from_eur": 49.0
+    },
+    {
+      "zone": "AT",
+      "cost_eur": 9.9,
+      "free_from_eur": 99.0
+    },
+    {
+      "zone": "EU",
+      "cost_eur": 12.9,
+      "free_from_eur": 129.0
+    }
+  ],
+  "tracking": {
+    "enabled": true,
+    "carrier_examples": [
+      "DHL",
+      "DPD",
+      "UPS"
+    ]
+  },
+  "express": {
+    "enabled": false
+  }
+}

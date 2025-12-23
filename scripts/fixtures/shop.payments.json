@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "methods": [
+    "Kreditkarte",
+    "PayPal",
+    "Klarna",
+    "Apple Pay",
+    "Google Pay",
+    "Vorkasse"
+  ],
+  "invoice": {
+    "enabled": false
+  },
+  "installments": {
+    "enabled": false
+  }
+}

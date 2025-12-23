@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "contact": {
+    "email": "support@demo-shop.de",
+    "phone": "",
+    "chat": true
+  },
+  "hours": "Mo–Fr 09:00–17:00",
+  "response_time": "innerhalb 24–48h (Werktage)"
+}

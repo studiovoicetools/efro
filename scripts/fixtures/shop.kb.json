@@ -1,0 +1,191 @@
+{
+  "version": 2,
+  "language": "de",
+  "store": {
+    "name": "Demo-Shop",
+    "currency": "EUR",
+    "countries": [
+      "DE",
+      "AT",
+      "CH"
+    ],
+    "channels": [
+      "web"
+    ],
+    "hours": {
+      "support_hours": "Mo-Fr 09:00-17:00"
+    }
+  },
+  "shipping": {
+    "carriers": [
+      "DHL",
+      "DPD"
+    ],
+    "processing_time": "1-2 Werktage",
+    "delivery_time": "2-5 Werktage",
+    "tracking": true,
+    "shipping_costs": "ab 4,90€ (kostenfrei ab 59€)",
+    "international": "DACH",
+    "keywords": [
+      "versand",
+      "lieferung",
+      "lieferzeit",
+      "zustellung",
+      "sendung",
+      "paket",
+      "tracking",
+      "sendungsverfolgung",
+      "dhl",
+      "dpd",
+      "ab wann",
+      "wo ist"
+    ]
+  },
+  "returns": {
+    "return_window_days": 30,
+    "condition": "unbenutzt/ungeöffnet, Originalverpackung wenn möglich",
+    "refund_time": "3-7 Werktage nach Eingang",
+    "exchange": true,
+    "keywords": [
+      "retoure",
+      "rückgabe",
+      "umtausch",
+      "widerruf",
+      "zurückschicken",
+      "rücksende",
+      "erstattung",
+      "geld zurück"
+    ]
+  },
+  "payments": {
+    "methods": [
+      "PayPal",
+      "Kreditkarte",
+      "Klarna",
+      "Apple Pay"
+    ],
+    "invoice": true,
+    "keywords": [
+      "zahlung",
+      "zahlungsarten",
+      "bezahlen",
+      "paypal",
+      "kreditkarte",
+      "klarna",
+      "apple pay",
+      "rechnung",
+      "raten"
+    ]
+  },
+  "orders": {
+    "status_flow": [
+      "bestellt",
+      "bezahlt",
+      "gepackt",
+      "versendet",
+      "zugestellt"
+    ],
+    "change_address": "nur solange nicht versendet",
+    "cancel": "nur solange nicht versendet",
+    "keywords": [
+      "bestellung",
+      "order",
+      "stornieren",
+      "adresse ändern",
+      "lieferadresse",
+      "status",
+      "wann kommt",
+      "wo ist meine bestellung",
+      "bestellnummer"
+    ]
+  },
+  "promos": {
+    "coupon_rules": "1 Code pro Bestellung; nicht kombinierbar",
+    "giftcards": true,
+    "keywords": [
+      "gutschein",
+      "rabatt",
+      "coupon",
+      "code",
+      "aktion",
+      "giftcard",
+      "geschenkgutschein",
+      "funktioniert nicht"
+    ]
+  },
+  "warranty": {
+    "warranty_months": 24,
+    "defect_handling": "Foto/Video senden, dann Austausch/Erstattung",
+    "keywords": [
+      "garantie",
+      "gewährleistung",
+      "defekt",
+      "kaputt",
+      "reklamation",
+      "transportschaden",
+      "austausch",
+      "ersatz"
+    ]
+  },
+  "policies": {
+    "privacy": "DSGVO-konform (Demo-Text)",
+    "terms": "AGB (Demo-Text)",
+    "keywords": [
+      "datenschutz",
+      "dsgvo",
+      "agb",
+      "impressum",
+      "cookies",
+      "rechtliches"
+    ]
+  },
+  "support": {
+    "contact": [
+      "E-Mail",
+      "Kontaktformular"
+    ],
+    "sla": "Antwort in 24-48h",
+    "keywords": [
+      "kontakt",
+      "support",
+      "hilfe",
+      "kundenservice",
+      "erreichbar",
+      "telefon",
+      "mail",
+      "beschwerde"
+    ]
+  },
+  "product_help": {
+    "sizing": "siehe Größentabelle / Produktbeschreibung",
+    "care": "Pflegehinweise in Beschreibung",
+    "compatibility": "Kompatibilität in Specs",
+    "keywords": [
+      "größe",
+      "passt",
+      "größentabelle",
+      "material",
+      "pflege",
+      "kompatibel",
+      "anleitung",
+      "bedienung",
+      "inhalt",
+      "maße",
+      "gewicht"
+    ]
+  },
+  "tax_invoices": {
+    "vat": "Preise inkl. MwSt.",
+    "invoice": "Rechnung per E-Mail nach Versand",
+    "keywords": [
+      "mwst",
+      "ust",
+      "rechnung",
+      "firma",
+      "b2b",
+      "steuernummer",
+      "vat",
+      "beleg"
+    ]
+  }
+}

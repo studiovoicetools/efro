@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "withdrawal_days": 14,
+  "return_shipping_paid_by": "customer",
+  "refund_time": "3-7 Werktage nach Wareneingang",
+  "exchange": {
+    "enabled": true,
+    "notes": "Umtausch über Rücksendung + Neubestellung."
+  },
+  "conditions": [
+    "Unbenutzt und in Originalverpackung",
+    "Hygieneartikel/Versiegelte Produkte ggf. ausgeschlossen, wenn geöffnet"
+  ]
+}
