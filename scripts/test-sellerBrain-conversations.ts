@@ -1,4 +1,7 @@
 // scripts/test-sellerBrain-conversations.ts
+import fs from "node:fs";
+import path from "node:path";
+
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
@@ -10,9 +13,9 @@ import { createClient } from "@supabase/supabase-js";
 
 /**
  * Conversation Runner (Supabase-Katalog)
- * - Lädt Produkte direkt aus Supabase (products Tabelle)
- * - Parallel (Worker-Pool) über EFRO_CONV_CONCURRENCY
- * - QUIET-Modus: nur FAILS + DONE (SellerBrain-Logs werden global unterdrückt)
+ * - L?dt Produkte direkt aus Supabase (products Tabelle)
+ * - Parallel (Worker-Pool) ?ber EFRO_CONV_CONCURRENCY
+ * - QUIET-Modus: nur FAILS + DONE (SellerBrain-Logs werden global unterdr?ckt)
  * - MAX_FAILS: optional early stop nach N fails
  * - FAIL_FAST: optional sofort beim ersten Fail stoppen
  */
@@ -20,8 +23,8 @@ import { createClient } from "@supabase/supabase-js";
 // ---- Output / Speed Controls (ENV) ----
 const QUIET = process.env.EFRO_CONV_QUIET === "1"; // nur FAILS + DONE
 const CONCURRENCY = Math.max(1, Number(process.env.EFRO_CONV_CONCURRENCY ?? 1));
-const MAX_FAILS = Math.max(0, Number(process.env.EFRO_CONV_MAX_FAILS ?? 1)); // default 1 (wie dein Output)
-const FAIL_FAST = process.env.EFRO_CONV_FAIL_FAST === "1"; // optional: sofort beim ersten Fail
+const MAX_FAILS = Math.max(0, Number(process.env.EFRO_CONV_MAX_FAILS ?? 1)); // default 1
+const FAIL_FAST = process.env.EFRO_CONV_FAIL_FAST === "1"; // optional: sofort beim ersten Fail stoppen
 const PRINT_OK = !QUIET && process.env.EFRO_CONV_PRINT_OK !== "0"; // optional
 const PRINT_PROGRESS_EVERY = Math.max(0, Number(process.env.EFRO_CONV_PROGRESS_EVERY ?? 0)); // z.B. 50
 
@@ -34,20 +37,12 @@ function err(line: string) {
 
 // QUIET = SellerBrain-Spam global killen (Concurrency-safe)
 if (QUIET) {
-  // Wir schreiben unsere eigene Ausgabe über out()/err()
-  // Daher können wir ALLES am console.* stummschalten.
-  // (Sonst kommen bei parallelen Turns wieder Logs durch.)
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   const noop = () => {};
   console.log = noop as any;
   console.info = noop as any;
   console.warn = noop as any;
   console.debug = noop as any;
   console.error = noop as any;
-}
-
-function ms(n: number) {
-  return n;
 }
 
 async function withTimeout<T>(p: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -104,9 +99,7 @@ function normalizeProductRow(row: any): EfroProduct {
   );
 
   const category = String(pick(row.category, row.category_name, row.product_type, row.type, "") ?? "");
-
   const tags = normalizeTags(pick(row.tags, row.tag_list, row.keywords, row.search_tags));
-
   const imageUrl = String(pick(row.image_url, row.imageUrl, row.image, row.featured_image, row.preview_image, "") ?? "");
 
   return {
@@ -136,7 +129,7 @@ async function loadProductsFromSupabase(): Promise<EfroProduct[]> {
   const timeoutMs = Number(process.env.EFRO_PRODUCTS_TIMEOUT_MS ?? 12000);
 
   const q = supabase.from("products").select("*").limit(limit);
-  const res = await withTimeout(q, timeoutMs, "Supabase products query");
+  const res = await withTimeout(Promise.resolve(q as any), timeoutMs, "Supabase products query");
 
   const data = (res as any).data as any[] | null;
   const error = (res as any).error as any;
@@ -145,11 +138,10 @@ async function loadProductsFromSupabase(): Promise<EfroProduct[]> {
   if (!data || !Array.isArray(data)) throw new Error("Supabase returned no data (data is null/undefined).");
 
   const shopUuid = process.env.EFRO_SHOP_UUID;
-  const filtered = shopUuid ? data.filter((r) => String(r.shop_uuid ?? r.shopUuid ?? "") === String(shopUuid)) : data;
+  const filtered = shopUuid ? data.filter((r) => String((r as any).shop_uuid ?? (r as any).shopUuid ?? "") === String(shopUuid)) : data;
 
   const products = filtered.map(normalizeProductRow).filter((p) => p && typeof (p as any).title === "string");
 
-  // Nur 1x ausgeben (relevant)
   out(`[EFRO Catalog] source=supabase table=products rows=${data.length} filtered=${products.length}`);
 
   const takeN = Number(process.env.EFRO_PRODUCTS_TAKE ?? 100);
@@ -158,10 +150,60 @@ async function loadProductsFromSupabase(): Promise<EfroProduct[]> {
   const finalList = list.slice(0, takeN);
 
   out(`[EFRO Catalog] using products: ${finalList.length}`);
-  if (finalList.length === 0) throw new Error("0 Produkte geladen. Prüfe products Tabelle / Filter / RLS.");
+  if (finalList.length === 0) throw new Error("0 Produkte geladen. Pr?fe products Tabelle / Filter / RLS.");
 
   return finalList;
 }
+
+
+function resolveProductsFixturePath(takeN: number): string {
+  const explicit = process.env.EFRO_PRODUCTS_FIXTURE_PATH;
+  if (explicit && String(explicit).trim().length > 0) return String(explicit).trim();
+  return path.resolve("scripts", "fixtures", `supabase.products${takeN}.json`);
+}
+
+function loadProductsFromFixture(fixturePath: string): EfroProduct[] {
+  if (!fs.existsSync(fixturePath)) {
+    throw new Error(`Fixture not found: ${fixturePath} (set EFRO_PRODUCTS_FIXTURE_PATH or run snapshot)`);
+  }
+  const raw = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+  if (!Array.isArray(raw)) throw new Error(`Fixture is not an array: ${fixturePath}`);
+
+  const products = raw
+    .map(normalizeProductRow)
+    .filter((p) => p && typeof (p as any).title === "string");
+
+  out(`[EFRO Catalog] source=fixture path=${fixturePath} rows=${products.length}`);
+  return products;
+}
+
+async function loadProducts(): Promise<EfroProduct[]> {
+  const takeN = Number(process.env.EFRO_PRODUCTS_TAKE ?? 100);
+  const source = String(process.env.EFRO_PRODUCTS_SOURCE ?? "supabase").toLowerCase();
+  const fixturePath = resolveProductsFixturePath(takeN);
+
+  if (source === "fixture") {
+    const products = loadProductsFromFixture(fixturePath).slice(0, takeN);
+    out(`[EFRO Catalog] using products: ${products.length}`);
+    if (products.length === 0) throw new Error("0 Produkte in Fixture.");
+    return products;
+  }
+
+  if (source === "supabase-once") {
+    const products = await loadProductsFromSupabase();
+    try {
+      fs.mkdirSync(path.dirname(fixturePath), { recursive: true });
+      fs.writeFileSync(fixturePath, JSON.stringify(products, null, 2), "utf8");
+      out(`[EFRO Catalog] wrote fixture: ${fixturePath}`);
+    } catch (e: any) {
+      err(`[EFRO Catalog] fixture write failed: ${e?.message ?? e}`);
+    }
+    return products;
+  }
+
+  return await loadProductsFromSupabase();
+}
+
 
 type SessionState = {
   intent?: string;
@@ -211,7 +253,7 @@ async function runSingleTurn(input: any, state: SessionState, allProducts: EfroP
     throw new Error("Missing userText/text in turn input");
   }
 
-  return await runSellerBrain(userText, intent, allProducts as any, plan, previousRecommended, context);
+  return await runSellerBrain(userText, intent as any, allProducts as any, plan, previousRecommended, context);
 }
 
 function failDetails(convId: string, turnIndex: number, reason: string) {
@@ -232,6 +274,22 @@ function baselineAssert(convId: string, turnIndex: number, result: any): string 
   return null;
 }
 
+/**
+ * Decode strings like "\u00c3" into actual characters (?),
+ * without storing mojibake characters in the repo.
+ */
+function decodeUnicodeEscapes(s: string): string {
+  // expects input like: \u00c3 or \u00e2\u20ac\u2013
+  if (!s.includes("\\u") && !s.includes("\\ufffd")) return s;
+  try {
+    const safe = s.replace(/\\/g, "\\\\");
+    // JSON.parse will decode \uXXXX escapes
+    return JSON.parse(`"${safe}"`);
+  } catch {
+    return s;
+  }
+}
+
 function assertTurn(convId: string, turnIndex: number, result: SellerBrainResult, expect: any) {
   if (!expect) return;
 
@@ -245,6 +303,32 @@ function assertTurn(convId: string, turnIndex: number, result: SellerBrainResult
     throw new Error(failDetails(convId, turnIndex, `count ${count} > maxCount ${expect.maxCount}`));
   }
 
+  // Hardcore: Titel muss wirklich getroffen werden (mind. 1 recommended enth?lt den Produkttitel)
+  if (typeof expect.mustIncludeProductTitle === "string") {
+    const want = expect.mustIncludeProductTitle.toLowerCase();
+    const recs = Array.isArray((result as any).recommended) ? (result as any).recommended : [];
+    const hit = recs.some((p: any) => String(p?.title ?? "").toLowerCase().includes(want));
+    if (!hit) {
+      throw new Error(`${failDetails(convId, turnIndex, `no recommended contains title "${expect.mustIncludeProductTitle}"`)}`);
+    }
+  }
+
+  // Hardcore: Encoding-M?ll ist live unprofessionell
+  if (Array.isArray(expect.mustNotIncludeText)) {
+    for (const raw of expect.mustNotIncludeText) {
+      const tokenRaw = String(raw);
+      const tokenDecoded = decodeUnicodeEscapes(tokenRaw);
+
+      // check both (falls mal wirklich raw vorkommt)
+      if (tokenRaw && replyText.includes(tokenRaw)) {
+        throw new Error(failDetails(convId, turnIndex, `reply contains forbidden "${tokenRaw}"`));
+      }
+      if (tokenDecoded && replyText.includes(tokenDecoded)) {
+        throw new Error(failDetails(convId, turnIndex, `reply contains forbidden decoded token "${tokenRaw}"`));
+      }
+    }
+  }
+
   if (expect.mustIncludeText) {
     for (const s of expect.mustIncludeText) {
       if (!replyText.toLowerCase().includes(String(s).toLowerCase())) {
@@ -255,7 +339,8 @@ function assertTurn(convId: string, turnIndex: number, result: SellerBrainResult
 
   if (expect.mustNotIncludeText) {
     for (const s of expect.mustNotIncludeText) {
-      if (replyText.toLowerCase().includes(String(s).toLowerCase())) {
+      const token = decodeUnicodeEscapes(String(s)).toLowerCase();
+      if (token && replyText.toLowerCase().includes(token)) {
         throw new Error(failDetails(convId, turnIndex, `reply must NOT include "${s}"`));
       }
     }
@@ -274,13 +359,10 @@ async function runConversation(spec: ConversationSpec, allProducts: EfroProduct[
       result = await runSingleTurn(t, state, allProducts);
 
       const baseFail = baselineAssert(spec.id, i, result);
-      if (baseFail) {
-        throw new Error(baseFail);
-      }
+      if (baseFail) throw new Error(baseFail);
 
       assertTurn(spec.id, i, result, t.expect);
 
-      // State-Update für den nächsten Turn
       state.intent = (result as any).intent ?? state.intent;
       state.previousRecommended = (result as any).recommended ?? state.previousRecommended;
       state.context = (result as any).nextContext ?? state.context;
@@ -288,7 +370,7 @@ async function runConversation(spec: ConversationSpec, allProducts: EfroProduct[
       const intent = (result as any)?.intent;
       const recommendedCount = Array.isArray((result as any)?.recommended) ? (result as any).recommended.length : undefined;
       const replyText = String((result as any)?.replyText ?? "");
-      const replySnippet = replyText.length > 220 ? replyText.slice(0, 220) + "…" : replyText;
+      const replySnippet = replyText.length > 220 ? replyText.slice(0, 220) + "?" : replyText;
 
       throw new ConversationFail({
         convId: spec.id,
@@ -305,10 +387,8 @@ async function runConversation(spec: ConversationSpec, allProducts: EfroProduct[
 }
 
 async function main() {
-  // 1) Produkte laden
-  const allProducts = await loadProductsFromSupabase();
+  const allProducts = await loadProducts();
 
-  // 2) Target
   const rawTarget = process.env.CONV_TARGET ?? process.env.SCENARIO_TARGET;
   const target = rawTarget ? Number(rawTarget) : undefined;
   const list = target ? conversations.slice(0, target) : conversations;
@@ -318,15 +398,11 @@ async function main() {
   let fails = 0;
   let stopped = false;
 
-  // progress
   let done = 0;
   const total = list.length;
 
-  out(
-    `[EFRO ConvTest] start total=${total} concurrency=${CONCURRENCY} quiet=${QUIET} maxFails=${MAX_FAILS} failFast=${FAIL_FAST}`
-  );
+  out(`[EFRO ConvTest] start total=${total} concurrency=${CONCURRENCY} quiet=${QUIET} maxFails=${MAX_FAILS} failFast=${FAIL_FAST}`);
 
-  // Worker-Pool
   let idx = 0;
   const next = () => {
     if (stopped) return null;
@@ -336,7 +412,7 @@ async function main() {
     return c;
   };
 
-  async function worker(workerId: number) {
+  async function worker() {
     for (;;) {
       const c = next();
       if (!c) return;
@@ -344,24 +420,23 @@ async function main() {
       try {
         await runConversation(c, allProducts);
         ok++;
-        if (PRINT_OK) out(`✅ ${c.id}: ${c.title}`);
+        if (PRINT_OK) out(`? ${c.id}: ${c.title}`);
       } catch (e: any) {
         fails++;
         process.exitCode = 1;
 
         if (e instanceof ConversationFail) {
-          err(`❌ ${e.convId}: ${e.title}`);
+          err(`? ${e.convId}: ${e.title}`);
           err(`   turn ${e.turnIndex + 1}: ${e.message}`);
           err(`   text: ${e.turnText}`);
           if (e.intent) err(`   intent: ${e.intent}`);
           if (typeof e.recommendedCount === "number") err(`   recommended: ${e.recommendedCount}`);
           if (e.replySnippet) err(`   reply: ${e.replySnippet}`);
         } else {
-          err(`❌ ${c.id}: ${c.title}`);
+          err(`? ${c.id}: ${c.title}`);
           err(`   ${e?.message ?? String(e)}`);
         }
 
-        // Stop-Logik
         if (FAIL_FAST) stopped = true;
         if (MAX_FAILS > 0 && fails >= MAX_FAILS) stopped = true;
       } finally {
@@ -375,7 +450,7 @@ async function main() {
     }
   }
 
-  const workers = Array.from({ length: CONCURRENCY }, (_, i) => worker(i + 1));
+  const workers = Array.from({ length: CONCURRENCY }, () => worker());
   await Promise.all(workers);
 
   const durMs = Date.now() - started;
@@ -388,3 +463,4 @@ main().catch((e) => {
   err(String(e?.stack ?? e?.message ?? e));
   process.exit(1);
 });
+
