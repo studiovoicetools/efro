@@ -133,3 +133,5 @@ supabase/.temp/
 scripts/_*.js
 scripts/_*.cjs
 scripts/_*.mjs
+
+patch-fix-mojibake-gen.patch
