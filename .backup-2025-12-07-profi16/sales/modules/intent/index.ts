@@ -1,2 +1,0 @@
-﻿// intent module index
-export {};

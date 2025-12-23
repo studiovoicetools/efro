@@ -141,3 +141,8 @@ scripts/fixtures/conversations*.json
 
 # local backups
 *.bak.*
+
+# backup folders + checkpoint patches (keep outside repo)
+.backup-*/
+_checkpoint.patch
+*_checkpoint.patch

@@ -1,2 +1,0 @@
-﻿// ai module index
-export {};
