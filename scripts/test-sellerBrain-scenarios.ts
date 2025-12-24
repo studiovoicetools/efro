@@ -47,7 +47,7 @@ import { generatedScenarios } from "./scenarios/generated"; // neu: zusätzliche
 async function loadTestProducts(): Promise<EfroProduct[]> {
   const DEBUG_PRODUCTS_URL =
     process.env.EFRO_DEBUG_PRODUCTS_URL ??
-    "http://localhost:3000/api/efro/debug-products?shop=local-dev";
+    "http://127.0.0.1:3000/api/efro/products?shop=test-shop.myshopify.com&debug=1";
 
   // NEW: allowFixtureFallback from env
   const allowFixtureFallback = process.env.EFRO_ALLOW_FIXTURE_FALLBACK === "1";
