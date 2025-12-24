@@ -1,5 +1,10 @@
 // src/app/api/efro/suggest/route.ts
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 import { NextRequest, NextResponse } from "next/server";
 import type {
   ShoppingIntent,
@@ -12,6 +17,8 @@ import {
 import type { SellerBrainAiTrigger } from "../../../../lib/sales/modules/aiTrigger";
 import { logEfroEventServer } from "@/lib/efro/logEventServer";
 
+
+import { loadFaqDoc, matchFaq, DEFAULT_FAQ_THRESHOLD } from "@/lib/faq/faqEngine";
 type SuggestResponse = {
   shop: string;
   intent: ShoppingIntent;
@@ -25,31 +32,40 @@ type SuggestResponse = {
   };
 };
 
-async function loadProductsViaDebugEndpoint(
+const FAQ_DOC = loadFaqDoc();
+const FAQ_THRESHOLD = Number(process.env.EFRO_FAQ_THRESHOLD ?? DEFAULT_FAQ_THRESHOLD);
+
+function tryRouteFaq(text: string): { answer: string; topicId: string; score: number } | null {
+  const hit = matchFaq(text, FAQ_DOC);
+  if (!hit) return null;
+  const score = Number(hit.score ?? 0);
+  if (!(score >= FAQ_THRESHOLD)) return null;
+  return { answer: hit.topic.answer, topicId: hit.topic.id, score };
+}
+
+
+
+async function loadProductsViaEfroProductsEndpoint(
   req: NextRequest,
   shop: string
 ): Promise<{ products: EfroProduct[]; source: string }> {
   // Basis-URL aus der aktuellen Request (z.B. http://localhost:3000)
   const baseUrl = req.nextUrl.origin;
-  const url = new URL("/api/efro/debug-products", baseUrl);
+  const url = new URL("/api/efro/products", baseUrl);
   url.searchParams.set("shop", shop);
+  url.searchParams.set("debug", "1");
 
-  const res = await fetch(url.toString(), {
-    cache: "no-store",
-  });
-
+  const res = await fetch(url.toString(), { cache: "no-store" });
   if (!res.ok) {
-    throw new Error(
-      `debug-products request failed with status ${res.status}`
-    );
+    throw new Error(`efro/products request failed with status ${res.status}`);
   }
 
   const data = await res.json().catch(() => ({} as any));
-  const products = Array.isArray(data.products) ? data.products : [];
+  const products = Array.isArray((data as any).products) ? (data as any).products : [];
   const source =
-    typeof data.source === "string"
-      ? data.source
-      : "debug-products (no explicit source)";
+    typeof (data as any).source === "string"
+      ? (data as any).source
+      : "efro/products (no explicit source)";
 
   return { products, source };
 }
@@ -77,12 +93,37 @@ export async function GET(req: NextRequest) {
     }
 
     // Produkte ueber deine bestehende Debug-Route holen
-    const { products, source } = await loadProductsViaDebugEndpoint(
-      req,
-      shop
-    );
+    const { products, source } = await loadProductsViaEfroProductsEndpoint(req, shop);
 
-    // Context aus Query-Parameter (optional, für GET vorerst nicht genutzt)
+
+    const faqHit = tryRouteFaq(text);
+    if (faqHit) {
+      const payload: SuggestResponse = {
+        shop,
+        intent: prevIntent,
+        replyText: faqHit.answer,
+        recommended: [],
+        productCount: products.length,
+        productsSource: source,
+      };
+
+      await logEfroEventServer({
+        shopDomain: shop || "local-dev",
+        userText: text,
+        intent: prevIntent,
+        productCount: 0,
+        plan: null,
+        hadError: false,
+        errorMessage: null,
+      }).catch((err) => {
+        console.error("[EFRO suggest] Logging failed (ignored)", err);
+      });
+
+      return NextResponse.json(payload, { status: 200 });
+    }
+
+
+    // Context from query (currently unused in GET)
     const context: SellerBrainContext | undefined = undefined;
 
     const brainResult = await runSellerBrain(
@@ -183,12 +224,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { products, source } = await loadProductsViaDebugEndpoint(
-      req,
-      shop
-    );
+    const { products, source } = await loadProductsViaEfroProductsEndpoint(req, shop);
 
-    // Optional: previousRecommended aus Body extrahieren (falls vorhanden)
+    // Optional: previousRecommended IDs from body
     let previousRecommended: EfroProduct[] | undefined = undefined;
     if (Array.isArray(body.previousRecommendedIds) && body.previousRecommendedIds.length > 0) {
       const ids = body.previousRecommendedIds as string[];
