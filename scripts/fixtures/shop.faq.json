@@ -81,7 +81,14 @@
         "bestellung bestätigt",
         "bestätigungsmail",
         "mail nicht bekommen",
-        "zahlung bestätigt aber keine mail"
+        "zahlung bestätigt aber keine mail",
+        "Kann ich die Adresse noch ändern?",
+        "Kann ich die Lieferadresse noch ändern?",
+        "Kann ich die Adresse noch ändern? Bestellung ist von heute.",
+        "Adresse noch ändern",
+        "Lieferadresse noch ändern",
+        "Adresse ändern Bestellung von heute",
+        "Bestellung von heute Adresse ändern"
       ],
       "answer": "Status: bestellt→bezahlt→gepackt→versendet→zugestellt. Änderungen/Storno nur vor Versand."
     },
