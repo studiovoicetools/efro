@@ -58,6 +58,14 @@ type UnknownTermsResult = {
 
 export type ResolvedUnknownTerm = string;
 
+function tagsToText(tags: any): string {
+  if (!tags) return "";
+  if (Array.isArray(tags)) return tags.map((t) => String(t)).join(" ");
+  if (typeof tags === "string") return tags.replace(/[,|;]/g, " ");
+  return "";
+}
+
+
 const HUMAN_SKIN_CATEGORIES = [
   "kosmetik",
   "beauty",
@@ -354,7 +362,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
 
     const tagsText =
       Array.isArray((product as any).tags)
-        ? (product as any).tags.join(" ")
+        ? tagsToText((product as any).tags)
         : typeof (product as any).tags === "string"
         ? (product as any).tags
         : "";
@@ -1083,22 +1091,12 @@ async function buildFilterContext(
       .filter((w) => w.length >= 3);
     descWords.forEach((w) => catalogKeywordsSet.add(w));
 
-    // Tags normalisieren und splitten
+    // Tags normalisieren und splitten (robust: Array/String/sonstiges)
     const rawTags = (product as any).tags;
-    if (Array.isArray(rawTags)) {
-      rawTags.forEach((tag: string) => {
-        const tagWords = normalizeText(String(tag))
-          .split(/\s+/)
-          .filter((w) => w.length >= 3);
-        tagWords.forEach((w) => catalogKeywordsSet.add(w));
-      });
-    } else if (typeof rawTags === "string") {
-      const tagWords = normalizeText(rawTags)
-        .split(/\s+/)
-        .filter((w) => w.length >= 3);
-      tagWords.forEach((w) => catalogKeywordsSet.add(w));
-    }
-  }
+    const tagsNormalized = normalizeText(tagsToText(rawTags));
+    const tagWords = tagsNormalized.split(/\s+/).filter((w) => w.length >= 3);
+    tagWords.forEach((w) => catalogKeywordsSet.add(w));
+}
   const catalogKeywords = Array.from(catalogKeywordsSet);
 
   // Alias-Map initialisieren und filtern (nur Keywords, die im Katalog vorkommen)
@@ -1662,7 +1660,7 @@ function applyProductFilters(
           " " +
           (p.category ?? "") +
           " " +
-          (Array.isArray(p.tags) ? p.tags.join(" ") : "")
+          tagsToText((p as any).tags)
         ).toLowerCase();
         
         // EFRO WAX-Disambiguierung: Wenn "wax"/"wachs" im Query ist, prüfe Intent
@@ -2110,7 +2108,7 @@ if (wantsCheapestSnowboard) {
     const title = normalize(p.title || "");
     const description = normalize((p as any).description || "");
     const tagsText = Array.isArray((p as any).tags)
-      ? normalize((p as any).tags.join(" "))
+      ? normalize(tagsToText((p as any).tags))
       : "";
 
     const text = `${title} ${description} ${tagsText}`;
@@ -2399,7 +2397,7 @@ export async function filterProductsForSellerBrain(
           " " +
           (p.category ?? "") +
           " " +
-          (Array.isArray(p.tags) ? p.tags.join(" ") : "")
+          tagsToText((p as any).tags)
         ).toLowerCase();
         
         // EFRO WAX-Disambiguierung: Wenn "wax"/"wachs" im Query ist, prüfe Intent
@@ -2526,6 +2524,41 @@ export async function filterProductsForSellerBrain(
       });
     }
   }
+
+    // [EFRO EN Stopwords Fix]
+    // Ziel: EN-Füllwörter dürfen Keyword-Matching/UnknownTerms nicht zerstören
+    const EFRO_QUERY_STOPWORDS = new Set([
+      // EN
+      "do","you","have","something","like","about","around","roughly",
+      "any","a","an","the","for","with","of","in","on","to","and","or",
+      "please","show","me","i","im","i'm","looking","searching","want","need",
+      "can","could","would","is","are","there",
+      // DE (harmlos, nur Füllwörter)
+      "ich","suche","such","zeige","zeig","mir","bitte","hast","haben",
+      "gibt","gibts","etwas","wie","so","ähnlich"
+    ]);
+
+    const _efroNormTok = (t: any) => String(t ?? "").toLowerCase().trim();
+
+    const _beforeWords = Array.isArray(words) ? words.slice(0, 25) : [];
+    words = (Array.isArray(words) ? words : []).filter((w) => {
+      const t = _efroNormTok(w);
+      if (!t) return false;
+      return !EFRO_QUERY_STOPWORDS.has(t);
+    });
+    expandedWords = (Array.isArray(expandedWords) ? expandedWords : []).filter((w) => {
+      const t = _efroNormTok(w);
+      if (!t) return false;
+      return !EFRO_QUERY_STOPWORDS.has(t);
+    });
+
+    if (_beforeWords.length && words.length !== _beforeWords.length) {
+      console.log("[EFRO EN STOPWORDS] filtered", {
+        text: String(text ?? "").substring(0, 80),
+        before: _beforeWords,
+        after: words.slice(0, 25),
+      });
+    }
 
   // 2) Unbekannte Begriffe auflösen
   const unknownTermsResult = resolveUnknownTermsForFilter(
@@ -2876,7 +2909,7 @@ export async function filterProductsForSellerBrain(
           p.description || "",
           p.category || "",
           Array.isArray((p as any).tags)
-            ? (p as any).tags.join(" ")
+            ? tagsToText((p as any).tags)
             : typeof (p as any).tags === "string"
             ? (p as any).tags
             : "",
@@ -2937,7 +2970,7 @@ export async function filterProductsForSellerBrain(
           p.description || "",
           p.category || "",
           Array.isArray((p as any).tags)
-            ? (p as any).tags.join(" ")
+            ? tagsToText((p as any).tags)
             : typeof (p as any).tags === "string"
             ? (p as any).tags
             : "",

@@ -27,6 +27,15 @@
 /**
  * Einfacher Normalizer – analog zu sellerBrain.ts
  */
+function sanitizeBudgetText(input: string): string {
+  const t = (input || "").toLowerCase();
+  // Entferne Stück-/Teile-Angaben, die wie Budget-Zahlen aussehen (z.B. "120-teilig")
+  return t
+    .replace(/\b(\d+)\s*[-–—]\s*(teilig|teile|stück|stueck|pcs?|pieces?)\b/gi, " ")
+    .replace(/\b(\d+)\s+(teilig|teile|stück|stueck|pcs?|pieces?)\b/gi, " ");
+}
+
+
 function normalizeText(input: string): string {
   return input
     .toLowerCase()

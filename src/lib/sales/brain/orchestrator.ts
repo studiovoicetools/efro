@@ -4442,11 +4442,39 @@ console.log("[EFRO OffTopicGate Debug]", {
   // CLUSTER K FIX K10v1/K11v1: Diese Logik wird später nach der Code-Detection ausgeführt
 
   // Force-Show-Logik: Bei klaren Produktanfragen immer Produkte anzeigen
+  const normalizedForForceShow = normalize(cleaned || "");
+  const isOffTopicForForceShow = [
+    "politik","wahl","regierung","krieg","nachrichten",
+    "cursor","token","ki","chatgpt","abo","abonnement","vertrag","versicherung",
+  ].some((w) => normalizedForForceShow.includes(w));
+
+  
+  const looksLikeGenericShopSearch =
+    // EN
+    normalizedForForceShow.includes("do you have") ||
+    normalizedForForceShow.includes("something like") ||
+    normalizedForForceShow.includes("looking for") ||
+    normalizedForForceShow.includes("i need") ||
+    normalizedForForceShow.includes("i want") ||
+    normalizedForForceShow.includes("show me") ||
+    // DE
+    normalizedForForceShow.includes("ich suche") ||
+    normalizedForForceShow.includes("etwas wie") ||
+    normalizedForForceShow.includes("hast du") ||
+    normalizedForForceShow.includes("habt ihr");
+
+  const looksLikeShortShopQuery =
+    normalizedForForceShow.length >= 2 &&
+    normalizedForForceShow.length <= 30 &&
+    normalizedForForceShow.split(" ").filter(Boolean).length <= 2;
   const forceShowProducts =
     nextIntent === "quick_buy" &&
-    isProductRelated(cleaned) &&
-    candidateCount > 0;
-
+    !isOffTopicForForceShow &&
+    (isProductRelated(cleaned) ||
+      looksLikeGenericShopSearch ||
+      looksLikeShortShopQuery ||
+      !!context?.activeCategorySlug ||
+      (previousRecommended?.length ?? 0) > 0);
   let reusedPreviousProducts = false;
 
   const normalized = normalize(cleaned || "");
@@ -4500,10 +4528,11 @@ console.log("[EFRO OffTopicGate Debug]", {
   if (
     forceShowProducts &&
     recommended.length === 0 &&
-    candidateCount > 0 &&
+    allProducts.length > 0 &&
     !priceRangeNoMatch
   ) {
-    recommended = finalRanked.slice(0, effectiveMaxRecommendations);
+    const forceSource = finalRanked.length > 0 ? finalRanked : allProducts;
+      recommended = forceSource.slice(0, effectiveMaxRecommendations);
     console.log("[EFRO SellerBrain FORCE_PRODUCTS]", {
       text: cleaned,
       intent: nextIntent,

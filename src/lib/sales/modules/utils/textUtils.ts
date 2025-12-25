@@ -2,7 +2,7 @@
 
 function looksLikeMojibake(s: string): boolean {
   // typische UTF8->Latin1 Fehl-Decodierung (Ã¼, Ã¶, Ã¤, â€“, â€™, Â etc.)
-  return /Ã|Â|â€|â€™|â€œ|â€�|â€“|â€¦/.test(s);
+  return /Ã|Â|â€|â€™|â€œ|â€|â€“|â€¦/.test(s);
 }
 
 function fixMojibakeUtf8(s: string): string {
@@ -32,6 +32,11 @@ function fixMojibakeUtf8(s: string): string {
 }
 
 
+export function fixMojibakeForDisplay(input: string): string {
+  return fixMojibakeUtf8(input || "").replace(/\uFFFD/g, "");
+}
+
+
 
 
 
@@ -41,20 +46,18 @@ export function normalizeText(input: string): string {
   const fixed = fixMojibakeUtf8(input || "")
     // häufige Euro-Mojibake-Fälle (dein Beispiel)
     .replace(/Ã¢âÂ¬/g, "€")
-    .replace(/â\uFFFD¬/g, "€") // "â�¬" = â + U+FFFD + ¬
+    .replace(/â\uFFFD¬/g, "€") // "â\uFFFD¬" = â + U+FFFD + ¬
     .replace(/â‚¬/g, "€")
     // häufiges "Â" als Artefakt (z. B. "10Â €")
     .replace(/Â/g, "");
 
   return fixed
     .toLowerCase()
-    // WICHTIG: das ist die ursprüngliche Logik aus deinem Backup – nur mit € ergänzt
+    // WICHTIG: ursprüngliche Logik – nur mit € ergänzt
     .replace(/[^a-z0-9äöüß€\s]/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
-
-
 
 export function normalize(text: string): string {
   return normalizeText(text);
@@ -142,7 +145,7 @@ export function normalizeUserInput(raw: string | null | undefined): string {
   let text = raw.normalize("NFKC");
 
   // Türkisches "ı" in "i" umwandeln
-  text = text.replace(/ı/g, "i");
+  text = text.replace(/\u0131/g, "i");
 
   // Steuerzeichen entfernen
   text = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");

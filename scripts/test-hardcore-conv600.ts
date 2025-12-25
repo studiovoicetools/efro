@@ -135,7 +135,12 @@ function buildConversations(products: EfroProduct[], targetTurns: number, seed: 
     const kw = pickKeywordFromProduct(anchor, r);
     const cat = pick(catFallback, r);
 
-    const budget = [15, 25, 30, 50, 80, 100, 150, 200, 300, 600, 900][Math.floor(r() * 11)];
+    const budgets = [15, 25, 30, 50, 80, 100, 150, 200, 300, 600, 900];
+    const anchorPrice = Number(anchor?.price ?? 0);
+    // Option A: Budget am Anchor ausrichten, damit T1 (anchor-keyword) wirklich matcht (±20%-Fenster)
+    const budget = anchorPrice > 0
+      ? Math.max(10, Math.round(anchorPrice))
+      : budgets[Math.floor(r() * budgets.length)];
     const langSwitch = r() < 0.15;
 
     // Turn 1: Produkt-/Keyword-getrieben (soll IMMER matchen, weil Keyword aus echtem Produkt)
