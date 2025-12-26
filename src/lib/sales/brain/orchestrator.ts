@@ -2711,8 +2711,10 @@ function applyProductFilters(
     if (!hasCategoryFromQuery) {
       // Fallback: Suche direkt in Produkten nach Query-Begriffen
       const normalizedText = normalize(text);
-      const tokens = normalizedText.split(/\s+/).filter((w) => w.length >= 3);
-
+      const _tokens = normalizedText.split(/\s+/).filter((w) => w.length >= 3);
+      const tokens = (missingCategoryHint && missingCategoryHint.length > 1)
+        ? [missingCategoryHint, `${missingCategoryHint}s`]
+        : _tokens;
       // EFRO WAX-Disambiguierung: Unterscheide zwischen Haarwachs und Snowboard-Wachs
       const hasWaxKeyword =
         normalizedText.includes("wax") || normalizedText.includes("wachs");
@@ -3925,6 +3927,50 @@ const bypassOffTopicBecauseCategorySuggestion =
 
 // --- END ---
 
+
+  // --- BEGIN: generic shop browse query should bypass off-topic gate ---
+  const normalizedForOffTopicBrowse = normalize(cleaned || "");
+
+  const offTopicKeywordsForBrowse = [
+    "politik",
+    "wahl",
+    "regierung",
+    "krieg",
+    "nachrichten",
+    "cursor",
+    "token",
+    "ki",
+    "chatgpt",
+    "abo",
+    "abonnement",
+    "vertrag",
+    "versicherung",
+  ];
+
+  const isOffTopicForBrowse = offTopicKeywordsForBrowse.some((w) =>
+    normalizedForOffTopicBrowse.includes(w),
+  );
+
+  const isGenericShopBrowseQueryForOffTopic =
+    !isOffTopicForBrowse &&
+    (
+      // EN
+      normalizedForOffTopicBrowse.includes("show me") ||
+      normalizedForOffTopicBrowse.includes("do you have") ||
+      normalizedForOffTopicBrowse.includes("something like") ||
+      normalizedForOffTopicBrowse.includes("looking for") ||
+      normalizedForOffTopicBrowse.includes("i need") ||
+      normalizedForOffTopicBrowse.includes("i want") ||
+      // DE
+      normalizedForOffTopicBrowse.includes("zeig") ||
+      normalizedForOffTopicBrowse.includes("zeige") ||
+      normalizedForOffTopicBrowse.includes("ich suche") ||
+      normalizedForOffTopicBrowse.includes("etwas wie") ||
+      normalizedForOffTopicBrowse.includes("hast du") ||
+      normalizedForOffTopicBrowse.includes("habt ihr")
+    );
+  // --- END ---
+
 console.log("[EFRO OffTopicGate Debug]", {
   cleaned,
   cleanedNorm,
@@ -3932,6 +3978,8 @@ console.log("[EFRO OffTopicGate Debug]", {
   hasKnownCategoryMention,
   hasSuggestionIntent,
   bypassOffTopicBecauseCategorySuggestion,
+    isOffTopicForBrowse,
+    isGenericShopBrowseQueryForOffTopic,
 });
 
   if (
@@ -3944,7 +3992,8 @@ console.log("[EFRO OffTopicGate Debug]", {
     !hasUnknownTermsWithContext &&
 	!isExplicitShoppingQuery &&
 	!isCategoryOnlyQuery &&
-	!bypassOffTopicBecauseCategorySuggestion
+	!bypassOffTopicBecauseCategorySuggestion &&
+          !isGenericShopBrowseQueryForOffTopic
   ) {
     const recommended = previousRecommended
       ? previousRecommended.slice(0, maxRecommendations)
@@ -4379,6 +4428,65 @@ console.log("[EFRO OffTopicGate Debug]", {
       if (userMaxPrice !== null && price > userMaxPrice) return false;
       return true;
     });
+
+    // PATCH A1: Wenn der finale Budget-Filter ALLES entfernt, ist das ein Budget-No-Match.
+    // Dann sollen Fallback-Produkte (über Budget) gezeigt werden, aber mit priceRangeNoMatch=true.
+    if (finalRankedWithBudget.length === 0 && finalRanked.length > 0) {
+      priceRangeNoMatch = true;
+
+      // priceRangeInfo nur setzen, wenn noch nicht vorhanden
+      if (!priceRangeInfo) {
+        let effectiveCategorySlugForInfo: string | null = null;
+        if (context?.activeCategorySlug) {
+          effectiveCategorySlugForInfo = normalize(context.activeCategorySlug);
+        } else if (finalRanked.length > 0 && finalRanked[0].category) {
+          effectiveCategorySlugForInfo = normalize(finalRanked[0].category);
+        }
+
+        // nearest above budget aus finalRanked bestimmen
+        let nearestPriceAboveBudget: number | null = null;
+        let nearestProductTitleAboveBudget: string | null = null;
+
+        if (userMaxPrice !== null) {
+          const above = finalRanked
+            .filter((p) => (p.price ?? 0) > userMaxPrice)
+            .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+
+          if (above.length > 0) {
+            nearestPriceAboveBudget = above[0].price ?? null;
+            nearestProductTitleAboveBudget = above[0].title ?? null;
+          }
+        }
+
+        priceRangeInfo = {
+          ...computePriceRangeInfo({
+            userMinPrice,
+            userMaxPrice,
+            allProducts,
+            effectiveCategorySlug: effectiveCategorySlugForInfo,
+            normalize,
+          }),
+          nearestPriceAboveBudget,
+          nearestProductTitleAboveBudget,
+        };
+      }
+
+      // Budget-Filter NICHT anwenden, damit Fallback-Produkte erhalten bleiben
+      finalRankedWithBudget = finalRanked;
+
+      console.log(
+        "[EFRO Budget-Filter Final] All results outside budget -> priceRangeNoMatch",
+        {
+          text: cleaned.substring(0, 100),
+          userMinPrice,
+          userMaxPrice,
+          beforeCount: finalRanked.length,
+          afterCount: 0,
+          priceRangeNoMatch,
+          priceRangeInfo,
+        },
+      );
+    }
 
     if (finalRankedWithBudget.length !== finalRanked.length) {
       console.log(
@@ -5742,15 +5850,33 @@ console.log("[EFRO OffTopicGate Debug]", {
             dynamicSynonyms.map((s) => s.term.toLowerCase()),
           );
 
-          for (const term of filteredUnknownTerms) {
+                      const _stop = new Set([
+              "zeig","zeige","zeigen","mir","bitte","unter","ueber","über","ab","bis","zwischen",
+              "euro","eur","€","und","oder","mit","ohne","für","fuer","zum","zur","ein","eine",
+              "ich","du","wir","ihr","der","die","das","den","dem","des","im","in","am","an"
+            ]);
+            const _cleanUnknown = (filteredUnknownTerms ?? []).filter((t) => {
+              const x = (t ?? "").toString().trim().toLowerCase();
+              if (!x) return false;
+              if (_stop.has(x)) return false;
+              if (/^\d+[\d.,]*$/.test(x)) return false; // Zahlen/Beträge
+              if (x.length < 3) return false;
+              return true;
+            });
+
+            for (const term of _cleanUnknown) {
             // Wenn Begriff nicht in dynamischen Synonymen und nicht wie ein Produktcode aussieht
             if (!dynamicSynonymTerms.has(term) && !looksLikeProductCode(term)) {
               // Pr?fe, ob Begriff in Produkten gefunden wurde
-              const foundInProducts = allProducts.some((p) => {
-                const searchText =
-                  `${p.title} ${p.description} ${(p.tags || []).join(" ")}`.toLowerCase();
-                return searchText.includes(term);
-              });
+                const foundInProducts = allProducts.some((p) => {
+                  const tagsText = Array.isArray(p.tags)
+                    ? p.tags.join(" ")
+                    : typeof p.tags === "string"
+                      ? p.tags
+                      : "";
+                  const searchText = `${p.title ?? ""} ${p.description ?? ""} ${tagsText}`.toLowerCase();
+                  return searchText.includes(term);
+                });
 
               if (!foundInProducts) {
                 synonymLookupTerms.push(term);
