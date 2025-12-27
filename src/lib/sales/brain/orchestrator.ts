@@ -4000,7 +4000,7 @@ console.log("[EFRO OffTopicGate Debug]", {
       : [];
 
     const offTopicReply =
-      "Ich bin hier, um dir bei der Produktsuche zu helfen. Stell mir bitte Fragen zu Produkten aus dem Shop.";
+      "Ich habe dazu gerade kein passendes Produkt im Shop gefunden. Nenne mir bitte eine Alternative (Kategorie/Marke/Anwendungsfall) oder ein Budget, dann suche ich gezielter weiter.";
 
        console.log("[EFRO SellerBrain] Off-topic detected, no new filtering", {
        text: cleaned,

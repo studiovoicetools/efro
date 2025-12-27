@@ -12,6 +12,37 @@ import type { EfroProduct } from "@/lib/products/mockCatalog";
 import { mockCatalog } from "@/lib/products/mockCatalog";
 import { fixEncodingDeep, normalizeTags, cleanText, sanitizeDeep } from "@/lib/text/encoding";
 
+
+// EFRO LIVE GATE: remove broken products before they reach SellerBrain
+function sanitizeEfroProducts(products: unknown): any[] {
+  const arr = Array.isArray(products) ? products : [];
+  return arr.filter((p: any) => {
+    const id = String(p?.id ?? "");
+    const title = String(p?.title ?? "").trim();
+    const category = String(p?.category ?? "").trim();
+    const priceRaw = p?.price;
+    const price = typeof priceRaw === "number" ? priceRaw : Number(priceRaw ?? 0);
+
+    if (!id) return false;
+    if (id.startsWith("BAD-")) return false;
+
+    const titleLc = title.toLowerCase();
+    if (!title) return false;
+    if (titleLc.includes("unnamed product")) return false;
+    if (title === "###") return false;
+    if (titleLc === "broken-url") return false;
+    if (titleLc === "null-image") return false;
+
+    if (!Number.isFinite(price) || price <= 0) return false;
+
+    const catLc = category.toLowerCase();
+    if (!category) return false;
+    if (catLc === "unknown") return false;
+
+    return true;
+  });
+}
+
 type ShopifyProduct = {
   id: string | number;
   title: string;
@@ -86,7 +117,7 @@ function finalizeEfroProducts(raw: unknown): EfroProduct[] {
     });
   }
 
-  return out;
+  return sanitizeEfroProducts(out) as EfroProduct[];
 }
 
 function mapShopifyToEfro(sp: ShopifyProduct): EfroProduct {
