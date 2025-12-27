@@ -462,11 +462,12 @@ export const UNKNOWN_AI_STOPWORDS = [
   "sein", "seine", "unser", "unsere", "euer", "eure",
   "habe", "hast", "hat", "haben", "bin", "bist", "ist", "sind", "war", "waren",
   // Füllwörter
-  "naja", "äh", "also", "mal", "doch", "eben", "halt",
+  "naja", "äh", "also", "mal", "doch", "eben", "halt", "gib", "gibt", "gibts",
   // Budget-/Preiswörter
-  "budget", "preis", "preise", "preisspanne", "euro",
+  "budget", "preis", "preise", "preisspanne", "euro", "katze", "akku", "schrauber", "küchenmessa",
   "unter", "über", "bis", "ca", "etwa", "ungefähr", "von",
-];
+  // EFRO LIVE GATE: diese Wörter dürfen NIE als unknownTerms im aiTrigger auftauchen
+  "brauch", "brauche", "brauchst", "brauchen", "günstig", "günstige", "günstiges", "günstiger", "günstigste", "günstigstes", "günstigsten", "guenstig", "guenstige", "guenstiges", "guenstiger", "guenstigste", "guenstigstes", "guenstigsten", "billig", "billige", "billiges", "billiger", "billigste", "billigstes", "billigsten", "preiswert", "preiswerte", "preiswertes", "preiswerter", "preiswerteste", "preiswertestes", "noch", "ähnlich", "ähnliches", "ähnlicher", "aehnlich", "aehnliches", "aehnlicher",];
 
 // "Zeige mir"-Patterns
 export const SHOW_ME_PATTERNS = [

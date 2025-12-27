@@ -32,6 +32,37 @@ type SuggestResponse = {
   };
 };
 
+
+// EFRO LIVE GATE: sanitize outgoing payload (replyText + recommended)
+function sanitizeReplyText(text: unknown): string {
+  const t = typeof text === "string" ? text : "";
+  // kill 'Bereich unknown'
+  let out = t.replace(/\n\nAlle Produkte gehören in den Bereich unknown\.(\n\n|\n)/gi, "\n\n");
+  // neutralize perfume-only wording if present
+  out = out.replace(/Premiumnote/gi, "etwas Hochwertiges");
+  out = out.replace(
+    /Möchtest du eher etwas Günstiges für den Alltag oder eher eine Premiumnote\?/gi,
+    "Möchtest du eher etwas Günstiges für den Alltag oder eher etwas Hochwertiges?",
+  );
+  return out.trim();
+}
+
+function sanitizeRecommended(recommended: unknown): any[] {
+  const arr = Array.isArray(recommended) ? recommended : [];
+  return arr.filter((p) => {
+    const id = String(p?.id ?? "");
+    const title = String(p?.title ?? "").trim().toLowerCase();
+    const category = String(p?.category ?? "").trim().toLowerCase();
+    const price = typeof p?.price === "number" ? p.price : Number(p?.price ?? 0);
+    if (!id) return false;
+    if (id.startsWith("BAD-")) return false;
+    if (!title || title.includes("unnamed product")) return false;
+    if (!Number.isFinite(price) || price <= 0) return false;
+    if (!category || category == "unknown") return false;
+    return true;
+  });
+}
+
 const FAQ_DOC = loadFaqDoc();
 const FAQ_THRESHOLD = Number(process.env.EFRO_FAQ_THRESHOLD ?? DEFAULT_FAQ_THRESHOLD);
 
@@ -84,11 +115,10 @@ export async function GET(req: NextRequest) {
     // Plan-Parameter aus Query-String lesen (default: "starter" für lokale Tests)
     // TODO: Später echte Shop-Plan-Mapping implementieren
     const planParam = searchParams.get("plan") ?? "starter";
-
     if (!text.trim()) {
       return NextResponse.json(
         { error: "Query parameter 'text' is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,7 +132,7 @@ export async function GET(req: NextRequest) {
         shop,
         intent: prevIntent,
         replyText: faqHit.answer,
-        recommended: [],
+        recommended: sanitizeRecommended([]),
         productCount: products.length,
         productsSource: source,
       };
@@ -139,7 +169,7 @@ export async function GET(req: NextRequest) {
       shop,
       intent: brainResult.intent,
       replyText: brainResult.replyText,
-      recommended: brainResult.recommended,
+      recommended: sanitizeRecommended(brainResult.recommended),
       productCount: products.length,
       productsSource: source,
       sellerBrain: {
@@ -258,7 +288,7 @@ export async function POST(req: NextRequest) {
       shop,
       intent: brainResult.intent,
       replyText: brainResult.replyText,
-      recommended: brainResult.recommended,
+      recommended: sanitizeRecommended(brainResult.recommended),
       productCount: products.length,
       productsSource: source,
       sellerBrain: {

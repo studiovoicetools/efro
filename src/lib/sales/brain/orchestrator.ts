@@ -5364,6 +5364,8 @@ console.log("[EFRO OffTopicGate Debug]", {
     .filter((t) => t.length > 1)
     // Reine Zahlen (Budget-Werte wie "20", "300", "10000") NICHT als unknownTerms behandeln
     .filter((t) => !/^\d+([.,]\d+)?$/.test(t))
+      // Zahlen + Währung (z.B. "20€", "20 eur", "20euro") ebenfalls NICHT als unknownTerms behandeln
+      .filter((t) => !/^\d+([.,]\d+)?\s*(€|eur|euro)$/.test(t))
     .filter((t) => !UNKNOWN_AI_STOPWORDS_SET.has(t))
     // [EFRO AI] Entferne generische Stopwords
     .filter((t) => !GENERIC_UNKNOWN_STOPWORDS.has(t))
