@@ -172,6 +172,18 @@ import { runStep03_BudgetParsing } from "./steps/03_budget";
 import { runStep04_IntentExtraction } from "./steps/04_intent";
 import { runStep05_CategoryExtraction } from "./steps/05_category";
 import { runStep06_TagDetection } from "./steps/06_tags";
+import { runStep07_ReplyGeneration } from "./steps/07_reply";
+import { runStep08_PolicyCheck } from "./steps/08_policy";
+import { runStep09_FinalizeOutput } from "./steps/09_finalize";
+import { runStep10_UnknownDetection } from "./steps/10_unknown";
+import { runStep11_ToneDetection } from "./steps/11_tone";
+import { runStep12_Cleanup } from "./steps/12_cleanup";
+import { runStep13_Hardening } from "./steps/13_hardening";
+import { runStep14_Summary } from "./steps/14_summary";
+import { runStep15_DetectAIReplyTrigger } from "./steps/15_aiTrigger";
+import { runStep16_DecisionFlow } from "./steps/16_decision";
+import { runStep17_WriteResponse } from "./steps/17_responseWriter";
+import { runStep18_FinalReturn } from "./steps/18_return";
  
  
  
@@ -3735,15 +3747,10 @@ function isAmbiguousBoardQuery(text: string): boolean {
     });
     
     // KEIN AI-Trigger ? aiTrigger bleibt undefined
-    const replyText = buildReplyText(
-      cleaned,
-      nextIntent,
-      [],
-      undefined,
-      false,
-      undefined,
-      undefined,
-      context?.replyMode, context?.storeFacts);
+    runtimeContext.intent = nextIntent;
+    runtimeContext.recommendedProducts = [];
+    await runStep07_ReplyGeneration(runtimeContext);
+    const replyText = runtimeContext.replyText ?? "";
     
     return {
       intent: nextIntent,
@@ -4079,7 +4086,10 @@ function isAmbiguousBoardQuery(text: string): boolean {
       "dann zeige ich dir passende Produkte.";
   } else {
     // AI-Trigger wird sp?ter berechnet, hier noch undefined
-    replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, context?.storeFacts);
+    runtimeContext.intent = nextIntent;
+    runtimeContext.recommendedProducts = recommended;
+    await runStep07_ReplyGeneration(runtimeContext);
+    replyText = runtimeContext.replyText ?? "";
   }
 
   // Force-Show-Logik nach allen Guards: Wenn Produkte gefunden wurden, aber recommended leer ist
@@ -4095,7 +4105,10 @@ function isAmbiguousBoardQuery(text: string): boolean {
     // Reply-Text neu generieren, wenn noch nicht gesetzt
     // AI-Trigger wird sp?ter berechnet, hier noch undefined
     if (!replyText || replyText.includes("helfe dir nur")) {
-      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, context?.storeFacts);
+      runtimeContext.intent = nextIntent;
+      runtimeContext.recommendedProducts = recommended;
+      await runStep07_ReplyGeneration(runtimeContext);
+      replyText = runtimeContext.replyText ?? replyText;
     }
   }
 
@@ -4162,9 +4175,15 @@ function isAmbiguousBoardQuery(text: string): boolean {
     
     // Reply-Text neu generieren, wenn Produkte gefunden wurden
     if (recommended.length > 0 && (!replyText || replyText.includes("helfe dir nur"))) {
-      replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, context?.storeFacts);
+      runtimeContext.intent = nextIntent;
+      runtimeContext.recommendedProducts = recommended;
+      await runStep07_ReplyGeneration(runtimeContext);
+      replyText = runtimeContext.replyText ?? replyText;
     }
   }
+
+  runtimeContext.recommendedProducts = recommended;
+  await runStep08_PolicyCheck(runtimeContext);
 
   console.log("[EFRO SB] BEFORE REPLY_TEXT", {
     userText: cleaned.substring(0, 100),
@@ -5841,18 +5860,21 @@ function isAmbiguousBoardQuery(text: string): boolean {
     salesNotes: salesPolicyOutput.notes,
   });
 
-  return {
-    intent: nextIntent,
-    recommended: recommended || [],
-    replyText: finalReplyText,
-    nextContext,
-    aiTrigger,
-    priceRangeNoMatch: priceRangeNoMatch || undefined,
-    priceRangeInfo: priceRangeInfo || undefined,
-  missingCategoryHint: missingCategoryHint ?? undefined,
-  explanationMode: effectiveExplanationMode !== null ? true : (explanationModeBoolean ? true : undefined),
-  sales: salesPolicyOutput,
-  };
+  runtimeContext.intent = nextIntent;
+  runtimeContext.category = runtimeContext.category ?? effectiveCategorySlug;
+  runtimeContext.recommendedProducts = recommended || [];
+  runtimeContext.replyText = finalReplyText;
+  await runStep11_ToneDetection(runtimeContext);
+  await runStep10_UnknownDetection(runtimeContext);
+  await runStep09_FinalizeOutput(runtimeContext);
+  await runStep12_Cleanup(runtimeContext);
+  await runStep13_Hardening(runtimeContext);
+  await runStep14_Summary(runtimeContext);
+  await runStep15_DetectAIReplyTrigger(runtimeContext);
+  await runStep16_DecisionFlow(runtimeContext);
+  await runStep17_WriteResponse(runtimeContext);
+
+  return await runStep18_FinalReturn(runtimeContext);
 }
 
 export async function runSellerBrain(

@@ -5,6 +5,7 @@ import { EfroProduct } from "@/lib/products/mockCatalog";
 import { ShoppingIntent } from "@/lib/products/mockCatalog";
 import type { SalesPolicyOutput } from "@/lib/sales/salesTypes";
 import type { StoreFacts } from "../../kb/storeFacts";
+import type { PolicyViolation } from "@/lib/sales/utils/checkPolicyViolations";
 
 /**
  * Preisbereich-Informationen für ehrliche Kommunikation
@@ -29,6 +30,8 @@ export type BudgetParseInfo = {
   hasBudgetPhrase: boolean;
   isBudgetPhraseDetected: boolean;
   reason: "priceOnly" | "none";
+  value?: number | null;
+  score?: number | null;
 };
 
 export type SellerBrainDebugEntry = {
@@ -81,6 +84,39 @@ export interface SellerBrainContext {
   previousCategory?: string | null;
   /** Optional: aktuelles Produkt (z. B. für Tag-Parsing). */
   product?: EfroProduct | null;
+  /** Empfohlene Produkte für Reply-Generation. */
+  recommendedProducts?: EfroProduct[];
+  /** Antworttext aus Reply-Generation. */
+  replyText?: string;
+  /** Policy-Verstöße für empfohlene Produkte. */
+  policyViolations?: PolicyViolation[];
+  /** Kurz-Zusammenfassung fuer Logging/UI. */
+  summary?: string;
+  /** Routing-Entscheidung der Decision-Phase. */
+  routing?: "ai" | "rule" | "clarify" | "block" | "invalid";
+  /** Finaler Reply-Text nach Routing. */
+  finalReply?: string;
+  /** Finales Ergebnisobjekt für Konsum durch API/UI/Tests. */
+  result?: Record<string, unknown>;
+  /** Optionaler Tonfall für Reply-Generierung. */
+  tone?: string | null;
+  /** Confidence-Score für Intent-Erkennung. */
+  intentScore?: number | null;
+  /** Confidence-Score für Kategorie-Erkennung. */
+  categoryScore?: number | null;
+  /** Flags für Ergebniszustand. */
+  flags?: {
+    needsClarification?: boolean;
+    isFallback?: boolean;
+    invalidInput?: boolean;
+    needsAIReply?: boolean;
+  };
+  /** Optionale Liste geprüfter Produkte. */
+  products?: EfroProduct[];
+  /** Performance-Messwerte. */
+  performance?: {
+    totalTime?: number | null;
+  };
 }
 
 /**
