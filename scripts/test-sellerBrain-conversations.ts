@@ -98,16 +98,12 @@ async function runConversation(conv: Conversation, products: EfroProduct[], seed
     const raw = conv.turns[i].user;
     const user = mutateQuery(raw, seed + i);
 
-    const out: any = await runSellerBrain({
-      text: user,
-      products,
-      context: ctx ?? null,
-    } as any);
+    const out: any = await runSellerBrain(user, "quick_buy", products, "starter", undefined, ctx ?? undefined);
 
     assertTurn(conv.id, i + 1, out, conv.turns[i].expect);
 
     // nextContext propagation (if present)
-    ctx = out?.nextContext ?? out?.sellerBrain?.nextContext ?? ctx ?? null;
+    ctx = out?.nextContext ?? out?.sellerBrain?.nextContext ?? ctx ?? undefined;
 
     const rec = pickRecommended(out);
     const notes = pickNotes(out);

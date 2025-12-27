@@ -265,7 +265,7 @@ async function main() {
       const reply = String(resp?.replyText ?? "");
       const reco = Array.isArray(resp?.recommended) ? resp.recommended : [];
       const nextCtx = resp?.sellerBrain?.nextContext ?? null;
-      const intent = String(resp?.intent ?? prevIntent ?? "");
+      const intent: string = String(resp?.intent ?? prevIntent ?? "");
 
       // Hard check: Turn 1 hat echtes Keyword aus Katalog → muss mind. 1 reco liefern
       const mustReco = !!turn.hardExpectReco;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { extractUserPriceRange } from "../../src/lib/sales/budget";
 
 const tests = [
@@ -14,7 +15,6 @@ for (const t of tests) {
     maxPrice: r.maxPrice,
     hasBudgetWord: r.hasBudgetWord,
     isBudgetAmbiguous: r.isBudgetAmbiguous,
-    wantsCheapest: r.wantsCheapest,
     notes: r.notes?.slice(0, 6),
   });
 }

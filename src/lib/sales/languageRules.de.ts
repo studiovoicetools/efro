@@ -456,18 +456,18 @@ export const NON_CODE_TERMS = [
 
 // Stopwörter für AI-Unknown-Terms-Filterung
 export const UNKNOWN_AI_STOPWORDS = [
-  // Pronomen / Hilfsverben
-  "ich", "du", "er", "sie", "es", "wir", "ihr",
-  "mein", "meine", "dein", "deine",
-  "sein", "seine", "unser", "unsere", "euer", "eure",
-  "habe", "hast", "hat", "haben", "bin", "bist", "ist", "sind", "war", "waren",
-  // Füllwörter
-  "naja", "äh", "also", "mal", "doch", "eben", "halt", "gib", "gibt", "gibts",
-  // Budget-/Preiswörter
-  "budget", "preis", "preise", "preisspanne", "euro", "katze", "akku", "schrauber", "küchenmessa",
-  "unter", "über", "bis", "ca", "etwa", "ungefähr", "von",
-  // EFRO LIVE GATE: diese Wörter dürfen NIE als unknownTerms im aiTrigger auftauchen
-  "brauch", "brauche", "brauchst", "brauchen", "günstig", "günstige", "günstiges", "günstiger", "günstigste", "günstigstes", "günstigsten", "guenstig", "guenstige", "guenstiges", "guenstiger", "guenstigste", "guenstigstes", "guenstigsten", "billig", "billige", "billiges", "billiger", "billigste", "billigstes", "billigsten", "preiswert", "preiswerte", "preiswertes", "preiswerter", "preiswerteste", "preiswertestes", "noch", "ähnlich", "ähnliches", "ähnlicher", "aehnlich", "aehnliches", "aehnlicher",];
+ // Pronomen / Hilfsverben
+ "ich", "du", "er", "sie", "es", "wir", "ihr",
+ "mein", "meine", "dein", "deine",
+ "sein", "seine", "unser", "unsere", "euer", "eure",
+ "habe", "hast", "hat", "haben", "bin", "bist", "ist", "sind", "war", "waren",
+ // Füllwörter
+ "naja", "äh", "also", "mal", "doch", "eben", "halt", "gib", "gibt", "gibts",
+ // Budget-/Preiswörter
+ "budget", "preis", "preise", "preisspanne", "euro",
+ "unter", "über", "bis", "ca", "etwa", "ungefähr", "von",
+ // EFRO LIVE GATE: diese Wörter dürfen NIE als unknownTerms im aiTrigger auftauchen
+ "brauch", "brauche", "brauchst", "brauchen", "günstig", "günstige", "günstiges", "günstiger", "günstigste", "günstigstes", "günstigsten", "guenstig", "guenstige", "guenstiges", "guenstiger", "guenstigste", "guenstigstes", "guenstigsten", "billig", "billige", "billiges", "billiger", "billigste", "billigstes", "billigsten", "preiswert", "preiswerte", "preiswertes", "preiswerter", "preiswerteste", "preiswertestes", "noch", "ähnlich", "ähnliches", "ähnlicher", "aehnlich", "aehnliches", "aehnlicher",];
 
 // "Zeige mir"-Patterns
 export const SHOW_ME_PATTERNS = [

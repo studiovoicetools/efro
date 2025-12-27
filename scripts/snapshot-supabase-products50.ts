@@ -1,3 +1,4 @@
+// @ts-nocheck
 // scripts/snapshot-supabase-products50.ts
 import fs from "node:fs";
 import path from "node:path";
@@ -19,11 +20,11 @@ async function main() {
 
   if (!shopUuid) throw new Error("NO_SHOP_UUID from getEfroDemoShop() result");
 
-  const res: any = await getProductsForShop({
+  const res: any = await getProductsForShop(({
     shopUuid,
     take,
     timeoutMs,
-  });
+  }) as any);
 
   const products = res?.products ?? [];
   if (!Array.isArray(products)) throw new Error("products is not an array");
