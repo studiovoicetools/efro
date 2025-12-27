@@ -169,6 +169,7 @@ import {
   trimClarifyBlock,
 } from "./steps/08_reply";
 import { runStep03_BudgetParsing } from "./steps/03_budget";
+import { runStep04_IntentExtraction } from "./steps/04_intent";
  
  
  
@@ -206,7 +207,7 @@ import {
 import { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
 import type { PriceRangeInfo, SellerBrainContext, SellerBrainResult } from "@/lib/sales/modules/types";
 import { determineEffectiveCategory } from "@/lib/sales/modules/category";
-import { detectIntentFromText, detectMostExpensiveRequest } from "../intent";
+import { detectMostExpensiveRequest } from "../intent";
 import { detectExplanationModeBoolean } from "../intent/explanationMode";
 // Import der generierten Hints aus JSON
 // Hinweis: TypeScript erwartet hier einen Typ-Assertion, da JSON-Imports als any kommen
@@ -3239,6 +3240,7 @@ export async function runOrchestrator({
   const storeFacts = context?.storeFacts;
   const runtimeContext: SellerBrainContext = context ?? {};
   runtimeContext.inputText = cleaned;
+  runtimeContext.currentIntent = currentIntent;
   await runStep03_BudgetParsing(runtimeContext);
   // Defensive Guard: Leere Produktliste
   if (!Array.isArray(allProducts) || allProducts.length === 0) {
@@ -3268,7 +3270,8 @@ export async function runOrchestrator({
   // Debug: Katalog-?bersicht loggen (nur einmal pro Run)
   debugCatalogOverview(allProducts);
 
-  const nextIntent = detectIntentFromText(cleaned, currentIntent);
+  await runStep04_IntentExtraction(runtimeContext);
+  const nextIntent = runtimeContext.intent ?? currentIntent;
 
 function isAmbiguousBoardQuery(text: string): boolean {
   const t = text.toLowerCase();

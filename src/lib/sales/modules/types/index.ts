@@ -63,6 +63,12 @@ export interface SellerBrainContext {
   budgetParse?: BudgetParseInfo;
   /** Optionales Debug-Log pro Step. */
   debug?: SellerBrainDebugEntry[];
+  /** Aktiviert Debug-Logs auf Steps. */
+  debugMode?: boolean;
+  /** Aktueller Intent (Input) für Intent-Extraction. */
+  currentIntent?: ShoppingIntent;
+  /** Extrahierter Intent (Output). */
+  intent?: ShoppingIntent;
 }
 
 /**
