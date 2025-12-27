@@ -1,0 +1,5002 @@
+[
+  {
+    "id": "Q0011",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0163",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Kurzhantel-Set 2x5kg?"
+      }
+    ]
+  },
+  {
+    "id": "Q0476",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Mystery Artikel: Limited Surprise Box – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0451",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Gift Card Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0177",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie USB-C Kabel 2m (Nylon) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0391",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Kurzhantel-Set 2x5kg?"
+      }
+    ]
+  },
+  {
+    "id": "Q0383",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Notizbuch A5 dotted?"
+      }
+    ]
+  },
+  {
+    "id": "Q0384",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The Preorder Snowboard – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0461",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Ergonomische Maus (Wireless)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0302",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Yoga Matte 6mm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0215",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Holz-Puzzle Tiere 24 Teile?"
+      }
+    ]
+  },
+  {
+    "id": "Q0323",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Kopfhörer Case Hard-Shell?"
+      }
+    ]
+  },
+  {
+    "id": "Q0431",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Kurzhantel-Set 2x5kg unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0029",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0446",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Fresh Morning Eau de Toilette 100ml – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0111",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0286",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Yogamatte rutschfest 6mm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0079",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0287",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Freestyle Snowboard 155 cm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0098",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0211",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Draft Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0356",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Wasserkocher 1,7L Edelstahl. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0036",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0452",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Kinder Trinkbecher – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0376",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Pet Fresh Fell-Spray 150ml unter 200€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0316",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The Hidden Snowboard. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0335",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Trinkflasche 1L BPA-frei unter 100€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0198",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Active Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0238",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Bluetooth Lautsprecher Mini?"
+      }
+    ]
+  },
+  {
+    "id": "Q0352",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Hundeleine 2m (Reflektierend)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0125",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0124",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0228",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Staubsauger Roboter Pro (WLAN)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0276",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Hundeleine 2m (Reflektierend)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0295",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Gesichtsreinigung Gel (Sensitive)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0327",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Yogamatte rutschfest 6mm. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0226",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Glas- & Spiegelreiniger 500ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0033",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0370",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie City Night Eau de Parfum 50ml. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0024",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0129",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0072",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0454",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie 50€ Geschenkkarte. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0430",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Shampoo sensitiv?"
+      }
+    ]
+  },
+  {
+    "id": "Q0289",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Staubsauger Roboter Pro (WLAN)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0173",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Holzeisenbahn Starterset unter 20€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0485",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Sonnencreme SPF50 (UVA/UVB) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0095",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0442",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Schnellladegerät USB-C 45W?"
+      }
+    ]
+  },
+  {
+    "id": "Q0254",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Deluxe Hundebett – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0071",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0284",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Pet Fresh Fell-Spray 150ml unter 20€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0062",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0457",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Notizbuch A5 Kariert 200 Seiten?"
+      }
+    ]
+  },
+  {
+    "id": "Q0483",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Sneaker Pflege-Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0096",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0192",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Trinkflasche 1L BPA-frei?"
+      }
+    ]
+  },
+  {
+    "id": "Q0427",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Sneaker Socken 5er-Pack?"
+      }
+    ]
+  },
+  {
+    "id": "Q0459",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The SEO Optimized Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0298",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Küchenmesser Chef 20cm – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0281",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Wasserkocher 1,7L Edelstahl?"
+      }
+    ]
+  },
+  {
+    "id": "Q0230",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Baustein-Set 500 Teile unter 20€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0361",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Hundeleine 2m (Reflektierend) unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0195",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Unisex Hoodie Basic unter 300€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0354",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Multi-Zerkleinerer 500W. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0478",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Sonnencreme SPF50 (UVA/UVB)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0311",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu 4K Smart TV 55 Zoll?"
+      }
+    ]
+  },
+  {
+    "id": "Q0336",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Yoga-Matte Rutschfest 6mm – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0270",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Thermobecher 500ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0343",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Bluetooth Lautsprecher Mini. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0109",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0255",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie USB-C Kabel 2m (Nylon). Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0237",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Maus kabellos silent unter 80€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0203",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Preorder Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0026",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0350",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Staubsaugerbeutel Set (10 Stück) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0139",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0363",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Holz-Puzzle Tiere 24 Teile?"
+      }
+    ]
+  },
+  {
+    "id": "Q0119",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0009",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0450",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu 4K Smart TV 55 Zoll unter 150€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0264",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Pfanne 28cm Antihaft. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0250",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du SmartHome LED-Lampe?"
+      }
+    ]
+  },
+  {
+    "id": "Q0325",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie LED Lichterkette warmweiß. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0242",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du USB-C Kabel 2m?"
+      }
+    ]
+  },
+  {
+    "id": "Q0233",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Schlafmaske Premium?"
+      }
+    ]
+  },
+  {
+    "id": "Q0154",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0176",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu The Example Perfume unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0464",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Hidden Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0145",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0425",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie LED Gartenlichterkette 10m. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0473",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Multi-Zerkleinerer 500W. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0005",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0303",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie LED Lichterkette warmweiß. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0280",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Premium Wasserkocher 17 l?"
+      }
+    ]
+  },
+  {
+    "id": "Q0458",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Soft Cotton Unisex Parfum 30ml – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0455",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Archived Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0278",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Wandhaken Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0167",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The Draft Snowboard. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0181",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet SmartHome LED-Lampe?"
+      }
+    ]
+  },
+  {
+    "id": "Q0244",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Hoodie Cozy?"
+      }
+    ]
+  },
+  {
+    "id": "Q0040",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0314",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Babybody Bio-Baumwolle (3er-Pack) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0030",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0093",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0219",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Fresh Morning Eau de Toilette 100ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0308",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du All-Mountain Snowboard 158 cm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0196",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Discounted Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0300",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Universal Allzweckreiniger 1L unter 20€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0140",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0115",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0423",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Laptop Sleeve 13 Zoll?"
+      }
+    ]
+  },
+  {
+    "id": "Q0132",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0231",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Sneaker Socken 5er-Pack?"
+      }
+    ]
+  },
+  {
+    "id": "Q0108",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0147",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0089",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0273",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Archived Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0416",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Shampoo sensitiv?"
+      }
+    ]
+  },
+  {
+    "id": "Q0110",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0117",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0049",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0031",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0172",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Glas- & Spiegelreiniger 500ml unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0402",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Maus kabellos silent?"
+      }
+    ]
+  },
+  {
+    "id": "Q0377",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet USB-C Schnellladegerät 65W?"
+      }
+    ]
+  },
+  {
+    "id": "Q0113",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0050",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0463",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Premium Hundefutter Rind 5kg unter 150€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0375",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Babybody Bio-Baumwolle (3er-Pack) unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0178",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Sneaker Socken 5er-Pack – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0279",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Sneaker Socken 5er-Pack?"
+      }
+    ]
+  },
+  {
+    "id": "Q0465",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Mystery Artikel: Limited Surprise Box unter 50€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0044",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0277",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The SEO Optimized Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0174",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Wasserkocher 1,7L Edelstahl – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0395",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Sonnencreme SPF50 (UVA/UVB)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0440",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu City Night Eau de Parfum 50ml unter 20€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0076",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0247",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Shampoo sensitiv?"
+      }
+    ]
+  },
+  {
+    "id": "Q0358",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Notizbuch A5 Kariert 200 Seiten?"
+      }
+    ]
+  },
+  {
+    "id": "Q0379",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Kurzhantel-Set 2x5kg?"
+      }
+    ]
+  },
+  {
+    "id": "Q0491",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Trinkflasche 1L BPA-frei – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0069",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0249",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Hidden Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0212",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Parfum Duftprobe Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0086",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0032",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0488",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Bundle Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0060",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0390",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Unisex T-Shirt Basic (Premium Baumwolle) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0186",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Hundeleine 2m (Reflektierend)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0240",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Trinkflasche 1L BPA-frei. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0224",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Notizbuch A5 dotted – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0437",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Premium Wasserkocher 17 l – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0344",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Smartphone Alpha 128GB Schwarz. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0120",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0407",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet All-Mountain Snowboard 158 cm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0097",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0367",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Universal Allzweckreiniger 1L?"
+      }
+    ]
+  },
+  {
+    "id": "Q0138",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0123",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0013",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0404",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Ergonomische Maus (Wireless)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0339",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Hanteln Set 2×5kg. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0220",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Example Perfume?"
+      }
+    ]
+  },
+  {
+    "id": "Q0080",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0321",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Archived Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0422",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Reise-Kulturbeutel XL?"
+      }
+    ]
+  },
+  {
+    "id": "Q0419",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Bundle Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0310",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The Snowboard With Very Long Title. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0175",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Hoodie Cozy unter 30€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0357",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Schutzhülle für Smartphone (Stoßfest) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0268",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Brotbox Edelstahl unter 80€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0165",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The Preorder Snowboard. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0156",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0380",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Sensitive Katzenfutter Lachs 2kg?"
+      }
+    ]
+  },
+  {
+    "id": "Q0052",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0364",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Baustein-Set 120-teilig?"
+      }
+    ]
+  },
+  {
+    "id": "Q0037",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0051",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0169",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Staubsauger Roboter Pro (WLAN). Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0142",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0253",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Kurzhantel-Set 2x5kg. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0274",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Babybody Bio-Baumwolle (3er-Pack)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0460",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Premium Wasserflasche 1L?"
+      }
+    ]
+  },
+  {
+    "id": "Q0210",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Hundespielzeug Seil – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0362",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Sneaker Socken 5er-Pack unter 200€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0486",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Snowboard With Very Long Title?"
+      }
+    ]
+  },
+  {
+    "id": "Q0048",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0104",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0007",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0241",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Notizbuch A5 dotted unter 50€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0016",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0471",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Baustein-Set 500 Teile?"
+      }
+    ]
+  },
+  {
+    "id": "Q0428",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Limited Edition Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0341",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Draft Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0400",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Hidden Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0398",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Kugelschreiber-Set 10 Stück?"
+      }
+    ]
+  },
+  {
+    "id": "Q0351",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Multi-Zerkleinerer 500W?"
+      }
+    ]
+  },
+  {
+    "id": "Q0133",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0432",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Wandhaken Set unter 80€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0263",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The Discounted Snowboard – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0261",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Wasserkocher 1,7L Edelstahl – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0209",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Trinkflasche 1L BPA-frei?"
+      }
+    ]
+  },
+  {
+    "id": "Q0153",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0090",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0144",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0414",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Holzeisenbahn Starterset?"
+      }
+    ]
+  },
+  {
+    "id": "Q0015",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0003",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0256",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Active Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0434",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Premium Wasserkocher 17 l. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0103",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0334",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Yoga-Matte Rutschfest 6mm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0481",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Küchenmesser Chef 20cm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0171",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Mystery Artikel: Limited Surprise Box?"
+      }
+    ]
+  },
+  {
+    "id": "Q0038",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0305",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Katzenfutter Huhn 2kg?"
+      }
+    ]
+  },
+  {
+    "id": "Q0017",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0257",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Kinder Trinkbecher – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0116",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0039",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0182",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Gesichtsreinigung Gel (Sensitive)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0063",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0206",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Draft Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0477",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du LED Gartenlichterkette 10m?"
+      }
+    ]
+  },
+  {
+    "id": "Q0360",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Kopfhörer Case Hard-Shell unter 300€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0374",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Yogamatte rutschfest 6mm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0306",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Brotbox Edelstahl unter 200€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0490",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Katzenfutter Huhn 2kg?"
+      }
+    ]
+  },
+  {
+    "id": "Q0495",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Schutzhülle für Smartphone (Stoßfest) unter 30€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0301",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Küchenmesser Set (3-teilig)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0053",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0355",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Brotbox Edelstahl unter 80€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0151",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0245",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Universal Allzweckreiniger 1L unter 30€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0150",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0106",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0058",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0137",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0359",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du T-Shirt Classic Fit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0134",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0346",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Gesichtsreinigung Gel (Sensitive)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0078",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0292",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Ergonomische Maus (Wireless)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0445",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie LED Lichterkette warmweiß. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0269",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du SmartHome LED-Lampe?"
+      }
+    ]
+  },
+  {
+    "id": "Q0381",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Notizbuch A5 Kariert 200 Seiten unter 300€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0006",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0368",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu LED Lichterkette warmweiß unter 150€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0297",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu City Night Eau de Parfum 50ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0494",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The SEO Optimized Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0293",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Kugelschreiber-Set 10 Stück?"
+      }
+    ]
+  },
+  {
+    "id": "Q0126",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0417",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Bundle Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0271",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Thermobecher 500ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0466",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The Archived Snowboard – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0497",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Hundeleine 2m (Reflektierend) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0222",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Notizbuch A5 dotted unter 30€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0149",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0399",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Baustein-Set 120-teilig unter 20€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0324",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Freestyle Snowboard 155 cm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0018",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0001",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0340",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Ergonomische Maus (Wireless)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0159",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0394",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Universal Allzweckreiniger 1L?"
+      }
+    ]
+  },
+  {
+    "id": "Q0265",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Edelstahl Kochmesser 20cm unter 50€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0152",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0493",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet USB-C Schnellladegerät 65W?"
+      }
+    ]
+  },
+  {
+    "id": "Q0091",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0118",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0349",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Soft Cotton Unisex Parfum 30ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0042",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0170",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Hoodie Cozy?"
+      }
+    ]
+  },
+  {
+    "id": "Q0408",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Sonnencreme SPF50 (UVA/UVB) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0447",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Staubsaugerbeutel Set (10 Stück)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0480",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Katzenspielzeug Federstab?"
+      }
+    ]
+  },
+  {
+    "id": "Q0468",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Katzenspielzeug Federstab?"
+      }
+    ]
+  },
+  {
+    "id": "Q0467",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Parfum Duftprobe Set. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0309",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Feuchtigkeitscreme mit Hyaluron?"
+      }
+    ]
+  },
+  {
+    "id": "Q0202",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Notizbuch A5 dotted – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0275",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Universal Allzweckreiniger 1L. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0320",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Premium Wasserkocher 17 l. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0054",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0487",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The SEO Optimized Snowboard. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0285",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The Active Snowboard. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0232",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Katzenspielzeug Federstab?"
+      }
+    ]
+  },
+  {
+    "id": "Q0185",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Jeans Slim Fit (Stretch)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0025",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0272",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Baustein-Set 120-teilig?"
+      }
+    ]
+  },
+  {
+    "id": "Q0472",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Baustein-Set 120-teilig?"
+      }
+    ]
+  },
+  {
+    "id": "Q0136",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0087",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0193",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Shampoo sensitiv?"
+      }
+    ]
+  },
+  {
+    "id": "Q0168",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Schnellladegerät USB-C 45W unter 100€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0143",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0418",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Pfanne 28cm Antihaft?"
+      }
+    ]
+  },
+  {
+    "id": "Q0207",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Discounted Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0409",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Discounted Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0433",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Yoga Matte 6mm – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0019",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0191",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Discounted Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0164",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Pet Fresh Fell-Spray 150ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0122",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0260",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Deluxe Hundebett – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0135",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0304",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet USB-C Kabel 2m?"
+      }
+    ]
+  },
+  {
+    "id": "Q0107",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0246",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Kinder Trinkbecher?"
+      }
+    ]
+  },
+  {
+    "id": "Q0371",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Staubsaugerbeutel Set (10 Stück) unter 20€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0131",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0074",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0385",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Widerstandsband Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0141",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0331",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Sensitive Katzenfutter Lachs 2kg unter 200€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0389",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Yogamatte rutschfest 6mm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0082",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0130",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0313",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Schutzhülle für Smartphone (Stoßfest) unter 20€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0180",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie LED Lichterkette warmweiß – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0332",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Fresh Morning Eau de Toilette 100ml unter 50€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0415",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu The Compact Snowboard unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0085",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0148",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0438",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Soft Cotton Unisex Parfum 30ml – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0068",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0100",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0057",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0412",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie LED Gartenlichterkette 10m. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0034",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0014",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0070",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0194",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Brotbox Edelstahl unter 100€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0348",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Hoodie Cozy – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0426",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Thermobecher 500ml. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0041",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0347",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Hundeleine 2m (Reflektierend) – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0161",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Premium Wasserflasche 1L. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0043",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0475",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Baustein-Set 120-teilig?"
+      }
+    ]
+  },
+  {
+    "id": "Q0424",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The Compact Snowboard – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0392",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu USB-C Kabel 2m?"
+      }
+    ]
+  },
+  {
+    "id": "Q0021",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0337",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Kinder Trinkbecher. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0262",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu The Minimal Snowboard unter 300€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0449",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu The Example Perfume unter 200€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0227",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Wandhaken Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0470",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Brotbox Edelstahl?"
+      }
+    ]
+  },
+  {
+    "id": "Q0188",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu LED Lichterkette warmweiß unter 50€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0221",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu 4K Smart TV 55 Zoll unter 50€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0401",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu The Active Snowboard unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0066",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0441",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Küchenmesser Set (3-teilig). Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0055",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0405",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The Minimal Snowboard – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0410",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The Minimal Snowboard. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0369",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Soft Cotton Unisex Parfum 30ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0235",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Toaster 2-Scheiben, Extra-Breit. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0366",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Reise-Kulturbeutel XL. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0397",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Reise-Kulturbeutel XL unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0121",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0239",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The Subscription Snowboard – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0251",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The Compact Snowboard. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0317",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu LED Gartenlichterkette 10m unter 200€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0002",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0012",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0092",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0225",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Smartphone Alpha 128GB Schwarz unter 300€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0258",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Discounted Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0229",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Glas- & Spiegelreiniger 500ml unter 300€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0189",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Schnellladegerät USB-C 45W?"
+      }
+    ]
+  },
+  {
+    "id": "Q0338",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Sneaker Pflege-Set unter 30€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0387",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Gift Card Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0218",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie USB-C Kabel 2m – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0128",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0299",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Parfum Duftprobe Set unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0499",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie SmartHome LED-Lampe – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0216",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Notizbuch A5 Kariert 200 Seiten. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0333",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Jeans Slim Fit (Stretch). Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0157",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0322",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Deluxe Hundebett unter 80€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0282",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Discounted Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0234",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Hoodie Cozy. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0307",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu City Night Eau de Parfum 50ml unter 30€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0200",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu USB-C Kabel 2m (Nylon) unter 50€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0061",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0166",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Katzenfutter Huhn 2kg?"
+      }
+    ]
+  },
+  {
+    "id": "Q0500",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Babybody Bio-Baumwolle (3er-Pack). Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0020",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0345",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Schnellladegerät USB-C 45W unter 100€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0388",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The SEO Optimized Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0288",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Unisex Hoodie Basic. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0435",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Premium Wasserflasche 1L?"
+      }
+    ]
+  },
+  {
+    "id": "Q0099",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0372",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Draft Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0127",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0077",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0064",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0184",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The Snowboard With Very Long Title – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0439",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Katzenangel Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0474",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Küchenmesser Set (3-teilig). Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0266",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Jeans Slim Fit (Stretch)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0205",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Notizbuch A5 dotted?"
+      }
+    ]
+  },
+  {
+    "id": "Q0022",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0112",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0290",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Multi-Zerkleinerer 500W?"
+      }
+    ]
+  },
+  {
+    "id": "Q0094",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0243",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Unisex T-Shirt Basic (Premium Baumwolle). Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0482",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Freestyle Snowboard 155 cm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0315",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Pfanne 28cm Antihaft. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0469",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Babybody Bio-Baumwolle (3er-Pack). Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0420",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet The Hidden Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0114",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0403",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie 4K Smart TV 55 Zoll – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0328",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Schlafmaske Premium?"
+      }
+    ]
+  },
+  {
+    "id": "Q0444",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Sneaker Socken 5er-Pack. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0353",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Premium Wasserkocher 17 l. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0318",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Katzenangel Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0365",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Glas- & Spiegelreiniger 500ml?"
+      }
+    ]
+  },
+  {
+    "id": "Q0045",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0199",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Kinder T-Shirt Dino (Bio)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0326",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Beauty Geschenkset Basic?"
+      }
+    ]
+  },
+  {
+    "id": "Q0312",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Coming Soon Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0028",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0162",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Unisex T-Shirt Basic (Premium Baumwolle)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0248",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu The Gift Card Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0023",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0429",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie The Draft Snowboard. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0065",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0155",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0102",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0436",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Trinkflasche 1L BPA-frei – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0406",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Glas- & Spiegelreiniger 500ml. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0456",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Hoodie Cozy?"
+      }
+    ]
+  },
+  {
+    "id": "Q0386",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Hundeleine 2m (Reflektierend)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0252",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Yogamatte rutschfest 6mm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0197",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Bluetooth Lautsprecher Mini?"
+      }
+    ]
+  },
+  {
+    "id": "Q0056",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0035",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0448",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Mystery Artikel: Limited Surprise Box unter 30€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0267",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Kinder Trinkbecher – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0083",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0146",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0179",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Notizbuch A5 Kariert 200 Seiten unter 200€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0075",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0088",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0259",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Hundespielzeug Seil?"
+      }
+    ]
+  },
+  {
+    "id": "Q0378",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The SEO Optimized Snowboard – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0190",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie 4K Smart TV 55 Zoll. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0319",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Edelstahl Kochmesser 20cm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0294",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du The Active Snowboard?"
+      }
+    ]
+  },
+  {
+    "id": "Q0046",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0204",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Schutzhülle für Smartphone (Stoßfest)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0413",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Kurzhantel-Set 2x5kg?"
+      }
+    ]
+  },
+  {
+    "id": "Q0329",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu The Minimal Snowboard unter 200€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0073",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0283",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Universal Allzweckreiniger 1L?"
+      }
+    ]
+  },
+  {
+    "id": "Q0496",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Premium Hundefutter Rind 5kg – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0008",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0067",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0084",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0396",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Fresh Morning Eau de Toilette 100ml. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0236",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Staubsaugerbeutel Set (10 Stück) unter 50€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0484",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Deluxe Hundebett – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0492",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Sneaker Pflege-Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0296",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Unisex T-Shirt Basic (Premium Baumwolle)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0479",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Deluxe Hundebett?"
+      }
+    ]
+  },
+  {
+    "id": "Q0047",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0421",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Notizbuch A5 Kariert 200 Seiten – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0059",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie funktioniert die Retoure?"
+      }
+    ]
+  },
+  {
+    "id": "Q0217",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu USB-C Kabel 2m unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0081",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie lange ist die Lieferzeit?"
+      }
+    ]
+  },
+  {
+    "id": "Q0462",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Universal Allzweckreiniger 1L?"
+      }
+    ]
+  },
+  {
+    "id": "Q0223",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Sensitive Katzenfutter Lachs 2kg – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0004",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0105",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0208",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Gesichtsreinigung Gel (Sensitive) unter 30€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0373",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu All-Mountain Snowboard 158 cm?"
+      }
+    ]
+  },
+  {
+    "id": "Q0201",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Holzeisenbahn Starterset?"
+      }
+    ]
+  },
+  {
+    "id": "Q0101",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0330",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Gesichtsreinigung Gel (Sensitive)?"
+      }
+    ]
+  },
+  {
+    "id": "Q0187",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Kinder Trinkbecher?"
+      }
+    ]
+  },
+  {
+    "id": "Q0411",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was kostet Katzenangel Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0393",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Freestyle Snowboard 155 cm unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0443",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Glas- & Spiegelreiniger 500ml. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0010",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich einen Artikel umtauschen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0498",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Parfum Duftprobe Set – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0213",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich suche etwas ähnliches wie Baustein-Set 120-teilig. Was empfiehlst du?"
+      }
+    ]
+  },
+  {
+    "id": "Q0183",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu LED Gartenlichterkette 10m?"
+      }
+    ]
+  },
+  {
+    "id": "Q0453",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu Katzenangel Set?"
+      }
+    ]
+  },
+  {
+    "id": "Q0291",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie The Example Perfume – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  },
+  {
+    "id": "Q0382",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Hast du Deluxe Hundebett?"
+      }
+    ]
+  },
+  {
+    "id": "Q0160",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Wie erreiche ich den Support?"
+      }
+    ]
+  },
+  {
+    "id": "Q0027",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Kann ich per PayPal bezahlen?"
+      }
+    ]
+  },
+  {
+    "id": "Q0489",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Was passt gut als Ergänzung zu 4K Smart TV 55 Zoll?"
+      }
+    ]
+  },
+  {
+    "id": "Q0214",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Gibt es eine günstigere Alternative zu Bluetooth Kopfhörer Pro unter 60€?"
+      }
+    ]
+  },
+  {
+    "id": "Q0158",
+    "kind": "faq",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Welche Zahlungsarten gibt es?"
+      }
+    ]
+  },
+  {
+    "id": "Q0342",
+    "kind": "product",
+    "turns": [
+      {
+        "role": "user",
+        "text": "Ich will etwas wie Unisex Hoodie Basic – aber besser für Einsteiger. Was ist passend?"
+      }
+    ]
+  }
+]

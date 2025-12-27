@@ -22,6 +22,20 @@ export type PriceRangeInfo = {
   nearestProductTitleAboveBudget?: string | null;
 };
 
+export type BudgetParseInfo = {
+  hasEuroNumber: boolean;
+  hasPriceRange: boolean;
+  hasBudgetWord: boolean;
+  hasBudgetPhrase: boolean;
+  isBudgetPhraseDetected: boolean;
+  reason: "priceOnly" | "none";
+};
+
+export type SellerBrainDebugEntry = {
+  step: string;
+  [key: string]: unknown;
+};
+
 /**
  * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
  */
@@ -43,6 +57,12 @@ export interface SellerBrainContext {
    * Supabase-Alias-Lookups verwendet.
    */
   shopDomain?: string;
+  /** Rohtext der aktuellen Anfrage (für Step-Parsing). */
+  inputText?: string;
+  /** Ergebnis der Regex-basierten Budget-Erkennung. */
+  budgetParse?: BudgetParseInfo;
+  /** Optionales Debug-Log pro Step. */
+  debug?: SellerBrainDebugEntry[];
 }
 
 /**
