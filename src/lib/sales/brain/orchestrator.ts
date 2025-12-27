@@ -170,6 +170,7 @@ import {
 } from "./steps/08_reply";
 import { runStep03_BudgetParsing } from "./steps/03_budget";
 import { runStep04_IntentExtraction } from "./steps/04_intent";
+import { runStep05_CategoryExtraction } from "./steps/05_category";
  
  
  
@@ -206,7 +207,6 @@ import {
 
 import { EfroProduct, ShoppingIntent } from "@/lib/products/mockCatalog";
 import type { PriceRangeInfo, SellerBrainContext, SellerBrainResult } from "@/lib/sales/modules/types";
-import { determineEffectiveCategory } from "@/lib/sales/modules/category";
 import { detectMostExpensiveRequest } from "../intent";
 import { detectExplanationModeBoolean } from "../intent/explanationMode";
 // Import der generierten Hints aus JSON
@@ -1836,12 +1836,21 @@ async function buildFilterContext(
    * 1) Kategorie-Erkennung
    * EFRO Modularization Phase 3: Kategorie-Logik nach modules/category ausgelagert
    */
-  const categoryResult = determineEffectiveCategory({
-    text,
-    cleanedText: t,
-    contextCategory,
-    allProducts,
-  });
+  const categoryContext: SellerBrainContext = {
+    inputText: text,
+    catalog: allProducts,
+    intent,
+    previousIntent: intent,
+    previousCategory: contextCategory ?? null,
+  };
+  await runStep05_CategoryExtraction(categoryContext);
+  const categoryResult = categoryContext.category as {
+    effectiveCategorySlug: string | null;
+    matchedCategories: string[];
+    categoryHintsInText: string[];
+    missingCategoryHint?: string | null;
+    triggerWord?: string | null;
+  };
   
   let effectiveCategorySlug = categoryResult.effectiveCategorySlug;
   let matchedCategories = [...categoryResult.matchedCategories];
@@ -3241,6 +3250,8 @@ export async function runOrchestrator({
   const runtimeContext: SellerBrainContext = context ?? {};
   runtimeContext.inputText = cleaned;
   runtimeContext.currentIntent = currentIntent;
+  runtimeContext.catalog = allProducts;
+  runtimeContext.previousCategory = context?.activeCategorySlug ?? null;
   await runStep03_BudgetParsing(runtimeContext);
   // Defensive Guard: Leere Produktliste
   if (!Array.isArray(allProducts) || allProducts.length === 0) {
@@ -4295,13 +4306,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
   // ---------------------------------------------
   
   // EFRO Modularization Phase 3: Kategorie-Informationen ?ber determineEffectiveCategory berechnen
-  const t = normalize(cleaned);
-  const categoryResultForCodeDetect = determineEffectiveCategory({
-    text: cleaned,
-    cleanedText: t,
-    contextCategory: context?.activeCategorySlug ?? null,
-    allProducts,
-  });
+  await runStep05_CategoryExtraction(runtimeContext);
+  const categoryResultForCodeDetect = runtimeContext.category as {
+    effectiveCategorySlug: string | null;
+    matchedCategories: string[];
+    categoryHintsInText: string[];
+    missingCategoryHint?: string | null;
+    triggerWord?: string | null;
+  };
   
   const categoryHintsInText = categoryResultForCodeDetect.categoryHintsInText;
   const matchedCategories = categoryResultForCodeDetect.matchedCategories;

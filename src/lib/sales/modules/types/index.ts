@@ -69,6 +69,16 @@ export interface SellerBrainContext {
   currentIntent?: ShoppingIntent;
   /** Extrahierter Intent (Output). */
   intent?: ShoppingIntent;
+  /** Kategorie-Result der Kategorie-Erkennung. */
+  category?: unknown;
+  /** Produktkatalog für Kategorie-Erkennung. */
+  catalog?: EfroProduct[];
+  /** Optional: Tags oder Tokens der Anfrage. */
+  tags?: string[];
+  /** Optional: vorheriger Intent. */
+  previousIntent?: ShoppingIntent;
+  /** Optional: vorherige Kategorie. */
+  previousCategory?: string | null;
 }
 
 /**
