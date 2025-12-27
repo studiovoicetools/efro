@@ -110,3 +110,8 @@ _backups/
 # Supabase CLI temp
 supabase/.temp/
 
+
+# EFRO local quarantine + backups (never commit)
+docs/_quarantine_*/
+*.bak
+*.bak2-*

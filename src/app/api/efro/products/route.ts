@@ -138,6 +138,30 @@ export async function GET(request: NextRequest) {
   const shopDomainRaw = searchParams.get("shop");
   const shopDomain = shopDomainRaw ? shopDomainRaw.trim() : null;
 
+  // Optional: Force product source for debugging / tests
+  // Supported values: repo | supabase | supabase-fallback | loader | shopify | mock
+  const forcedSourceRaw =
+    searchParams.get("forceSource") ||
+    searchParams.get("forcedSource") ||
+    searchParams.get("preferredSource") ||
+    searchParams.get("preferred_source");
+
+  const forcedSourceNorm = forcedSourceRaw ? forcedSourceRaw.trim().toLowerCase() : null;
+  const forcedSource =
+    forcedSourceNorm === "repo"
+      ? ("repo" as const)
+      : forcedSourceNorm === "supabase"
+      ? ("supabase-fallback" as const)
+      : forcedSourceNorm === "supabase-fallback"
+      ? ("supabase-fallback" as const)
+      : forcedSourceNorm === "loader"
+      ? ("loader" as const)
+      : forcedSourceNorm === "shopify"
+      ? ("shopify" as const)
+      : forcedSourceNorm === "mock"
+      ? ("mock" as const)
+      : null;
+
   const baseUrl = `${url.protocol}//${url.host}`;
 
   try {
@@ -152,7 +176,7 @@ export async function GET(request: NextRequest) {
           const products = finalizeEfroProducts(rawProducts.map(mapShopifyToEfro));
 
           const payload: any = { success: true, source: "shopify", products, shopDomain: "demo" };
-          if (debug) payload.debug = { shopDomain: "demo", isDemo: true, preferredSource: "shopify", forcedSource: null };
+          if (debug) payload.debug = { shopDomain: "demo", isDemo: true, preferredSource: "shopify", forcedSource };
           return jsonUtf8(payload);
         }
       } catch {
@@ -161,7 +185,7 @@ export async function GET(request: NextRequest) {
 
       const products = finalizeEfroProducts(mockCatalog as any[]);
       const payload: any = { success: true, source: "mock", products, shopDomain: "demo" };
-      if (debug) payload.debug = { shopDomain: "demo", isDemo: true, preferredSource: "mock", forcedSource: null };
+      if (debug) payload.debug = { shopDomain: "demo", isDemo: true, preferredSource: "mock", forcedSource };
       return jsonUtf8(payload);
     }
 
@@ -180,7 +204,7 @@ export async function GET(request: NextRequest) {
           products: repoProducts,
           shopDomain: shopDomain || null,
         };
-        if (debug) payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "repo", forcedSource: null };
+        if (debug) payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "repo", forcedSource };
         return jsonUtf8(payload);
       }
     }
@@ -190,7 +214,7 @@ export async function GET(request: NextRequest) {
     if (supaFallback && supaFallback.length > 0) {
       const payload: any = { success: true, source: "supabase-fallback", products: supaFallback, shopDomain: shopDomain || null };
       if (debug) {
-        payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "supabase-fallback", forcedSource: null };
+        payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "supabase-fallback", forcedSource };
       }
       return jsonUtf8(payload);
     }
@@ -200,7 +224,7 @@ export async function GET(request: NextRequest) {
     const safeProducts = finalizeEfroProducts(((result as any)?.products ?? []) as any[]);
 
     const payload: any = { ...(result as any), products: safeProducts };
-    if (debug) payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "loader", forcedSource: null };
+    if (debug) payload.debug = { shopDomain: shopDomain || null, isDemo: false, preferredSource: "loader", forcedSource };
     return jsonUtf8(payload);
   } catch (err: any) {
     console.error("[EFRO Products API] Unexpected error", err);
