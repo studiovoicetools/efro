@@ -79,6 +79,8 @@ export interface SellerBrainContext {
   previousIntent?: ShoppingIntent;
   /** Optional: vorherige Kategorie. */
   previousCategory?: string | null;
+  /** Optional: aktuelles Produkt (z. B. für Tag-Parsing). */
+  product?: EfroProduct | null;
 }
 
 /**

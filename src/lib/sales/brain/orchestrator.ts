@@ -171,6 +171,7 @@ import {
 import { runStep03_BudgetParsing } from "./steps/03_budget";
 import { runStep04_IntentExtraction } from "./steps/04_intent";
 import { runStep05_CategoryExtraction } from "./steps/05_category";
+import { runStep06_TagDetection } from "./steps/06_tags";
  
  
  
@@ -4307,6 +4308,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   
   // EFRO Modularization Phase 3: Kategorie-Informationen ?ber determineEffectiveCategory berechnen
   await runStep05_CategoryExtraction(runtimeContext);
+  await runStep06_TagDetection(runtimeContext);
   const categoryResultForCodeDetect = runtimeContext.category as {
     effectiveCategorySlug: string | null;
     matchedCategories: string[];

@@ -25,3 +25,4 @@ export type BrainState = {
 export type LogPayload = Record<string, unknown>;
 
 export type { LanguageRule } from "../types";
+export type { SellerBrainContext } from "@/lib/sales/modules/types";
