@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
       shop,
       intent: brainResult.intent,
       replyText: brainResult.replyText,
-      recommended: sanitizeRecommended(brainResult.recommended),
+      recommended: sanitizeRecommended(brainResult.recommended ?? []),
       productCount: products.length,
       productsSource: source,
       sellerBrain: {
@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
       shopDomain: shop || "local-dev",
       userText: text,
       intent: brainResult.intent,
-      productCount: brainResult.recommended.length,
+      productCount: (brainResult.recommended ?? []).length,
       plan: null, // Plan kann später aus Shop-Meta geholt werden, falls nötig
       hadError: false,
       errorMessage: null,
@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
     await logEfroEventServer({
       shopDomain: shop || "local-dev",
       userText: text,
-      intent: null,
+      intent: "error",
       productCount: 0,
       plan: null,
       hadError: true,
@@ -288,7 +288,7 @@ export async function POST(req: NextRequest) {
       shop,
       intent: brainResult.intent,
       replyText: brainResult.replyText,
-      recommended: sanitizeRecommended(brainResult.recommended),
+      recommended: sanitizeRecommended(brainResult.recommended ?? []),
       productCount: products.length,
       productsSource: source,
       sellerBrain: {
@@ -302,7 +302,7 @@ export async function POST(req: NextRequest) {
       shopDomain: shop || "local-dev",
       userText: text,
       intent: brainResult.intent,
-      productCount: brainResult.recommended.length,
+      productCount: (brainResult.recommended ?? []).length,
       plan: null, // Plan kann später aus Shop-Meta geholt werden, falls nötig
       hadError: false,
       errorMessage: null,
@@ -319,7 +319,7 @@ export async function POST(req: NextRequest) {
     await logEfroEventServer({
       shopDomain: shop || "local-dev",
       userText: text,
-      intent: null,
+      intent: "error",
       productCount: 0,
       plan: null,
       hadError: true,

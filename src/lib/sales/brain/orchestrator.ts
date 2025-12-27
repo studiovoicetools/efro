@@ -3438,6 +3438,8 @@ export async function runOrchestrator({
 }: BrainInput): Promise<BrainOutput> {
   const raw = userText ?? "";
   const cleaned = raw.trim();
+  const text = cleaned; // alias for legacy references (prevents ReferenceError)
+
   // KB: optional – kommt aus dem Context (kann undefined sein, kbRoute ist dann No-Op)
   const storeFacts = context?.storeFacts;
   // Defensive Guard: Leere Produktliste
@@ -3853,7 +3855,7 @@ const normalizedForOffTopicGate = normalizeText(cleaned);
 const isExplicitShoppingQuery =
   /\b(hast du|habt ihr|gibt es|ich brauche|ich such(e)?|interessiere mich|zeig|zeige|details|kaufen|bestellen|vorschlag|vorschla|empfehl)\b/i.test(
     normalizedForOffTopicGate
-  );
+  ) || /(?:tv|fernseher|monitor|display|screen|oled|qled|uhd|4k|zoll|\b55\b\s*zoll)/.test(text);
 
 const normalizedCleaned = normalizeText(cleaned);
 
