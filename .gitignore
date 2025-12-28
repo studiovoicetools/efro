@@ -110,3 +110,6 @@ _backups/
 # Supabase CLI temp
 supabase/.temp/
 
+
+# local logs
+logs/
