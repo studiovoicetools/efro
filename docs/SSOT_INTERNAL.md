@@ -297,3 +297,89 @@ Regel (bindend):
   - Precheck → Backup → Änderung → Verify → Commit → Push
 - Bei Python safe-edits:
   - Marker/Anchor muss existieren, sonst **hart abbrechen**.
+
+### 9.7 Architektur-Einstiegspunkte (Repo-Navigation, Proof-Commands)
+
+Ziel:
+- Nachfolger soll **ohne Neu-Recherche** sofort wissen, wo er ansetzt.
+- Alles mit **Proof-Commands**, damit es reproduzierbar ist.
+
+#### Brain / Orchestrierung
+- Orchestrator (SellerBrain „Orchester“):
+  - `src/lib/sales/brain/orchestrator.ts`
+- Steps/Module (modularisierte Pipeline):
+  - `src/lib/sales/brain/steps/`
+
+Proof-Commands:
+- `ls -la src/lib/sales/brain/`
+- `ls -la src/lib/sales/brain/steps/ | sed -n '1,200p'`
+- `rg -n "export async function|function orchestr|orchestrator" src/lib/sales/brain/orchestrator.ts`
+- `rg -n "steps/|from \"\./steps" src/lib/sales/brain/orchestrator.ts`
+
+#### Products / Datenquellen (Shopify vs. Supabase vs. Mock)
+Wichtige Files:
+- EFRO Products Route (entscheidet Quellen + Debug/forceSource Trace):
+  - `src/app/api/efro/products/route.ts`
+- Globaler Supabase-Endpoint (nicht tenant-safe, wenn ohne Filter):
+  - `src/app/api/supabase-products/route.ts`
+- Loader (Shopify-first, kann auf Mock fallen):
+  - `src/lib/products/efroProductLoader.ts`
+- Repo-Schicht / Supabase-Repo (tenant-/shop-spezifischer Zugriff, falls implementiert):
+  - `src/lib/efro/efroSupabaseRepository.ts` (Pfad bitte per Proof bestätigen)
+
+Proof-Commands:
+- `rg -n "forceSource|forcedSource|preferredSource|tryFetchSupabaseProducts" src/app/api/efro/products/route.ts`
+- `rg -n "from\(\"products\"\)\.select\(\"\*\"\)" src/app/api/supabase-products/route.ts`
+- `rg -n "shouldUseMock|SHOPIFY_ADMIN_ACCESS_TOKEN|products\.json\?limit" src/lib/products/efroProductLoader.ts`
+- `ls -la src/lib/efro/ 2>/dev/null || true`
+- `rg -n "getEfroShopByDomain|getProductsForShop|getEfroDemoShop" -S src/lib -g'*.ts'`
+
+#### UI / Flows (Landing, Demo, Onboarding, Avatar-Seller, Shopify Callback)
+Typische Einstiegspunkte (aus Chat-Analyse; unbedingt mit Proof prüfen):
+- Landing:
+  - `src/app/page.tsx`
+- Demo:
+  - `src/app/demo/page.tsx`
+- Onboarding UI:
+  - `src/app/efro/onboarding/page.tsx`
+- Admin Shops (Onboard-Shop Flow):
+  - `src/app/efro/admin/shops/page.tsx`
+- Avatar-Seller UI:
+  - `src/app/avatar-seller/` (page/layout innerhalb)
+- Shopify OAuth Callback (redirect):
+  - `src/app/api/shopify/callback/route.ts`
+
+Proof-Commands:
+- `ls -la src/app | sed -n '1,200p'`
+- `ls -la src/app/efro | sed -n '1,200p'`
+- `ls -la src/app/avatar-seller | sed -n '1,200p'`
+- `rg -n "router\.push\(\"/avatar-seller\?|/efro/onboarding|voice-preview|onboard-shop" -S src/app -g'*.tsx'`
+- `rg -n "callback|redirect.*avatar-seller" -S src/app/api -g'route.ts'`
+
+#### Tests / „Hardcore“-Suites (wo laufen die Gates)
+Hinweis:
+- In diesem Chat wurde mit „Hardcore/Scenario“-Denke gearbeitet: lieber härter testen, damit Go-Live stabiler wird.
+
+Wichtige Kandidaten (per Proof finden):
+- `scripts/test-hardcore-conv600.ts` (Hardcore Conversation Suite)
+- `scripts/test-sellerBrain-scenarios.ts` (Scenario Runner; 388/1000 etc.)
+- `pnpm` Scripts in `package.json` (sellerbrain:scenarios usw.)
+
+Proof-Commands:
+- `ls -la scripts | sed -n '1,200p'`
+- `rg -n "test-hardcore|conv600|sellerBrain-scenarios|SCENARIO_TARGET|--target" scripts -g'*.ts'`
+- `cat package.json | sed -n '1,220p'`
+
+### 9.8 „Live-nah“ Test-Definition (aus Chat-Analyse)
+Prinzip:
+- Ein „live-naher“ Test darf nicht stillschweigend zum **Mock-Profi** werden.
+- Mindestanforderung: `/api/efro/products` darf nicht dauerhaft `source=mock` liefern (außer explizit demo/local-dev).
+
+Proof-Commands (Smoke):
+- `curl -sS "http://localhost:3000/api/efro/products?shop=demo&debug=1" | jq .source,.debug`
+- `curl -sS "http://localhost:3000/api/efro/products?shop=<REAL_SHOP>&debug=1" | jq .source,.debug`
+- `curl -sS "http://localhost:3000/api/efro/products?shop=<REAL_SHOP>&debug=1&forceSource=repo" | jq .source,.debug`
+
+Wichtig:
+- Aktuell ist `forceSource` nur Trace (siehe 9.5), kein Enforcer.
+- Nachfolger muss entscheiden: Hard-Enforce vs. Soft-Enforce + fallbackReason.
