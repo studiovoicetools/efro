@@ -32,6 +32,20 @@ Arbeitsregel
 ## Ziel
 EFRO ist ein Shopify-embedded Avatar-Seller (Chat + später Voice), der Produkte nach Intent/Budget/Kategorie empfiehlt.
 
+
+## Produktquelle: warum manchmal nur 50 Produkte erscheinen
+Wichtig: `debug-products` ist ein Debug/Fixture-Dataset (typisch ~50) und NICHT Supabase.
+
+- Debug (≈50):
+  /api/efro/debug-products?shop=local-dev
+- Supabase raw (≈120: 100 good + 20 bad):
+  /api/supabase-products?shop=local-dev
+- EFRO produktiv/normalisiert (≈120):
+  /api/efro/products?shop=local-dev
+
+Truth-Run für Szenario-Tests:
+EFRO_DEBUG_PRODUCTS_URL muss auf /api/efro/products zeigen (nicht debug-products).
+
 ## Aktueller Stand (JETZT)
 ✅ Render Build ist grün.  
 ✅ Endpoints auf Render liefern Daten:

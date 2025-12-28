@@ -39,6 +39,23 @@ Rule: Facts only. Every claim needs evidence (URL + statuscode or command output
 - [ ] Render URL reachable => Evidence: __
 - [ ] Render: /api/efro/debug-products?dataset=scenarios => (status: __) Evidence: __
 
+
+## Truth-Run Definition (SellerBrain Tests müssen Supabase/EFRO nutzen)
+Standard-Runner laden über EFRO_DEBUG_PRODUCTS_URL.
+Default zeigt oft auf debug-products (≈50) -> das ist NICHT Supabase.
+
+Truth-Run:
+- setze EFRO_DEBUG_PRODUCTS_URL auf /api/efro/products (≈120)
+
+Core:
+export EFRO_DEBUG_PRODUCTS_URL="http://localhost:3000/api/efro/products?shop=local-dev"
+pnpm -s sellerbrain:scenarios
+
+Curated:
+export EFRO_DEBUG_PRODUCTS_URL="http://localhost:3000/api/efro/products?shop=local-dev"
+unset EFRO_SCENARIO_TARGET
+pnpm -s sellerbrain:scenarios:curated
+
 ## B) Go/No-Go Gates
 - Gate 1 (Demo UI reachable): [ ] GO / [ ] NO-GO
 - Gate 2 (Products reachable: fixture + supabase): [ ] GO / [ ] NO-GO
