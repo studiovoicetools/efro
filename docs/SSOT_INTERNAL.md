@@ -8,7 +8,11 @@
 
 ## 0) Arbeitsmodus (bindend)
 
-**Befehl → Ausgabe → nächster Befehl.**  
+**Befehl → Ausgabe → nächster Befehl.**
+Jeder Nachfolger muss **nach jeder Session** diese beiden Dateien aktualisieren:
+- `docs/SSOT_INTERNAL.md`: Was wurde geändert/entschieden + Proof-Commands/Logs.
+- `docs/GO_NO_GO.md`: Gates/Proof-Commands auf dem neuesten Stand halten.
+  
 Keine „manuellen“ Edits. Keine IDE-/Editor-Anweisungen. Alles muss im Terminal reproduzierbar sein.
 
 **Backup vor jeder Änderung:**
