@@ -10,8 +10,13 @@ export async function runStep13_Hardening(context: SellerBrainContext): Promise<
     errors.push("Missing or invalid inputText");
   }
 
-  // Katalog pruefen
-  if (!Array.isArray(context.products) || context.products.length === 0) {
+  // Katalog pruefen (legacy: context.products, neu: context.catalog)
+  const products = Array.isArray(context.products)
+    ? context.products
+    : Array.isArray(context.catalog)
+      ? context.catalog
+      : [];
+  if (products.length === 0) {
     errors.push("No products in context");
   }
 
@@ -25,10 +30,18 @@ export async function runStep13_Hardening(context: SellerBrainContext): Promise<
     errors.push("Recommended products must be an array");
   }
 
-  // Bei Fehler: Flag setzen
+  // Bei Fehler: Flags setzen
   if (errors.length > 0) {
     context.flags = context.flags || {};
-    context.flags.invalidInput = true;
+
+    // invalidInput NUR, wenn der User-Input wirklich kaputt/leer ist
+    const hasInputError = errors.some((e) => e.toLowerCase().includes("inputtext"));
+    if (hasInputError) {
+      context.flags.invalidInput = true;
+    } else {
+      // Sonst: interner Zustand/Schema (z.B. Produkte/Typen) -> NICHT "invalid"
+      context.flags.internalError = true;
+    }
 
     if (context.debugMode) {
       if (!context.debug) {
@@ -36,7 +49,7 @@ export async function runStep13_Hardening(context: SellerBrainContext): Promise<
       }
       context.debug.push({
         step: "hardening",
-        note: "Input validation errors",
+        note: hasInputError ? "Invalid user input" : "Internal validation issue",
         errors,
       });
     }
