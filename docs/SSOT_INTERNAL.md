@@ -383,3 +383,63 @@ Proof-Commands (Smoke):
 Wichtig:
 - Aktuell ist `forceSource` nur Trace (siehe 9.5), kein Enforcer.
 - Nachfolger muss entscheiden: Hard-Enforce vs. Soft-Enforce + fallbackReason.
+
+### 9.9 Chat-Recap — Was wurde in diesem Chat analysiert und entschieden?
+
+Ziel:
+- Der Nachfolger soll **nicht** erneut Schnittstellen/Flows neu analysieren müssen.
+- Dieses Kapitel ist der „Index“: Was war Thema, was ist Ergebnis, wie prüft man es.
+
+#### A) Git-/Repo-Härtung (Outcome: erledigt)
+- Problem: Backup-Artefakte waren im Git-Index (z. B. `.bak`, `.BROKEN.bak`, `.backup/`, `_backup/`).
+- Fix: Backups wurden aus dem Index entfernt, aber lokal behalten; `.gitignore` wurde gehärtet.
+- Ergebnis: `git ls-files` enthält keine Backups/Quarantine mehr.
+
+Proof-Commands:
+- `git log --oneline -n 8`
+- `git ls-files | rg -n '(^|/)(\.backup/|_backup/|docs/_quarantine_)|(\.bak$|\.BROKEN\.bak$|\.bak2-)' || echo OK`
+- `rg -n '^docs/_quarantine_\*/|^\*\.bak$|^\*\.bak2-\*|^\.backup/|^_backup/|^\*\.BROKEN\.bak$' .gitignore`
+
+#### B) Terminal-Regel (Outcome: bindend)
+- Problem: Lange Copy/Paste-Kommandos/Here-Docs können „verrutschen“ (Artefakte, abgebrochene Python-Listen, Regex-Fehler).
+- Regel: Nur kurze Chunks; jede Änderung immer:
+  Precheck → Backup → Change → Verify → Commit → Push.
+
+Proof-Command:
+- `rg -n -F "### 9.6 Terminal-Regel" docs/SSOT_INTERNAL.md`
+
+#### C) Products-Datenfluss: Shopify vs Supabase vs Mock (Outcome: analysiert + dokumentiert)
+Wichtige Erkenntnisse aus der Chat-Analyse (live-nah gedacht):
+- `/api/supabase-products` ist global, potentiell nicht tenant-safe, wenn ohne Shop-Filter.
+- `loadProductsForShop()` ist Shopify-first, kann aber auf Mock fallen (danger: „Mock-Profi“).
+- `/api/efro/products` bevorzugt Repo/Supabase-Schicht, hat Fallbacks (Supabase-global, dann Loader).
+
+Proof-Commands:
+- `rg -n "from\(\"products\"\)\.select\(\"\*\"\)" src/app/api/supabase-products/route.ts`
+- `rg -n "shouldUseMock|SHOPIFY_ADMIN_ACCESS_TOKEN|products\.json\?limit" src/lib/products/efroProductLoader.ts`
+- `rg -n "tryFetchSupabaseProducts|getEfroShopByDomain|getProductsForShop" -S src/app/api/efro/products/route.ts`
+
+#### D) forceSource (Outcome: Trace-only, kein Enforcer)
+- `forceSource` wurde als Debug/Trace ergänzt.
+- Stand jetzt: erzwingt nicht; Repo gewinnt weiterhin, solange vorhanden.
+- Nachfolger muss entscheiden: Hard-Enforce vs Soft-Enforce + `fallbackReason`.
+
+Proof-Commands:
+- `rg -n "forceSource|forcedSource|preferredSource" src/app/api/efro/products/route.ts`
+- `curl -sS "http://localhost:3000/api/efro/products?shop=demo&debug=1&forceSource=repo" | jq .source,.debug`
+
+#### E) Live-nahe Testdefinition (Outcome: festgehalten)
+- Ein live-naher Test darf nicht still auf `source=mock` degradiert werden (außer explizit demo/local-dev).
+- Mindest-Gate: `/api/efro/products` Quelle prüfen + Debug auswerten.
+
+Proof-Commands:
+- `curl -sS "http://localhost:3000/api/efro/products?shop=demo&debug=1" | jq .source,.debug`
+- `curl -sS "http://localhost:3000/api/efro/products?shop=<REAL_SHOP>&debug=1" | jq .source,.debug`
+
+#### F) Was in diesem Chat NICHT finalisiert wurde (offene Entscheidungen)
+- forceSource-Enforcement: Hard vs Soft (siehe oben).
+- Tenant-Safety im globalen Supabase-Endpoint: Filter/Shop-Scoping sauber definieren.
+- Test-Gates: Welche Suites sind Go-Live-Gate (Conv600 vs Scenarios) und welche Metrik zählt.
+
+Nächster Schritt (praktisch):
+- Aus den Proof-Commands echte „Go/No-Go“-Checks ableiten (separates Kapitel/Doc), ohne Monster-Commands.
