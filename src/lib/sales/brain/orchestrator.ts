@@ -184,6 +184,13 @@ import { runStep15_DetectAIReplyTrigger } from "./steps/15_aiTrigger";
 import { runStep16_DecisionFlow } from "./steps/16_decision";
 import { runStep17_WriteResponse } from "./steps/17_responseWriter";
 import { runStep18_FinalReturn } from "./steps/18_return";
+import { runStep19_ProductQuality } from "./steps/19_productQuality";
+import { runStep20_Guardrails } from "./steps/20_guardrails";
+import { runStep21_DebugSnapshot } from "./steps/21_debugSnapshot";
+import { runStep22_Telemetry } from "./steps/22_telemetry";
+import { runStep23_SelfTest } from "./steps/23_selfTest";
+import { runStep24_LanguageGuard } from "./steps/24_languageGuard";
+import { runStep25_ValidateOutput } from "./steps/25_validateOutput";
  
  
  
@@ -5864,15 +5871,22 @@ function isAmbiguousBoardQuery(text: string): boolean {
   runtimeContext.category = runtimeContext.category ?? effectiveCategorySlug;
   runtimeContext.recommendedProducts = recommended || [];
   runtimeContext.replyText = finalReplyText;
+  await runStep19_ProductQuality(runtimeContext);
   await runStep11_ToneDetection(runtimeContext);
   await runStep10_UnknownDetection(runtimeContext);
-  await runStep09_FinalizeOutput(runtimeContext);
   await runStep12_Cleanup(runtimeContext);
   await runStep13_Hardening(runtimeContext);
   await runStep14_Summary(runtimeContext);
   await runStep15_DetectAIReplyTrigger(runtimeContext);
   await runStep16_DecisionFlow(runtimeContext);
   await runStep17_WriteResponse(runtimeContext);
+  await runStep20_Guardrails(runtimeContext);
+  await runStep21_DebugSnapshot(runtimeContext);
+  await runStep22_Telemetry(runtimeContext);
+  await runStep23_SelfTest(runtimeContext);
+  await runStep24_LanguageGuard(runtimeContext);
+  await runStep09_FinalizeOutput(runtimeContext);
+  await runStep25_ValidateOutput(runtimeContext);
 
   return await runStep18_FinalReturn(runtimeContext);
 }

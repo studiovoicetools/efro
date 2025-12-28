@@ -39,6 +39,14 @@ export type SellerBrainDebugEntry = {
   [key: string]: unknown;
 };
 
+export type ProductQuality = "eligible" | "soft-bad" | "strict-bad";
+
+export type ProductQualityReport = {
+  counts: { eligible: number; softBad: number; strictBad: number };
+  reasons: Record<string, string[]>;
+  examples: Record<string, string>;
+};
+
 /**
  * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
  */
@@ -85,7 +93,7 @@ export interface SellerBrainContext {
   /** Optional: aktuelles Produkt (z. B. für Tag-Parsing). */
   product?: EfroProduct | null;
   /** Empfohlene Produkte für Reply-Generation. */
-  recommendedProducts?: EfroProduct[];
+  recommendedProducts?: Array<EfroProduct & { quality?: ProductQuality }>;
   /** Antworttext aus Reply-Generation. */
   replyText?: string;
   /** Policy-Verstöße für empfohlene Produkte. */
@@ -97,7 +105,11 @@ export interface SellerBrainContext {
   /** Finaler Reply-Text nach Routing. */
   finalReply?: string;
   /** Finales Ergebnisobjekt für Konsum durch API/UI/Tests. */
-  result?: Record<string, unknown>;
+  result?: Record<string, unknown> & {
+    productQuality?: ProductQualityReport;
+    debugContext?: Record<string, unknown>;
+    telemetry?: Record<string, unknown>;
+  };
   /** Optionaler Tonfall für Reply-Generierung. */
   tone?: string | null;
   /** Confidence-Score für Intent-Erkennung. */
@@ -110,6 +122,10 @@ export interface SellerBrainContext {
     isFallback?: boolean;
     invalidInput?: boolean;
     needsAIReply?: boolean;
+    guardrailViolation?: boolean;
+    internalError?: boolean;
+    languageIssue?: boolean;
+    schemaViolation?: boolean;
   };
   /** Optionale Liste geprüfter Produkte. */
   products?: EfroProduct[];

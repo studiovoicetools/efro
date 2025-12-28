@@ -3,13 +3,18 @@
 import { SellerBrainContext } from "../../types";
 
 export async function runStep09_FinalizeOutput(context: SellerBrainContext): Promise<void> {
+  const finalReply = (context as any).finalReply ?? context.replyText;
+
+  const productQuality = (context.result as { productQuality?: unknown } | undefined)
+    ?.productQuality;
+
   context.result = {
     input: context.inputText,
     intent: context.intent,
     category: context.category,
     budget: context.budgetParse?.value,
     recommendations: context.recommendedProducts,
-    reply: context.replyText,
+    reply: finalReply,
     policyViolations: context.policyViolations ?? [],
     tone: context.tone ?? null,
     confidenceScores: {
@@ -20,13 +25,15 @@ export async function runStep09_FinalizeOutput(context: SellerBrainContext): Pro
     flags: {
       needsClarification: context.flags?.needsClarification ?? false,
       isFallback: context.flags?.isFallback ?? false,
+      guardrailViolation: (context.flags as any)?.guardrailViolation ?? false,
     },
-    stepsExecuted: context.debug?.map((d) => d.step) ?? [],
+    stepsExecuted: context.debug?.map((d: any) => d.step) ?? [],
     meta: {
       timestamp: new Date().toISOString(),
       productsChecked: context.products?.length ?? 0,
       executionTimeMs: context.performance?.totalTime ?? null,
     },
+    productQuality,
   };
 
   if (context.debugMode) {
