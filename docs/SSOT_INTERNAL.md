@@ -203,3 +203,97 @@ Wenn Code geändert wird:
 - dann smoke
 - dann commit
 
+
+---
+
+## 9) Chat-Addendum — Stand 2025-12-28
+
+Ziel dieses Chats:
+- Eine **einzige**, robuste interne Wahrheit (SSOT), damit ein Nachfolger **nicht wieder bei 0** anfängt.
+- Nebenbei: Git/Repo so härten, dass **keine lokalen Backups/Artefakte** jemals im Index landen.
+
+Was in diesem Chat **tatsächlich umgesetzt** wurde (evidence-backed):
+
+### 9.1 Branch-Strategie (main nicht anfassen)
+- Es wurde bewusst ein separater Branch erstellt und genutzt:
+  - Branch: `docs/ssot-20251228`
+- SSOT liegt hier:
+  - Datei: `docs/SSOT_INTERNAL.md`
+- Grund: `main` bleibt clean / unangetastet, SSOT kann als PR später selektiv gemerged werden.
+
+Proof-Commands:
+- `git status -sb`
+- `git log --oneline -n 10`
+- `git branch -vv | sed -n '1,120p'`
+
+### 9.2 SSOT Commit + Push (Beweis)
+- Commit: `09bbc7c` — `docs(ssot): add internal single source of truth + products route forceSource trace`
+- Danach: Branch wurde gepusht und tracked origin.
+
+Proof-Commands:
+- `git log --oneline -n 3`
+- `git show --name-only --stat 09bbc7c`
+
+### 9.3 Git-Index Bereinigung: getrackte Backups entfernt (wichtig!)
+Problem:
+- Es waren lokale Backup-Artefakte im Git-Index (u.a. `.bak`, `.BROKEN.bak`, `.backup/`, `_backup/`).
+
+Fix in zwei Schritten (mit Safety Copies nach /tmp):
+- Commit: `6feb12c` — stop tracking lokale Backup-Files + `.gitignore` gehärtet
+- Commit: `9a8c5e6` — stop tracking `_backup` artifacts (u.a. eine große patch-Datei)
+
+Proof-Commands:
+- `git log --oneline -n 5`
+- `git show --name-only --stat 6feb12c`
+- `git show --name-only --stat 9a8c5e6`
+
+### 9.4 Endzustand (muss so bleiben)
+- Working tree clean:
+  - `git status --porcelain` ist leer
+- Keine getrackten Backups/Quarantäne:
+  - `git ls-files | rg -n '(^|/)(\.backup/|_backup/|docs/_quarantine_)|(\.bak$|\.BROKEN\.bak$|\.bak2-)'`
+- `.gitignore` enthält harte Regeln:
+  - `docs/_quarantine_*/`
+  - `*.bak`
+  - `*.bak2-*`
+  - `.backup/`
+  - `_backup/`
+  - `*.BROKEN.bak`
+
+
+### 9.5 Products/forceSource — Trace-only (aktueller Stand)
+
+Kontext:
+- In diesem Chat wurde `forceSource` in `src/app/api/efro/products/route.ts` als **Debug/Trace** ergänzt.
+- Wichtig: Stand jetzt **erzwingt** `forceSource` die Quelle **nicht** (Repo gewinnt weiterhin, solange vorhanden).
+
+Beobachtetes Verhalten (Smoke):
+- Request: `.../api/efro/products?debug=1&forceSource=repo`
+  - `.debug.forcedSource` spiegelt `"repo"`
+  - tatsächliche `.source` kann trotzdem repo/`"products"` bleiben (je nach repoResult.source)
+- Request: `...&forceSource=supabase`
+  - wird normalisiert auf `"supabase-fallback"` (Debug)
+  - `.source` bleibt trotzdem Repo-basiert, wenn Repo Produkte liefert
+- Request: `...&forceSource=loader`
+  - Debug zeigt `"loader"`, aber `.source` bleibt Repo-basiert
+- Konsequenz:
+  - `forceSource` ist derzeit **nur Trace**, kein Enforcer.
+
+Empfehlung für Nachfolger:
+- Debug klar trennen in:
+  - `requestedSource` (gewünscht)
+  - `actualSource` (tatsächlich)
+  - optional `fallbackReason`
+- Erst danach entscheiden:
+  - Hard-Enforce vs. Soft-Enforce (siehe SSOT Abschnitt 7)
+
+### 9.6 Terminal-Regel: Keine Monster-Commands
+Problem:
+- Sehr lange Commands/Here-Docs können beim Copy/Paste “verrutschen” (Artefakte im Terminal-Input).
+
+Regel (bindend):
+- Alle Schritte in **Chunks** (3A, 3B, 3C …).
+- Jede Änderung:
+  - Precheck → Backup → Änderung → Verify → Commit → Push
+- Bei Python safe-edits:
+  - Marker/Anchor muss existieren, sonst **hart abbrechen**.
