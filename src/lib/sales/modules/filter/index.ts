@@ -2185,13 +2185,20 @@ if (wantsCheapestSnowboard) {
  * Produkte nach Keywords, Kategorie und Preis filtern
  * – NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
  */
-export async function filterProductsForSellerBrain(
+export async function filterProductsForSellerBrainWithMeta(
   text: string,
   intent: ShoppingIntent,
   allProducts: EfroProduct[],
   contextCategory?: string | null
-): Promise<EfroProduct[]> {
+): Promise<{
+  products: EfroProduct[];
+  priceRangeNoMatch: boolean;
+  priceRangeInfo?: PriceRangeInfo;
+}> {
+
+
   // WICHTIG: Parfüm-Flags GANZ AM ANFANG deklarieren, vor allen Logs und if-Blocks
+
   let hasPerfumeCandidates = false;
   let originalPerfumeCandidates: EfroProduct[] = [];
   
@@ -2236,8 +2243,13 @@ export async function filterProductsForSellerBrain(
       intent,
       resultTitles: [],
     });
-    return [];
+    return {
+        products: [],
+        priceRangeNoMatch: false,
+        priceRangeInfo: undefined,
+      };
   }
+
 
   // 1) Filter-Kontext aufbauen
   const filterContext = await buildFilterContext(text, intent, allProducts, contextCategory);
@@ -3765,7 +3777,22 @@ return price <= maxPrice;
     }
   }
 
-  return finalProducts;
+  return { products: finalProducts, priceRangeNoMatch, priceRangeInfo };
+}
+
+export async function filterProductsForSellerBrain(
+  text: string,
+  intent: ShoppingIntent,
+  allProducts: EfroProduct[],
+  contextCategory?: string | null
+): Promise<EfroProduct[]> {
+  const { products } = await filterProductsForSellerBrainWithMeta(
+    text,
+    intent,
+    allProducts,
+    contextCategory
+  );
+  return products;
 }
 
  
