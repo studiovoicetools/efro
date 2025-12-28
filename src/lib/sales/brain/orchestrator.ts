@@ -3271,6 +3271,7 @@ export async function runOrchestrator({
   runtimeContext.inputText = cleaned;
   runtimeContext.currentIntent = currentIntent;
   runtimeContext.catalog = allProducts;
+  runtimeContext.products = allProducts; // legacy compat: some steps/modules still read context.products
   runtimeContext.previousCategory = context?.activeCategorySlug ?? null;
   await runStep03_BudgetParsing(runtimeContext);
   // Defensive Guard: Leere Produktliste
