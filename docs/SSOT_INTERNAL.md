@@ -443,3 +443,14 @@ Proof-Commands:
 
 Nächster Schritt (praktisch):
 - Aus den Proof-Commands echte „Go/No-Go“-Checks ableiten (separates Kapitel/Doc), ohne Monster-Commands.
+
+### 9.10 Go/No-Go Gates (wo steht die ausführbare Checkliste?)
+
+- Datei: `docs/GO_NO_GO.md`
+- Zweck: „ausführbare“ Go/No-Go Checklist mit Proof-Commands (keine Monster-Commands).
+- Pflege-Regel:
+  - Wenn ein Gate rot ist: zuerst SSOT/GO_NO_GO aktualisieren (warum rot + wie reproduzierbar), dann fixen.
+
+Proof-Commands:
+- `ls -la docs/GO_NO_GO.md`
+- `sed -n '1,120p' docs/GO_NO_GO.md`
