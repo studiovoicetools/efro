@@ -23,10 +23,8 @@ Arbeitsregel
 - vor PR/Push immer sellerbrain-Szenarien ausführen
 - Evidence-first: bei Bugs immer File+Zeilenbereich zeigen (rg-Ausgabe)
 
+---
 
-
-
-@'
 # EFRO – START HERE (Stand: 2025-12-21)
 
 ## Ziel
@@ -77,62 +75,12 @@ Onboarding → Lipsync zuverlässig (Conversation-Flow angleichen)
 Event Logs (Session/Intent/Reco/CTA/Error)
 
 Details: docs/OPEN_TICKETS.md, docs/GO_LIVE_STATUS.md
-'@ | Set-Content -Encoding UTF8 .\docs\00_START_HERE.md
-
-perl
-Code kopieren
 
 ---
 
-## 2.3 `docs/RENDER_OPS.md` (Render-Betrieb nur mit Commands)
+Weitere Details:
+- docs/OPEN_TICKETS.md
+- docs/GO_LIVE_STATUS.md
+- docs/ENVIRONMENT.md
+- docs/RENDER_OPS.md
 
-```powershell
-cd C:\efro_fast\efro_work_fixed
-
-@'
-# RENDER OPS (Stand: 2025-12-21)
-
-## Regel
-Render deployt den konfigurierten Branch: **main**.
-
-## Nach jedem Deploy: Smoke Tests
-```powershell
-$BASE="https://efro-prod.onrender.com"
-irm "$BASE/api/health"
-irm "$BASE/api/efro/products?shop=avatarsalespro-dev.myshopify.com" | select success,source
-irm "$BASE/api/supabase-products?shop=avatarsalespro-dev.myshopify.com" | select success,count
-irm "$BASE/api/shopify-products?shop=avatarsalespro-dev.myshopify.com" | select source
-Wenn Build/Runtime wegen ENV crasht
-Render ENV prüfen (muss gesetzt sein):
-
-SUPABASE_URL
-
-SUPABASE_SERVICE_KEY
-
-NEXT_PUBLIC_SUPABASE_URL
-
-Redeploy/Restart im Render UI
-
-Lokal Production-Build nachstellen:
-
-powershell
-Code kopieren
-cd C:\efro_fast\efro_work_fixed
-pnpm -s guard:mojibake
-pnpm lint
-pnpm build
-'@ | Set-Content -Encoding UTF8 .\docs\RENDER_OPS.md
-
-yaml
-Code kopieren
-
----
-
-# 3) Docs committen + pushen (nur wenn du willst)
-
-```powershell
-cd C:\efro_fast\efro_work_fixed
-git status
-git add .\docs\ENVIRONMENT.md .\docs\00_START_HERE.md .\docs\RENDER_OPS.md
-git commit -m "docs: clarify local env + render ops + current status (2025-12-21)"
-git push origin main
