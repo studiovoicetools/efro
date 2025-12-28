@@ -8,10 +8,16 @@ export async function runStep17_WriteResponse(context: SellerBrainContext): Prom
   switch (context.routing) {
     case "rule":
     case "ai":
-      context.finalReply = context.replyText || "(empty)";
+      if (context.flags?.internalError && !context.replyText) {
+        context.finalReply =
+          "Entschuldigung — intern ist etwas schiefgelaufen. Bitte versuche es gleich noch einmal.";
+      } else {
+        context.finalReply = context.replyText || "(empty)";
+      }
       break;
     case "clarify":
-      context.finalReply = "Kannst du das bitte etwas genauer sagen? Ich habe es nicht ganz verstanden.";
+      context.finalReply =
+        "Kannst du das bitte etwas genauer sagen? Ich habe es nicht ganz verstanden.";
       break;
     case "block":
       context.finalReply = "Leider kann ich dir dazu keine Vorschlaege machen.";

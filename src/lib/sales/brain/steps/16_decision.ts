@@ -7,7 +7,10 @@ export async function runStep16_DecisionFlow(context: SellerBrainContext): Promi
 
   let route: "ai" | "rule" | "clarify" | "block" | "invalid" = "rule";
 
-  if (context.flags.invalidInput) {
+  // internalError NICHT als "invalid" behandeln -> lieber AI/Fallback
+  if (context.flags.internalError) {
+    route = "ai";
+  } else if (context.flags.invalidInput) {
     route = "invalid";
   } else if (context.policyViolations?.length) {
     route = "block";
