@@ -33,7 +33,7 @@ export async function runStep09_FinalizeOutput(context: SellerBrainContext): Pro
       productsChecked: context.products?.length ?? 0,
       executionTimeMs: context.performance?.totalTime ?? null,
     },
-    productQuality,
+    productQuality: (productQuality as any),
   };
 
   if (context.debugMode) {
@@ -41,7 +41,7 @@ export async function runStep09_FinalizeOutput(context: SellerBrainContext): Pro
       context.debug.push({
         step: "finalize",
         summary: {
-          resultKeys: Object.keys(context.result),
+          resultKeys: Object.keys(context.result ?? {}),
           recommendationCount: context.recommendedProducts?.length,
         },
       });
@@ -50,7 +50,7 @@ export async function runStep09_FinalizeOutput(context: SellerBrainContext): Pro
         {
           step: "finalize",
           summary: {
-            resultKeys: Object.keys(context.result),
+            resultKeys: Object.keys(context.result ?? {}),
             recommendationCount: context.recommendedProducts?.length,
           },
         },

@@ -4,7 +4,7 @@ import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep15_DetectAIReplyTrigger(context: SellerBrainContext): Promise<void> {
   const noRecommendations = !context.recommendedProducts?.length;
-  const unknownIntent = context.intent === "unknown";
+  const unknownIntent = !context.intent;
   const unclearBudget = context.flags?.needsClarification;
   const policyBlocked = Boolean(context.policyViolations?.length);
 

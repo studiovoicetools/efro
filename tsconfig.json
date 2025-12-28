@@ -1,4 +1,4 @@
-﻿{
+{
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -38,7 +38,9 @@
   ],
 
   "exclude": [
-  "src/efro_legacy/**/*",
+  
+  "**/*.spec.ts",
+    "src/efro_legacy/**/*",
   "node_modules",
   "src_backup",
   "_backups/**/*",

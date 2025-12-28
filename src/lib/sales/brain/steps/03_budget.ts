@@ -34,7 +34,7 @@ export async function runStep03_BudgetParsing(context: SellerBrainContext): Prom
     hasBudgetWord,
     hasBudgetPhrase,
     isBudgetPhraseDetected,
-    reason: isBudgetPhraseDetected ? "priceOnly" : "none",
+    reason: isBudgetPhraseDetected ? ("priceOnly" as const) : ("none" as const),
   };
 
   context.budgetParse = budgetParse;
