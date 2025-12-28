@@ -115,3 +115,8 @@ supabase/.temp/
 docs/_quarantine_*/
 *.bak
 *.bak2-*
+
+# --- local backups (never commit) ---
+.backup/
+_backup/
+*.BROKEN.bak
