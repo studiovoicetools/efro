@@ -113,3 +113,4 @@ supabase/.temp/
 
 # local logs
 logs/
+_archive/

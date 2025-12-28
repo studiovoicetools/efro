@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/19_productQuality.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 type ProductQuality = "eligible" | "soft-bad" | "strict-bad";
 

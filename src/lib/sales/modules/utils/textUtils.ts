@@ -1,8 +1,10 @@
 ﻿// src/lib/sales/modules/utils/textUtils.ts
 
 function looksLikeMojibake(s: string): boolean {
-  // typische UTF8->Latin1 Fehl-Decodierung (Ã¼, Ã¶, Ã¤, â€“, â€™, Â etc.)
-  return /Ã|Â|â€|â€™|â€œ|â€�|â€“|â€¦/.test(s);
+  // typische UTF-8->Latin1 Fehl-Decodierung (ü, ö, ä, –, ’, etc.)
+  return /(?:\u00c3|\u00c2|\u00e2\u0080|\u00e2\u0080\u0099|\u00e2\u0080\u009c|\u00e2\u0080\u009d|\u00e2\u0080\u0093|\u00e2\u0080\u00a6)/.test(
+    s
+  );
 }
 
 function fixMojibakeUtf8(s: string): string {
@@ -40,11 +42,11 @@ function fixMojibakeUtf8(s: string): string {
 export function normalizeText(input: string): string {
   const fixed = fixMojibakeUtf8(input || "")
     // häufige Euro-Mojibake-Fälle (dein Beispiel)
-    .replace(/Ã¢âÂ¬/g, "€")
+    .replace(/\u00c3\u00a2\u00e2\u00c2\u00ac/g, "€")
     .replace(/â\uFFFD¬/g, "€") // "â�¬" = â + U+FFFD + ¬
     .replace(/â‚¬/g, "€")
-    // häufiges "Â" als Artefakt (z. B. "10Â €")
-    .replace(/Â/g, "");
+    // häufiges "\\u00c2" als Artefakt (z. B. "10\\u00c2 €")
+    .replace(/\u00c2/g, "");
 
   return fixed
     .toLowerCase()

@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/18_return.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep18_FinalReturn(context: SellerBrainContext): Promise<any> {
   const result: Record<string, unknown> = {

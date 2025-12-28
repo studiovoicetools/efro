@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/10_unknown.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep10_UnknownDetection(context: SellerBrainContext): Promise<void> {
   const noIntent = !context.intent;

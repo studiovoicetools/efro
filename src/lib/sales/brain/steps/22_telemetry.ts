@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/22_telemetry.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep22_Telemetry(context: SellerBrainContext): Promise<void> {
   if (!context.result) {

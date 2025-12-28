@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/25_validateOutput.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 function markViolation(context: SellerBrainContext, issue: string): void {
   if (!context.flags) {

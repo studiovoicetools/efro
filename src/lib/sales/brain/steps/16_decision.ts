@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/16_decision.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep16_DecisionFlow(context: SellerBrainContext): Promise<void> {
   context.flags = context.flags || {};

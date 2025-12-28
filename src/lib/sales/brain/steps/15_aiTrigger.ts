@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/15_aiTrigger.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep15_DetectAIReplyTrigger(context: SellerBrainContext): Promise<void> {
   const noRecommendations = !context.recommendedProducts?.length;

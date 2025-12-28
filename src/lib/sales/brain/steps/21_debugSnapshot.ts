@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/21_debugSnapshot.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep21_DebugSnapshot(context: SellerBrainContext): Promise<void> {
   if (!context.debugMode) {

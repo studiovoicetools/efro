@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/09_finalize.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep09_FinalizeOutput(context: SellerBrainContext): Promise<void> {
   const finalReply = (context as any).finalReply ?? context.replyText;

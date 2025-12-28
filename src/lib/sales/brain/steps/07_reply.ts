@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/07_reply.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 import { buildReplyText } from "./08_reply";
 
 export async function runStep07_ReplyGeneration(context: SellerBrainContext): Promise<void> {

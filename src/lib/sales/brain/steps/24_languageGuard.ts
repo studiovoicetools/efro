@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/24_languageGuard.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 const ENGLISH_KEYWORDS = [
   "free",

@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/23_selfTest.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 const ALLOWED_FLAG_KEYS = new Set([
   "needsClarification",

@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/12_cleanup.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep12_Cleanup(context: SellerBrainContext): Promise<void> {
   // Entferne volatile Felder, die downstream nicht gebraucht werden

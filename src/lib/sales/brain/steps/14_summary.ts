@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/14_summary.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep14_Summary(context: SellerBrainContext): Promise<void> {
   const parts: string[] = [];

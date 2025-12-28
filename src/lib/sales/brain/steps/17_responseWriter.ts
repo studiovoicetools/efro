@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/17_responseWriter.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep17_WriteResponse(context: SellerBrainContext): Promise<void> {
   context.finalReply = "";

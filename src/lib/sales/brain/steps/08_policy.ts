@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/08_policy.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 import { checkPolicyViolations } from "@/lib/sales/utils/checkPolicyViolations";
 
 export async function runStep08_PolicyCheck(context: SellerBrainContext): Promise<void> {

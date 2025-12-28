@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/06_tags.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep06_TagDetection(context: SellerBrainContext): Promise<void> {
   const normalize = (s: string) =>

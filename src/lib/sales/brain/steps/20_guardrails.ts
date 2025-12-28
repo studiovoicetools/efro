@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/20_guardrails.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 const FREE_TERMS = ["free", "gratis", "kostenlos", "kostenfrei", "umsonst"];
 const UNKNOWN_TERMS = ["unknown", "unbekannt", "undefined"];

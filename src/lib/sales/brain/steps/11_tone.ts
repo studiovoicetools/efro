@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/11_tone.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep11_ToneDetection(context: SellerBrainContext): Promise<void> {
   const text = context.inputText?.toLowerCase() || "";

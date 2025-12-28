@@ -1,6 +1,6 @@
 // src/lib/sales/brain/steps/13_hardening.ts
 
-import { SellerBrainContext } from "../../types";
+import { SellerBrainContext } from "@/lib/sales/modules/types";
 
 export async function runStep13_Hardening(context: SellerBrainContext): Promise<void> {
   const errors: string[] = [];
