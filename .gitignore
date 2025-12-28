@@ -120,3 +120,6 @@ docs/_quarantine_*/
 .backup/
 _backup/
 *.BROKEN.bak
+
+# local logs
+logs/
