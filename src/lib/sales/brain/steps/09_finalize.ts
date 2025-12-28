@@ -30,7 +30,7 @@ export async function runStep09_FinalizeOutput(context: SellerBrainContext): Pro
     stepsExecuted: context.debug?.map((d: any) => d.step) ?? [],
     meta: {
       timestamp: new Date().toISOString(),
-      productsChecked: context.products?.length ?? 0,
+      productsChecked: context.catalog?.length ?? 0,
       executionTimeMs: context.performance?.totalTime ?? null,
     },
     productQuality: (productQuality as any),
