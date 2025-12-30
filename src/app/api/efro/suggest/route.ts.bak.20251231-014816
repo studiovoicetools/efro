@@ -22,81 +22,6 @@ function _serializeErr(err: unknown) {
   return { name, message, stack: stackTrim };
 }
 
-function _unwrapSellerBrainResult(brainResult: any): any {
-  if (brainResult && typeof brainResult === "object" && brainResult.result && typeof brainResult.result === "object") {
-    return brainResult.result;
-  }
-  return brainResult;
-}
-
-function _pickReplyText(sb: any, brainResult: any): string {
-  const a = sb?.replyText;
-  if (typeof a === "string" && a.trim()) return a;
-  const b = brainResult?.replyText;
-  if (typeof b === "string" && b.trim()) return b;
-  return "";
-}
-
-function _pickIntent(sb: any, fallback: any): any {
-  const v = sb?.intent;
-  return (typeof v === "string" && v) ? v : fallback;
-}
-
-
-function _pickNextContext(sb: any): any {
-  const nc = sb?.nextContext ?? sb?.sellerBrain?.nextContext ?? null;
-  return nc ?? null;
-}
-
-function _pickAiTrigger(sb: any): any {
-  return sb?.aiTrigger ?? sb?.sellerBrain?.aiTrigger ?? undefined;
-}
-
-
-function _pickRecommended(sb: any): any[] {
-  const isProductArray = (v: any): v is any[] => {
-    return Array.isArray(v) && (
-      v.length === 0 ||
-      (v[0] && typeof v[0] === "object" && ("title" in v[0] || "id" in v[0]))
-    );
-  };
-
-  const rec = sb?.result?.recommendations;
-
-  // 1) Direkt bekannte Felder
-  if (isProductArray(rec)) return rec;
-
-  if (rec && typeof rec === "object") {
-    const preferred = [
-      rec.recommendedProducts,
-      rec.recommended,
-      rec.products,
-      rec.items,
-      rec.list,
-      rec.finalProducts,
-      rec.topProducts,
-    ];
-
-    for (const v of preferred) if (isProductArray(v)) return v;
-
-    // 2) irgendein Array innerhalb recommendations finden
-    for (const v of Object.values(rec)) if (isProductArray(v)) return v as any[];
-  }
-
-  // 3) Fallbacks (manche Builds legen Produkte an anderer Stelle ab)
-  const fallbacks = [
-    sb?.result?.reply?.products,
-    sb?.result?.reply?.recommended,
-    sb?.result?.productQuality?.products,
-  ];
-  for (const v of fallbacks) if (isProductArray(v)) return v;
-
-  return [];
-}
-
-
-
-
 
 type SuggestResponse = {
   shop: string;
@@ -179,23 +104,21 @@ export async function GET(req: NextRequest) {
       undefined, // previousRecommended wird in GET vorerst nicht genutzt
       context
     );
-      const sb: any = brainResult;
 
-
-      const recommended = _pickRecommended(brainResult);
+      const recommended = Array.isArray(brainResult.recommended) ? brainResult.recommended : [];
       const intent = (brainResult.intent ?? prevIntent ?? "quick_buy") as ShoppingIntent;
       const nextContext = (brainResult.nextContext ?? null) as any;
 
     const payload: SuggestResponse = {
       shop,
       intent,
-      replyText: _pickReplyText(sb, brainResult),
+      replyText: brainResult.replyText,
       recommended,
       productCount: recommended.length,
       productsSource: source,
       sellerBrain: {
         nextContext,
-        aiTrigger: _pickAiTrigger(sb),
+        aiTrigger: brainResult.aiTrigger,
       },
     };
 
@@ -205,7 +128,7 @@ export async function GET(req: NextRequest) {
       userText: text,
       intent,
       productCount: recommended.length,
-      plan: String(planParam ?? "unknown"), // Plan kann später aus Shop-Meta geholt werden, falls nötig
+      plan: String(planParam ?? \"unknown\"),// Plan kann später aus Shop-Meta geholt werden, falls nötig
       hadError: false,
       errorMessage: null,
     }).catch((err) => {
@@ -227,7 +150,7 @@ export async function GET(req: NextRequest) {
       userText: text,
       intent: "error",
       productCount: 0,
-      plan: "unknown",
+      plan: String(planParam ?? \"unknown\"),
       hadError: true,
       errorMessage: err instanceof Error ? err.message : "Unknown error",
     }).catch(() => {
@@ -307,23 +230,21 @@ export async function POST(req: NextRequest) {
       previousRecommended,
       context
     );
-      const sb: any = brainResult;
 
-
-      const recommended = _pickRecommended(brainResult);
+      const recommended = Array.isArray(brainResult.recommended) ? brainResult.recommended : [];
       const intent = (brainResult.intent ?? prevIntent ?? "quick_buy") as ShoppingIntent;
       const nextContext = (brainResult.nextContext ?? null) as any;
 
     const payload: SuggestResponse = {
       shop,
       intent,
-      replyText: _pickReplyText(sb, brainResult),
+      replyText: brainResult.replyText,
       recommended,
       productCount: recommended.length,
       productsSource: source,
       sellerBrain: {
         nextContext,
-        aiTrigger: _pickAiTrigger(sb),
+        aiTrigger: brainResult.aiTrigger,
       },
     };
 
@@ -333,7 +254,7 @@ export async function POST(req: NextRequest) {
       userText: text,
       intent,
       productCount: recommended.length,
-      plan: String(planParam ?? "unknown"), // Plan kann später aus Shop-Meta geholt werden, falls nötig
+      plan: String(planParam ?? \"unknown\"),// Plan kann später aus Shop-Meta geholt werden, falls nötig
       hadError: false,
       errorMessage: null,
     }).catch((err) => {
@@ -351,7 +272,7 @@ export async function POST(req: NextRequest) {
       userText: text,
       intent: "error",
       productCount: 0,
-      plan: "unknown",
+      plan: String(planParam ?? \"unknown\"),
       hadError: true,
       errorMessage: err instanceof Error ? err.message : "Unknown error",
     }).catch(() => {

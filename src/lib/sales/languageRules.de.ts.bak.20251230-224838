@@ -111,7 +111,7 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   tierbedarf: ["tier", "tierbedarf", "hund", "hunde", "welpe", "welpen", "katze", "katzen", "kater", "hündin", "futter", "leckerli", "haustier", "haustiere", "pets", "pet", "dog", "cat", "animal", "napf", "fressnapf"],
   perfume: ["perfume", "parfum", "parfüm", "duft", "eau de parfum", "eau de toilette"],
   // SCHRITT 3 FIX: Garten-Kategorie hinzugefügt für S10v1
-  garten: ["garten", "gartenartikel", "garten-artikel", "gartenbedarf", "gartenzubehör", "gartenzubehoer", "gartenprodukte"],
+  Garten: ["garten", "gartenartikel", "garten-artikel", "gartenbedarf", "gartenzubehör", "gartenzubehoer", "gartenprodukte"],
   // SCHRITT 5 FIX: Kosmetik und Werkzeug für globale Kategorien
   kosmetik: [
     "kosmetik",
@@ -132,11 +132,6 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   ],
   werkzeug: ["werkzeug", "tools", "werkzeugkoffer"],
   // hier können später weitere Kategorien ergänzt werden
-  "yoga": ["yoga", "yogamatte", "yogablock", "yogaband"],
-  "gutscheine": ["gutschein", "gutscheine", "voucher", "giftcard", "gift card"],
-  "kinder": ["kinder", "kind", "kids", "kinderartikel"],
-  "sneaker": ["sneaker", "turnschuhe", "sportschuhe"],
-
 };
 
 // Usage-Keywords: Verwendungszweck/Einsatzgebiet

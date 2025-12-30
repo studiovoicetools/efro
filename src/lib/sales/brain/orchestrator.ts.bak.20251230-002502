@@ -2573,7 +2573,6 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
 
  if (effectiveCategorySlug) {
     const beforeCategoryFilterCount = candidates.length;
-    let filterResult = candidates;
 
     const filteredByCategory = candidates.filter(
       (p) => normalize(p.category || "") === normalize(effectiveCategorySlug || "")
@@ -2587,9 +2586,6 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
       // Stattdessen nur Hinweis setzen.
       if (beforeCategoryFilterCount > 0) {
         debugFlags.push("category_no_match_for_slug:" + String(effectiveCategorySlug));
-        // HARDCORE SAFETY: category filter must not zero-out all candidates
-        // If it yields 0 matches, keep the pre-filter candidates and continue with scoring/ranking.
-        filterResult = candidates;
       }
       if (!missingCategoryHint) {
         missingCategoryHint = effectiveCategorySlug;
@@ -3019,7 +3015,7 @@ function rankAndSliceCandidates(
       intent: currentIntent,
       finalCount: finalProducts.length,
       products: finalProducts.map((p) => ({
-        title: String(p.title ?? "").substring(0, 50),
+        title: p.title.substring(0, 50),
         price: p.price ?? null,
         category: p.category ?? null,
       })),
@@ -3973,7 +3969,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       originalCount: filterResult.length,
       finalCount: finalRanked.length,
       selectedProducts: finalRanked.map((p) => ({
-        title: String(p.title ?? "").substring(0, 50),
+        title: p.title.substring(0, 50),
         price: p.price ?? null,
       })),
     });
@@ -4042,10 +4038,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       // Verwerfe falsche Produkte, damit die "AI Smartphone Exact Match" Logik später greift
       // ABER: Nur wenn effectiveCategorySlug "elektronik" ist (sonst könnte es andere Szenarien brechen)
       if (effectiveCategorySlug === "elektronik") {
-        // recommended kann const sein -> Array leeren statt reassign
-        if (Array.isArray(recommended)) {
-          recommended.length = 0;
-        }
+        recommended = [];
         console.log("[EFRO CLUSTER K FIX K6v2] Exakter Smartphone-Modellname gesucht, aber nicht gefunden - Produkte verworfen", {
           text: cleaned.substring(0, 100),
           effectiveCategorySlug,
@@ -5101,7 +5094,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
       // TODO-AI-REFACTOR: Hauptstelle f?r AI-Trigger-Setzung (wird durch decideAiTrigger ersetzt)
       // J3v2 Fix: Überschreibe NICHT, wenn bereits Budget-Smalltalk erkannt wurde
-      if (needsAiHelp && !aiTrigger) {
+      if (needsAiHelp && !(aiTrigger && aiTrigger.reason === "budget_smalltalk_no_ai")) {
         aiTrigger = {
           needsAiHelp: true,
           reason,
@@ -5851,29 +5844,16 @@ function isAmbiguousBoardQuery(text: string): boolean {
   } as any);
   
   // SCHRITT 4 FIX: Bei ASK_CLARIFICATION + NO_PRODUCTS_FOUND keine Produkte zurückgeben
-  if (salesPolicyOutput.primaryAction === "ASK_CLARIFICATION" &&
+  if (salesPolicyOutput.primaryAction === "ASK_CLARIFICATION" && 
       salesPolicyOutput.notes?.includes("NO_PRODUCTS_FOUND")) {
-
-    // PROFI: NO_PRODUCTS_FOUND gilt nur, wenn wir WIRKLICH 0 Treffer haben.
-    const __recCount = (recommended?.length ?? 0);
-
-    if (__recCount > 0) {
-      // Treffer vorhanden -> Produkte behalten, NO_PRODUCTS_FOUND entfernen.
-      (salesPolicyOutput as any).notes = (salesPolicyOutput.notes ?? []).filter((n) => n !== "NO_PRODUCTS_FOUND");
-      console.log("[EFRO SB ASK_CLARIFICATION] NO_PRODUCTS_FOUND ignored (products exist)", {
-        count: __recCount,
-      });
-    } else {
-      // Originalverhalten: wirklich 0 -> leer lassen
-      console.log("[EFRO SB ASK_CLARIFICATION] Produkte entfernt (NO_PRODUCTS_FOUND)", {
-        originalCount: __recCount,
-        finalCount: 0,
-        salesNotes: ["NO_PRODUCTS_FOUND"],
-      });
-      recommended = [];
-    }
+    recommended = [];
+    console.log("[EFRO SB ASK_CLARIFICATION] Produkte entfernt (NO_PRODUCTS_FOUND)", {
+      text: cleaned.substring(0, 100),
+      originalCount: originalRecommendedCount,
+      finalCount: 0,
+      salesNotes: salesPolicyOutput.notes,
+    });
   }
-
 
   console.log("[EFRO SB RETURN]", {
     text: cleaned,

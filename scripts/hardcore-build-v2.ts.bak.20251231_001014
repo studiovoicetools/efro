@@ -1,0 +1,121 @@
+/* eslint-disable no-console */
+import fs from "node:fs/promises";
+import path from "node:path";
+
+type AnyObj = Record< string, any >;
+
+function norm(s : string) {
+  return String(s ?? "").toLowerCase().trim();
+}
+
+function simpleHash(s : string) {
+  // deterministic, no RNG
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function uniq<T>(arr: T[]) {
+  const out: T[] = [];
+  const seen = new Set<string>();
+  for (const x of arr) {
+    const k = JSON.stringify(x);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(x);
+  }
+  return out;
+}
+
+function makeTypo(q: string) {
+  const s = q;
+  const h = simpleHash(s);
+  const ops = [
+    (t: string) => t.replace(/ch/g, "hc"),
+    (t: string) => t.replace(/ei/g, "ie"),
+    (t: string) => t.replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u"),
+    (t: string) => t.replace(/\bbitte\b/gi, ""),
+    (t: string) => t.replace(/\s{2,}/g, " "),
+  ];
+  return ops[h % ops.length](s).replace(/\s{2,}/g, " ").trim();
+}
+
+function makeKurzZ3z(t: string) {
+  return q
+    .replace(/^\s*ich\s+brauche\s+/i, "")
+    .replace(/^\s*ich\s+suche\s+/i, "")
+    .replace(/^\s*kategorie\s+/i, "Kategorie ")
+    .replace(/\bbitte\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function makeUmgang(q: string) {
+  const t = q.trim().replace(/[.!?]+$/g, "");
+  if (/^kategorie\b/i.test(t)) return t;
+  if (/^ech\s+brauche\b/i.test(t)) return t.replace(/^ich\s+brauche\b/i, "brauch");
+  if (/^ich\s+suche\b/i.test(t)) return t.replace(/^ich\s+suche\b/i, "such");
+  return "Hast du " + t;
+}
+
+function variantsForQuery(q: string) {
+  const base = q.trim();
+  const v1 = makeTypo(base);
+  const v2 = makeKurz(base);
+  const v3 = makeUmgang(base);
+  return uniq([v1, v2, v3]).filter((x) => x && x.length >= 2);
+}
+
+async function main() {
+  const inPath = path.resolve(process.cwd(), "scripts/fixtures/conversations1000.json");
+  const outPath = path.resolve(process.cwd(), "scripts/fixtures/conversations1000.v2.json");
+
+  const raw = await fs.readFile(inPath, "utf8");
+  const parsed: any = JSON.parse(raw);
+
+  const conversations: AnyObj[] = Array.isArray(parsed) ? parsed : (parsed?.conversations ?? []);
+  const isTurnList = conversations.length > 0 && !Array.isArray(conversations[0]?.turns);
+
+  const convList: AnyObj[] = isTurnList
+    ? conversations.map((t: AnyObj, i: number) => ({ id: t.id ?? `conv-auto-${String(i + 1).padStart(4, "0")}`, turns: [t] }))
+    : conversations;
+
+  const out: AnyObj[] = [];
+  for (const conv of convList) {
+    const turns: AnyObj[] = Array.isArray(conv.turns) ? conv.turns : [];
+    const newTurns: AnyObj[] = [];
+
+    for (const turn of turns) {
+      newTurns.push(turn);
+
+      const q = String(turn?.query ?? "");
+      if (!q) continue;
+
+      const vars = variantsForQuery(q).slice(0, 3);
+      for (const v of vars) {
+        newTurns.push({ ...turn, query: v, _variant: true });
+      }
+
+      if (norm(turn?.kind) === "title") {
+        const title = q.replace(/^\s*ich\s+brauche\s+/i, "").replace(/[.!?]+$/g, "").trim();
+        if (title.length > 2) {
+          newTurns.push({ ...turn, query: `Was kostet ${title}?`, _variant: true });
+          newTurns.push({ ...turn, query: `Zeig mir ${title} nochmal.`, _variant: true });
+        }
+      }
+    }
+
+    out.push({ ...conv, turns: newTurns });
+  }
+
+  await fs.writeFile(outPath, JSON.stringify(out, null, 2), "utf8");
+  console.log("[hardcore-v2] wrote:", path.relative(process.cwd(), outPath), "conversations:", out.length);
+}
+
+main().catch((e) => {
+  console.error("[hardcore-v2] fatal:", e);
+  process.exit(1);
+});

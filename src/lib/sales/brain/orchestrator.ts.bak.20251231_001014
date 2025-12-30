@@ -2573,7 +2573,6 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
 
  if (effectiveCategorySlug) {
     const beforeCategoryFilterCount = candidates.length;
-    let filterResult = candidates;
 
     const filteredByCategory = candidates.filter(
       (p) => normalize(p.category || "") === normalize(effectiveCategorySlug || "")
@@ -2589,7 +2588,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
         debugFlags.push("category_no_match_for_slug:" + String(effectiveCategorySlug));
         // HARDCORE SAFETY: category filter must not zero-out all candidates
         // If it yields 0 matches, keep the pre-filter candidates and continue with scoring/ranking.
-        filterResult = candidates;
+        filterResult = beforeCategoryFilter;
       }
       if (!missingCategoryHint) {
         missingCategoryHint = effectiveCategorySlug;

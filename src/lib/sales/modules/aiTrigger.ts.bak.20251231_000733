@@ -165,7 +165,7 @@ export function decideAiTrigger(options: {
       (userMaxPrice !== null || userMinPrice !== null)) {
     const trigger: SellerBrainAiTrigger = {
       needsAiHelp: true,
-      reason: "unknown_term_with_budget",
+      reason: "unknown-terms-with-budget",
     };
     console.log("[EFRO SB AI-TRIGGER] Unknown terms with budget -> AI", {
       unknownTerms,
@@ -332,11 +332,11 @@ export function decideAiTrigger(options: {
   // [EFRO AI] Regel 3a: Unbekannter Begriff + Budget (S14-Fall)
   // Wenn unbekannte Begriffe existieren, die NICHT eindeutig aufgelöst wurden
   // UND der Nutzer ein Budget mitgegeben hat (userMaxPrice oder userMinPrice gesetzt)
-  // DANN: needsAiHelp = true, reason = "unknown_term_with_budget"
+  // DANN: needsAiHelp = true, reason = "unknown-terms-with-budget"
   if ((userMinPrice !== null || userMaxPrice !== null) && filteredUnknownTerms.length > 0) {
     const aiTrigger = {
       needsAiHelp: true,
-      reason: "unknown_term_with_budget" as const,
+      reason: "unknown-terms-with-budget" as const,
       unknownTerms: filteredUnknownTerms,
     };
     console.log("[EFRO SB AI-TRIGGER]", {

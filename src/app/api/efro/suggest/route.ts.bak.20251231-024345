@@ -53,48 +53,20 @@ function _pickAiTrigger(sb: any): any {
 }
 
 
-function _pickRecommended(sb: any): any[] {
-  const isProductArray = (v: any): v is any[] => {
-    return Array.isArray(v) && (
-      v.length === 0 ||
-      (v[0] && typeof v[0] === "object" && ("title" in v[0] || "id" in v[0]))
-    );
-  };
+function _pickRecommended(brainResult: any) {
+  const br = (brainResult && typeof brainResult === "object" && brainResult.result && typeof brainResult.result === "object")
+    ? brainResult.result
+    : brainResult;
 
-  const rec = sb?.result?.recommendations;
+  const cand =
+    br?.recommended ??
+    br?.products ??
+    br?.finalProducts ??
+    br?.items ??
+    [];
 
-  // 1) Direkt bekannte Felder
-  if (isProductArray(rec)) return rec;
-
-  if (rec && typeof rec === "object") {
-    const preferred = [
-      rec.recommendedProducts,
-      rec.recommended,
-      rec.products,
-      rec.items,
-      rec.list,
-      rec.finalProducts,
-      rec.topProducts,
-    ];
-
-    for (const v of preferred) if (isProductArray(v)) return v;
-
-    // 2) irgendein Array innerhalb recommendations finden
-    for (const v of Object.values(rec)) if (isProductArray(v)) return v as any[];
-  }
-
-  // 3) Fallbacks (manche Builds legen Produkte an anderer Stelle ab)
-  const fallbacks = [
-    sb?.result?.reply?.products,
-    sb?.result?.reply?.recommended,
-    sb?.result?.productQuality?.products,
-  ];
-  for (const v of fallbacks) if (isProductArray(v)) return v;
-
-  return [];
+  return Array.isArray(cand) ? cand.filter(Boolean) : [];
 }
-
-
 
 
 

@@ -18,7 +18,7 @@
 import fs from "fs";
 import path from "path";
 
-import { loadDebugProducts } from "./lib/loadDebugProducts";
+import { loadMeaningfulProducts } from "./lib/loadScenarioProducts";
 
 import {
   runSellerBrain,
@@ -77,32 +77,21 @@ interface ScenarioTest {
  * Lädt Test-Produkte (wie im Original)
  */
 async function loadTestProducts(): Promise<EfroProduct[]> {
-  const DEBUG_PRODUCTS_URL =
-    process.env.EFRO_DEBUG_PRODUCTS_URL ??
-    "http://localhost:3000/api/efro/debug-products?shop=local-dev";
-
-  console.log("[EFRO Scenarios - curated] Loading products (api with fixture fallback)", {
-    url: DEBUG_PRODUCTS_URL,
+  const loaded = await loadMeaningfulProducts();
+  console.log("[EFRO Scenarios - curated] Loaded products (fixture-first)", {
+    count: loaded.rawCount,
+    source: loaded.source,
+    fixture: process.env.SCENARIO_PRODUCTS_FIXTURE,
   });
 
-  const { products, source } = await loadDebugProducts<EfroProduct[]>({
-    url: DEBUG_PRODUCTS_URL,
-    fixturePath: "scripts/fixtures/products.local.json",
-    timeoutMs: 4000,
-  });
-
-  if (!products || products.length === 0) {
-    console.error("[EFRO Scenarios - curated] ERROR: No products loaded (api + fixture empty).");
+  if (!loaded.products || loaded.products.length === 0) {
+    console.error("[EFRO Scenarios - curated] ERROR: No products loaded from fixture.");
     process.exit(1);
   }
 
-  console.log("[EFRO Scenarios - curated] Loaded products", {
-    count: products.length,
-    source,
-  });
-
-  return products;
+  return loaded.products as any;
 }
+
 
 /**
  * Bewertet ein Szenario-Ergebnis gegen die Erwartungen
@@ -115,7 +104,7 @@ function evaluateScenario(
   const issues: string[] = [];
   const passedChecks: string[] = [];
 
-  const recommended = result.recommended ?? [];
+  const recommended = (result as any).recommendedProducts ?? (result as any).recommended ?? (result as any).products ?? [];
   const actualCount = recommended.length;
 
   if (test.expected?.minCount !== undefined) {
@@ -135,7 +124,7 @@ function evaluateScenario(
   }
 
   if (test.expected?.minPrice !== undefined && recommended.length > 0) {
-    const minActualPrice = Math.min(...recommended.map((p) => p.price ?? Infinity));
+    const minActualPrice = Math.min(...recommended.map((p: any) => p.price ?? Infinity));
     if (minActualPrice < test.expected.minPrice) {
       issues.push(`minPrice ${minActualPrice.toFixed(2)} < expected ${test.expected.minPrice}`);
     } else {
@@ -144,7 +133,7 @@ function evaluateScenario(
   }
 
   if (test.expected?.maxPrice !== undefined && recommended.length > 0) {
-    const maxActualPrice = Math.max(...recommended.map((p) => p.price ?? 0));
+    const maxActualPrice = Math.max(...recommended.map((p: any) => p.price ?? 0));
     if (maxActualPrice > test.expected.maxPrice) {
       issues.push(`maxPrice ${maxActualPrice.toFixed(2)} > expected ${test.expected.maxPrice}`);
     } else {
@@ -153,7 +142,7 @@ function evaluateScenario(
   }
 
   if (test.expected?.categorySlug !== undefined && recommended.length > 0) {
-    const categories = recommended.map((p) => (p.category || "").toLowerCase()).filter(Boolean);
+    const categories = recommended.map((p: any) => (p.category || "").toLowerCase()).filter(Boolean);
     const expectedCategory = test.expected.categorySlug.toLowerCase();
 
     const categoryMap: Record<string, string[]> = {
@@ -170,7 +159,7 @@ function evaluateScenario(
 
     const expectedVariants = categoryMap[expectedCategory] || [expectedCategory];
 
-    const hasCategory = categories.some((cat) =>
+    const hasCategory = categories.some((cat: any) =>
       expectedVariants.some((variant) => cat === variant || cat.includes(variant) || variant.includes(cat))
     );
 
@@ -277,7 +266,7 @@ async function runScenarioTest(
 
   const evaluation = evaluateScenario(result, test);
 
-  const recommended = result.recommended ?? [];
+  const recommended = (result as any).recommendedProducts ?? (result as any).recommended ?? (result as any).products ?? [];
   const priceInfo = result.priceRangeInfo
     ? {
         userMinPrice: result.priceRangeInfo.userMinPrice,
@@ -288,7 +277,7 @@ async function runScenarioTest(
     : null;
 
   console.log(
-    `  Intent: ${result.intent}, Count: ${recommended.length}, priceRangeNoMatch: ${result.priceRangeNoMatch ?? false}`
+    `  Intent: ${(result as any).intent ?? (result as any).nextIntent ?? "unknown"}, Count: ${recommended.length}, priceRangeNoMatch: ${Boolean((result as any).priceRangeNoMatch)}`
   );
   if (priceInfo) {
     console.log(
@@ -298,7 +287,7 @@ async function runScenarioTest(
     );
   }
   if (recommended.length > 0) {
-    const categories = Array.from(new Set(recommended.map((p) => p.category || "unknown")));
+    const categories = Array.from(new Set(recommended.map((p: any) => p.category || "unknown")));
     console.log(`  Categories: ${categories.join(", ")}`);
   }
 

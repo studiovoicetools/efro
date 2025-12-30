@@ -1,0 +1,36 @@
+import fs from "node:fs";
+import path from "node:path";
+
+export function loadEnvLocalIfMissing(keys: string[]) {
+  const needs = keys.some((k) => !process.env[k] || String(process.env[k]).trim() === "");
+  if (!needs) return;
+
+  for (const file of [".env.local", ".env"]) {
+    const p = path.resolve(process.cwd(), file);
+    if (!fs.existsSync(p)) continue;
+
+    const txt = fs
+      .readFileSync(p, "utf8")
+      .replace(/^\uFEFF/, "")
+      .replace(/\r\n/g, "\n");
+
+    for (const raw of txt.split("\n")) {
+      const line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+
+      const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+      if (!m) continue;
+
+      const k = m[1];
+      let v = m[2] ?? "";
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1);
+      }
+
+      if (process.env[k] === undefined || String(process.env[k]).trim() === "") {
+        process.env[k] = v;
+      }
+    }
+    break;
+  }
+}

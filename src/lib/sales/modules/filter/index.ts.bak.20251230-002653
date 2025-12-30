@@ -1888,9 +1888,7 @@ function rankAndSliceCandidates(
     ) {
       candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     } else if (currentIntent === "explore") {
-      candidates.sort((a, b) =>
-          String(a.title ?? "").localeCompare(String(b.title ?? ""))
-        );
+      candidates.sort((a, b) => a.title.localeCompare(b.title));
     }
   }
 

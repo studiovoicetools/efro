@@ -1,0 +1,424 @@
+/**
+ * Hardcore Conversation Runner (1000 Turns)
+ *
+ * Ziele:
+ * - Erzwingt echte Produktmenge (min 50), sonst HARD FAIL
+ * - Multi-turn: previousRecommended + context wird weitergereicht
+ * - Turn-Mix: quick_buy / explore / bargain / edge
+ * - Harte Invariants: niemals crashen, recommended <= 4, bei "realen" Queries minCount >= 1
+ * - Logfile + CSV-Fails
+ *
+ * Run (empfohlen):
+ *   SCENARIO_PRODUCTS_FIXTURE=scripts/fixtures/products.demo.supabase.json \
+ *   HARDCORE_TARGET_TURNS=1000 HARDCORE_MIN_PRODUCTS=50 \
+ *   pnpm -s tsx scripts/test-hardcore-conv1000.ts
+ */
+
+import fs from "fs";
+import path from "path";
+import util from "util";
+
+import { loadMeaningfulProducts } from "./lib/loadScenarioProducts";
+import { runSellerBrain, type SellerBrainContext, type SellerBrainResult } from "../src/lib/sales/sellerBrain";
+import type { EfroProduct, ShoppingIntent } from "../src/lib/products/mockCatalog";
+
+// ---------------------------
+// Config
+// ---------------------------
+const MIN_PRODUCTS_REQUIRED = Number(process.env.HARDCORE_MIN_PRODUCTS ?? 50);
+const TARGET_TURNS = Number(process.env.HARDCORE_TARGET_TURNS ?? 1000);
+const SEED = Number(process.env.HARDCORE_SEED ?? 1337);
+
+const TS = new Date()
+  .toISOString()
+  .replace(/[-:]/g, "")
+  .replace(/\..+/, "")
+  .replace("T", "-");
+
+const LOG_PATH = process.env.HARDCORE_LOG ?? path.join("logs", `hardcore-${TS}.log`);
+const FAILS_CSV_PATH = process.env.HARDCORE_FAILS ?? path.join("logs", `hardcore-fails-${TS}.csv`);
+
+// ---------------------------
+// Helpers
+// ---------------------------
+function isBlank(v: any): boolean {
+  return v === null || v === undefined || (typeof v === "string" && v.trim().length === 0);
+}
+
+function safeStr(v: any): string {
+  if (v === null || v === undefined) return "";
+  return String(v);
+}
+
+function tokenizeTitle(title: string): string[] {
+  return safeStr(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß\- ]/gi, " ")
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 4);
+}
+
+// simple deterministic PRNG (mulberry32)
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0;
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pick<T>(rng: () => number, arr: T[]): T {
+  return arr[Math.floor(rng() * arr.length)];
+}
+
+function nowMs() {
+  return Date.now();
+}
+
+// ---------------------------
+// Logging (stdout + file)
+// ---------------------------
+fs.mkdirSync(path.dirname(LOG_PATH), { recursive: true });
+const logStream = fs.createWriteStream(LOG_PATH, { flags: "w" });
+
+function log(...args: any[]) {
+  const msg = util.format(...args);
+  process.stdout.write(msg + "\n");
+  logStream.write(msg + "\n");
+}
+
+function csvEscape(s: any): string {
+  const v = safeStr(s);
+  if (v.includes(",") || v.includes('"') || v.includes("\n")) return `"${v.replace(/"/g, '""')}"`;
+  return v;
+}
+
+// ---------------------------
+// Load products (fixture-first, same pipeline wie curated)
+// ---------------------------
+async function loadProducts(): Promise<EfroProduct[]> {
+  const loaded = await loadMeaningfulProducts();
+
+  const products = (loaded.products ?? []) as EfroProduct[];
+  const rawCount = Number(loaded.rawCount ?? products.length);
+  const source = loaded.source ?? "unknown";
+
+  const emptyTitle = products.filter((p) => isBlank((p as any).title)).length
+  const emptyCategory = products.filter((p) => isBlank((p as any).category)).length
+  const emptyDesc = products.filter((p) => isBlank((p as any).description)).length
+  const nullPrice = products.filter((p) => (p as any).price === null || (p as any).price === undefined).length
+
+  log("[HARDCORE] Loaded products (fixture-first)", {
+    rawCount,
+    count: products.length,
+    source,
+    fixture: process.env.SCENARIO_PRODUCTS_FIXTURE ?? null,
+    emptyTitle,
+    emptyCategory,
+    emptyDesc,
+    nullPrice,
+  });
+
+  if (!products || products.length === 0) {
+    log("[HARDCORE] FATAL: 0 products loaded.");
+    process.exit(1);
+  }
+
+  if (products.length < MIN_PRODUCTS_REQUIRED) {
+    log("[HARDCORE] FATAL: products=%d < MIN_PRODUCTS_REQUIRED=%d", products.length, MIN_PRODUCTS_REQUIRED);
+    process.exit(1);
+  }
+
+  // show 3 non-empty titles
+  const titles = products.map((p: any) => safeStr(p.title).trim()).filter(Boolean);
+  log("[HARDCORE] Title examples:", titles.slice(0, 3));
+
+  return products;
+}
+
+// ---------------------------
+// Turn generation
+// ---------------------------
+type TurnType = "title" | "category" | "budget" | "edge";
+
+type Turn = {
+  id: string;
+  type: TurnType;
+  intent: ShoppingIntent;
+  query: string;
+  expectedMinCount?: number;
+  expectedMaxCount?: number;
+};
+
+function buildTurns(products: EfroProduct[], target: number): Turn[] {
+  const rng = mulberry32(SEED);
+
+  const goodProducts = products.filter((p: any) => !isBlank(p.title));
+  const categories = Array.from(
+    new Set(
+      products
+        .map((p: any) => safeStr(p.category).trim())
+        .filter((c) => c.length >= 3)
+    )
+  );
+
+  const prices = products
+    .map((p: any) => Number(p.price))
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .sort((a, b) => a - b);
+
+  const tokensPool: string[] = [];
+  for (const p of goodProducts) {
+    const toks = tokenizeTitle((p as any).title);
+    for (const t of toks) tokensPool.push(t);
+  }
+
+  function pickBudget(): number {
+    if (prices.length < 5) return 50;
+    const q = pick(rng, [0.1, 0.25, 0.4, 0.6, 0.75, 0.9]);
+    const idx = Math.max(0, Math.min(prices.length - 1, Math.floor(q * prices.length)));
+    const base = prices[idx];
+    // round to nice numbers
+    const rounded = Math.max(10, Math.round(base / 10) * 10);
+    return rounded;
+  }
+
+  const turns: Turn[] = [];
+  for (let i = 1; i <= target; i++) {
+    const r = rng();
+    let type: TurnType = "title";
+    if (r < 0.45) type = "title";
+    else if (r < 0.70) type = "category";
+    else if (r < 0.90) type = "budget";
+    else type = "edge";
+
+    if (type === "title") {
+      const p = pick(rng, goodProducts);
+      const title = safeStr((p as any).title).trim();
+      const keyword = tokensPool.length ? pick(rng, tokensPool) : title.split(/\s+/)[0] ?? title;
+      const query = pick(rng, [
+        `Ich brauche ${title}.`,
+        `Hast du ${title}?`,
+        `Ich suche ${keyword}.`,
+        `Bitte zeig mir ${keyword}.`,
+      ]);
+      turns.push({
+        id: `T${String(i).padStart(4, "0")}`,
+        type,
+        intent: "quick_buy",
+        query,
+        expectedMinCount: 1,
+        expectedMaxCount: 4,
+      });
+      continue;
+    }
+
+    if (type === "category") {
+      const cat = categories.length ? pick(rng, categories) : "shop";
+      const query = pick(rng, [
+        `Zeig mir ${cat}.`,
+        `Ich möchte etwas aus ${cat}.`,
+        `Kategorie ${cat}.`,
+        `${cat} bitte.`,
+      ]);
+      turns.push({
+        id: `T${String(i).padStart(4, "0")}`,
+        type,
+        intent: "explore",
+        query,
+        expectedMinCount: 1,
+        expectedMaxCount: 4,
+      });
+      continue;
+    }
+
+    if (type === "budget") {
+      const b = pickBudget();
+      const maybeCat = categories.length && rng() < 0.5 ? pick(rng, categories) : null;
+      const query = maybeCat
+        ? pick(rng, [
+            `Ich habe ${b} Euro Budget für ${maybeCat}.`,
+            `${maybeCat} unter ${b} Euro.`,
+            `Budget ${b}€ - ${maybeCat}.`,
+          ])
+        : pick(rng, [
+            `Budget ${b} Euro.`,
+            `Maximal ${b}€ - was passt?`,
+            `Ich will was für ${b} Euro.`,
+          ]);
+
+      turns.push({
+        id: `T${String(i).padStart(4, "0")}`,
+        type,
+        intent: "bargain",
+        query,
+        expectedMinCount: 1,
+        expectedMaxCount: 4,
+      });
+      continue;
+    }
+
+    // edge
+    const query = pick(rng, [
+      "",
+      "???",
+      "####",
+      "asdf qwer zxcv",
+      "0000",
+      "günstig",
+      "schnell",
+      "hilfe",
+      "kannst du mir was empfehlen",
+    ]);
+    turns.push({
+      id: `T${String(i).padStart(4, "0")}`,
+      type,
+      intent: pick(rng, ["quick_buy", "explore", "bargain"] as ShoppingIntent[]),
+      query,
+      // edge darf 0 liefern
+      expectedMinCount: 0,
+      expectedMaxCount: 4,
+    });
+  }
+
+  log("[HARDCORE] Turn generation stats", {
+    target,
+    categories: categories.length,
+    goodProducts: goodProducts.length,
+    tokenPool: tokensPool.length,
+  });
+
+  return turns;
+}
+
+// ---------------------------
+// Assertions
+// ---------------------------
+function extractRecommended(result: SellerBrainResult): any[] {
+  const r: any = result as any;
+  return r.recommendedProducts ?? r.recommended ?? r.products ?? [];
+}
+
+function extractNextContext(prev: SellerBrainContext | undefined, result: SellerBrainResult): SellerBrainContext | undefined {
+  const r: any = result as any;
+  // wenn orchestrator irgendwann context zurückgibt
+  return (r.context ?? r.nextContext ?? prev) as any;
+}
+
+// ---------------------------
+// Main
+// ---------------------------
+async function main() {
+  fs.writeFileSync(FAILS_CSV_PATH, "turnId,type,intent,query,details\n", "utf-8");
+
+  const products = await loadProducts();
+  const turns = buildTurns(products, TARGET_TURNS);
+
+  let pass = 0;
+  let fail = 0;
+
+  let context: SellerBrainContext | undefined = { activeCategorySlug: null } as any;
+  let previousRecommended: EfroProduct[] = [];
+
+  const t0 = nowMs();
+
+  for (const turn of turns) {
+    const start = nowMs();
+    let result: SellerBrainResult | null = null;
+
+    try {
+      result = await runSellerBrain(
+        turn.query,
+        turn.intent,
+        products,
+        "starter",
+        previousRecommended,
+        context
+      );
+    } catch (e: any) {
+      const details = `EXCEPTION: ${e?.message ?? String(e)}`;
+      fail++;
+      log(`✗ ${turn.id}: ${turn.type} (${turn.intent})`, details);
+      fs.appendFileSync(
+        FAILS_CSV_PATH,
+        [turn.id, turn.type, turn.intent, csvEscape(turn.query), csvEscape(details)].join(",") + "\n",
+        "utf-8"
+      );
+      continue;
+    }
+
+    const recommended = extractRecommended(result);
+    const dur = nowMs() - start;
+
+    // Invariants
+    const issues: string[] = [];
+
+    if (!Array.isArray(recommended)) issues.push("recommended is not array");
+    if (recommended.length > 4) issues.push(`count ${recommended.length} > max 4`);
+    if (turn.expectedMinCount !== undefined && recommended.length < turn.expectedMinCount) {
+      issues.push(`count ${recommended.length} < minCount ${turn.expectedMinCount}`);
+    }
+    if (turn.expectedMaxCount !== undefined && recommended.length > turn.expectedMaxCount) {
+      issues.push(`count ${recommended.length} > maxCount ${turn.expectedMaxCount}`);
+    }
+
+    if (issues.length === 0) {
+      pass++;
+      if ((pass + fail) % 50 == 0) {
+        log(`✓ ${turn.id}: ${turn.type} (${turn.intent}) OK in ${dur}ms (count=${recommended.length})`);
+      }
+    } else {
+      fail++;
+      const details = issues.join("; ");
+      log(`✗ ${turn.id}: ${turn.type} (${turn.intent})`, `→ FAIL: ${details}`, `(count=${recommended.length}, ${dur}ms)`);
+      fs.appendFileSync(
+        FAILS_CSV_PATH,
+        [turn.id, turn.type, turn.intent, csvEscape(turn.query), csvEscape(details)].join(",") + "\n",
+        "utf-8"
+      );
+    }
+
+    // carry state
+    previousRecommended = (recommended as any) as EfroProduct[];
+    context = extractNextContext(context, result);
+  }
+
+  const total = pass + fail;
+  const elapsed = nowMs() - t0;
+
+  log("");
+  log("[HARDCORE] DONE", {
+    total,
+    pass,
+    fail,
+    passRate: (pass / Math.max(1, total)).toFixed(4),
+    msTotal: elapsed,
+    log: LOG_PATH,
+    failsCsv: FAILS_CSV_PATH,
+  });
+
+  if (fail > 0) {
+    log("[HARDCORE] NOTE: fails > 0 (siehe CSV). ExitCode=1");
+    process.exit(1);
+  } else {
+    log("[HARDCORE] ALL GREEN. ExitCode=0");
+    process.exit(0);
+  }
+}
+
+process.on("unhandledRejection", (e: any) => {
+  log("[HARDCORE] FATAL unhandledRejection:", e?.message ?? String(e));
+  process.exit(1);
+});
+process.on("uncaughtException", (e: any) => {
+  log("[HARDCORE] FATAL uncaughtException:", e?.message ?? String(e));
+  process.exit(1);
+});
+
+main().finally(() => {
+  try { logStream.end(); } catch {}
+});

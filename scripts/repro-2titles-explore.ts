@@ -1,0 +1,21 @@
+import { loadMeaningfulProducts } from "./lib/loadScenarioProducts";
+import { runSellerBrain } from "../src/lib/sales/sellerBrain";
+
+async function main() {
+  const loaded = await loadMeaningfulProducts();
+  const products = loaded.products ?? [];
+  const qs = [
+    "Ich brauche The Coming Soon Snowboard.",
+    "Ich brauche Holzeisenbahn Starterset.",
+  ];
+
+  for (const q of qs) {
+    const r:any = await runSellerBrain(q, "explore" as any, products as any, "pro", undefined, undefined);
+    const out = (r?.result ?? r);
+    const rec = (out?.recommendations ?? out?.recommended ?? out?.recommendedProducts ?? out?.products ?? []);
+    console.log("\nQ:", q);
+    console.log("count:", rec?.length ?? 0);
+    console.log("firstTitles:", (rec ?? []).slice(0,4).map((p:any)=>p?.title));
+  }
+}
+main().catch((e)=>{ console.error(e); process.exit(1); });

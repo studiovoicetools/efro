@@ -165,7 +165,7 @@ export function decideAiTrigger(options: {
       (userMaxPrice !== null || userMinPrice !== null)) {
     const trigger: SellerBrainAiTrigger = {
       needsAiHelp: true,
-      reason: "unknown_term_with_budget",
+      reason: "unknown-terms-with-budget",
     };
     console.log("[EFRO SB AI-TRIGGER] Unknown terms with budget -> AI", {
       unknownTerms,

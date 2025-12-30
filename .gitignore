@@ -114,3 +114,7 @@ supabase/.temp/
 # local logs
 logs/
 _archive/
+scripts/fixtures/products.demo.supabase.json
+scripts/_debug-supabase-demo-shop.ts
+scripts/_list-efro-shops.ts
+scripts/_top-products-domains.ts

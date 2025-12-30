@@ -463,26 +463,9 @@ export function computeSalesDecision(
   // PROFI-08 Rescue: Lifestyle-vage Fragen sollen auch dann zu ASK_CLARIFICATION führen,
   // wenn durch Heuristiken bereits Kandidaten existieren.
   const mentionsLifestyleVague = detectLifestyleVague(normalized);
-
-    // PROFI-08 HARDEN: triviale Verben/Stopwords nicht als Unknown-Term werten
-    const SALES_UNKNOWN_STOPWORDS = new Set([
-      "brauche","brauch","brauchen","brauchst","braucht",
-      "suche","such","suchen","suchst","sucht",
-      "möchte","moechte","möchten","moechten",
-      "will","wills","wollen","würde","wuerde","hätte","haette",
-      "habe","hab","haben","bitte","gerne",
-      "ich","du","er","sie","wir","ihr","man","mir","mich","mein","meine","dein","deine",
-      "ein","eine","einen","das","der","die","den","dem","des",
-      "und","oder","für","fuer","mit","ohne","zum","zur"
-    ]);
-
-    const filteredUnknownTerms = (unknownTerms ?? []).filter((t) => {
-      const n = normalize(String(t || ""));
-      return n && !SALES_UNKNOWN_STOPWORDS.has(n);
-    });
   const isVeryVagueLifestyle =
     (
-      (filteredUnknownTerms.length > 0 && hasNoBudget && hasWeakCategories && candidates.length > 0) ||
+      (unknownTerms.length > 0 && hasNoBudget && hasWeakCategories && candidates.length > 0) ||
       (mentionsLifestyleVague && hasNoBudget && candidates.length > 0)
     ) &&
     !isPremiumRequest &&      // C1v2/F6v2/F1v1: Premium-Intent ausschließen
@@ -498,7 +481,7 @@ export function computeSalesDecision(
   if (!primaryAction && (isVeryVagueLifestyle || hasBoardButNoProducts)) {
     // SCHRITT 4 FIX: Vage Lifestyle-Anfrage → ASK_CLARIFICATION + NO_PRODUCTS_FOUND
     primaryAction = "ASK_CLARIFICATION";
-    if ((candidates?.length ?? 0) <= 0) notes.push("NO_PRODUCTS_FOUND"); // PROFI: nur bei 0 Kandidaten
+    if ((candidatesCount ?? 0) <= 0) notes.push("NO_PRODUCTS_FOUND"); // PROFI: nur bei 0 Kandidaten
     debugSalesFlags.push("vague_lifestyle_query");
     console.log("[EFRO SalesDecision] Vage Lifestyle-Anfrage erkannt (PROFI-08v1/v2)", {
       text: text.substring(0, 100),

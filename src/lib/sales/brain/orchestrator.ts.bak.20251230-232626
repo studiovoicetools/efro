@@ -2573,7 +2573,6 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
 
  if (effectiveCategorySlug) {
     const beforeCategoryFilterCount = candidates.length;
-    let filterResult = candidates;
 
     const filteredByCategory = candidates.filter(
       (p) => normalize(p.category || "") === normalize(effectiveCategorySlug || "")
@@ -2589,7 +2588,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
         debugFlags.push("category_no_match_for_slug:" + String(effectiveCategorySlug));
         // HARDCORE SAFETY: category filter must not zero-out all candidates
         // If it yields 0 matches, keep the pre-filter candidates and continue with scoring/ranking.
-        filterResult = candidates;
+        filterResult = beforeCategoryFilter;
       }
       if (!missingCategoryHint) {
         missingCategoryHint = effectiveCategorySlug;
@@ -4042,10 +4041,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       // Verwerfe falsche Produkte, damit die "AI Smartphone Exact Match" Logik später greift
       // ABER: Nur wenn effectiveCategorySlug "elektronik" ist (sonst könnte es andere Szenarien brechen)
       if (effectiveCategorySlug === "elektronik") {
-        // recommended kann const sein -> Array leeren statt reassign
-        if (Array.isArray(recommended)) {
-          recommended.length = 0;
-        }
+        recommended = [];
         console.log("[EFRO CLUSTER K FIX K6v2] Exakter Smartphone-Modellname gesucht, aber nicht gefunden - Produkte verworfen", {
           text: cleaned.substring(0, 100),
           effectiveCategorySlug,
@@ -5101,7 +5097,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
       // TODO-AI-REFACTOR: Hauptstelle f?r AI-Trigger-Setzung (wird durch decideAiTrigger ersetzt)
       // J3v2 Fix: Überschreibe NICHT, wenn bereits Budget-Smalltalk erkannt wurde
-      if (needsAiHelp && !aiTrigger) {
+      if (needsAiHelp && !(aiTrigger && aiTrigger.reason === "budget_smalltalk_no_ai")) {
         aiTrigger = {
           needsAiHelp: true,
           reason,
@@ -5859,7 +5855,10 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
     if (__recCount > 0) {
       // Treffer vorhanden -> Produkte behalten, NO_PRODUCTS_FOUND entfernen.
-      (salesPolicyOutput as any).notes = (salesPolicyOutput.notes ?? []).filter((n) => n !== "NO_PRODUCTS_FOUND");
+      salesPolicyOutput = {
+        ...salesPolicyOutput,
+        notes: (salesPolicyOutput.notes ?? []).filter((n) => n !== "NO_PRODUCTS_FOUND"),
+      };
       console.log("[EFRO SB ASK_CLARIFICATION] NO_PRODUCTS_FOUND ignored (products exist)", {
         count: __recCount,
       });

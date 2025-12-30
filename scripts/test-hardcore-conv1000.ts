@@ -1,0 +1,403 @@
+/**
+ * Hardcore Conversation Runner (1000 Turns)
+ *
+ * Ziele:
+ * - echte Produktmenge (min 50), sonst HARD FAIL
+ * - Multi-turn: previousRecommended + context wird weitergereicht
+ * - Harte Invariants pro Turn (minCount/maxCount)
+ *
+ * Run:
+ *   SCENARIO_PRODUCTS_FIXTURE="scripts/fixtures/products.demo.supabase.json" pnpm -s tsx scripts/test-hardcore-conv1000.ts
+ *
+ * Optional:
+ *   HARDCORE_TARGET_TURNS=50 ...
+ *   HARDCORE_MIN_PRODUCTS=80 ...
+ */
+import { loadEnvLocalIfMissing } from "./_loadEnvLocal";
+
+loadEnvLocalIfMissing(["SCENARIO_PRODUCTS_FIXTURE"]);
+
+// Default: Snapshot nutzen (deterministisch + schnell)
+if (!process.env.SCENARIO_PRODUCTS_FIXTURE || String(process.env.SCENARIO_PRODUCTS_FIXTURE).trim() === "") {
+  process.env.SCENARIO_PRODUCTS_FIXTURE = "scripts/fixtures/products.demo.supabase.snapshot.json";
+}
+
+
+import fs from "fs";
+import path from "path";
+
+import { loadMeaningfulProducts } from "./lib/loadScenarioProducts";
+import { runSellerBrain } from "../src/lib/sales/sellerBrain";
+import type { SellerBrainContext } from "../src/lib/sales/modules/types";
+import type { EfroProduct, ShoppingIntent } from "../src/lib/products/mockCatalog";
+
+// ---------------------------
+// Config
+// ---------------------------
+const MIN_PRODUCTS_REQUIRED = Number(process.env.HARDCORE_MIN_PRODUCTS ?? 50);
+const TARGET_TURNS = Number(process.env.HARDCORE_TARGET_TURNS ?? 1000);
+const MAX_RECS = 4;
+
+function nowMs(): number {
+  return Date.now();
+}
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+function tsStamp(d = new Date()): string {
+  return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+}
+
+const LOG_DIR = "logs";
+fs.mkdirSync(LOG_DIR, { recursive: true });
+
+const STAMP = tsStamp();
+const LOG_PATH = path.join(LOG_DIR, `hardcore-${STAMP}.log`);
+const FAILS_CSV_PATH = path.join(LOG_DIR, `hardcore-fails-${STAMP}.csv`);
+
+const logStream = fs.createWriteStream(LOG_PATH, { flags: "a" });
+function log(...args: any[]) {
+  const line =
+    args
+      .map((a) => {
+        try {
+          return typeof a === "string" ? a : JSON.stringify(a);
+        } catch {
+          return String(a);
+        }
+      })
+      .join(" ") + "\n";
+  process.stdout.write(line);
+  logStream.write(line);
+}
+
+function csvEscape(s: any): string {
+  const x = String(s ?? "");
+  if (x.includes('"') || x.includes(",") || x.includes("\n")) return `"${x.replace(/"/g, '""')}"`;
+  return x;
+}
+
+// ---------------------------
+// Load products
+// ---------------------------
+async function loadProducts(): Promise<{ products: EfroProduct[]; rawCount: number; source: string; fixture: string | null }> {
+  const loaded = await loadMeaningfulProducts();
+  const products = (loaded.products ?? []) as EfroProduct[];
+
+  const rawCount = loaded.rawCount ?? products.length ?? 0;
+  const source = loaded.source ?? "unknown";
+  const fixture = process.env.SCENARIO_PRODUCTS_FIXTURE ?? null;
+
+  const emptyTitle = products.filter((p: any) => !String(p?.title ?? "").trim()).length;
+  const emptyCategory = products.filter((p: any) => !String((p as any)?.category ?? "").trim()).length;
+  const emptyDesc = products.filter((p: any) => !String((p as any)?.description ?? "").trim()).length;
+  const nullPrice = products.filter((p: any) => (p as any)?.price == null).length;
+
+  log("[HARDCORE] Loaded products (fixture-first)", {
+    rawCount,
+    count: products.length,
+    source,
+    fixture,
+    emptyTitle,
+    emptyCategory,
+    emptyDesc,
+    nullPrice,
+  });
+
+  if (products.length < MIN_PRODUCTS_REQUIRED) {
+    throw new Error(`HARD FAIL: products.length=${products.length} < MIN_PRODUCTS_REQUIRED=${MIN_PRODUCTS_REQUIRED}`);
+  }
+
+  return { products, rawCount, source, fixture };
+}
+
+// ---------------------------
+// Turn generation
+// ---------------------------
+type TurnType = "title" | "category" | "budget" | "edge";
+type Turn = {
+  id: string;
+  type: TurnType;
+  intent: ShoppingIntent;
+  query: string;
+  expectedMinCount: number;
+  expectedMaxCount: number;
+};
+
+function rngMulberry32(seed: number) {
+  return function () {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function pick<T>(rnd: () => number, arr: T[]): T {
+  return arr[Math.floor(rnd() * arr.length)];
+}
+
+function normalizeTitle(t: any): string {
+  return String(t ?? "").replace(/\s+/g, " ").trim();
+}
+function normalizeCat(c: any): string {
+  return String(c ?? "").replace(/\s+/g, " ").trim();
+}
+
+function buildTurns(products: EfroProduct[], target: number): Turn[] {
+  const rnd = rngMulberry32(1337);
+
+  const goodProducts = products.filter((p: any) => normalizeTitle(p?.title).length >= 3);
+  const titles = Array.from(
+    new Set(
+      goodProducts
+        .map((p: any) => normalizeTitle(p?.title))
+        .filter((x) => x.length >= 3 && x.length <= 80 && !/^[#?]+$/.test(x))
+    )
+  );
+
+  const categories = Array.from(
+    new Set(
+      products
+        .map((p: any) => normalizeCat((p as any)?.category))
+        .filter((c) => c.length >= 2 && c !== "(keine Kategorie)")
+    )
+  );
+
+  const turns: Turn[] = [];
+  for (let i = 1; i <= target; i++) {
+    const id = `T${String(i).padStart(4, "0")}`;
+    const roll = rnd();
+
+    // ca. 10% edge (darf 0 liefern)
+    if (roll < 0.10) {
+      const q = pick(rnd, ["", "???", "####", "asdf qwer zxcv", "0000", "günstig", "schnell", "hilfe", "kannst du mir was empfehlen"]);
+      turns.push({ id, type: "edge", intent: pick(rnd, ["quick_buy", "explore", "bargain"] as ShoppingIntent[]), query: q, expectedMinCount: 0, expectedMaxCount: MAX_RECS });
+      continue;
+    }
+
+    // 45% title
+    if (roll < 0.55 && titles.length > 0) {
+      const t = pick(rnd, titles);
+      const q = pick(rnd, [`Ich suche ${t}.`, `Hast du ${t}?`, `Ich brauche ${t}.`, `Bitte zeig mir ${t}.`]);
+      turns.push({ id, type: "title", intent: "quick_buy", query: q, expectedMinCount: 1, expectedMaxCount: MAX_RECS });
+      continue;
+    }
+
+    // 25% category
+    if (roll < 0.80 && categories.length > 0) {
+      const c = pick(rnd, categories);
+      const q = pick(rnd, [`Kategorie ${c}.`, `Zeig mir ${c}.`, `Ich möchte etwas aus ${c}.`, `Produkte aus ${c} bitte.`]);
+      turns.push({ id, type: "category", intent: "explore", query: q, expectedMinCount: 1, expectedMaxCount: MAX_RECS });
+      continue;
+    }
+
+    // 20% budget
+    const max = pick(rnd, [20, 30, 40, 50, 80, 120, 200, 500, 650]);
+    const q = pick(rnd, [`Maximal ${max}€ - was passt?`, `Budget ${max} Euro.`, `Unter ${max}€ bitte.`, `Ich suche was bis ${max} Euro.`]);
+    turns.push({ id, type: "budget", intent: "bargain", query: q, expectedMinCount: 1, expectedMaxCount: MAX_RECS });
+  }
+
+  log("[HARDCORE] Turn generation stats", {
+    target,
+    categories: categories.length,
+    titlePool: titles.length,
+    goodProducts: goodProducts.length,
+  });
+
+  return turns;
+}
+
+// ---------------------------
+// Result unwrapping + extraction
+// ---------------------------
+function unwrapSellerBrainResult(result: any): any {
+  // runOrchestrator kann Wrapper zurückgeben: { flags, replyText, result, routing, summary }
+  // Manche Flows wrappen mehrfach: result.result....
+  let r: any = result;
+  for (let i = 0; i < 8; i++) {
+    if (r && typeof r === "object" && "result" in r) {
+      const next = (r as any).result;
+      if (next && typeof next === "object") {
+        r = next;
+        continue;
+      }
+    }
+    break;
+  }
+  return r;
+}
+
+function isProductLike(x: any): boolean {
+  if (!x || typeof x !== "object") return false;
+  const title = typeof x.title === "string" ? x.title.trim() : typeof x.name === "string" ? x.name.trim() : "";
+  const cat = typeof x.category === "string" ? x.category.trim() : "";
+  const price = (x as any).price;
+  const hasTitle = title.length > 0;
+  const hasCat = cat.length > 0;
+  const hasPrice = typeof price === "number" || typeof price === "string" || price === null;
+  // mindestens Titel + (Kategorie oder Preis)
+  return hasTitle && (hasCat || hasPrice);
+}
+
+function extractRecommended(result: any): any[] {
+  const outer: any = result;
+  const inner: any = unwrapSellerBrainResult(outer);
+
+  // direkte Kandidaten (häufigste Pfade zuerst)
+  const direct: any[] = [
+    // ältere Shapes
+    inner?.recommendedProducts,
+    inner?.recommended,
+    inner?.products,
+
+    // dein aktueller Shape (aus deinem Debug):
+    inner?.recommendations,
+    inner?.recommendations?.products,
+    inner?.recommendations?.items,
+    inner?.recommendations?.recommendedProducts,
+    inner?.recommendations?.finalProducts,
+    inner?.recommendations?.productsToShow,
+    inner?.recommendations?.productsToDisplay,
+
+    // wrapper-summary/routing falls vorhanden
+    outer?.summary?.products,
+    outer?.summary?.finalProducts,
+    outer?.routing?.products,
+    outer?.routing?.payload?.products,
+  ];
+
+  for (const c of direct) {
+    if (Array.isArray(c)) return c;
+  }
+  // Wenn recommendations selbst ein Objekt ist, können darin Arrays stecken.
+  // Deep find (begrenzte Tiefe), sucht erstes product-like Array.
+  const seen = new Set<any>();
+  const queue: Array<{ v: any; d: number }> = [
+    { v: inner?.recommendations, d: 0 },
+    { v: inner, d: 0 },
+    { v: outer?.summary, d: 0 },
+    { v: outer, d: 0 },
+  ];
+
+  while (queue.length) {
+    const { v, d } = queue.shift()!;
+    if (!v || typeof v !== "object") continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+
+    if (Array.isArray(v)) {
+      if (v.length > 0 && v.length <= 50 && v.every(isProductLike)) return v;
+      continue;
+    }
+
+    if (d >= 6) continue;
+
+    for (const k of Object.keys(v)) {
+      queue.push({ v: (v as any)[k], d: d + 1 });
+    }
+  }
+
+  return [];
+}
+
+function extractNextContext(prev: SellerBrainContext | undefined, result: any): SellerBrainContext | undefined {
+  const inner: any = unwrapSellerBrainResult(result);
+  return (inner?.nextContext ?? inner?.context ?? prev) as any;
+}
+
+// ---------------------------
+// Main
+// ---------------------------
+async function main() {
+  fs.writeFileSync(FAILS_CSV_PATH, "turnId,type,intent,query,details\n", "utf-8");
+
+  const loaded = await loadProducts();
+  const products = loaded.products;
+
+  const turns = buildTurns(products, TARGET_TURNS);
+
+  let pass = 0;
+  let fail = 0;
+
+  let context: SellerBrainContext | undefined = { activeCategorySlug: null } as any;
+  let previousRecommended: EfroProduct[] = [];
+
+  const t0 = nowMs();
+
+  for (const turn of turns) {
+    const start = nowMs();
+
+    let outer: any;
+    try {
+      outer = await runSellerBrain(turn.query, turn.intent, products, "starter", previousRecommended, context);
+    } catch (e: any) {
+      const details = `EXCEPTION: ${e?.message ?? String(e)}`;
+      fail++;
+      log(`✗ ${turn.id}: ${turn.type} (${turn.intent})`, details);
+      fs.appendFileSync(FAILS_CSV_PATH, [turn.id, turn.type, turn.intent, csvEscape(turn.query), csvEscape(details)].join(",") + "\n", "utf-8");
+      continue;
+    }
+
+    const recommended = extractRecommended(outer);
+    const dur = nowMs() - start;
+
+    const issues: string[] = [];
+    if (!Array.isArray(recommended)) issues.push("recommended is not array");
+    if (Array.isArray(recommended) && recommended.length > turn.expectedMaxCount) issues.push(`count ${recommended.length} > maxCount ${turn.expectedMaxCount}`);
+    if (Array.isArray(recommended) && recommended.length < turn.expectedMinCount) issues.push(`count ${recommended.length} < minCount ${turn.expectedMinCount}`);
+
+    if (issues.length === 0) {
+      pass++;
+      if ((pass + fail) % 25 === 0) {
+        log(`✓ ${turn.id}: ${turn.type} (${turn.intent}) OK in ${dur}ms (count=${recommended.length})`);
+      }
+    } else {
+      fail++;
+      const details = issues.join("; ");
+      log(`✗ ${turn.id}: ${turn.type} (${turn.intent})`, `→ FAIL: ${details}`, `(count=${Array.isArray(recommended) ? recommended.length : "?"}, ${dur}ms)`);
+      fs.appendFileSync(FAILS_CSV_PATH, [turn.id, turn.type, turn.intent, csvEscape(turn.query), csvEscape(details)].join(",") + "\n", "utf-8");
+    }
+
+    // carry state (nur wenn Array)
+    previousRecommended = Array.isArray(recommended) ? (recommended as any as EfroProduct[]) : [];
+    context = extractNextContext(context, outer);
+  }
+
+  const total = pass + fail;
+  const elapsed = nowMs() - t0;
+
+  log("");
+  log("[HARDCORE] DONE", {
+    total,
+    pass,
+    fail,
+    passRate: (pass / Math.max(1, total)).toFixed(4),
+    msTotal: elapsed,
+    log: LOG_PATH,
+    failsCsv: FAILS_CSV_PATH,
+  });
+
+  if (fail > 0) {
+    log("[HARDCORE] NOTE: fails > 0 (siehe CSV). ExitCode=1");
+    process.exit(1);
+  } else {
+    log("[HARDCORE] ALL GREEN. ExitCode=0");
+    process.exit(0);
+  }
+}
+
+process.on("unhandledRejection", (e: any) => {
+  log("[HARDCORE] FATAL unhandledRejection:", e?.message ?? String(e));
+  process.exit(1);
+});
+process.on("uncaughtException", (e: any) => {
+  log("[HARDCORE] FATAL uncaughtException:", e?.message ?? String(e));
+  process.exit(1);
+});
+
+main().finally(() => {
+  try {
+    logStream.end();
+  } catch {}
+});
