@@ -268,6 +268,14 @@ function buildFullOnlyCases(): FullCase[] {
     { id: "f2", kind: "policy_install_billing", prompt: "Wie installiere ich EFRO? App Embed / Theme App Extension?" },
     { id: "f3", kind: "policy_install_billing", prompt: "Wie kündige ich mein Stripe Abo? Gibt es ein Billing-Portal?" },
     { id: "f4", kind: "policy_install_billing", prompt: "DSGVO/Datenschutz: Welche Daten speichert EFRO?" },
+
+    { id: "f5", kind: "policy_install_billing", prompt: "Welche Webhooks nutzt EFRO? (app/uninstalled, customers/redact, shop/redact, customers/data_request)" },
+    { id: "f6", kind: "policy_install_billing", prompt: "Ich sehe nach dem Scan keine Produkte. Wie starte ich den Shop-Scan neu?" },
+    { id: "f7", kind: "policy_install_billing", prompt: "Welche Berechtigungen (Scopes) braucht EFRO bei der Installation und warum?" },
+    { id: "f8", kind: "policy_install_billing", prompt: "OAuth: Was mache ich, wenn die Installation hängen bleibt oder ich 'Invalid redirect' sehe?" },
+    { id: "f9", kind: "policy_install_billing", prompt: "Wie löscht EFRO Daten auf Anfrage (DSGVO/Redact/Data Request)?" },
+    { id: "f10", kind: "policy_install_billing", prompt: "Gibt es Monitoring/Alerts und wo sehe ich Logs, wenn etwas ausfällt?" },
+  
   ];
 }
 
