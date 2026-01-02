@@ -1,0 +1,102 @@
+diff --git a/src/app/api/billing/route.ts b/src/app/api/billing/route.ts
+index e4c19ff..ec8bae2 100644
+--- a/src/app/api/billing/route.ts
++++ b/src/app/api/billing/route.ts
+@@ -3,6 +3,7 @@ export const runtime = "nodejs";
+ 
+ // src/app/api/billing/route.ts
+ import { NextRequest, NextResponse } from "next/server";
++import { normalizeShopDomain } from "@/lib/shopify/normalizeShopDomain";
+ import { createClient } from "@supabase/supabase-js";
+ import crypto from "crypto";
+ 
+@@ -16,7 +17,7 @@ import crypto from "crypto";
+  */
+ 
+ 
+-const ADMIN_VERSION = "2024-07";
++const ADMIN_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION ?? "2026-01";
+ type Plan = "basic" | "pro" | "enterprise";
+ 
+ const PRICES: Record<Plan, { amount: number; currency: "EUR"; recurring?: boolean }> = {
+@@ -95,23 +96,20 @@ export async function POST(request: NextRequest) {
+       returnUrl?: string;
+     };
+ 
+-    if (!shop || !plan) {
+-      return NextResponse.json(
+-        { error: "Parameter 'shop' und 'plan' sind erforderlich." },
+-        { status: 400 }
+-      );
+-    }
+ 
+-    if (
+-      !/^.+\.myshopify\.com$/i.test(shop) &&
+-      !/^admin\.shopify\.com\/store\//i.test(shop)
+-    ) {
+-      return NextResponse.json(
+-        { error: "Ungültige Shop-Domain" },
+-        { status: 400 }
+-      );
+-    }
+ 
++      if (!shop || !plan) {
++        return NextResponse.json(
++          { error: "Parameter 'shop' und 'plan' sind erforderlich." },
++          { status: 400 }
++        );
++      }
++
++      const normalizedShop = normalizeShopDomain(shop);
++      if (!normalizedShop) {
++        return NextResponse.json({ error: "Ungültige Shop-Domain" }, { status: 400 });
++      }
++      const shopDomain = normalizedShop;
+     const cfg = PRICES[plan];
+     if (!cfg) {
+       return NextResponse.json({ error: "Unbekannter Plan" }, { status: 400 });
+@@ -122,7 +120,7 @@ export async function POST(request: NextRequest) {
+     const { data: shopRow } = await supabase
+       .from("shops")
+       .select("*")
+-      .eq("shop", shop)
++      .eq("shop", shopDomain)
+       .single();
+     if (shopRow?.access_token) accessToken = shopRow.access_token;
+ 
+@@ -167,7 +165,7 @@ export async function POST(request: NextRequest) {
+         ],
+       };
+ 
+-      const result = await adminGraphQL<any>(shop, accessToken, MUTATION, variables);
++      const result = await adminGraphQL<any>(shopDomain, accessToken, MUTATION, variables);
+       const errors = result?.data?.appSubscriptionCreate?.userErrors;
+       const confirmationUrl = result?.data?.appSubscriptionCreate?.confirmationUrl;
+ 
+@@ -185,7 +183,7 @@ export async function POST(request: NextRequest) {
+           active: true,
+           updated_at: new Date().toISOString(),
+         })
+-        .eq("shop", shop);
++        .eq("shop", shopDomain);
+ 
+       return NextResponse.json({ success: true, confirmationUrl, plan });
+     }
+@@ -208,7 +206,7 @@ export async function POST(request: NextRequest) {
+       test: process.env.SHOPIFY_BILLING_TEST === "true",
+     };
+ 
+-    const result = await adminGraphQL<any>(shop, accessToken, ONE_TIME, variables);
++    const result = await adminGraphQL<any>(shopDomain, accessToken, ONE_TIME, variables);
+     const errors = result?.data?.appPurchaseOneTimeCreate?.userErrors;
+     const confirmationUrl = result?.data?.appPurchaseOneTimeCreate?.confirmationUrl;
+ 
+@@ -226,7 +224,7 @@ export async function POST(request: NextRequest) {
+         active: true,
+         updated_at: new Date().toISOString(),
+       })
+-      .eq("shop", shop);
++      .eq("shop", shopDomain);
+ 
+     return NextResponse.json({ success: true, confirmationUrl, plan });
+   } catch (error) {
