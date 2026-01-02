@@ -43,6 +43,17 @@ type SmokeCase = {
   allowZero?: boolean; // for edge cases where 0 is acceptable
 };
 
+type FullCase = {
+  id: string;
+  kind: "policy_install_billing";
+  prompt: string;
+};
+
+function isFullCase(c: SmokeCase | FullCase): c is FullCase {
+  return (c as any)?.kind === "policy_install_billing";
+}
+
+
 type TurnResult = {
   ok: boolean;
   id: string;
@@ -250,6 +261,16 @@ function buildSmokeCases(rng: () => number, products: EfroProduct[]): SmokeCase[
   return [...shuffled, ...nulls];
 }
 
+
+function buildFullOnlyCases(): FullCase[] {
+  return [
+    { id: "f1", kind: "policy_install_billing", prompt: "Wie sind eure Versandkosten und Rückgabe?" },
+    { id: "f2", kind: "policy_install_billing", prompt: "Wie installiere ich EFRO? App Embed / Theme App Extension?" },
+    { id: "f3", kind: "policy_install_billing", prompt: "Wie kündige ich mein Stripe Abo? Gibt es ein Billing-Portal?" },
+    { id: "f4", kind: "policy_install_billing", prompt: "DSGVO/Datenschutz: Welche Daten speichert EFRO?" },
+  ];
+}
+
 function starterPlan(): { name: PlanName; limits: PlanLimits } {
   return { name: "starter", limits: { maxRecommended: 2 } };
 }
@@ -279,12 +300,15 @@ async function main() {
   const seed = Number(process.env.HARDCORE_SEED ?? "1337") || 1337;
   const rng = mulberry32(seed);
 
+  const mode = String(process.env.MODE ?? "SMOKE").toUpperCase();
+  const modeLower = mode.toLowerCase();
+
   const logsDir = path.resolve(process.cwd(), "logs");
   ensureDir(logsDir);
 
   const stamp = nowStamp();
-  const logPath = path.join(logsDir, `hardcore-v2-smoke-${stamp}.log`);
-  const failsCsvPath = path.join(logsDir, `hardcore-v2-smoke-fails-${stamp}.csv`);
+  const logPath = path.join(logsDir, `hardcore-v2-${modeLower}-${stamp}.log`);
+  const failsCsvPath = path.join(logsDir, `hardcore-v2-${modeLower}-fails-${stamp}.csv`);
 
   const plan = starterPlan();
 
@@ -292,12 +316,10 @@ async function main() {
   const failRows: string[] = ["id,kind,prompt,reason,recommendedCount,replyPreview"];
 
   const started = Date.now();
-    const mode = String(process.env.MODE ?? "SMOKE").toUpperCase();
-
-
   // Load products from debug-products
   const allProducts = await loadProductsFromDebug("local-dev");
 
+  const fullOnlyCases = buildFullOnlyCases();
   const smokeCases = buildSmokeCases(rng, allProducts);
 
   // Multi-turn memory: previousRecommended + context carried forward
@@ -400,12 +422,15 @@ async function main() {
     }
   }
 
-  // Execute SMOKE cases, including a null-catalog turn at the end.
-  for (const c of smokeCases) {
+  const casesToRun: (SmokeCase | FullCase)[] =
+    mode === "FULL" ? [...smokeCases, ...fullOnlyCases] : [...smokeCases];
+
+  // Execute cases (SMOKE always, FULL adds policy/install/billing cases)
+  for (const c of casesToRun) {
     if (c.kind === "null_catalog") {
       await runTurn(c, []); // override with empty catalog
     } else {
-      await runTurn(c);
+      await runTurn(c as any);
     }
   }
 
