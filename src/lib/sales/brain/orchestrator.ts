@@ -1638,7 +1638,7 @@ function resolveUnknownTerms(
 
   // WICHTIG: Nur normalizeAliasKey verwenden f?r Konsistenz
   const normalizedTerms = rawTerms
-    .map((t) => normalizeAliasKey(t))
+    .map((t: string) => normalizeAliasKey(t))
     .filter((t) => t.length > 0);
 
   // Known-Set mit normalizeAliasKey erstellen
@@ -5064,7 +5064,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
           if (!dynamicSynonymTerms.has(term) && !looksLikeProductCode(term)) {
             // Pr?fe, ob Begriff in Produkten gefunden wurde
             const foundInProducts = allProducts.some((p) => {
-              const searchText = `${p.title} ${p.description} ${(p.tags || []).join(" ")}`.toLowerCase();
+              const searchText = `${p.title} ${p.description} ${((Array.isArray((p as any).tags_arr) ? (p as any).tags_arr : Array.isArray((p as any).tags) ? (p as any).tags : typeof (p as any).tags === "string" ? (p as any).tags.split(/[,;|]/).map((t: string) => String(t).trim()).filter(Boolean) : [])).join(" ")}`.toLowerCase();
               return searchText.includes(term);
             });
             

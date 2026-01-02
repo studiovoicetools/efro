@@ -1,0 +1,77 @@
+diff --git a/scripts/test-hardcore-v2.ts b/scripts/test-hardcore-v2.ts
+index ece8b98..a361446 100644
+--- a/scripts/test-hardcore-v2.ts
++++ b/scripts/test-hardcore-v2.ts
+@@ -223,6 +223,26 @@ async function loadProductsFromDebug(shop = "local-dev"): Promise<EfroProduct[]>
+   return products as EfroProduct[];
+ }
+ 
++
++async function loadProductsFromFixture(): Promise<EfroProduct[]> {
++  const fp = path.resolve(process.cwd(), "scripts/fixtures/products.demo.supabase.json");
++  const raw = fs.readFileSync(fp, "utf-8");
++  const data = JSON.parse(raw);
++
++  const products = Array.isArray(data) ? data : (data?.products ?? data?.items ?? data?.data ?? []);
++  if (!Array.isArray(products)) {
++    throw new Error(`Unexpected products shape from fixture: ${safeJson(data).slice(0, 300)}...`);
++  }
++  return products as EfroProduct[];
++}
++
++async function loadProductsAuto(shop = "local-dev"): Promise<EfroProduct[]> {
++  const source = String(process.env.HARDCORE_PRODUCTS_SOURCE ?? "fixture").toLowerCase();
++  if (source === "debug") return await loadProductsFromDebug(shop);
++  return await loadProductsFromFixture();
++}
++
++
+ function buildSmokeCases(rng: () => number, products: EfroProduct[]): SmokeCase[] {
+   const titles = products
+     .map((p) => String((p as any)?.title ?? "").trim())
+@@ -325,7 +345,22 @@ async function main() {
+ 
+   const started = Date.now();
+   // Load products from debug-products
+-  const allProducts = await loadProductsFromDebug("local-dev");
++  const allProducts = await loadProductsAuto("local-dev");
++
++  console.log("[HARDCORE-V2] products_loaded:", allProducts.length, "source=", process.env.HARDCORE_PRODUCTS_SOURCE ?? "fixture");
++
++  // HARD-GATE: FULL darf niemals "grün" werden, wenn wir nicht >=120 Produkte haben.
++  const minProducts = Number(process.env.HARDCORE_MIN_PRODUCTS ?? (mode === "FULL" ? "120" : "1"));
++  if ((allProducts?.length ?? 0) < minProducts) {
++    console.error("[HARDCORE-V2] NOT-ENOUGH-PRODUCTS", {
++      mode,
++      minProducts,
++      got: allProducts?.length ?? 0,
++      hint: "debug-products muss >=120 liefern (oder HARDCORE_MIN_PRODUCTS setzen).",
++    });
++    process.exit(2);
++  }
++
+ 
+   const fullOnlyCases = buildFullOnlyCases();
+   const smokeCases = buildSmokeCases(rng, allProducts);
+diff --git a/src/lib/sales/brain/orchestrator.ts b/src/lib/sales/brain/orchestrator.ts
+index d20b1ae..b933b78 100644
+--- a/src/lib/sales/brain/orchestrator.ts
++++ b/src/lib/sales/brain/orchestrator.ts
+@@ -1638,7 +1638,7 @@ function resolveUnknownTerms(
+ 
+   // WICHTIG: Nur normalizeAliasKey verwenden f?r Konsistenz
+   const normalizedTerms = rawTerms
+-    .map((t) => normalizeAliasKey(t))
++    .map((t: string) => normalizeAliasKey(t))
+     .filter((t) => t.length > 0);
+ 
+   // Known-Set mit normalizeAliasKey erstellen
+@@ -5064,7 +5064,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
+           if (!dynamicSynonymTerms.has(term) && !looksLikeProductCode(term)) {
+             // Pr?fe, ob Begriff in Produkten gefunden wurde
+             const foundInProducts = allProducts.some((p) => {
+-              const searchText = `${p.title} ${p.description} ${(p.tags || []).join(" ")}`.toLowerCase();
++              const searchText = `${p.title} ${p.description} ${((Array.isArray((p as any).tags_arr) ? (p as any).tags_arr : Array.isArray((p as any).tags) ? (p as any).tags : typeof (p as any).tags === "string" ? (p as any).tags.split(/[,;|]/).map((t: string) => String(t).trim()).filter(Boolean) : [])).join(" ")}`.toLowerCase();
+               return searchText.includes(term);
+             });
+             

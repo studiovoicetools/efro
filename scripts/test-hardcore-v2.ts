@@ -223,6 +223,26 @@ async function loadProductsFromDebug(shop = "local-dev"): Promise<EfroProduct[]>
   return products as EfroProduct[];
 }
 
+
+async function loadProductsFromFixture(): Promise<EfroProduct[]> {
+  const fp = path.resolve(process.cwd(), "scripts/fixtures/products.demo.supabase.json");
+  const raw = fs.readFileSync(fp, "utf-8");
+  const data = JSON.parse(raw);
+
+  const products = Array.isArray(data) ? data : (data?.products ?? data?.items ?? data?.data ?? []);
+  if (!Array.isArray(products)) {
+    throw new Error(`Unexpected products shape from fixture: ${safeJson(data).slice(0, 300)}...`);
+  }
+  return products as EfroProduct[];
+}
+
+async function loadProductsAuto(shop = "local-dev"): Promise<EfroProduct[]> {
+  const source = String(process.env.HARDCORE_PRODUCTS_SOURCE ?? "fixture").toLowerCase();
+  if (source === "debug") return await loadProductsFromDebug(shop);
+  return await loadProductsFromFixture();
+}
+
+
 function buildSmokeCases(rng: () => number, products: EfroProduct[]): SmokeCase[] {
   const titles = products
     .map((p) => String((p as any)?.title ?? "").trim())
@@ -325,7 +345,22 @@ async function main() {
 
   const started = Date.now();
   // Load products from debug-products
-  const allProducts = await loadProductsFromDebug("local-dev");
+  const allProducts = await loadProductsAuto("local-dev");
+
+  console.log("[HARDCORE-V2] products_loaded:", allProducts.length, "source=", process.env.HARDCORE_PRODUCTS_SOURCE ?? "fixture");
+
+  // HARD-GATE: FULL darf niemals "grün" werden, wenn wir nicht >=120 Produkte haben.
+  const minProducts = Number(process.env.HARDCORE_MIN_PRODUCTS ?? (mode === "FULL" ? "120" : "1"));
+  if ((allProducts?.length ?? 0) < minProducts) {
+    console.error("[HARDCORE-V2] NOT-ENOUGH-PRODUCTS", {
+      mode,
+      minProducts,
+      got: allProducts?.length ?? 0,
+      hint: "debug-products muss >=120 liefern (oder HARDCORE_MIN_PRODUCTS setzen).",
+    });
+    process.exit(2);
+  }
+
 
   const fullOnlyCases = buildFullOnlyCases();
   const smokeCases = buildSmokeCases(rng, allProducts);
