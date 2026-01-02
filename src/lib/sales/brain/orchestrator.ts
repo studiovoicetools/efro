@@ -3287,7 +3287,7 @@ export async function runOrchestrator({
     });
 
     const fallbackReplyText =
-      "Entschuldigung, im Moment sind keine Produkte verf?gbar. Bitte versuche es sp?ter noch einmal.";
+      "Entschuldigung, im Moment sind keine Produkte verfügbar. Bitte versuche es später noch einmal.";
 
     return {
       intent: currentIntent,
@@ -3296,8 +3296,8 @@ export async function runOrchestrator({
       nextContext: context,
       // TODO-AI-REFACTOR: Direkter Return bei leerer Produktliste
       aiTrigger: {
-        needsAiHelp: true,
-        reason: "no_results",
+        needsAiHelp: false,
+        reason: "empty_catalog",
         unknownTerms: [],
       },
     };
