@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// src/app/api/webhooks/gdpr/customer-redact/route.ts
+// src/app/api/webhooks/gdpr/customers-data-request/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { verifyShopifyWebhookHmac } from "@/lib/shopify/verifyWebhookHmac";
 
@@ -15,6 +15,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ungültige Signatur" }, { status: 401 });
   }
 
-  // TODO: Kundendaten löschen/anonymisieren, falls gespeichert
-  return NextResponse.json({ ok: true, topic: "customers/redact", stub: true });
+  // TODO: Kundendaten-Export/Lookup (wenn gespeichert)
+  return NextResponse.json({ ok: true, topic: "customers/data_request", stub: true });
 }

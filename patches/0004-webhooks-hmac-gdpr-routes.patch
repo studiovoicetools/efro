@@ -1,0 +1,87 @@
+diff --git a/src/app/api/webhooks/app-uninstalled/route.ts b/src/app/api/webhooks/app-uninstalled/route.ts
+index 1e8b572..dc300e8 100644
+--- a/src/app/api/webhooks/app-uninstalled/route.ts
++++ b/src/app/api/webhooks/app-uninstalled/route.ts
+@@ -1,21 +1,30 @@
+-import { NextResponse } from "next/server";
++export const dynamic = "force-dynamic";
++export const runtime = "nodejs";
++
++// src/app/api/webhooks/app-uninstalled/route.ts
++import { NextRequest, NextResponse } from "next/server";
++import { verifyShopifyWebhookHmac } from "@/lib/shopify/verifyWebhookHmac";
+ 
+ /**
+- * Stub fuer den Shopify "app/uninstalled" Webhook.
+- * Supabase ist noch nicht angebunden, daher machen wir hier nur Logging
+- * und geben eine erfolgreiche Antwort zurueck.
++ * Shopify "app/uninstalled" Webhook.
++ * Aktuell Stub: nur Logging + 200 OK.
++ * TODO: später Supabase Cleanup (Shop/Settings/Products) nach shop-domain.
+  */
++export async function POST(req: NextRequest) {
++  const raw = Buffer.from(await req.arrayBuffer());
++
++  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || "";
++  const ok = verifyShopifyWebhookHmac(req.headers, raw, secret);
++
++  if (!ok) {
++    return NextResponse.json({ error: "Ungültige Signatur" }, { status: 401 });
++  }
+ 
+-export async function POST(request: Request) {
+-  const bodyText = await request.text();
+-  console.log("[webhooks/app-uninstalled] Stub received payload:", bodyText);
++  // Stub-Logging: nicht kompletten Body spammen
++  console.log("[webhooks/app-uninstalled] received", { bytes: raw.length });
+ 
+   return NextResponse.json(
+-    {
+-      ok: false,
+-      message:
+-        "Supabase ist noch nicht konfiguriert. app-uninstalled Webhook laeuft im Stub-Modus.",
+-    },
++    { ok: true, topic: "app/uninstalled", stub: true },
+     { status: 200 }
+   );
+ }
+diff --git a/src/app/api/webhooks/gdpr/customer-redact/route.ts b/src/app/api/webhooks/gdpr/customer-redact/route.ts
+index 6e5c066..b262fd5 100644
+--- a/src/app/api/webhooks/gdpr/customer-redact/route.ts
++++ b/src/app/api/webhooks/gdpr/customer-redact/route.ts
+@@ -1,25 +1,20 @@
+-﻿export const dynamic = "force-dynamic";
++export const dynamic = "force-dynamic";
+ export const runtime = "nodejs";
+ 
+ // src/app/api/webhooks/gdpr/customer-redact/route.ts
+ import { NextRequest, NextResponse } from "next/server";
+-import crypto from "crypto";
+-
+-function isValidShopifyHmac(req: NextRequest, rawBody: Buffer) {
+-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || "";
+-  const hmac = req.headers.get("x-shopify-hmac-sha256") || "";
+-  const digest = crypto.createHmac("sha256", secret).update(rawBody).digest("base64");
+-  return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(digest));
+-}
++import { verifyShopifyWebhookHmac } from "@/lib/shopify/verifyWebhookHmac";
+ 
+ export async function POST(req: NextRequest) {
+   const raw = Buffer.from(await req.arrayBuffer());
+-  if (!isValidShopifyHmac(req, raw)) {
+-    return NextResponse.json({ error: "UngÃ¼ltige Signatur" }, { status: 401 });
+-  }
+-  // TODO: Kundendaten lÃ¶schen/anonymisieren, falls gespeichert
+-  return NextResponse.json({ ok: true });
+-}
+ 
++  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || "";
++  const ok = verifyShopifyWebhookHmac(req.headers, raw, secret);
+ 
++  if (!ok) {
++    return NextResponse.json({ error: "Ungültige Signatur" }, { status: 401 });
++  }
+ 
++  // TODO: Kundendaten löschen/anonymisieren, falls gespeichert
++  return NextResponse.json({ ok: true, topic: "customers/redact", stub: true });
++}
