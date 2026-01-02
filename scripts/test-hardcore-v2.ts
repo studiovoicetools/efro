@@ -292,6 +292,8 @@ async function main() {
   const failRows: string[] = ["id,kind,prompt,reason,recommendedCount,replyPreview"];
 
   const started = Date.now();
+    const mode = String(process.env.MODE ?? "SMOKE").toUpperCase();
+
 
   // Load products from debug-products
   const allProducts = await loadProductsFromDebug("local-dev");
@@ -418,7 +420,7 @@ async function main() {
   fs.writeFileSync(failsCsvPath, failRows.join("\n") + "\n", "utf8");
 
   const summary = {
-    mode: "SMOKE",
+    mode,
     seed,
     plan: plan.name,
     total,
@@ -432,10 +434,10 @@ async function main() {
 
   console.log(`[HARDCORE-V2] DONE ${JSON.stringify(summary)}`);
   if (fail === 0) {
-    console.log(`[HARDCORE-V2] SMOKE GREEN. ExitCode=0`);
+    console.log(`[HARDCORE-V2] ${mode} GREEN. ExitCode=0`);
     process.exit(0);
   } else {
-    console.log(`[HARDCORE-V2] SMOKE NOT GREEN. ExitCode=1`);
+    console.log(`[HARDCORE-V2] ${mode} NOT GREEN. ExitCode=1`);
     process.exit(1);
   }
 }
