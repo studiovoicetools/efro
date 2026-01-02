@@ -1,0 +1,66 @@
+diff --git a/src/app/api/efro/suggest/route.ts b/src/app/api/efro/suggest/route.ts
+index 4e2c358..63414dd 100644
+--- a/src/app/api/efro/suggest/route.ts
++++ b/src/app/api/efro/suggest/route.ts
+@@ -61,33 +61,49 @@ function _pickRecommended(sb: any): any[] {
+     );
+   };
+ 
+-  const rec = sb?.result?.recommendations;
++  // WICHTIG: SellerBrain liefert i.d.R. top-level `recommended`.
++  // Der alte Code suchte primär in sb.result.recommendations → kann 0 liefern,
++  // obwohl SellerBrain recommended korrekt gesetzt hat.
++  const unwrapped = _unwrapSellerBrainResult(sb);
++
++  // 0) Direkter Treffer: recommended (top-level / unwrapped)
++  const directCandidates = [
++    (unwrapped as any)?.recommended,
++    (sb as any)?.recommended,
++  ];
++  for (const v of directCandidates) {
++    if (isProductArray(v)) return v;
++  }
++
++  // Ab hier: Best-effort Fallbacks (für ältere/alternative Shapes)
++  const root = unwrapped ?? sb;
++  const rec = (root as any)?.result?.recommendations ?? (root as any)?.recommendations;
+ 
+   // 1) Direkt bekannte Felder
+   if (isProductArray(rec)) return rec;
+ 
+   if (rec && typeof rec === "object") {
+     const preferred = [
+-      rec.recommendedProducts,
+-      rec.recommended,
+-      rec.products,
+-      rec.items,
+-      rec.list,
+-      rec.finalProducts,
+-      rec.topProducts,
++      (rec as any).recommendedProducts,
++      (rec as any).recommended,
++      (rec as any).products,
++      (rec as any).items,
++      (rec as any).list,
++      (rec as any).finalProducts,
++      (rec as any).topProducts,
+     ];
+ 
+     for (const v of preferred) if (isProductArray(v)) return v;
+ 
+     // 2) irgendein Array innerhalb recommendations finden
+-    for (const v of Object.values(rec)) if (isProductArray(v)) return v as any[];
++    for (const v of Object.values(rec as any)) if (isProductArray(v)) return v as any[];
+   }
+ 
+   // 3) Fallbacks (manche Builds legen Produkte an anderer Stelle ab)
+   const fallbacks = [
+-    sb?.result?.reply?.products,
+-    sb?.result?.reply?.recommended,
+-    sb?.result?.productQuality?.products,
++    (root as any)?.result?.reply?.products,
++    (root as any)?.result?.reply?.recommended,
++    (root as any)?.result?.productQuality?.products,
+   ];
+   for (const v of fallbacks) if (isProductArray(v)) return v;
+ 
