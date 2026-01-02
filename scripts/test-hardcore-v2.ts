@@ -359,16 +359,27 @@ async function main() {
       }
     }
 
-    const tr: TurnResult = {
-      ok,
-      id: c.id,
-      kind: c.kind,
-      prompt: c.prompt,
-      replyText,
-      recommendedCount: recommended.length,
-      recommendedTitles,
-      ...(ok ? {} : { failReason }),
-    };
+      // If 0 recommendations are allowed, the reply must ask a clarifying question (no silent dead-ends)
+      if (!isNullCatalogCase(c) && c.allowZero && recommended.length === 0) {
+        const low = replyText.toLowerCase();
+        const looksLikeQuestion =
+          replyText.includes("?") ||
+          ["welche", "wonach", "für wen", "kategorie", "budget", "wieviel", "was genau"].some((w) => low.includes(w));
+        if (!looksLikeQuestion) {
+          ok = false;
+          failReason = "allowZero=1 but reply is not a clarifying question";
+        }
+      }
+      const tr: TurnResult = {
+        ok,
+        id: c.id,
+        kind: c.kind,
+        prompt: c.prompt,
+        replyText,
+        recommendedCount: recommended.length,
+        recommendedTitles,
+        ...(ok ? {} : { failReason }),
+      };
 
     results.push(tr);
 
