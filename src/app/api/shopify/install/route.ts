@@ -1,0 +1,77 @@
+// src/app/api/shopify/install/route.ts
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+
+function normalizeShop(shop: string): string {
+  return (shop || "").trim().toLowerCase();
+}
+
+function isValidShopDomain(shop: string): boolean {
+  return /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(shop);
+}
+
+function getScopes(): string {
+  const fromEnv = (process.env.SHOPIFY_SCOPES || "").trim();
+  return fromEnv.length > 0 ? fromEnv : "read_products";
+}
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const shopRaw = url.searchParams.get("shop") || "";
+  const shop = normalizeShop(shopRaw);
+
+  if (!shop || !isValidShopDomain(shop)) {
+    return NextResponse.json(
+      { ok: false, error: "Invalid or missing ?shop (expected *.myshopify.com)" },
+      { status: 400 }
+    );
+  }
+
+  const clientId = (process.env.SHOPIFY_API_KEY || "").trim();
+  const appUrl = (process.env.SHOPIFY_APP_URL || "").trim();
+
+  if (!clientId) {
+    return NextResponse.json(
+      { ok: false, error: "Missing env: SHOPIFY_API_KEY" },
+      { status: 500 }
+    );
+  }
+  if (!appUrl) {
+    return NextResponse.json(
+      { ok: false, error: "Missing env: SHOPIFY_APP_URL" },
+      { status: 500 }
+    );
+  }
+
+  const redirectUri = new URL("/api/shopify/callback", appUrl).toString();
+  const state = crypto.randomBytes(16).toString("hex");
+  const scopes = getScopes();
+
+  const authorize = new URL(`https://${shop}/admin/oauth/authorize`);
+  authorize.searchParams.set("client_id", clientId);
+  authorize.searchParams.set("scope", scopes);
+  authorize.searchParams.set("redirect_uri", redirectUri);
+  authorize.searchParams.set("state", state);
+
+  const res = NextResponse.redirect(authorize.toString());
+  res.cookies.set("shopify_oauth_state", state, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 10,
+  });
+
+  console.log("[Shopify Install] redirecting to authorize", {
+    shop,
+    scopes,
+    redirectUri,
+    statePresent: true,
+  });
+
+  return res;
+}
