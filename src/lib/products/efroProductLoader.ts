@@ -166,23 +166,13 @@ export async function loadProductsForShop(
       shopDomain: effectiveShopDomain,
     };
   } catch (err: any) {
-    // Fehler beim Shopify-Fetch: Fallback auf Mock
+    // Fehler beim Shopify-Fetch: KEIN Mock-Fallback für echte Shops (Truth-Policy)
     const errorMessage = err?.message || String(err);
-    
-    let products = [...mockCatalog];
-
-    // Optionale Test-Produkte fÃ¼r Attribut-Engine hinzufÃ¼gen
-    const enableAttributeDemo =
-      process.env.NEXT_PUBLIC_EFRO_ATTRIBUTE_DEMO === "1";
-
-    if (enableAttributeDemo) {
-      products = [...products, ...efroAttributeTestProducts];
-    }
 
     return {
-      success: true,
-      source: "mock",
-      products,
+      success: false,
+      source: "none",
+      products: [],
       error: `Shopify fetch failed or empty for ${effectiveShopDomain}: ${errorMessage}`,
       shopDomain: effectiveShopDomain,
     };
