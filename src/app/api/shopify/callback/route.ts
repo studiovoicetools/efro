@@ -145,7 +145,13 @@ export async function GET(req: NextRequest) {
   }
 
   // 5) state-cookie löschen + redirect
-  const redirectUrl = new URL("/avatar-seller", url);
+    // IMPORTANT: Redirect darf niemals von req.url abhängen (sonst landet man bei localhost:10000).
+    const appBaseUrl =
+      (process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.SHOPIFY_APP_URL ||
+        "").trim() || "https://app.avatarsalespro.com";
+
+    const redirectUrl = new URL("/avatar-seller", appBaseUrl);
   redirectUrl.searchParams.set("shop", shop);
 
   const res = NextResponse.redirect(redirectUrl.toString());
