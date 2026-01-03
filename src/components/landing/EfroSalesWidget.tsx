@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Cta = { label: string; href: string };
@@ -44,9 +44,18 @@ function saveConsent(v: boolean) {
 
 export default function EfroSalesWidget() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const shopParam = (searchParams?.get("shop") || "").trim().toLowerCase();
+  const [shopParam, setShopParam] = useState<string>("");
 
+  // Wichtig: kein useSearchParams() im globalen Widget -> sonst Build/Prerender Error.
+  // Stattdessen client-only über window.location.search lesen.
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      setShopParam((sp.get("shop") || "").trim().toLowerCase());
+    } catch {
+      setShopParam("");
+    }
+  }, [pathname]);
   // In der echten Demo-Route nicht drüberlegen (EFRO existiert dort schon als Produkt)
   // Nur in der echten Demo-Route nicht drüberlegen (Demo ist NUR shop=demo oder /demo)
 const shouldHideOnThisRoute = useMemo(() => {
