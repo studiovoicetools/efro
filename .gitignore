@@ -122,3 +122,6 @@ scripts/_top-products-domains.ts
 # local editor backups
 *.bak.*
 *.bak
+
+# local backups
+_backup_*
