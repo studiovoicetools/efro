@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const supabaseUrl =
       process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey =
-      process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+      process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.error("? Supabase-Umgebungsvariablen fehlen!");
@@ -115,14 +115,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unbekannter Plan" }, { status: 400 });
     }
 
-    // ?? Access Token abrufen (aus Supabase oder Env)
-    let accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || "";
-    const { data: shopRow } = await supabase
-      .from("shops")
-      .select("*")
-      .eq("shop", shopDomain)
-      .single();
-    if (shopRow?.access_token) accessToken = shopRow.access_token;
+    // ?? Access Token abrufen (Truth-Policy):
+    // 1) efro_shops (neuer Standard)  2) legacy shops  3) ENV (nur Dev/Notfall)
+    let accessToken = "";
+
+    const { data: efroShopRow } = await supabase
+      .from("efro_shops")
+      .select("access_token")
+      .eq("shop_domain", shopDomain)
+      .maybeSingle();
+
+    if (efroShopRow?.access_token) accessToken = efroShopRow.access_token;
+
+    if (!accessToken) {
+      const { data: legacyShopRow } = await supabase
+        .from("shops")
+        .select("access_token")
+        .eq("shop", shopDomain)
+        .maybeSingle();
+
+      if (legacyShopRow?.access_token) accessToken = legacyShopRow.access_token;
+    }
+
+    if (!accessToken) {
+      accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || "";
+    }
 
     if (!accessToken) {
       return NextResponse.json(
