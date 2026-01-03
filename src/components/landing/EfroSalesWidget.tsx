@@ -45,16 +45,36 @@ function saveConsent(v: boolean) {
 export default function EfroSalesWidget() {
   const pathname = usePathname();
   const [shopParam, setShopParam] = useState<string>("");
+  const lastSearchRef = useRef<string>("");
 
   // Wichtig: kein useSearchParams() im globalen Widget -> sonst Build/Prerender Error.
   // Stattdessen client-only über window.location.search lesen.
+  // Achtung: usePathname() ändert sich NICHT bei reinen query-changes (z.B. ?shop=demo -> ?shop=xyz),
+  // daher müssen wir search-Änderungen separat erkennen, sonst bleibt shopParam "hängen".
   useEffect(() => {
-    try {
-      const sp = new URLSearchParams(window.location.search);
-      setShopParam((sp.get("shop") || "").trim().toLowerCase());
-    } catch {
-      setShopParam("");
-    }
+    const updateShopParam = () => {
+      try {
+        const search = window.location.search || "";
+        if (search === lastSearchRef.current) return;
+        lastSearchRef.current = search;
+
+        const sp = new URLSearchParams(search);
+        setShopParam((sp.get("shop") || "").trim().toLowerCase());
+      } catch {
+        lastSearchRef.current = "";
+        setShopParam("");
+      }
+    };
+
+    updateShopParam();
+
+    const id = window.setInterval(updateShopParam, 250);
+    window.addEventListener("popstate", updateShopParam);
+
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("popstate", updateShopParam);
+    };
   }, [pathname]);
   // In der echten Demo-Route nicht drüberlegen (EFRO existiert dort schon als Produkt)
   // Nur in der echten Demo-Route nicht drüberlegen (Demo ist NUR shop=demo oder /demo)
