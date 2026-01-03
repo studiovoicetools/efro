@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Cta = { label: string; href: string };
@@ -44,11 +44,18 @@ function saveConsent(v: boolean) {
 
 export default function EfroSalesWidget() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const shopParam = (searchParams?.get("shop") || "").trim().toLowerCase();
 
   // In der echten Demo-Route nicht drüberlegen (EFRO existiert dort schon als Produkt)
-  const shouldHideOnThisRoute = useMemo(() => {
-    return pathname?.startsWith("/avatar-seller");
-  }, [pathname]);
+  // Nur in der echten Demo-Route nicht drüberlegen (Demo ist NUR shop=demo oder /demo)
+const shouldHideOnThisRoute = useMemo(() => {
+  const isAvatarSeller = pathname?.startsWith("/avatar-seller");
+  const isDemoRoute = pathname?.startsWith("/demo");
+  const isDemoShop = shopParam === "demo";
+  return isDemoRoute || (isAvatarSeller && isDemoShop);
+}, [pathname, shopParam]);
+
 
   const [open, setOpen] = useState(true);
   const [minimized, setMinimized] = useState(false);
