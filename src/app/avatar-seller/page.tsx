@@ -405,7 +405,7 @@ function ElevenLabsAvatar({
       SIGNED URL (aligned with Mascot demo)
   ============================================================ */
 
-  const getSignedUrl = async (): Promise<string> => {
+  const getSignedUrl: () => Promise<string> = useCallback(async (): Promise<string> => {
     const response = await fetch("/api/get-signed-url-seller", {
       method: "POST",
       headers: {
@@ -422,7 +422,7 @@ function ElevenLabsAvatar({
     }
     const data = await response.json();
     return data.signedUrl;
-  };
+    }, [dynamicVariables]);
 
   const fetchAndCacheUrl = useCallback(async () => {
     try {
@@ -432,7 +432,7 @@ function ElevenLabsAvatar({
       console.error("Failed signed URL:", error);
       setCachedUrl(null);
     }
-  }, [dynamicVariables]);
+  }, [getSignedUrl]);
 
   useEffect(() => {
     fetchAndCacheUrl();
@@ -485,7 +485,7 @@ function ElevenLabsAvatar({
         );
       }
     }
-  }, [conversation, cachedUrl, dynamicVariables]);
+  }, [conversation, cachedUrl, dynamicVariables, getSignedUrl]);
 
   useEffect(() => {
     if (!registerStartHandler) return;
@@ -638,9 +638,9 @@ export default function Home({ searchParams }: HomeProps) {
   }, []);
 
   // Helper-Funktionen für SellerBrain v2 (Shop-Domain & Locale)
-  function resolveShopDomain(): string {
-    return shopDomain || "demo";
-  }
+    const resolveShopDomain = useCallback((): string => {
+      return shopDomain || "demo";
+    }, [shopDomain]);
 
   function resolveLocale(): string {
     return "de";
@@ -683,7 +683,7 @@ export default function Home({ searchParams }: HomeProps) {
     speakHandlerRef.current = fn;
   }
 
-  function speak(text: string) {
+  function _speak(text: string) {
     if (!speakHandlerRef.current) {
       console.log(
         "[EFRO Speak] Kein aktiver Handler – Text wird nur im Chat angezeigt:",
@@ -954,50 +954,61 @@ export default function Home({ searchParams }: HomeProps) {
     return `${price.toFixed(2).replace(".", ",")} €`;
   }
 
-  function detectExplanationType(
-    text: string
-  ): "ingredients" | "usage" | "washing" | "price" | null {
-    const t = text.toLowerCase();
+    const detectExplanationType = useCallback(
+      (text: string): "ingredients" | "usage" | "washing" | "price" | null => {
+        const t = text.toLowerCase();
 
-    const isIngredientQuestion =
-      t.includes("inhaltsstoff") ||
-      t.includes("inhaltsstoffe") ||
-      t.includes("ingredient") ||
-      t.includes("ingredients") ||
-      t.includes("inci");
+        const isIngredientQuestion =
+          t.includes("inhaltsstoff") ||
+          t.includes("inhaltsstoffe") ||
+          t.includes("ingredient") ||
+          t.includes("ingredients") ||
+          t.includes("inci");
 
-    const isUsageQuestion =
-      t.includes("wie verwende ich") ||
-      t.includes("wie benutze ich") ||
-      t.includes("anwendung") ||
-      t.includes("apply") ||
-      t.includes("usage") ||
-      t.includes("verwenden") ||
-      t.includes("verwende") ||
-      t.includes("benutzen") ||
-      t.includes("für was darf ich") ||
-      t.includes("für was kann ich") ||
-      t.includes("wofür kann ich") ||
-      t.includes("wofür darf ich") ||
-      t.includes("geeignet für") ||
-      (t.includes("ist es für") && t.includes("haut"));
+        const isUsageQuestion =
+          t.includes("wie verwende ich") ||
+          t.includes("wie benutze ich") ||
+          t.includes("anwendung") ||
+          t.includes("apply") ||
+          t.includes("usage") ||
+          t.includes("verwenden") ||
+          t.includes("verwende") ||
+          t.includes("benutzen") ||
+          t.includes("für was darf ich") ||
+          t.includes("für was kann ich") ||
+          t.includes("wofür kann ich") ||
+          t.includes("wofür darf ich") ||
+          t.includes("geeignet für") ||
+          (t.includes("ist es für") && t.includes("haut"));
 
-    const isWashingQuestion =
-      t.includes("waschen") ||
-      t.includes("wasche") ||
-      t.includes("pflegehinweis") ||
-      t.includes("pflege") ||
-      t.includes("wash") ||
-      t.includes("washing");
+        const isWashingQuestion =
+          t.includes("waschen") ||
+          t.includes("wasche") ||
+          t.includes("pflegehinweis") ||
+          t.includes("pflege") ||
+          t.includes("wash") ||
+          t.includes("washing");
 
-    const isPrice = isPriceQuestion(t);
+        // inline: keine helper-deps, bleibt stabil
+        const isPriceQuestion =
+          t.includes("preis") ||
+          t.includes("price") ||
+          t.includes("kosten") ||
+          t.includes("kostet") ||
+          t.includes("wie viel") ||
+          t.includes("wieviel") ||
+          t.includes("teuer") ||
+          t.includes("günstig") ||
+          t.includes("guenstig");
 
-    if (isIngredientQuestion) return "ingredients";
-    if (isUsageQuestion) return "usage";
-    if (isWashingQuestion) return "washing";
-    if (isPrice) return "price";
-    return null;
-  }
+        if (isIngredientQuestion) return "ingredients";
+        if (isUsageQuestion) return "usage";
+        if (isWashingQuestion) return "washing";
+        if (isPriceQuestion) return "price";
+        return null;
+      },
+      []
+    );
 
   function findBestProductMatchByText(
     text: string,
@@ -1046,18 +1057,22 @@ export default function Home({ searchParams }: HomeProps) {
       DIREKTE ANTWORTEN (OHNE SELLERBRAIN)
   ============================================================ */
 
-  function sendDirectAiReply(reply: string, options?: { speak?: boolean }) {
-    appendChatMessage({
-      id: `efro-direct-${Date.now()}`,
-      text: reply,
-      sender: "efro",
-    });
-    setSellerReplyText(reply);
+    const sendDirectAiReply = useCallback(
+      (reply: string, options?: { speak?: boolean }) => {
+        appendChatMessage({
+          id: `efro-direct-${Date.now()}`,
+          text: reply,
+          sender: "efro",
+        });
+        setSellerReplyText(reply);
 
-    if (options?.speak) {
-      speak(reply);
-    }
-  }
+        if (options?.speak) {
+          const fn = speakHandlerRef.current;
+          if (fn) fn(reply);
+        }
+      },
+      [appendChatMessage]
+    );
 
   /* ===========================================================
       TEXT-NORMALISIERUNG FÜR SELLERBRAIN
@@ -1184,9 +1199,9 @@ const createRecommendations = useCallback(
       explanation === "ingredients" ||
       isIngredientsQuestion(normalizedForSellerBrain)
     ) {
-      let fromLast =
+      const fromLast =
         lastRecommendedProducts[0] || lastRecommendations[0] || null;
-      let fromSeller = sellerRecommended[0] || null;
+      const fromSeller = sellerRecommended[0] || null;
       let primary: EfroProduct | null = fromLast || fromSeller;
 
       if (!primary) {
@@ -1569,17 +1584,20 @@ if (replyText.length > 0) {
       );
     }
   },
-  [
-    allProducts,
-    sellerIntent,
-    shopPlan,
-    sellerRecommended,
-    lastRecommendedProducts,
-    lastRecommendations,
-    sellerContext,
-    shopDomain,
-  ]
-);
+    [
+      allProducts,
+      sellerIntent,
+      shopPlan,
+      sellerRecommended,
+      lastRecommendedProducts,
+      lastRecommendations,
+      sellerContext,
+      shopDomain,
+      detectExplanationType,
+      resolveShopDomain,
+      sendDirectAiReply,
+    ]
+  );
 
   /* ===========================================================
       ZENTRALE USER-INPUT-HANDLUNG (Voice + Chat)
