@@ -37,6 +37,8 @@ export async function GET(req: NextRequest) {
   const state = url.searchParams.get("state") || "";
   const hmac = url.searchParams.get("hmac") || "";
 
+  const queryKeys = Array.from(url.searchParams.keys());
+
   const shop = normalizeShop(shopRaw);
 
   console.log("[Shopify Callback] incoming", {
@@ -45,6 +47,7 @@ export async function GET(req: NextRequest) {
     codePresent: !!code,
     statePresent: !!state,
     hmacPresent: !!hmac,
+    queryKeys,
   });
 
   if (!shop || !isValidShopDomain(shop)) {
@@ -54,10 +57,14 @@ export async function GET(req: NextRequest) {
     );
   }
   if (!code) {
-    return NextResponse.json({ ok: false, error: "Missing ?code" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Missing ?code", queryKeys }, { status: 400 });
   }
   if (!state) {
-    return NextResponse.json({ ok: false, error: "Missing ?state" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Missing ?state", queryKeys }, { status: 400 });
+  }
+
+  if (!hmac) {
+    return NextResponse.json({ ok: false, error: "Missing ?hmac", queryKeys }, { status: 400 });
   }
 
   // 1) state-cookie prüfen (CSRF)
