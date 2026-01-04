@@ -184,7 +184,11 @@ export async function GET(request: NextRequest) {
         if (res.ok) {
           const data = await res.json();
           const rawProducts: ShopifyProduct[] = Array.isArray((data as any).products) ? (data as any).products : [];
-          const products = finalizeEfroProducts(rawProducts.map(mapShopifyToEfro));
+          const mapped = rawProducts.map(mapShopifyToEfro);
+          const finalized = finalizeEfroProducts(mapped);
+
+          // Debug-only: if finalize filters everything out, still return mapped Shopify products
+          const products = finalized.length > 0 ? finalized : mapped;
 
           const payload: any = { success: true, source: "shopify", products, shopDomain: "demo" };
           if (debug) payload.debug = { shopDomain: "demo", isDemo: true, preferredSource: "shopify", forcedSource: null };
