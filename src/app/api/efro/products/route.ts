@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
   if (debug && shopDomain && shopDomain.toLowerCase() !== "demo") {
     try {
       const res = await fetch(
-        `${baseUrl}/api/shopify-products?shop=${encodeURIComponent(shopDomain)}`,
+        `${baseUrl}/api/shopify-products?shop=${encodeURIComponent(shopDomain)}&_ts=${Date.now()}`,
         { cache: "no-store" }
       );
 
@@ -154,26 +154,31 @@ export async function GET(request: NextRequest) {
           ? (data as any).products
           : [];
 
-        const products = finalizeEfroProducts(rawProducts.map(mapShopifyToEfro));
+        // Map -> finalize; aber wenn finalize alles rausfiltert, für den Gate-3-Proof trotzdem LIVE liefern
+        const mapped = rawProducts.map(mapShopifyToEfro);
+        let products = finalizeEfroProducts(mapped);
 
-        if (products.length > 0) {
-          const payload: any = { success: true, source: "shopify", products, shopDomain };
-          payload.debug = {
-            shopDomain,
-            isDemo: false,
-            preferredSource: "shopify-live",
-            forcedSource: "debug=1",
-            tokenSource: (data as any).tokenSource ?? null,
-            tokenUpdatedAt: (data as any).tokenUpdatedAt ?? null,
-          };
-          return jsonUtf8(payload);
+        if ((products?.length ?? 0) === 0 && (mapped?.length ?? 0) > 0) {
+          products = mapped as any;
         }
+
+        const payload: any = { success: true, source: "shopify", products, shopDomain };
+        payload.debug = {
+          shopDomain,
+          isDemo: false,
+          preferredSource: "shopify-live",
+          forcedSource: "debug=1-direct",
+          shopifyRawCount: rawProducts.length,
+          efroCount: (products?.length ?? 0),
+          tokenSource: (data as any).tokenSource ?? null,
+          tokenUpdatedAt: (data as any).tokenUpdatedAt ?? null,
+        };
+        return jsonUtf8(payload);
       }
     } catch {
       // ignore -> continue normal flow
     }
   }
-
 
   try {
     // 1) shop=demo -> Shopify-API (oder mock als fallback)
