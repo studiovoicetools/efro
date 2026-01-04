@@ -1,0 +1,10 @@
+﻿{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.spec.tsx",
+    "**/*.test.tsx",
+    "src/efro_legacy/**"
+  ]
+}

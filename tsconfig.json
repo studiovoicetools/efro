@@ -1,4 +1,4 @@
-﻿{
+{
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -14,10 +14,8 @@
     "jsx": "preserve",
     "incremental": true,
 
-    // âœ… Base URL fÃ¼r Alias-Pfade
     "baseUrl": ".",
 
-    // âœ… Einheitliche Alias-Mappings fÃ¼r alle Projektteile
     "paths": {
       "@/*": ["src/*"],
       "@/components/*": ["src/components/*"],
@@ -26,7 +24,6 @@
       "@/lib/*": ["src/lib/*"]
     },
 
-    // âœ… Next.js TypeScript Plugin
     "plugins": [{ "name": "next" }]
   },
 
@@ -49,5 +46,6 @@
 ]
 
 }
+
 
 
