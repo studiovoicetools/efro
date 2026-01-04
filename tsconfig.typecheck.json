@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": [
+      "node"
+    ]
+  },
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    "coverage",
+    "logs",
+    "scripts",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**",
+    "_backups",
+    "**/_backups/**",
+    "src/efro_legacy",
+    "src/efro_legacy/**",
+    "src/efro_legacy/dev-pages",
+    "src/efro_legacy/dev-pages/**"
+  ]
+}

@@ -19,6 +19,31 @@ function normalizeShopToMyshopify(raw: string): string | null {
   return null;
 }
 
+
+function getPublicAppBaseUrl(req: NextRequest): string {
+  const envBase = (process.env.NEXT_PUBLIC_APP_URL || "").trim();
+  if (!envBase) {
+    throw new Error("Missing env: NEXT_PUBLIC_APP_URL (required to avoid localhost redirects)");
+  }
+
+  const cleaned = envBase.replace(/\/+$/, "");
+
+  // Never allow localhost/127.0.0.1 as public base (this is ALWAYS wrong in Shopify OAuth redirects)
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(cleaned)) {
+    throw new Error(`Invalid NEXT_PUBLIC_APP_URL (points to localhost): ${cleaned}`);
+  }
+
+  // Require https for Shopify callback redirects
+  if (!/^https:\/\//i.test(cleaned)) {
+    throw new Error(`Invalid NEXT_PUBLIC_APP_URL (must be https): ${cleaned}`);
+  }
+
+  return cleaned;
+}
+
+
+
+
 function buildHmacMessage(searchParams: URLSearchParams): string {
   const pairs: Array<[string, string]> = [];
   for (const [k, v] of searchParams.entries()) {
@@ -226,7 +251,20 @@ export async function GET(req: NextRequest) {
       cookieStatePresent: !!cookieState,
       stateLen: state.length,
     });
-    return NextResponse.json({ ok: false, error: "Invalid state" }, { status: 400 });
+    return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid state",
+          debug: {
+            cookieStatePresent: !!cookieState,
+            cookieOk,
+            signedOk,
+            stateLen: state.length,
+            statePrefix: state.slice(0, 16),
+          },
+        },
+        { status: 400 }
+      );
   }
 
   // 2) hmac check
@@ -239,7 +277,6 @@ export async function GET(req: NextRequest) {
 
   const message = buildHmacMessage(url.searchParams);
   const digest = crypto.createHmac("sha256", secret).update(message).digest("hex");
-
   if (!safeEqualHex(digest, hmac)) {
     console.error("[Shopify Callback] hmac invalid", {
       shop,
@@ -248,6 +285,19 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json({ ok: false, error: "Invalid hmac" }, { status: 400 });
   }
+
+  // Resolve public base URL BEFORE token flow (never allow localhost fallbacks)
+  let appBaseUrl = "";
+  try {
+    appBaseUrl = getPublicAppBaseUrl(req);
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: e?.message || "Missing env: NEXT_PUBLIC_APP_URL" },
+      { status: 500 }
+    );
+  }
+
+
 
   try {
     const { accessToken, raw } = await exchangeCodeForToken(shop, code);
@@ -258,8 +308,7 @@ export async function GET(req: NextRequest) {
 
     const efroShop = await ensureEfroShopExists(shop);
     console.log("[Shopify Callback] shop UPSERTED (efro_shops)", { shop, efroShopId: efroShop?.id });
-
-    const redirectUrl = new URL("/avatar-seller", url);
+    const redirectUrl = new URL("/avatar-seller", appBaseUrl);
     redirectUrl.searchParams.set("shop", shop);
     redirectUrl.searchParams.set("oauth", "ok");
     if (host) redirectUrl.searchParams.set("host", host);
@@ -280,6 +329,6 @@ export async function GET(req: NextRequest) {
     return res;
   } catch (err: any) {
     console.error("[Shopify Callback] FAILED", { shop, error: err?.message || String(err) });
-    return NextResponse.json({ ok: false, error: "Failed to save token" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Failed to save token", details: err?.message || String(err) }, { status: 400 });
   }
 }
