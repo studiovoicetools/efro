@@ -140,6 +140,41 @@ export async function GET(request: NextRequest) {
 
   const baseUrl = `${url.protocol}//${url.host}`;
 
+  // Gate-3 Debug: prefer live Shopify read-after-write for real shops (only when debug=1)
+  if (debug && shopDomain && shopDomain.toLowerCase() !== "demo") {
+    try {
+      const res = await fetch(
+        `${baseUrl}/api/shopify-products?shop=${encodeURIComponent(shopDomain)}`,
+        { cache: "no-store" }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawProducts: ShopifyProduct[] = Array.isArray((data as any).products)
+          ? (data as any).products
+          : [];
+
+        const products = finalizeEfroProducts(rawProducts.map(mapShopifyToEfro));
+
+        if (products.length > 0) {
+          const payload: any = { success: true, source: "shopify", products, shopDomain };
+          payload.debug = {
+            shopDomain,
+            isDemo: false,
+            preferredSource: "shopify-live",
+            forcedSource: "debug=1",
+            tokenSource: (data as any).tokenSource ?? null,
+            tokenUpdatedAt: (data as any).tokenUpdatedAt ?? null,
+          };
+          return jsonUtf8(payload);
+        }
+      }
+    } catch {
+      // ignore -> continue normal flow
+    }
+  }
+
+
   try {
     // 1) shop=demo -> Shopify-API (oder mock als fallback)
     if (shopDomain?.toLowerCase() === "demo") {
