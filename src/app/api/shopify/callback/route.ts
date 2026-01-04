@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+
 const OAUTH_STATE_COOKIE = "efro_shopify_oauth_state";
+const STATE_MAX_AGE_SEC = 600; // 10 min
 
 function normalizeShopToMyshopify(raw: string): string | null {
   const s = (raw || "").trim().toLowerCase();
@@ -14,17 +17,6 @@ function normalizeShopToMyshopify(raw: string): string | null {
   if (/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(s)) return s;
 
   return null;
-}
-
-function isHttps(req: NextRequest): boolean {
-  const xfProto = req.headers.get("x-forwarded-proto");
-  if (xfProto) return xfProto.toLowerCase().includes("https");
-  try {
-    const u = new URL(req.url);
-    return u.protocol === "https:";
-  } catch {
-    return true;
-  }
 }
 
 function buildHmacMessage(searchParams: URLSearchParams): string {
@@ -38,13 +30,20 @@ function buildHmacMessage(searchParams: URLSearchParams): string {
 }
 
 function safeEqualHex(a: string, b: string): boolean {
-  // compare hex strings in constant time
   const aa = (a || "").trim().toLowerCase();
   const bb = (b || "").trim().toLowerCase();
   const bufA = Buffer.from(aa, "utf8");
   const bufB = Buffer.from(bb, "utf8");
   if (bufA.length !== bufB.length) return false;
   return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function getShopifySecret(): string {
+  return (process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_API_SECRET || "").trim();
+}
+
+function getShopifyClientId(): string {
+  return (process.env.SHOPIFY_CLIENT_ID || process.env.SHOPIFY_API_KEY || "").trim();
 }
 
 function getSupabaseAdmin() {
@@ -58,10 +57,34 @@ function getSupabaseAdmin() {
   });
 }
 
+function signState(shop: string, nonce: string, ts: string, secret: string): string {
+  const payload = `${shop}|${nonce}|${ts}`;
+  return crypto.createHmac("sha256", secret).update(payload).digest("hex").slice(0, 32);
+}
+
+function verifySignedState(shop: string, state: string, secret: string): boolean {
+  const parts = (state || "").split(".");
+  if (parts.length !== 3) return false;
+  const [ts, nonce, sig] = parts;
+
+  let tsMs = 0;
+  try {
+    tsMs = parseInt(ts, 36);
+  } catch {
+    return false;
+  }
+  if (!Number.isFinite(tsMs) || tsMs <= 0) return false;
+
+  const ageSec = Math.floor((Date.now() - tsMs) / 1000);
+  if (ageSec < 0 || ageSec > STATE_MAX_AGE_SEC) return false;
+
+  const expected = signState(shop, nonce, ts, secret);
+  return safeEqualHex(expected, sig);
+}
+
 async function exchangeCodeForToken(shop: string, code: string) {
-  const clientId = process.env.SHOPIFY_CLIENT_ID || process.env.SHOPIFY_API_KEY || "";
-  const clientSecret =
-    process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_API_SECRET || "";
+  const clientId = getShopifyClientId();
+  const clientSecret = getShopifySecret();
 
   if (!clientId || !clientSecret) {
     throw new Error(
@@ -102,8 +125,18 @@ async function exchangeCodeForToken(shop: string, code: string) {
 
 async function saveTokenToShopsTable(shop: string, accessToken: string) {
   const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
 
-  // Robust: avoid relying on unique constraint (select -> update/insert)
+  // Prefer upsert (if constraint exists)
+  const upsertAttempt = await supabase
+    .from("shops")
+    .upsert({ shop, access_token: accessToken, updated_at: now }, { onConflict: "shop" })
+    .select("*")
+    .maybeSingle();
+
+  if (!upsertAttempt.error) return upsertAttempt.data;
+
+  // Fallback select->update/insert
   const { data: existing, error: selErr } = await supabase
     .from("shops")
     .select("*")
@@ -111,13 +144,8 @@ async function saveTokenToShopsTable(shop: string, accessToken: string) {
     .maybeSingle();
 
   if (selErr) {
-    console.error("[Shopify Callback] shops select error (continuing)", {
-      shop,
-      error: selErr.message,
-    });
+    console.error("[Shopify Callback] shops select error", { shop, error: selErr.message });
   }
-
-  const now = new Date().toISOString();
 
   if (existing) {
     const { data, error } = await supabase
@@ -146,13 +174,7 @@ async function ensureEfroShopExists(shop: string) {
 
   const { data, error } = await supabase
     .from("efro_shops")
-    .upsert(
-      {
-        shop_domain: shop,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "shop_domain" }
-    )
+    .upsert({ shop_domain: shop, last_seen_at: new Date().toISOString() }, { onConflict: "shop_domain" })
     .select("*")
     .maybeSingle();
 
@@ -177,6 +199,7 @@ export async function GET(req: NextRequest) {
     codePresent: !!code,
     statePresent: !!state,
     hmacPresent: !!hmac,
+    cookieStatePresent: !!req.cookies.get(OAUTH_STATE_COOKIE)?.value,
   });
 
   if (!shop) {
@@ -189,19 +212,24 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // 1) state check
+  // 1) state check: cookie OR signed state
   const cookieState = req.cookies.get(OAUTH_STATE_COOKIE)?.value || "";
-  if (!cookieState || cookieState !== state) {
-    console.error("[Shopify Callback] state mismatch", {
+  const secret = getShopifySecret();
+  const cookieOk = !!cookieState && cookieState === state;
+  const signedOk = !!secret && verifySignedState(shop, state, secret);
+
+  if (!cookieOk && !signedOk) {
+    console.error("[Shopify Callback] state invalid", {
       shop,
+      cookieOk,
+      signedOk,
       cookieStatePresent: !!cookieState,
-      statePresent: !!state,
+      stateLen: state.length,
     });
     return NextResponse.json({ ok: false, error: "Invalid state" }, { status: 400 });
   }
 
   // 2) hmac check
-  const secret = process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_API_SECRET || "";
   if (!secret) {
     return NextResponse.json(
       { ok: false, error: "Missing env: SHOPIFY_CLIENT_SECRET/SHOPIFY_API_SECRET" },
@@ -221,63 +249,37 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid hmac" }, { status: 400 });
   }
 
-  // 3) exchange code -> token
-  let accessToken = "";
   try {
-    const out = await exchangeCodeForToken(shop, code);
-    accessToken = out.accessToken;
+    const { accessToken, raw } = await exchangeCodeForToken(shop, code);
+    console.log("[Shopify Callback] token exchange OK", { shop, tokenLen: accessToken.length, scope: raw?.scope });
 
-    console.log("[Shopify Callback] token exchange OK", {
-      shop,
-      tokenLen: accessToken.length,
-      scope: out.raw?.scope,
-    });
-  } catch (e) {
-    console.error("[Shopify Callback] token exchange FAILED", {
-      shop,
-      error: e instanceof Error ? e.message : String(e),
-    });
-    return NextResponse.json({ ok: false, error: "Token exchange failed" }, { status: 500 });
-  }
-
-  // 4) save token (shops) + ensure efro_shops exists
-  try {
     const saved = await saveTokenToShopsTable(shop, accessToken);
-    console.log("[Shopify Callback] token SAVED (shops)", {
-      shop,
-      hasAccessToken: !!saved?.access_token,
+    console.log("[Shopify Callback] token SAVED (shops)", { shop, hasAccessToken: !!saved?.access_token });
+
+    const efroShop = await ensureEfroShopExists(shop);
+    console.log("[Shopify Callback] shop UPSERTED (efro_shops)", { shop, efroShopId: efroShop?.id });
+
+    const redirectUrl = new URL("/avatar-seller", url);
+    redirectUrl.searchParams.set("shop", shop);
+    redirectUrl.searchParams.set("oauth", "ok");
+    if (host) redirectUrl.searchParams.set("host", host);
+
+    const res = NextResponse.redirect(redirectUrl.toString(), 302);
+
+    // clear cookie best-effort
+    res.cookies.set({
+      name: OAUTH_STATE_COOKIE,
+      value: "",
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+      maxAge: 0,
     });
 
-    const efroRow = await ensureEfroShopExists(shop);
-    console.log("[Shopify Callback] shop UPSERTED (efro_shops)", {
-      shop,
-      efroShopId: efroRow?.id ?? null,
-    });
-  } catch (e) {
-    console.error("[Shopify Callback] save FAILED", {
-      shop,
-      error: e instanceof Error ? e.message : String(e),
-    });
-    return NextResponse.json({ ok: false, error: "Failed to save token" }, { status: 500 });
+    return res;
+  } catch (err: any) {
+    console.error("[Shopify Callback] FAILED", { shop, error: err?.message || String(err) });
+    return NextResponse.json({ ok: false, error: "Failed to save token" }, { status: 400 });
   }
-
-  // 5) redirect to app
-  const redirectUrl = new URL("/avatar-seller", url);
-  redirectUrl.searchParams.set("shop", shop);
-  redirectUrl.searchParams.set("oauth", "ok");
-
-  const res = NextResponse.redirect(redirectUrl.toString());
-
-  // clear state cookie
-  res.cookies.set(OAUTH_STATE_COOKIE, "", {
-    httpOnly: true,
-    secure: isHttps(req),
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-
-  return res;
 }
-
-export const dynamic = "force-dynamic";
