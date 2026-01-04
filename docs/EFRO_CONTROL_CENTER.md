@@ -190,3 +190,53 @@ Lösung (Standard):
 Hinweis:
 - Google/Web-Login ist nicht gleich Git-Auth.
 - Für HTTPS wäre ein Personal Access Token nötig, empfohlen ist aber SSH.
+
+---
+
+## 9) Go/No-Go Status (Stand jetzt, 2026-01-04)
+
+Gate 3 OAuth Minimum E2E: NEIN
+- Diagnose + Redirect/client_id + Distribution-Blocker erkannt, aber Install→Callback→Token-Save→Shop-Record nicht sauber E2E bewiesen.
+
+Gate 2 Commerce Actions: NEIN
+- Cart/Checkout/Add-to-cart Contract + Executor + Tests nicht umgesetzt / nicht bewiesen.
+
+Gate 1 ShopScan/Shop-Truth: TEILWEISE
+- Katalog/Fixtures + debug-products + Hardcore-Tests vorhanden,
+  aber echter Shop-Scan im installierten Shop nicht E2E bewiesen.
+
+E2E Track dev+prod Shop Go/No-Go: NEIN
+- echter Install→Scan→Widget→Cart→Checkout→Billing End-to-End nicht durchgetestet.
+
+
+## 10) Definition: "E2E bewiesen" (Proof Chain)
+
+Ein Gate gilt erst als GRÜN, wenn mindestens ein kompletter Proof-Run dokumentiert ist:
+- Command(s) + Output (HTTP Status/JSON) + persistierter Zustand (DB/Logs)
+
+### Gate 3 OAuth Minimum – Proof Chain (Minimal)
+Ziel: Install → Callback → Token gespeichert → Shop-Record vorhanden (DB) → Shop-Meta abrufbar
+
+Proof-Run (minimal, belegt durch Outputs):
+1) Callback erreichbar und liefert Redirect/OK:
+   - Route: /api/shopify/callback
+2) Shop wird onboarded / Record wird erstellt:
+   - Route: /api/efro/onboard-shop
+3) Shop-Meta ist abrufbar:
+   - Route: /api/efro/shop-meta oder /api/efro/debug-shop-meta
+4) Persistenz belegt (Supabase): Shops-Tabelle hat Row für Shop/UUID
+
+### Gate 2 Commerce – Proof Chain (Minimal)
+Ziel: Add-to-cart → Checkout URL → Order/Redirect (mindestens URL)
+
+1) /api/cart/add (200)
+2) /api/checkout/url (200 + url)
+3) optional: billing/subscriptions nicht 500
+
+### Gate 1 ShopScan – Proof Chain (Minimal)
+Ziel: echter Shop-Scan importiert Produkte → /api/efro/repository/products liefert >0
+
+1) /api/shopify-import (200, count > 0) oder Scan-Flow equivalent
+2) /api/efro/repository/products (200, count > 0)
+3) /api/efro/suggest nutzt echten Katalog (nicht Fixture)
+
