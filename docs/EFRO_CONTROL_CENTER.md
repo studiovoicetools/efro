@@ -176,3 +176,17 @@ Empfohlene Events:
 - `policy_block`
 - `error`
 
+
+---
+
+## 8) Git Push Auth (Wichtig)
+Problem:
+- `git push` über HTTPS fragt nach Username/Password und scheitert mit:
+  "Password authentication is not supported for Git operations."
+Lösung (Standard):
+- SSH Remote verwenden: `git@github.com:studiovoicetools/efro.git`
+- Push läuft dann ohne Passwortprompt.
+
+Hinweis:
+- Google/Web-Login ist nicht gleich Git-Auth.
+- Für HTTPS wäre ein Personal Access Token nötig, empfohlen ist aber SSH.
