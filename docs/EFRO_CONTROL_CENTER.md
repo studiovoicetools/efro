@@ -240,3 +240,8 @@ Ziel: echter Shop-Scan importiert Produkte → /api/efro/repository/products lie
 2) /api/efro/repository/products (200, count > 0)
 3) /api/efro/suggest nutzt echten Katalog (nicht Fixture)
 
+
+---
+
+## 11) Profi-Analyse (Statusreport)
+Siehe: docs/PROFI_ANALYSE_2026-01-04.md
