@@ -11,7 +11,7 @@ pnpm-debug.log*
 # Build Outputs / Coverage
 .next/
 out/
-build/
+/build/
 dist/
 coverage/
 # Environment Files (never commit)
