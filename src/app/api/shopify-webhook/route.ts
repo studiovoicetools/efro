@@ -73,8 +73,18 @@ function parsePrice(v: any): number {
 
 function isMissingColumnError(err: any, columnName: string): boolean {
   const msg = (err?.message || "").toString().toLowerCase();
-  const col = columnName.toLowerCase();
-  return msg.includes(`column "${col}" does not exist`) || msg.includes(`column ${col} does not exist`);
+  const col = (columnName || "").toLowerCase();
+
+  // Classic Postgres variants:
+  if (msg.includes('column "' + col + '" does not exist')) return true;
+  if (msg.includes('column ' + col + ' does not exist')) return true;
+
+  // Supabase/PostgREST schema cache variant:
+  // e.g. "Could not find the 'updated_at' column of 'products' in the schema cache"
+  if (msg.includes("schema cache") && msg.includes("'" + col + "'")) return true;
+  if (msg.includes("schema cache") && msg.includes(col)) return true;
+
+  return false;
 }
 
 function omitKey<T extends Record<string, any>>(obj: T, key: string): T {
