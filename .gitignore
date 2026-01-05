@@ -80,3 +80,7 @@ logs/**
 # avoid committing env backups
 .env*.bak*
 *_env.local.*
+
+# local backups & logs (never commit)
+_backup_*
+_smoke_logs/
