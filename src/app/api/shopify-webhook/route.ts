@@ -17,12 +17,8 @@ function env(name: string): string | null {
 
 /**
  * IMPORTANT:
- * In this route we intentionally use an untyped Supabase admin client (any),
- * because schema/types may differ between environments and we want flexible
- * upsert logic (products PK is id; sku is not guaranteed to be unique).
- *
- * This avoids TS "never" errors like:
- *   Argument of type '{ ... }' is not assignable to parameter of type 'never'.
+ * We intentionally use an untyped Supabase admin client (any),
+ * to avoid TS "never" errors across envs and keep flexible upsert logic.
  */
 function getSupabaseAdmin(): any {
   const url = env("SUPABASE_URL") ?? env("NEXT_PUBLIC_SUPABASE_URL");
@@ -42,7 +38,12 @@ function getSupabaseAdmin(): any {
 }
 
 function getWebhookSecret(): string {
-  return env("SHOPIFY_WEBHOOK_SECRET") ?? env("SHOPIFY_API_SECRET") ?? env("SHOPIFY_CLIENT_SECRET") ?? "";
+  return (
+    env("SHOPIFY_WEBHOOK_SECRET") ??
+    env("SHOPIFY_API_SECRET") ??
+    env("SHOPIFY_CLIENT_SECRET") ??
+    ""
+  );
 }
 
 function timingSafeEqualStr(a: string, b: string): boolean {
@@ -70,78 +71,63 @@ function parsePrice(v: any): number {
   return 0;
 }
 
-/**
- * Supabase/PostgREST can emit different "missing column" messages:
- * - column "updated_at" does not exist
- * - Could not find the 'updated_at' column of 'products' in the schema cache
- */
 function isMissingColumnError(err: any, columnName: string): boolean {
   const msg = (err?.message || "").toString().toLowerCase();
   const col = columnName.toLowerCase();
-
-  if (msg.includes(`column "${col}" does not exist`)) return true;
-  if (msg.includes(`column ${col} does not exist`)) return true;
-
-  // schema cache style
-  if (msg.includes(`could not find the '${col}' column`)) return true;
-  if (msg.includes(`could not find the "${col}" column`)) return true;
-  if (msg.includes(`schema cache`) && msg.includes(col)) return true;
-
-  return false;
+  return msg.includes(`column "${col}" does not exist`) || msg.includes(`column ${col} does not exist`);
 }
 
 function omitKey<T extends Record<string, any>>(obj: T, key: string): T {
-  if (!obj || typeof obj !== "object") return obj;
-  if (!(key in obj)) return obj;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { [key]: _drop, ...rest } = obj;
-  return rest as T;
+  const out: any = {};
+  for (const k of Object.keys(obj)) {
+    if (k !== key) out[k] = obj[k];
+  }
+  return out as T;
 }
 
-async function selectExistingIdSkuOnly(supabase: any, sku: string, shopDomain: string): Promise<string | null> {
-  // try with updated_at ordering first; if column missing, retry without order
-  const base = supabase.from("products").select("id").eq("sku", sku);
-
-  // attempt A: with order(updated_at)
-  const selA = await base.order("updated_at", { ascending: false }).limit(1).maybeSingle();
-  if (!selA.error) {
-    return (selA.data as any)?.id ? String((selA.data as any).id) : null;
-  }
-  if (isMissingColumnError(selA.error, "updated_at")) {
-    const selB = await supabase.from("products").select("id").eq("sku", sku).limit(1).maybeSingle();
-    if (selB.error) {
-      console.error("[shopify-webhook] select(sku) failed (no updated_at fallback)", { error: selB.error.message, shopDomain, sku });
-      return null;
-    }
-    return (selB.data as any)?.id ? String((selB.data as any).id) : null;
-  }
-
-  console.error("[shopify-webhook] select(sku) failed", { error: selA.error.message, shopDomain, sku });
-  return null;
+function makeId(): string {
+  // Works for uuid columns (valid uuid string) and also for text/varchar PKs.
+  // If your products.id is text without default => this fixes NOT NULL.
+  if ((crypto as any).randomUUID) return (crypto as any).randomUUID();
+  return crypto.randomBytes(16).toString("hex");
 }
 
-async function tryUpdateOrInsert(params: {
+async function updateOrInsertProducts(params: {
   supabase: any;
   existingId: string | null;
   payload: Record<string, any>;
   shopDomain: string;
   sku: string;
-}): Promise<{ ok: true } | { ok: false; error: any }> {
+}) {
   const { supabase, existingId, payload, shopDomain, sku } = params;
 
-  if (existingId) {
-    const upd = await supabase.from("products").update(payload).eq("id", existingId);
-    if (upd.error) {
-      return { ok: false, error: upd.error };
-    }
-    return { ok: true };
-  }
+  const withTs = (o: Record<string, any>) => ({ ...o, updated_at: new Date().toISOString() });
+  const noTs = (o: Record<string, any>) => omitKey(o, "updated_at");
 
-  const ins = await supabase.from("products").insert([payload]);
-  if (ins.error) {
-    return { ok: false, error: ins.error };
+  const ensureIdOnInsert = (o: Record<string, any>) => {
+    if (existingId) return o;
+    const idVal = o.id ? String(o.id) : makeId();
+    return { ...o, id: idVal };
+  };
+
+  // Attempt A: include updated_at
+  if (existingId) {
+    const upd = await supabase.from("products").update(withTs(payload)).eq("id", existingId);
+    if (!upd.error) return { ok: true as const };
+    if (isMissingColumnError(upd.error, "updated_at")) {
+      const upd2 = await supabase.from("products").update(noTs(payload)).eq("id", existingId);
+      return { ok: !upd2.error, error: upd2.error };
+    }
+    return { ok: false as const, error: upd.error };
+  } else {
+    const ins = await supabase.from("products").insert([ensureIdOnInsert(withTs(payload))]);
+    if (!ins.error) return { ok: true as const };
+    if (isMissingColumnError(ins.error, "updated_at")) {
+      const ins2 = await supabase.from("products").insert([ensureIdOnInsert(noTs(payload))]);
+      return { ok: !ins2.error, error: ins2.error };
+    }
+    return { ok: false as const, error: ins.error };
   }
-  return { ok: true };
 }
 
 /**
@@ -149,7 +135,10 @@ async function tryUpdateOrInsert(params: {
  * - products table has PK(id) only (no unique sku guaranteed)
  * - so we do: SELECT id (shop_uuid+sku) -> UPDATE by id, else INSERT
  * - if shop_uuid columns don't exist -> fallback to sku-only mode
+ *
+ * ALSO:
  * - if updated_at column doesn't exist -> retry without updated_at
+ * - if id has no default and is NOT NULL -> we generate an id for inserts
  */
 async function upsertProductNoConstraint(params: {
   supabase: any;
@@ -162,24 +151,15 @@ async function upsertProductNoConstraint(params: {
 
   let mode: "shop_sku" | "sku_only" = shopUuid ? "shop_sku" : "sku_only";
 
-  const productDataShopBase = {
+  const productDataShop = {
     ...productDataCore,
     shop_uuid: shopUuid,
     shop_domain: shopDomain,
   };
 
-  const productDataSkuOnlyBase = {
+  const productDataSkuOnly = {
     ...productDataCore,
   };
-
-  const withTs = (o: Record<string, any>) => ({ ...o, updated_at: new Date().toISOString() });
-  const noTs = (o: Record<string, any>) => omitKey(o, "updated_at");
-
-  const productDataShopWithTs = withTs(productDataShopBase);
-  const productDataShopNoTs = noTs(productDataShopBase);
-
-  const productDataSkuOnlyWithTs = withTs(productDataSkuOnlyBase);
-  const productDataSkuOnlyNoTs = noTs(productDataSkuOnlyBase);
 
   let existingId: string | null = null;
 
@@ -209,51 +189,63 @@ async function upsertProductNoConstraint(params: {
   }
 
   if (mode === "sku_only") {
-    existingId = await selectExistingIdSkuOnly(supabase, sku, shopDomain);
+    // try with updated_at ordering first; if missing, retry without order
+    const base = supabase.from("products").select("id").eq("sku", sku);
+
+    const selA = await base.order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    if (selA.error) {
+      if (isMissingColumnError(selA.error, "updated_at")) {
+        const selB = await supabase.from("products").select("id").eq("sku", sku).limit(1).maybeSingle();
+        if (selB.error) {
+          console.error("[shopify-webhook] select(sku) failed (no updated_at fallback)", { error: selB.error.message, shopDomain, sku });
+          existingId = null;
+        } else if ((selB.data as any)?.id) {
+          existingId = String((selB.data as any).id);
+        }
+      } else {
+        console.error("[shopify-webhook] select(sku) failed", { error: selA.error.message, shopDomain, sku });
+        existingId = null;
+      }
+    } else if ((selA.data as any)?.id) {
+      existingId = String((selA.data as any).id);
+    }
   }
 
-  const payloadWithTs = mode === "shop_sku" ? productDataShopWithTs : productDataSkuOnlyWithTs;
-  const payloadNoTs_ = mode === "shop_sku" ? productDataShopNoTs : productDataSkuOnlyNoTs;
+  const payload = mode === "shop_sku" ? productDataShop : productDataSkuOnly;
 
-  // 1) try with updated_at
-  let r1 = await tryUpdateOrInsert({ supabase, existingId, payload: payloadWithTs, shopDomain, sku });
+  const r = await updateOrInsertProducts({
+    supabase,
+    existingId,
+    payload,
+    shopDomain,
+    sku,
+  });
 
-  // fallback A: if shop columns missing, retry sku_only (still withTs first)
-  if (!r1.ok && mode === "shop_sku" && (isMissingColumnError(r1.error, "shop_uuid") || isMissingColumnError(r1.error, "shop_domain"))) {
-    // retry as sku_only
-    const p2 = existingId ? productDataSkuOnlyWithTs : productDataSkuOnlyWithTs;
-    const r2 = await tryUpdateOrInsert({ supabase, existingId, payload: p2, shopDomain, sku });
-    if (r2.ok) return { action: existingId ? "update" : "insert", mode: "sku_only" as const, ts: "with" as const };
+  if (!r.ok) {
+    // If shop columns missing AND we were in shop_sku, retry sku_only payload
+    const msg = (r.error?.message || "").toString();
+    const shopColsMissing =
+      isMissingColumnError(r.error, "shop_uuid") ||
+      isMissingColumnError(r.error, "shop_domain") ||
+      msg.includes('column "shop_uuid"') ||
+      msg.includes('column "shop_domain"');
 
-    // if that fails due to updated_at missing -> try without updated_at
-    if (isMissingColumnError(r2.error, "updated_at")) {
-      const r2b = await tryUpdateOrInsert({ supabase, existingId, payload: productDataSkuOnlyNoTs, shopDomain, sku });
-      if (r2b.ok) return { action: existingId ? "update" : "insert", mode: "sku_only" as const, ts: "none" as const };
+    if (mode === "shop_sku" && shopColsMissing) {
+      const r2 = await updateOrInsertProducts({
+        supabase,
+        existingId,
+        payload: productDataSkuOnly,
+        shopDomain,
+        sku,
+      });
+      if (!r2.ok) throw new Error(`products ${existingId ? "update" : "insert"} failed (sku_only fallback): ${r2.error?.message || "unknown"}`);
+      return { action: existingId ? "update" : "insert", mode: "sku_only" as const };
     }
 
-    throw new Error(`products ${existingId ? "update" : "insert"} failed (fallback sku_only): ${r2.error.message}`);
+    throw new Error(`products ${existingId ? "update" : "insert"} failed: ${r.error?.message || "unknown"}`);
   }
 
-  // fallback B: if updated_at missing, retry without updated_at
-  if (!r1.ok && isMissingColumnError(r1.error, "updated_at")) {
-    const r1b = await tryUpdateOrInsert({ supabase, existingId, payload: payloadNoTs_, shopDomain, sku });
-    if (r1b.ok) return { action: existingId ? "update" : "insert", mode, ts: "none" as const };
-
-    // if shop columns missing AND updated_at missing, try sku_only without ts
-    if (mode === "shop_sku" && (isMissingColumnError(r1b.error, "shop_uuid") || isMissingColumnError(r1b.error, "shop_domain"))) {
-      const r3 = await tryUpdateOrInsert({ supabase, existingId, payload: productDataSkuOnlyNoTs, shopDomain, sku });
-      if (r3.ok) return { action: existingId ? "update" : "insert", mode: "sku_only" as const, ts: "none" as const };
-      throw new Error(`products ${existingId ? "update" : "insert"} failed (double fallback): ${r3.error.message}`);
-    }
-
-    throw new Error(`products ${existingId ? "update" : "insert"} failed (no updated_at fallback): ${r1b.error.message}`);
-  }
-
-  if (!r1.ok) {
-    throw new Error(`products ${existingId ? "update" : "insert"} failed: ${r1.error.message}`);
-  }
-
-  return { action: existingId ? "update" : "insert", mode, ts: "with" as const };
+  return { action: existingId ? "update" : "insert", mode };
 }
 
 export async function POST(request: NextRequest) {
