@@ -266,3 +266,8 @@ Siehe: docs/PROFI_ANALYSE_2026-01-04.md
 **Zusammenfassung**:  
 Gate 3 ist erfolgreich abgeschlossen. EFRO ist bereit für den **Go-Live**.
 
+
+---
+
+## 13) Go-Live Dokument (SSOT, 2026-01-06)
+Siehe: docs/GO_LIVE_SSOT_2026-01-06.md
