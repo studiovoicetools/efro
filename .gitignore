@@ -1,6 +1,5 @@
 # ============================
 # Node & Package Manager
-# ============================
 node_modules/
 .pnp/
 .pnp.js
@@ -9,104 +8,75 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-
-# ============================
 # Build Outputs / Coverage
-# ============================
 .next/
 out/
 build/
 dist/
 coverage/
-
-# ============================
 # Environment Files (never commit)
-# ============================
 .env
 .env.*
 !.env.example
-
-# ============================
 # TypeScript / Next
-# ============================
 *.tsbuildinfo
 next-env.d.ts
-
-# ============================
 # Caches
-# ============================
 .eslintcache
 .turbo/
 .swc/
 .cache/
-
-# ============================
 # OS / Editor
-# ============================
 .DS_Store
 Thumbs.db
-
 .vscode/
 .idea/
-
-# ============================
 # Keys / Certs
-# ============================
 *.pem
-
-# ============================
 # Hosting
-# ============================
 .vercel/
 .render/
-
-# ============================
 # Project Specific
-# ============================
 # Mascot Bot SDK packages (local)
 mascotbot-sdk-react-*.tgz
-
 # Backup / Utility scripts
 syncfix.sh
 syncfix.cmd
-
-# ============================
 # EFRO local scratch / codex helpers
-# ============================
 _fails_*.log
 _fails_*.txt
 _fails_refactor_*.log
-
 _checkpoint_*.patch
 _diff_before_*.patch
 _codex_*.patch
 _fix_*.patch
-
 _out.txt
 _show.js
 _*.cjs
 _*.js
-
-
 sellerbrain-scenarios-*.log
 src/lib/sales/brain/steps/08_reply.ts.bak-*
 *.bak-*
-
-
 # build logs
 _build_check*.log
-
-
 _local_bak/
 tsconfig.json.bak_*
-
-
 # local backups / broken artifacts
 _backups/
 *.bak_*
 *.BROKEN_*
 *utf16fix*
-
 # Supabase CLI temp
 supabase/.temp/
-
+# --- local scratch / backups / logs (do not commit) ---
+_smoke_logs/
+_patch_backup/
+_patch_bak/
+_backup_*.*
+*.bak.*
+tsconfig*.bak.*
+logs/
+logs/**
+# avoid committing env backups
+.env*.bak*
+*_env.local.*
