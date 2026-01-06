@@ -271,3 +271,13 @@ Gate 3 ist erfolgreich abgeschlossen. EFRO ist bereit für den **Go-Live**.
 
 ## 13) Go-Live Dokument (SSOT, 2026-01-06)
 Siehe: docs/GO_LIVE_SSOT_2026-01-06.md
+
+---
+
+## 13) Gate-2 Commerce (SSOT Proof)
+
+SSOT: `docs/GATE2_COMMERCE_SSOT_2026-01-06.md`
+
+Status:
+- Gate-2 Commerce Actions: **GRÜN** (Prod Proof: Create DraftOrder + Update Qty)
+- Hinweis: Root-Query `draftOrder(id)` kann ohne `read_draft_orders` scheitern → **Gate-2+ optional**, kein Blocker.
