@@ -43,6 +43,11 @@
   "src_backup",
   "_backups/**/*",
 
+  "**/*.spec.ts",
+  "**/*.spec.tsx",
+  "**/*.test.ts",
+  "**/*.test.tsx",
+
   "**/*.bak",
   "**/*.bak_*",
   "**/*.BROKEN*"
