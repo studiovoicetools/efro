@@ -84,3 +84,7 @@ logs/**
 # local backups & logs (never commit)
 _backup_*
 _smoke_logs/
+
+# local backups
+*.bak
+*.bak_*
