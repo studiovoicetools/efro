@@ -103,11 +103,15 @@ function badRequest(msg: string, correlationId: string, shop: string, actionType
 export async function POST(req: NextRequest) {
   const correlationId = safeId("corr");
 
+  let shopForError = "unknown";
+  let actionTypeForError: "CREATE_DRAFT_ORDER_CHECKOUT" | "UPDATE_DRAFT_ORDER_LINE_QTY" = "CREATE_DRAFT_ORDER_CHECKOUT";
+
   try {
     const body = (await req.json().catch(() => ({}))) as Partial<CommerceActionRequest>;
 
     const rawShop = typeof body.shop === "string" ? body.shop : "";
     const shop = normalizeShopToMyshopify(rawShop) || "";
+      shopForError = shop || "unknown";
     const action = body.action as CommerceAction | undefined;
 
     if (!shop) {
@@ -119,6 +123,11 @@ export async function POST(req: NextRequest) {
     }
 
     const actionType = (action as any).type as string;
+
+
+      actionTypeForError = actionType === "UPDATE_DRAFT_ORDER_LINE_QTY"
+        ? "UPDATE_DRAFT_ORDER_LINE_QTY"
+        : "CREATE_DRAFT_ORDER_CHECKOUT";
 
     const { token: accessToken, tokenSource } = await resolveAccessToken(shop);
 
@@ -163,11 +172,55 @@ export async function POST(req: NextRequest) {
           description: "EFRO Discount",
         };
       }
+        const r = await adminGraphQL<any>(shop, accessToken, MUT, { input });
 
-      const r = await adminGraphQL<any>(shop, accessToken, MUT, { input });
-      const payload = r?.data?.draftOrderCreate;
-      const errs = payload?.userErrors || [];
-      const draft = payload?.draftOrder;
+        // Shopify GraphQL may return top-level `errors` even with HTTP 200
+        const gqlErrors = Array.isArray((r as any)?.errors) ? (r as any).errors : [];
+        if (gqlErrors.length) {
+          const msg = gqlErrors
+            .map((e: any) => e?.message)
+            .filter(Boolean)
+            .join(" | ");
+          const out: CommerceActionResponse = {
+            ok: false,
+            shop,
+            correlationId,
+            actionType: actionTypeForError,
+            error: `Shopify GraphQL errors: ${msg || "unknown"}`,
+            result: { tokenSource, graphQLErrors: gqlErrors },
+          };
+          return NextResponse.json(out, { status: 502 });
+        }
+
+        const payload = r?.data?.draftOrderCreate;
+        if (!payload) {
+          const out: CommerceActionResponse = {
+            ok: false,
+            shop,
+            correlationId,
+            actionType: "CREATE_DRAFT_ORDER_CHECKOUT",
+            error: "Shopify response missing draftOrderCreate payload (data.draftOrderCreate is null/undefined)",
+            result: { tokenSource, responseKeys: Object.keys(r || {}) },
+          };
+          return NextResponse.json(out, { status: 502 });
+        }
+
+        const errs = payload?.userErrors || [];
+        const draft = payload?.draftOrder;
+
+        // Must have an id + invoiceUrl for a checkout action
+        if (!draft?.id || !draft?.invoiceUrl) {
+          const out: CommerceActionResponse = {
+            ok: false,
+            shop,
+            correlationId,
+            actionType: "CREATE_DRAFT_ORDER_CHECKOUT",
+            error: "Draft order not created (missing draft.id and/or draft.invoiceUrl). Likely missing scopes (write_draft_orders).",
+            result: { tokenSource, draft: draft ?? null, userErrors: errs },
+          };
+          return NextResponse.json(out, { status: 502 });
+        }
+
 
       if (errs.length) {
         const out: CommerceActionResponse = {
@@ -290,15 +343,56 @@ export async function POST(req: NextRequest) {
           }
         }
       `;
+        const ur = await adminGraphQL<any>(shop, accessToken, MUT, {
+          id: draftOrderId.trim(),
+          input: { lineItems: newLineItems },
+        });
 
-      const ur = await adminGraphQL<any>(shop, accessToken, MUT, {
-        id: draftOrderId.trim(),
-        input: { lineItems: newLineItems },
-      });
+        const gqlErrors = Array.isArray((ur as any)?.errors) ? (ur as any).errors : [];
+        if (gqlErrors.length) {
+          const msg = gqlErrors
+            .map((e: any) => e?.message)
+            .filter(Boolean)
+            .join(" | ");
+          const out: CommerceActionResponse = {
+            ok: false,
+            shop,
+            correlationId,
+            actionType: "UPDATE_DRAFT_ORDER_LINE_QTY",
+            error: `Shopify GraphQL errors: ${msg || "unknown"}`,
+            result: { tokenSource, graphQLErrors: gqlErrors },
+          };
+          return NextResponse.json(out, { status: 502 });
+        }
 
-      const payload = ur?.data?.draftOrderUpdate;
-      const errs = payload?.userErrors || [];
-      const draft = payload?.draftOrder;
+        const payload = ur?.data?.draftOrderUpdate;
+        if (!payload) {
+          const out: CommerceActionResponse = {
+            ok: false,
+            shop,
+            correlationId,
+            actionType: "UPDATE_DRAFT_ORDER_LINE_QTY",
+            error: "Shopify response missing draftOrderUpdate payload (data.draftOrderUpdate is null/undefined)",
+            result: { tokenSource, responseKeys: Object.keys(ur || {}) },
+          };
+          return NextResponse.json(out, { status: 502 });
+        }
+
+        const errs = payload?.userErrors || [];
+        const draft = payload?.draftOrder;
+
+        if (!draft?.id) {
+          const out: CommerceActionResponse = {
+            ok: false,
+            shop,
+            correlationId,
+            actionType: "UPDATE_DRAFT_ORDER_LINE_QTY",
+            error: "Draft order update returned no draft.id (unexpected).",
+            result: { tokenSource, draft: draft ?? null, userErrors: errs },
+          };
+          return NextResponse.json(out, { status: 502 });
+        }
+
 
       if (errs.length) {
         const out: CommerceActionResponse = {
@@ -334,7 +428,7 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : String(e);
     const out: CommerceActionResponse = {
       ok: false,
-      shop: "unknown",
+      shop: shopForError,
       correlationId,
       actionType: "CREATE_DRAFT_ORDER_CHECKOUT",
       error: msg,
