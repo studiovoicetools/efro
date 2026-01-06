@@ -81,11 +81,12 @@ export async function GET(req: NextRequest) {
   const redirectUri = `${appUrl}/api/shopify/callback`;
 
   const scopes =
-    (process.env.SHOPIFY_SCOPES || "read_products")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .join(",");
+      (process.env.SHOPIFY_SCOPES || "read_products")
+        // accept comma OR whitespace separated env values
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(",");
 
   const secret = getShopifySecret();
   const state = secret ? createSignedState(shop, secret) : crypto.randomBytes(16).toString("hex");
@@ -97,14 +98,15 @@ export async function GET(req: NextRequest) {
   authUrl.searchParams.set("state", state);
 
   console.log("[Shopify Install] redirecting", {
-    shop,
-    redirectUri,
-    scopesCount: scopes ? scopes.split(",").length : 0,
-    statePresent: !!state,
-    sameSite: "none",
-  });
-
-  const res = NextResponse.redirect(authUrl.toString(), 307);
+  shop,
+  redirectUri,
+  scopesRaw: process.env.SHOPIFY_SCOPES || "",
+  scopes,
+  scopesCount: scopes ? scopes.split(",").length : 0,
+  statePresent: !!state,
+  sameSite: "none",
+});
+const res = NextResponse.redirect(authUrl.toString(), 307);
 
   // SameSite=None (Shopify Admin fetch/XHR friendly), but callback won't depend on cookie anymore.
   res.cookies.set({
