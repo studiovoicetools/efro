@@ -322,27 +322,6 @@ export async function getProductsForShop(
       
       productsData = data;
       productsError = error;
-
-      // Wenn mit shop_uuid 0 Produkte gefunden, versuche ohne Filter (für Produkte ohne shop_uuid)
-      if (!productsError && (!productsData || productsData.length === 0)) {
-        console.log("[EFRO Repo] Keine Produkte mit shop_uuid gefunden, versuche ohne shop_uuid-Filter", {
-          shopId: shop.id,
-        });
-        
-        const { data: dataWithoutFilter, error: errorWithoutFilter } = await supabase
-          .from("products")
-          .select("*")
-          .is("shop_uuid", null)
-          .order("title", { ascending: true })
-          .limit(200);
-        
-        if (!errorWithoutFilter && dataWithoutFilter && dataWithoutFilter.length > 0) {
-          productsData = dataWithoutFilter;
-          productsError = null;
-          console.log("[EFRO Repo] Produkte ohne shop_uuid gefunden", {
-            count: productsData.length,
-          });
-        }
       }
     } else {
       // Kein shop.id: Lade alle Produkte (ohne shop_uuid-Filter)
