@@ -67,8 +67,7 @@ export function fixEncodingString(input: string): string {
 
   // Letzter Schritt: übrig gebliebenes Replacement-Char entfernen
   // (Wenn nach Reparatur noch "�" drin ist, ist es ohnehin nicht mehr recoverbar)
-  s = s.replace(/�/g, "");
-
+  // NOTE: do NOT strip U+FFFD (replacement char). Keeping it avoids data loss ("f�r" -> "fr").
   return s;
 }
 
