@@ -5,11 +5,8 @@ import type { ShoppingIntent, EfroProduct } from "@/lib/products/mockCatalog";
 import { runSellerBrain, type SellerBrainContext } from "../../../../lib/sales/sellerBrain";
 import type { SellerBrainAiTrigger } from "../../../../lib/sales/modules/aiTrigger";
 import { logEfroEventServer } from "@/lib/efro/logEventServer";
-import {
-  getEfroShopByDomain,
-  getEfroDemoShop,
-  getProductsForShop,
-} from "@/lib/efro/efroSupabaseRepository";
+import { getEfroShopByDomain, getEfroDemoShop, getProductsForShop } from "@/lib/efro/efroSupabaseRepository";
+import { fixEncodingDeep, cleanText, normalizeTags } from "@/lib/text/encoding";
 
 type SuggestResponse = {
   shop: string;
@@ -24,20 +21,28 @@ type SuggestResponse = {
   };
 };
 
+function fixStr(input: unknown): string {
+  const raw = typeof input === "string" ? input : (input == null ? "" : String(input));
+  const o: any = fixEncodingDeep({ v: raw });
+  const v = typeof o?.v === "string" ? o.v : raw;
+  return cleanText(v);
+}
+
 function normalizeProductsForBrain(raw: any[]): EfroProduct[] {
   const arr = Array.isArray(raw) ? raw : [];
-  return arr.map((p: any) => {
-    const tags =
-      Array.isArray(p?.tags) ? p.tags :
-      (typeof p?.tags === "string" ? p.tags.split(",").map((s: string) => s.trim()).filter(Boolean) : []);
+
+  return arr.map((p0: any) => {
+    const p: any = fixEncodingDeep(p0 ?? {});
+    const tags = normalizeTags(p?.tags ?? p?.tags_arr ?? p?.tags_norm ?? []);
+
     return {
       ...p,
       id: String(p?.id ?? ""),
-      title: typeof p?.title === "string" ? p.title : (p?.title ? String(p.title) : ""),
-      description: typeof p?.description === "string" ? p.description : (p?.description ? String(p.description) : ""),
+      title: fixStr(p?.title ?? p?.name ?? ""),
+      description: fixStr(p?.description ?? p?.body_html ?? ""),
       price: typeof p?.price === "number" ? p.price : (Number.parseFloat(String(p?.price ?? 0)) || 0),
-      imageUrl: typeof p?.imageUrl === "string" ? p.imageUrl : (typeof p?.image_url === "string" ? p.image_url : ""),
-      category: typeof p?.category === "string" ? p.category : (p?.category ? String(p.category) : "unknown"),
+      imageUrl: fixStr(p?.imageUrl ?? p?.image_url ?? ""),
+      category: fixStr(p?.category ?? p?.product_type ?? "unknown") || "unknown",
       tags,
       // SellerBrain soll nie auf undefined crashen
       rating: typeof p?.rating === "number" ? p.rating : 0,
@@ -55,13 +60,10 @@ async function loadProductsViaRepo(shopDomain: string): Promise<{ products: Efro
 
   const r = await getProductsForShop(shop);
   const products = normalizeProductsForBrain((r as any)?.products ?? []);
-  return { products, source: r.source || "products" };
+  return { products, source: (r as any)?.source || "products" };
 }
 
-async function loadProductsViaDebugEndpoint(
-  req: NextRequest,
-  shop: string
-): Promise<{ products: EfroProduct[]; source: string }> {
+async function loadProductsViaDebugEndpoint(req: NextRequest, shop: string): Promise<{ products: EfroProduct[]; source: string }> {
   // Fallback (legacy). Nur nutzen, wenn Repo leer ist.
   const baseUrl =
     `${req.headers.get("x-forwarded-proto") || "https"}://` +
@@ -84,15 +86,9 @@ async function loadProductsViaDebugEndpoint(
 }
 
 async function loadProductsForSuggest(req: NextRequest, shop: string): Promise<{ products: EfroProduct[]; source: string }> {
-  // Gate-1: Shop-Truth first (Supabase Repo, shop_uuid-scoped)
-  try {
-    const r = await loadProductsViaRepo(shop);
-    if (r.products.length > 0) return r;
-  } catch {
-    // ignore -> fallback
-  }
+  const repo = await loadProductsViaRepo(shop);
+  if (Array.isArray(repo.products) && repo.products.length > 0) return repo;
 
-  // Fallback nur, wenn nötig
   return await loadProductsViaDebugEndpoint(req, shop);
 }
 
@@ -114,7 +110,6 @@ export async function GET(req: NextRequest) {
     }
 
     const { products, source } = await loadProductsForSuggest(req, shop);
-
     const context: SellerBrainContext | undefined = undefined;
 
     const brainResult = await runSellerBrain(
@@ -129,8 +124,8 @@ export async function GET(req: NextRequest) {
     const payload: SuggestResponse = {
       shop,
       intent: brainResult.intent,
-      replyText: brainResult.replyText,
-      recommended: brainResult.recommended,
+      replyText: fixStr(brainResult.replyText),
+      recommended: normalizeProductsForBrain(brainResult.recommended as any[]),
       productCount: products.length,
       productsSource: source,
       sellerBrain: {
@@ -143,13 +138,11 @@ export async function GET(req: NextRequest) {
       shopDomain: shop || "local-dev",
       userText: text,
       intent: brainResult.intent,
-      productCount: brainResult.recommended.length,
+      productCount: (brainResult.recommended?.length ?? 0),
       plan: null,
       hadError: false,
       errorMessage: null,
-    }).catch((err) => {
-      console.error("[EFRO suggest] Logging failed (ignored)", err);
-    });
+    }).catch((err) => console.error("[EFRO suggest] Logging failed (ignored)", err));
 
     return NextResponse.json(payload, { status: 200 });
   } catch (err: any) {
@@ -210,8 +203,7 @@ export async function POST(req: NextRequest) {
 
     const context = body.context
       ? {
-          activeCategorySlug:
-            typeof body.context.activeCategorySlug === "string" ? body.context.activeCategorySlug : null,
+          activeCategorySlug: typeof body.context.activeCategorySlug === "string" ? body.context.activeCategorySlug : null,
         }
       : undefined;
 
@@ -227,8 +219,8 @@ export async function POST(req: NextRequest) {
     const payload: SuggestResponse = {
       shop,
       intent: brainResult.intent,
-      replyText: brainResult.replyText,
-      recommended: brainResult.recommended,
+      replyText: fixStr(brainResult.replyText),
+      recommended: normalizeProductsForBrain(brainResult.recommended as any[]),
       productCount: products.length,
       productsSource: source,
       sellerBrain: {
@@ -241,13 +233,11 @@ export async function POST(req: NextRequest) {
       shopDomain: shop || "local-dev",
       userText: text,
       intent: brainResult.intent,
-      productCount: brainResult.recommended.length,
+      productCount: (brainResult.recommended?.length ?? 0),
       plan: null,
       hadError: false,
       errorMessage: null,
-    }).catch((err) => {
-      console.error("[EFRO suggest] Logging failed (ignored)", err);
-    });
+    }).catch((err) => console.error("[EFRO suggest] Logging failed (ignored)", err));
 
     return NextResponse.json(payload, { status: 200 });
   } catch (err: any) {
