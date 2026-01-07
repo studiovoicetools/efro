@@ -322,7 +322,6 @@ export async function getProductsForShop(
       
       productsData = data;
       productsError = error;
-      }
     } else {
       // Kein shop.id: Lade alle Produkte (ohne shop_uuid-Filter)
       const { data, error } = await supabase
