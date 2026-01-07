@@ -5,6 +5,11 @@ import type { ShoppingIntent, EfroProduct } from "@/lib/products/mockCatalog";
 import { runSellerBrain, type SellerBrainContext } from "../../../../lib/sales/sellerBrain";
 import type { SellerBrainAiTrigger } from "../../../../lib/sales/modules/aiTrigger";
 import { logEfroEventServer } from "@/lib/efro/logEventServer";
+import {
+  getEfroShopByDomain,
+  getEfroDemoShop,
+  getProductsForShop,
+} from "@/lib/efro/efroSupabaseRepository";
 
 type SuggestResponse = {
   shop: string;
@@ -19,43 +24,57 @@ type SuggestResponse = {
   };
 };
 
-async function loadProductsViaEfroProductsEndpoint(
-  req: NextRequest,
-  shop: string
-): Promise<{ products: EfroProduct[]; source: string }> {
-  const baseUrl = req.nextUrl.origin;
-  const url = new URL("/api/efro/products", baseUrl);
-  url.searchParams.set("shop", shop);
-  url.searchParams.set("debug", "1");
+function normalizeProductsForBrain(raw: any[]): EfroProduct[] {
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map((p: any) => {
+    const tags =
+      Array.isArray(p?.tags) ? p.tags :
+      (typeof p?.tags === "string" ? p.tags.split(",").map((s: string) => s.trim()).filter(Boolean) : []);
+    return {
+      ...p,
+      id: String(p?.id ?? ""),
+      title: typeof p?.title === "string" ? p.title : (p?.title ? String(p.title) : ""),
+      description: typeof p?.description === "string" ? p.description : (p?.description ? String(p.description) : ""),
+      price: typeof p?.price === "number" ? p.price : (Number.parseFloat(String(p?.price ?? 0)) || 0),
+      imageUrl: typeof p?.imageUrl === "string" ? p.imageUrl : (typeof p?.image_url === "string" ? p.image_url : ""),
+      category: typeof p?.category === "string" ? p.category : (p?.category ? String(p.category) : "unknown"),
+      tags,
+      // SellerBrain soll nie auf undefined crashen
+      rating: typeof p?.rating === "number" ? p.rating : 0,
+      popularityScore: typeof p?.popularityScore === "number" ? p.popularityScore : 0,
+    } as EfroProduct;
+  });
+}
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`efro/products request failed with status ${res.status}`);
-  }
+async function loadProductsViaRepo(shopDomain: string): Promise<{ products: EfroProduct[]; source: string }> {
+  const shop =
+    (shopDomain && shopDomain.toLowerCase() !== "demo" ? await getEfroShopByDomain(shopDomain) : null) ??
+    (await getEfroDemoShop());
 
-  const data = await res.json().catch(() => ({} as any));
-  const products = Array.isArray((data as any).products) ? (data as any).products : [];
-  const source = typeof (data as any).source === "string" ? (data as any).source : "efro/products";
+  if (!shop) return { products: [], source: "repo:none" };
 
-  return { products, source };
+  const r = await getProductsForShop(shop);
+  const products = normalizeProductsForBrain((r as any)?.products ?? []);
+  return { products, source: r.source || "products" };
 }
 
 async function loadProductsViaDebugEndpoint(
   req: NextRequest,
   shop: string
 ): Promise<{ products: EfroProduct[]; source: string }> {
-  const baseUrl = req.nextUrl.origin;
+  // Fallback (legacy). Nur nutzen, wenn Repo leer ist.
+  const baseUrl =
+    `${req.headers.get("x-forwarded-proto") || "https"}://` +
+    `${(req.headers.get("x-forwarded-host") || req.headers.get("host") || req.nextUrl.host || "").split(",")[0].trim()}`;
+
   const url = new URL("/api/efro/debug-products", baseUrl);
   url.searchParams.set("shop", shop);
 
   const res = await fetch(url.toString(), { cache: "no-store" });
-
-  if (!res.ok) {
-    throw new Error(`debug-products request failed with status ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`debug-products request failed with status ${res.status}`);
 
   const data = await res.json().catch(() => ({} as any));
-  const products = Array.isArray((data as any).products) ? (data as any).products : [];
+  const products = normalizeProductsForBrain(Array.isArray((data as any).products) ? (data as any).products : []);
   const source =
     typeof (data as any).productsSource === "string"
       ? (data as any).productsSource
@@ -64,19 +83,16 @@ async function loadProductsViaDebugEndpoint(
   return { products, source };
 }
 
-async function loadProductsForSuggest(
-  req: NextRequest,
-  shop: string
-): Promise<{ products: EfroProduct[]; source: string }> {
-  // Gate-1: Shop-Truth first
+async function loadProductsForSuggest(req: NextRequest, shop: string): Promise<{ products: EfroProduct[]; source: string }> {
+  // Gate-1: Shop-Truth first (Supabase Repo, shop_uuid-scoped)
   try {
-    const r = await loadProductsViaEfroProductsEndpoint(req, shop);
-    if (Array.isArray(r.products) && r.products.length > 0) return r;
+    const r = await loadProductsViaRepo(shop);
+    if (r.products.length > 0) return r;
   } catch {
     // ignore -> fallback
   }
 
-  // Fallback: debug-products (legacy)
+  // Fallback nur, wenn nötig
   return await loadProductsViaDebugEndpoint(req, shop);
 }
 
@@ -189,7 +205,7 @@ export async function POST(req: NextRequest) {
     let previousRecommended: EfroProduct[] | undefined = undefined;
     if (Array.isArray(body.previousRecommendedIds) && body.previousRecommendedIds.length > 0) {
       const ids = body.previousRecommendedIds as string[];
-      previousRecommended = products.filter((p) => ids.includes((p as any).id));
+      previousRecommended = products.filter((p: any) => ids.includes(String(p.id)));
     }
 
     const context = body.context
