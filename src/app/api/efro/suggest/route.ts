@@ -72,37 +72,15 @@ async function loadProductsViaRepo(shopDomain: string): Promise<{ products: Efro
 
   const r = await getProductsForShop(shop);
   const products = normalizeProductsForBrain((r as any)?.products ?? []);
-  return { products, source: (r as any)?.source || "products" };
+    const s = (r as any)?.source || "products";
+    return { products, source: `supabase_${s}` };
 }
 
-async function loadProductsViaDebugEndpoint(req: NextRequest, shop: string): Promise<{ products: EfroProduct[]; source: string }> {
-  // Fallback (legacy). Nur nutzen, wenn Repo leer ist.
-  const baseUrl =
-    `${req.headers.get("x-forwarded-proto") || "https"}://` +
-    `${(req.headers.get("x-forwarded-host") || req.headers.get("host") || req.nextUrl.host || "").split(",")[0].trim()}`;
 
-  const url = new URL("/api/efro/debug-products", baseUrl);
-  url.searchParams.set("shop", shop);
-
-  const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) throw new Error(`debug-products request failed with status ${res.status}`);
-
-  const data = await res.json().catch(() => ({} as any));
-  const products = normalizeProductsForBrain(Array.isArray((data as any).products) ? (data as any).products : []);
-  const source =
-    typeof (data as any).productsSource === "string"
-      ? (data as any).productsSource
-      : (typeof (data as any).source === "string" ? (data as any).source : "debug-products");
-
-  return { products, source };
+async function loadProductsForSuggest(_req: NextRequest, shop: string): Promise<{ products: EfroProduct[]; source: string }> {
+  return await loadProductsViaRepo(shop);
 }
 
-async function loadProductsForSuggest(req: NextRequest, shop: string): Promise<{ products: EfroProduct[]; source: string }> {
-  const repo = await loadProductsViaRepo(shop);
-  if (Array.isArray(repo.products) && repo.products.length > 0) return repo;
-
-  return await loadProductsViaDebugEndpoint(req, shop);
-}
 
 /**
  * GET /api/efro/suggest?shop=...&text=...
