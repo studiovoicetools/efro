@@ -7,7 +7,7 @@ function isPlainObject(v: any): v is Record<string, any> {
 
 function mojibakeScore(s: string): number {
   // je höher, desto "verdächtiger"
-  const hits = s.match(/[ÃÂ�]|â€|â¬|\u001a|\u001c/g);
+  const hits = s.match(/[ÃÂ]|â€|â¬|\u001a|\u001c/g);
   return hits ? hits.length : 0;
 }
 

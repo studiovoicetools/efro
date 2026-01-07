@@ -1,5 +1,5 @@
 // src/lib/text/utf8.ts
-const MOJIBAKE_RE = /Ã|Â|â€|â€™|â€œ|â€�|â€“|â€”|â€¦|â‚¬|â„¢|â€\s|�/;
+const MOJIBAKE_RE = /Ã|Â|â€|â€™|â€œ|â€�|â€“|â€”|â€¦|â‚¬|â„¢|â€\s/;
 
 export function looksBroken(s: unknown): boolean {
   return typeof s === "string" && MOJIBAKE_RE.test(s);
