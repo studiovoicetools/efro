@@ -29,7 +29,9 @@ export function fixEncodingString(input: string): string {
 
   // Wenn es wie Mojibake aussieht: versuche latin1->utf8 Reparatur (Node)
   const beforeScore = mojibakeScore(s);
-  if (beforeScore > 0 && typeof Buffer !== "undefined") {
+  if (beforeScore > 0 && typeof Buffer !== "undefined" && !/[^\x00-\xFF]/.test(s)) {
+      // Guard: skip latin1->utf8 repair when string contains real Unicode (>0xFF).
+      // Prevents U+FFFD corruption for texts containing e.g. "–", "€", "…", etc.
     try {
       const repaired = Buffer.from(s, "latin1").toString("utf8");
       if (mojibakeScore(repaired) < beforeScore) s = repaired;

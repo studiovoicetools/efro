@@ -6,7 +6,7 @@ import { runSellerBrain, type SellerBrainContext } from "../../../../lib/sales/s
 import type { SellerBrainAiTrigger } from "../../../../lib/sales/modules/aiTrigger";
 import { logEfroEventServer } from "@/lib/efro/logEventServer";
 import { getEfroShopByDomain, getEfroDemoShop, getProductsForShop } from "@/lib/efro/efroSupabaseRepository";
-import { fixEncodingDeep, cleanText, normalizeTags } from "@/lib/text/encoding";
+import { fixEncodingDeep, fixEncodingString, cleanText, normalizeTags } from "@/lib/text/encoding";
 
 type SuggestResponse = {
   shop: string;
@@ -27,6 +27,18 @@ function fixStr(input: unknown): string {
   const v = typeof o?.v === "string" ? o.v : raw;
   return cleanText(v);
 }
+
+function fixReplyText(raw: unknown): string {
+  // ReplyText: keep newlines, only repair common mojibake, do not whitespace-flatten.
+  const s0 = typeof raw === "string" ? raw : String(raw ?? "");
+  const s1 = fixEncodingString(s0);
+  return s1
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 
 function normalizeProductsForBrain(raw: any[]): EfroProduct[] {
   const arr = Array.isArray(raw) ? raw : [];
@@ -110,7 +122,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { products, source } = await loadProductsForSuggest(req, shop);
-    const context: SellerBrainContext | undefined = undefined;
+    const context: SellerBrainContext | undefined = { replyMode: debugHeader ? "operator" : "customer" } as any;
 
     const brainResult = await runSellerBrain(
       text,
@@ -124,7 +136,7 @@ export async function GET(req: NextRequest) {
     const payload: SuggestResponse = {
       shop,
       intent: brainResult.intent,
-      replyText: fixStr(brainResult.replyText),
+      replyText: fixReplyText(brainResult.replyText),
       recommended: normalizeProductsForBrain(brainResult.recommended as any[]),
       productCount: products.length,
       productsSource: source,
@@ -202,10 +214,15 @@ export async function POST(req: NextRequest) {
     }
 
     const context = body.context
-      ? {
-          activeCategorySlug: typeof body.context.activeCategorySlug === "string" ? body.context.activeCategorySlug : null,
-        }
-      : undefined;
+        ? {
+            activeCategorySlug:
+              typeof body.context.activeCategorySlug === "string" ? body.context.activeCategorySlug : null,
+            replyMode:
+              typeof body.context.replyMode === "string"
+                ? body.context.replyMode
+                : (debugHeader ? "operator" : "customer"),
+          }
+        : ({ replyMode: debugHeader ? "operator" : "customer" } as any);
 
     const brainResult = await runSellerBrain(
       text,
@@ -219,7 +236,7 @@ export async function POST(req: NextRequest) {
     const payload: SuggestResponse = {
       shop,
       intent: brainResult.intent,
-      replyText: fixStr(brainResult.replyText),
+      replyText: fixReplyText(brainResult.replyText),
       recommended: normalizeProductsForBrain(brainResult.recommended as any[]),
       productCount: products.length,
       productsSource: source,
