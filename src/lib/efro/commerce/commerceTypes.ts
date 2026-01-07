@@ -1,6 +1,6 @@
 /**
  * EFRO Gate-2 Commerce Actions – minimal contract (stable + testable).
- * Scope requirement (Shopify Admin): write_draft_orders,read_draft_orders
+ * Scope requirement (Shopify Admin): write_draft_orders, read_draft_orders
  */
 
 export type CommerceActionType =
@@ -36,9 +36,30 @@ export type CommerceAction =
   | CreateDraftOrderCheckoutAction
   | UpdateDraftOrderLineQtyAction;
 
+export type CommerceErrorCode =
+  | "VALIDATION_ERROR"
+  | "NOT_FOUND"
+  | "UNAUTHORIZED"
+  | "SHOPIFY_ERROR"
+  | "CONFLICT"
+  | "INTERNAL";
+
+export type CommerceError = {
+  code: CommerceErrorCode | (string & {});
+  message: string;
+  details?: unknown;
+};
+
 export type CommerceActionRequest = {
   shop: string; // myshopify domain
   correlationId?: string | null;
+
+  /**
+   * Optional debug flag. Also supported via header: x-efro-debug: 1
+   * Debug MUST NOT leak by default in production responses.
+   */
+  debug?: boolean | null;
+
   action: CommerceAction;
 };
 
@@ -48,5 +69,10 @@ export type CommerceActionResponse = {
   correlationId: string;
   actionType: CommerceActionType;
   result?: unknown;
-  error?: string;
+  /**
+   * Backward compatible:
+   * - legacy string
+   * - structured error for stable codes
+   */
+  error?: string | CommerceError;
 };
