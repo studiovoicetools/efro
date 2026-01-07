@@ -281,3 +281,8 @@ SSOT: `docs/GATE2_COMMERCE_SSOT_2026-01-06.md`
 Status:
 - Gate-2 Commerce Actions: **GRÜN** (Prod Proof: Create DraftOrder + Update Qty)
 - Hinweis: Root-Query `draftOrder(id)` kann ohne `read_draft_orders` scheitern → **Gate-2+ optional**, kein Blocker.
+
+---
+
+## Gate-2 FINAL SSOT (2026-01-07)
+Siehe: docs/GATE2_FINAL_SSOT_2026-01-07.md
