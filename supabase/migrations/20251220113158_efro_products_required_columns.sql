@@ -1,4 +1,4 @@
-﻿-- EFRO: Ensure required columns exist on public.products
+-- EFRO: Ensure required columns exist on public.products
 -- Safe to run multiple times (IF NOT EXISTS)
 
 alter table if exists public.products
