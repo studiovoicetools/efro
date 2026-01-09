@@ -1,33 +1,22 @@
-# EFRO – FINAL Gate-1/2/3 Doku Pack (2026-01-09)
-
-Stand: 2026-01-09 (Europe/Istanbul)
+# EFRO – FINAL Gate-1/2/3 Doku Pack (Stand: 2026-01-09, Europe/Istanbul)
 
 ## Kontext (Single Source of Truth)
 
 Repo: ~/work/efro_work_fixed  
-SSOT Branch: chore/docs-reset-20260104  
-Work Branch: wip/gate3-oauth-min-e2e  
+Branch (Work): wip/gate3-oauth-min-e2e  
+SSOT-Branch (Docs): chore/docs-reset-20260104  
 Prod Base: https://app.avatarsalespro.com  
 Test-Shop: avatarsalespro-dev.myshopify.com
 
-Hinweis:
-- Reproduzierbare Belege / Proofs sind als Outputs und Copy/Paste Commands dokumentiert.
-- Security/RLS Appendix ist separat dokumentiert: `docs/POST_RLS_PROOF_SSOT_2026-01-09.md`.
-
----
-
-## Production Build Proof (welcher Code läuft live?)
+## Production Build Proof (welcher Code läuft wirklich live?)
 
 Endpoint:
 GET https://app.avatarsalespro.com/api/build
 
-Observed Output:
-{"ok":true,"now":"2026-01-09T??:??:??.???.Z","node":"v20.19.5","env":{"NODE_ENV":"production","RENDER_GIT_COMMIT":"9bda27331e78cb52b8d27060fd4990bc1d02bf7e","VERCEL_GIT_COMMIT_SHA":null,"GITHUB_SHA":null}}
-
-Ergebnis:
+Observed Output (Beleg):
 - NODE_ENV=production
 - node=v20.19.5
-- RENDER_GIT_COMMIT=9bda273... (Prod-Stand auf Render ist eindeutig)
+- RENDER_GIT_COMMIT=9bda27331e78cb52b8d27060fd4990bc1d02bf7e
 
 Copy/Paste Proof:
 curl -s https://app.avatarsalespro.com/api/build; echo
@@ -50,14 +39,15 @@ Gate-3 ist GRÜN, wenn EFRO in Production mit einem echten Shopify-Shop:
 ### Supabase Tables
 - public.products (Webhook Writes)
 - public.efro_shops (Token/Scopes/Status)
-- (indirekt) public.efro_action_log (Gate-2 Audit)
+- (indirekt relevant) public.efro_action_log (Gate-2 Audit, später)
 
 ### ENV (server)
 - SHOPIFY_API_SECRET (HMAC)
 - SUPABASE_URL, SUPABASE_SERVICE_KEY
 - shop=<myshopify-domain>
 
-### Gate-3 Proof (Outputs)
+### Gate-3 Proof (deine Outputs)
+
 (1) Webhook E2E: products/update → Supabase products ✅  
 Script: scripts/smoke-shopify-webhook.ts  
 Evidence:
@@ -90,9 +80,6 @@ Observed Output:
 - tokenUpdatedAt: "2026-01-08T16:51:55.814+00:00"
 - products list wird geliefert
 
-Ergebnis:
-Gate-3 ist GRÜN: Webhook→Supabase, Uninstall invalidation, Live Read mit Token aus efro_shops.
-
 ### Gate-3 Copy/Paste Proof Commands
 # 1) Prod Build Proof
 curl -s https://app.avatarsalespro.com/api/build; echo
@@ -120,24 +107,17 @@ curl -s "https://app.avatarsalespro.com/api/shopify-products?shop=avatarsalespro
 Gate-1 ist GRÜN, wenn /api/efro/suggest in PROD:
 - Produkte über Repository lädt (kein Self-Fetch zu /api/efro/products),
 - replyText ohne Mojibake ausgibt,
-- Format bewahrt (Absätze via \\n\\n),
+- Format bewahrt (Absätze via \n\n),
 - productsSource sauber liefert (hier: supabase_products),
 - productCount plausibel.
 
-### Relevante Schnittstellen
-Endpoint:
-GET /api/efro/suggest?shop=...&text=...
-
-### Gate-1 Proof (Outputs)
-Observed Output:
+### Proof (deine Outputs)
+Observed Output (Beleg):
 - productsSource: "supabase_products"
 - productCount: 130
-- Mojibake Check: OK (keine typischen Patterns)
-- Paragraph Check: enthält \\n\\n = True
+- Mojibake Check: OK: no mojibake patterns
+- Paragraph Check: contains \n\n: True
 - aiTrigger.needsAiHelp: false
-
-Ergebnis:
-Gate-1 ist GRÜN: repo-load, no mojibake, \\n\\n, source/count.
 
 ### Gate-1 Copy/Paste Proof Commands
 OUT="/tmp/gate1_suggest_$(date +%s).json"
@@ -167,43 +147,48 @@ PY
 
 ### Ziel / Done Definition
 Gate-2 ist GRÜN, wenn EFRO in PROD:
-- CREATE_DRAFT_ORDER_CHECKOUT erfolgreich ausführt (draftOrderId + invoiceUrl),
-- Idempotency zuverlässig ist: gleiche correlationId → gleicher draftOrderId + invoiceUrl beim Retry,
-- Audit-Logging vorhanden ist (efro_action_log), inkl. token_source (server-intern).
+- CREATE_DRAFT_ORDER_CHECKOUT erfolgreich ausführt (DraftOrderId + invoiceUrl),
+- Idempotency zuverlässig ist: gleiche correlationId → gleicher DraftOrder + invoiceUrl beim Retry,
+- Audit-Logging vorhanden ist (efro_action_log), inkl. Token-Source (server-intern).
 
 ### Relevante Schnittstellen / Contracts
 Endpoint:
 POST /api/efro/commerce/action
 
 Audit:
-public.efro_action_log (Server/Admin Read)
+public.efro_action_log (Server/Admin Read), relevante Spalten u.a.:
+- shop (Spalten-Reality!)
+- correlation_id
+- action_type
+- ok
+- status_code
+- draft_order_id
+- invoice_url
+- token_source
 
-Schema-Reality:
-- In efro_action_log heißt die Shop-Spalte **shop** (nicht shop_domain).
+Wichtig:
+- In efro_action_log heißt die Shop-Spalte shop (nicht shop_domain).
 
-### Gate-2 Proof (Outputs)
-Create (PROD):
+### Proof (deine Outputs)
+Create:
 - correlationId: gate2-doc-20260109-225219
 - draftOrderId: gid://shopify/DraftOrder/1087720718403
 - invoiceUrl: .../invoices/bde8cf2d...
 - status: OPEN
 
-Retry (same correlationId):
+Retry (same CID):
 - gleicher draftOrderId
 - gleiche invoiceUrl
 - status: OPEN
 
 Audit Log Proof (Service-Role):
 - GET /rest/v1/efro_action_log?... → HTTP 200
-Beispiel-Row:
+Beispiel-Row zeigt u.a.:
 - shop:"avatarsalespro-dev.myshopify.com"
 - correlation_id:"gate2-idem2-20260107-203958"
 - action_type:"CREATE_DRAFT_ORDER_CHECKOUT"
 - status_code:200
 - token_source:"supabase.shops.access_token"
-
-Ergebnis:
-Gate-2 ist GRÜN: Create + Idempotency + Audit Log vorhanden, Service-Role kann lesen.
 
 ### Gate-2 Copy/Paste Proof Commands
 CID_RETRY="gate2-doc-$(date +%Y%m%d-%H%M%S)"
@@ -227,7 +212,7 @@ curl -sS -X POST "https://app.avatarsalespro.com/api/efro/commerce/action" \
     "action":{"type":"CREATE_DRAFT_ORDER_CHECKOUT","variantId":"gid://shopify/ProductVariant/42724704944195","quantity":1}
   }' | python3 -m json.tool
 
-# Audit Read (Service-Role)
+# Audit Read (Service-Role, “nice select”)
 set -a; source .env.local; set +a
 BASE="${SUPABASE_URL%/}/rest/v1"
 
@@ -239,27 +224,29 @@ curl -sS -i "$BASE/efro_action_log?select=id,created_at,shop,correlation_id,acti
 
 ## Security Appendix ✅ (RLS No-Leak + Service-Role Proof)
 
-Siehe: `docs/POST_RLS_PROOF_SSOT_2026-01-09.md`
+Siehe: docs/POST_RLS_PROOF_SSOT_2026-01-09.md
 
 Kurzfazit:
-- anon/auth darf weder efro_shops noch efro_action_log lesen (No-Leak)
-- Service-Role kann efro_action_log lesen (Server-only Logs funktionieren)
-- Spalten-Reality: efro_action_log.shop (nicht shop_domain)
+- anon/auth bekommt keine Tokens/Logs (No-Leak)
+- Service-Role kann Logs lesen (Server-only Logs funktionieren)
+- Claim/Column-Reality dokumentiert (shop vs shop_domain, shop_domain fallback shop)
 
 ---
 
-## Finaler Gate-Status (2026-01-09)
+## Ergebnis (Finale Gate-Status)
 
-- Gate-1: ✅ GRÜN
-- Gate-2: ✅ GRÜN
-- Gate-3: ✅ GRÜN
+Gate-1: ✅ GRÜN  
+Gate-2: ✅ GRÜN  
+Gate-3: ✅ GRÜN  
+
+Prod-Commit eindeutig: ✅ /api/build zeigt RENDER_GIT_COMMIT=9bda273...
 
 ---
 
-## Nächste offene Punkte (nur Liste)
+## Was als nächstes noch offen ist (nur Liste)
 
-- Hardcore v2 Testpaket (Typos, Mixed-Language, Budget-Fallen, Konflikte, Long-context, Policy/FAQ, Null-Katalog, Vergleiche)
-- UI Runtime Smoke im echten Browser (Widget/Avatar/Lipsync/Console Errors) als Go/No-Go UX-Beleg
+- Hardcore v2 Testpaket (Katalog-Realismus + Chaos: Typos, Mixed-Language, Budget-Fallen, Konflikte, Long-context, Policy/FAQ-Fragen, Null-Katalog, Vergleiche)
+- UI Runtime Smoke im echten Browser (Widget/Avatar/Lipsync/Console Errors) – rein als Go/No-Go UX-Beleg
 - Monitoring/Alerting (Error Tracking, Rate-Limits, Abuse-Guard, SLO-Checks)
-- Sync-Vollständigkeit (topics: products/delete, GDPR, ggf. bulk resync/cron)
-- Billing/Commercial (Plan-Limits wirklich enforced, Install→Plan→Limits)
+- Sync-Vollständigkeit (topics erweitern: products/delete, GDPR, evtl. bulk resync/cron)
+- Billing/Commercial (Pricing-Plan-Limits wirklich enforced, Install→Plan→Limits sauber)
