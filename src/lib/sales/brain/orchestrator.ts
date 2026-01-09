@@ -5825,6 +5825,17 @@ function isAmbiguousBoardQuery(text: string): boolean {
     });
   }
 
+  
+  // --- PROFISELLER GUARD (Hardcore): Wenn die gewünschte Kategorie nicht im Katalog existiert,
+  // dürfen wir KEINE previousRecommended (Carry-Over) Produkte anzeigen.
+  if (missingCategoryHint) {
+    console.log("[EFRO SB Guard] missingCategoryHint -> clearing recommendations", {
+      missingCategoryHint,
+      previousRecommendedCount: previousRecommended?.length ?? 0,
+    });
+    recommended = [];
+  }
+
   console.log("[EFRO SB RETURN]", {
     text: cleaned,
     intent: nextIntent,
