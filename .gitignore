@@ -146,3 +146,7 @@ scripts/fixtures/conversations*.json
 .backup-*/
 _checkpoint.patch
 *_checkpoint.patch
+
+# local backups & logs (never commit)
+_backup_*
+_smoke_logs/

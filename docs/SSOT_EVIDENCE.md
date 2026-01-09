@@ -1,24 +1,20 @@
 # SSOT Evidence (auto-generated)
 
-Generated: 2026-01-07T01:19:53+03:00
+Generated: 2026-01-09T22:41:41+03:00
 Branch: chore/docs-reset-20260104
-Commit: a0cf9f3
+Commit: b3932a0
 
 
 ## GIT_STATUS
 
 ```
-## chore/docs-reset-20260104...origin/chore/docs-reset-20260104 [ahead 1]
+## chore/docs-reset-20260104...origin/chore/docs-reset-20260104
+ M .gitignore
+ M docs/EFRO_CONTROL_CENTER.md
  M docs/SSOT_EVIDENCE.md
- M scripts/ssot-scan.sh
-?? _backup_env.local.20260104-170332
-?? _backup_env.local.20260104-170835
-?? _backup_env.local.20260104-171622
-?? _backup_pnpm-workspace.yaml.20260104-165611
-?? _backup_tsconfig_20260106_010956.json
-?? _smoke_logs/
+?? docs/POST_RLS_PROOF_SSOT_2026-01-09.md
 
-a0cf9f3 docs: add Gate-2 commerce SSOT proof (2026-01-06) + link in control center
+b3932a0 docs: add Gate-2 FINAL SSOT proof (2026-01-07) + link in control center
 ```
 
 ## API_ROUTES
@@ -215,6 +211,13 @@ src/utils/supabase/server.ts:5:const supabaseKey = process.env.NEXT_PUBLIC_SUPAB
 ## BRAIN_HINTS
 
 ```
+src/lib/sales/README_LANGUAGE_RULES.md:112:- **Keine Breaking Changes**: `runSellerBrain` bleibt synchron
+src/lib/sales/aliasMap.ts:390: * @param dynamicAliases Optional: Dynamische Aliase aus SellerBrainContext (vom AI-Resolver gelernt)
+src/lib/sales/aliasMap.ts:513:  // 3. Dynamic Aliases aus SellerBrainContext hinzufügen (vom AI-Resolver gelernt)
+src/lib/sales/salesTypes.ts:66: * Finales Ergebnis von runSellerBrain (inkl. Sales-Brain-Ausgabe)
+src/lib/sales/salesTypes.ts:67: * Dies ist die Form, in der runSellerBrain am Ende antworten soll
+src/lib/sales/salesTypes.ts:69:export interface SellerBrainFinalResult {
+src/lib/sales/loadLanguageRulesFromSupabase.ts:7: * Da runSellerBrain synchron ist, werden die Supabase-Aufrufe hier gemacht
 src/lib/sales/sellerBrain.ts:4:import type { SellerBrainContext, SellerBrainResult, PriceRangeInfo } from "@/lib/sales/modules/types";
 src/lib/sales/sellerBrain.ts:5:import { runOrchestrator, runSellerBrainV2, productHints, staticProductHints } from "./brain/orchestrator";
 src/lib/sales/sellerBrain.ts:7:export type { ProductHint, RunSellerBrainV2Options, SellerBrainV2Result } from "./brain/orchestrator";
@@ -223,6 +226,16 @@ src/lib/sales/sellerBrain.ts:10:export async function runSellerBrain(
 src/lib/sales/sellerBrain.ts:16:  context?: SellerBrainContext
 src/lib/sales/sellerBrain.ts:17:): Promise<SellerBrainResult> {
 src/lib/sales/sellerBrain.ts:28:export { runOrchestrator, runSellerBrainV2, productHints, staticProductHints };
+src/lib/sales/useSellerBrain.ts:1:// src/lib/sales/useSellerBrain.ts
+src/lib/sales/useSellerBrain.ts:17:export type SellerBrainState = {
+src/lib/sales/useSellerBrain.ts:32:export function useSellerBrain(initialIntent: ShoppingIntent = "quick_buy"): SellerBrainState {
+src/lib/sales/modules/aiTrigger.ts:42: * AI-Trigger: Signal, wann SellerBrain zusätzliche AI-Hilfe gebrauchen könnte
+src/lib/sales/modules/aiTrigger.ts:44:export interface SellerBrainAiTrigger {
+src/lib/sales/modules/aiTrigger.ts:45:  /** true, wenn SellerBrain zusätzliche AI-Hilfe gebrauchen könnte */
+src/lib/sales/modules/aiTrigger.ts:80: * @returns SellerBrainAiTrigger | undefined
+src/lib/sales/modules/aiTrigger.ts:97:}): SellerBrainAiTrigger | undefined {
+src/lib/sales/modules/aiTrigger.ts:143:      const trigger: SellerBrainAiTrigger = {
+src/lib/sales/modules/aiTrigger.ts:166:    const trigger: SellerBrainAiTrigger = {
 src/lib/sales/sellerBrainTypes.ts:1:// Zentrale Typen für SellerBrain
 src/lib/sales/sellerBrainTypes.ts:7: * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
 src/lib/sales/sellerBrainTypes.ts:9:export interface SellerBrainContext {
@@ -236,19 +249,23 @@ src/lib/sales/sellerBrainTypes.ts:82: * Optionen für runSellerBrainV2
 src/lib/sales/sellerBrainTypes.ts:84:export interface RunSellerBrainV2Options {
 src/lib/sales/sellerBrainTypes.ts:91: * Ergebnis von runSellerBrainV2 (erweitert SellerBrainResult um Cache-Flag)
 src/lib/sales/sellerBrainTypes.ts:93:export interface SellerBrainV2Result extends SellerBrainResult {
-src/lib/sales/aliasMap.ts:390: * @param dynamicAliases Optional: Dynamische Aliase aus SellerBrainContext (vom AI-Resolver gelernt)
-src/lib/sales/aliasMap.ts:513:  // 3. Dynamic Aliases aus SellerBrainContext hinzufügen (vom AI-Resolver gelernt)
+src/lib/sales/modules/types/index.ts:26: * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
+src/lib/sales/modules/types/index.ts:28:export interface SellerBrainContext {
+src/lib/sales/modules/types/index.ts:35:   * Steuert den Antwortmodus von SellerBrain:
+src/lib/sales/modules/types/index.ts:51:export type SellerBrainResult = {
+src/lib/sales/modules/types/index.ts:55:  nextContext?: SellerBrainContext;
+src/lib/sales/modules/ai/highBudget.ts:11: * → Dann soll SellerBrain OHNE AI auskommen.
+src/lib/sales/modules/filter/index.ts:6:import type { PriceRangeInfo, SellerBrainContext } from "@/lib/sales/modules/types";
+src/lib/sales/modules/filter/index.ts:1103:  // HINWEIS: Dynamic Aliases werden in runSellerBrain() verwendet (dort ist vollständiger SellerBrainContext verfügbar)
+src/lib/sales/modules/filter/index.ts:2232:export async function filterProductsForSellerBrain(
+src/lib/sales/modules/filter/index.ts:2246:// Alias: in dieser Funktion ist "cleaned" einfach der Text aus runSellerBrain
+src/lib/sales/brain/types.ts:2:import type { SellerBrainContext, SellerBrainResult } from "@/lib/sales/modules/types";
+src/lib/sales/brain/types.ts:12:  context?: SellerBrainContext;
+src/lib/sales/brain/types.ts:15:export type BrainOutput = SellerBrainResult;
 src/lib/sales/brain/steps/08_reply.ts:1:// src/lib/sales/brain/steps/08_reply.ts
 src/lib/sales/brain/steps/08_reply.ts:5:import type { SellerBrainAiTrigger } from "../../modules/aiTrigger";
 src/lib/sales/brain/steps/08_reply.ts:509:  aiTrigger?: SellerBrainAiTrigger,
 src/lib/sales/brain/steps/08_reply.ts:554:  aiTrigger?: SellerBrainAiTrigger,
-src/lib/sales/salesTypes.ts:66: * Finales Ergebnis von runSellerBrain (inkl. Sales-Brain-Ausgabe)
-src/lib/sales/salesTypes.ts:67: * Dies ist die Form, in der runSellerBrain am Ende antworten soll
-src/lib/sales/salesTypes.ts:69:export interface SellerBrainFinalResult {
-src/lib/sales/loadLanguageRulesFromSupabase.ts:7: * Da runSellerBrain synchron ist, werden die Supabase-Aufrufe hier gemacht
-src/lib/sales/useSellerBrain.ts:1:// src/lib/sales/useSellerBrain.ts
-src/lib/sales/useSellerBrain.ts:17:export type SellerBrainState = {
-src/lib/sales/useSellerBrain.ts:32:export function useSellerBrain(initialIntent: ShoppingIntent = "quick_buy"): SellerBrainState {
 src/lib/sales/brain/orchestrator.ts:1:// src/lib/sales/brain/orchestrator.ts
 src/lib/sales/brain/orchestrator.ts:4: * EFRO SellerBrain Übersicht (nur Doku):
 src/lib/sales/brain/orchestrator.ts:6: * - Hauptfunktion: runSellerBrain(userText, currentIntent, allProducts, plan?, previousRecommended?, context?)
@@ -311,32 +328,32 @@ src/lib/sales/brain/orchestrator.ts:7215: * runSellerBrainV2 ist ein Wrapper um 
 src/lib/sales/brain/orchestrator.ts:7218: * - Intern weiterhin runSellerBrain (v1) als Engine verwendet
 src/lib/sales/brain/orchestrator.ts:7221: * - runSellerBrain (v1) bleibt unver?ndert und ist die eigentliche Engine
 src/lib/sales/brain/orchestrator.ts:7233: * const result = await runSellerBrainV2(
-src/lib/sales/brain/types.ts:2:import type { SellerBrainContext, SellerBrainResult } from "@/lib/sales/modules/types";
-src/lib/sales/brain/types.ts:12:  context?: SellerBrainContext;
-src/lib/sales/brain/types.ts:15:export type BrainOutput = SellerBrainResult;
-src/lib/sales/README_LANGUAGE_RULES.md:112:- **Keine Breaking Changes**: `runSellerBrain` bleibt synchron
-src/lib/sales/modules/aiTrigger.ts:42: * AI-Trigger: Signal, wann SellerBrain zusätzliche AI-Hilfe gebrauchen könnte
-src/lib/sales/modules/aiTrigger.ts:44:export interface SellerBrainAiTrigger {
-src/lib/sales/modules/aiTrigger.ts:45:  /** true, wenn SellerBrain zusätzliche AI-Hilfe gebrauchen könnte */
-src/lib/sales/modules/aiTrigger.ts:80: * @returns SellerBrainAiTrigger | undefined
-src/lib/sales/modules/aiTrigger.ts:97:}): SellerBrainAiTrigger | undefined {
-src/lib/sales/modules/aiTrigger.ts:143:      const trigger: SellerBrainAiTrigger = {
-src/lib/sales/modules/aiTrigger.ts:166:    const trigger: SellerBrainAiTrigger = {
-src/lib/sales/modules/types/index.ts:26: * Kontext für SellerBrain (z. B. aktive Kategorie aus vorheriger Anfrage)
-src/lib/sales/modules/types/index.ts:28:export interface SellerBrainContext {
-src/lib/sales/modules/types/index.ts:35:   * Steuert den Antwortmodus von SellerBrain:
-src/lib/sales/modules/types/index.ts:51:export type SellerBrainResult = {
-src/lib/sales/modules/types/index.ts:55:  nextContext?: SellerBrainContext;
-src/lib/sales/modules/filter/index.ts:6:import type { PriceRangeInfo, SellerBrainContext } from "@/lib/sales/modules/types";
-src/lib/sales/modules/filter/index.ts:1103:  // HINWEIS: Dynamic Aliases werden in runSellerBrain() verwendet (dort ist vollständiger SellerBrainContext verfügbar)
-src/lib/sales/modules/filter/index.ts:2232:export async function filterProductsForSellerBrain(
-src/lib/sales/modules/filter/index.ts:2246:// Alias: in dieser Funktion ist "cleaned" einfach der Text aus runSellerBrain
-src/lib/sales/modules/ai/highBudget.ts:11: * → Dann soll SellerBrain OHNE AI auskommen.
 ```
 
 ## SUPABASE_HINTS
 
 ```
+src/lib/supabaseClient.ts:1:import { createClient } from '@supabase/supabase-js'
+src/lib/supabaseClient.ts:3:const supabaseUrl = process.env.SUPABASE_URL as string
+src/lib/supabaseClient.ts:4:const supabaseAnonKey = process.env.SUPABASE_ANON_KEY as string
+src/lib/supabaseClient.ts:6:if (!supabaseUrl || !supabaseAnonKey) {
+src/lib/supabaseClient.ts:10:export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+src/lib/text/encoding.ts:34:      const repaired = Buffer.from(s, "latin1").toString("utf8");
+src/lib/text/utf8.ts:42:          out = B.from(out, "latin1").toString("utf8");
+src/lib/cleanupCache.ts:1:import { createClient } from "@supabase/supabase-js";
+src/lib/cleanupCache.ts:3:const supabaseUrl =
+src/lib/cleanupCache.ts:5:const supabaseKey =
+src/lib/cleanupCache.ts:7:const supabase = createClient(supabaseUrl, supabaseKey);
+src/lib/cleanupCache.ts:18:  const { data, error } = await supabase
+src/lib/cleanupCache.ts:19:    .from("cache_audio")
+src/lib/cleanupCache.ts:38:      await supabase.storage.from("public").remove([path]);
+src/lib/cleanupCache.ts:39:      await supabase.from("cache_audio").delete().eq("id", row.id);
+src/lib/products/shopifyMapper.ts:106:    const supabase = getSupabaseClient();
+src/lib/products/shopifyMapper.ts:109:    const { data, error } = await supabase
+src/lib/products/shopifyMapper.ts:110:      .from("products")
+src/lib/products/enrichProducts.ts:111:    const uniqueTags = Array.from(new Set(tags));
+src/lib/supabase/admin.ts:1:import { createClient, SupabaseClient } from "@supabase/supabase-js";
+src/lib/supabase/admin.ts:20:  adminClient = createClient(url, serviceRoleKey, {
 src/lib/fetchAudioWithCache.ts:1:import { createClient } from "@supabase/supabase-js";
 src/lib/fetchAudioWithCache.ts:6:const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
 src/lib/fetchAudioWithCache.ts:7:const supabaseKey = process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY!;
@@ -347,33 +364,7 @@ src/lib/fetchAudioWithCache.ts:44:  const { data: upload, error: uploadErr } = a
 src/lib/fetchAudioWithCache.ts:45:    .from("public")
 src/lib/fetchAudioWithCache.ts:53:  const audioUrl = `${supabaseUrl}/storage/v1/object/public/${upload.path}`;
 src/lib/fetchAudioWithCache.ts:56:  await supabase.from("cache_audio").upsert({
-src/lib/supabaseClient.ts:1:import { createClient } from '@supabase/supabase-js'
-src/lib/supabaseClient.ts:3:const supabaseUrl = process.env.SUPABASE_URL as string
-src/lib/supabaseClient.ts:4:const supabaseAnonKey = process.env.SUPABASE_ANON_KEY as string
-src/lib/supabaseClient.ts:6:if (!supabaseUrl || !supabaseAnonKey) {
-src/lib/supabaseClient.ts:10:export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-src/lib/text/encoding.ts:34:      const repaired = Buffer.from(s, "latin1").toString("utf8");
-src/lib/text/utf8.ts:42:          out = B.from(out, "latin1").toString("utf8");
-src/lib/shops/db.ts:4:import { createClient } from "@/utils/supabase/server";
-src/lib/shops/db.ts:28:    const supabase = createClient(cookieStore);
-src/lib/shops/db.ts:30:    const { data, error } = await supabase
-src/lib/shops/db.ts:31:      .from("efro_shops")
-src/lib/shops/db.ts:74:    const supabase = createClient(cookieStore);
-src/lib/shops/db.ts:76:    const { error } = await supabase
-src/lib/shops/db.ts:77:      .from("efro_shops")
-src/lib/cleanupCache.ts:1:import { createClient } from "@supabase/supabase-js";
-src/lib/cleanupCache.ts:3:const supabaseUrl =
-src/lib/cleanupCache.ts:5:const supabaseKey =
-src/lib/cleanupCache.ts:7:const supabase = createClient(supabaseUrl, supabaseKey);
-src/lib/cleanupCache.ts:18:  const { data, error } = await supabase
-src/lib/cleanupCache.ts:19:    .from("cache_audio")
-src/lib/cleanupCache.ts:38:      await supabase.storage.from("public").remove([path]);
-src/lib/cleanupCache.ts:39:      await supabase.from("cache_audio").delete().eq("id", row.id);
-src/lib/efro/logEventServer.ts:3:import { getEfroSupabaseServerClient } from "./supabaseServer";
-src/lib/efro/logEventServer.ts:24:  const supabase = getEfroSupabaseServerClient();
-src/lib/efro/logEventServer.ts:26:  if (!supabase) {
-src/lib/efro/logEventServer.ts:32:    const { data, error } = await supabase
-src/lib/efro/logEventServer.ts:33:      .from("efro_events")
+src/lib/fetchShopifyProducts.ts:29:    const res = await fetch(`/api/supabase-products?${params.toString()}`);
 src/lib/fetchWithCache.ts:1:import { createClient } from "@supabase/supabase-js";
 src/lib/fetchWithCache.ts:3:const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
 src/lib/fetchWithCache.ts:4:const supabaseKey = process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY!;
@@ -381,6 +372,15 @@ src/lib/fetchWithCache.ts:5:const supabase = createClient(supabaseUrl, supabaseK
 src/lib/fetchWithCache.ts:13:  const { data } = await supabase
 src/lib/fetchWithCache.ts:14:    .from("cache_responses")
 src/lib/fetchWithCache.ts:29:  await supabase.from("cache_responses").upsert({
+src/lib/fetchSupabaseProducts.ts:20:  const url = `/api/supabase-products?q=${encodeURIComponent(q || "")}&limit=${limit}`;
+src/lib/efro/logEventServer.ts:3:import { getEfroSupabaseServerClient } from "./supabaseServer";
+src/lib/efro/logEventServer.ts:24:  const supabase = getEfroSupabaseServerClient();
+src/lib/efro/logEventServer.ts:26:  if (!supabase) {
+src/lib/efro/logEventServer.ts:32:    const { data, error } = await supabase
+src/lib/efro/logEventServer.ts:33:      .from("efro_events")
+src/lib/efro/supabaseServer.ts:1:// src/lib/efro/supabaseServer.ts
+src/lib/efro/supabaseServer.ts:3:import { createClient, SupabaseClient } from "@supabase/supabase-js";
+src/lib/efro/supabaseServer.ts:19:  return createClient(url, key, {
 src/lib/efro/efroSupabaseRepository.ts:9:import { getEfroSupabaseServerClient } from "./supabaseServer";
 src/lib/efro/efroSupabaseRepository.ts:102:    const supabase = getEfroSupabaseServerClient();
 src/lib/efro/efroSupabaseRepository.ts:103:    if (!supabase) {
@@ -413,32 +413,13 @@ src/lib/efro/efroSupabaseRepository.ts:642:    if (!supabase) {
 src/lib/efro/efroSupabaseRepository.ts:650:    const { data: existing } = await supabase
 src/lib/efro/efroSupabaseRepository.ts:651:      .from("cache_responses")
 src/lib/efro/efroSupabaseRepository.ts:663:    const { error } = await supabase.from("cache_responses").upsert(
-src/lib/efro/supabaseServer.ts:1:// src/lib/efro/supabaseServer.ts
-src/lib/efro/supabaseServer.ts:3:import { createClient, SupabaseClient } from "@supabase/supabase-js";
-src/lib/efro/supabaseServer.ts:19:  return createClient(url, key, {
-src/lib/fetchShopifyProducts.ts:29:    const res = await fetch(`/api/supabase-products?${params.toString()}`);
-src/lib/sales/aliasLearning.ts:131:    const { getEfroSupabaseServerClient } = await import("@/lib/efro/supabaseServer");
-src/lib/sales/aliasLearning.ts:132:    const supabase = getEfroSupabaseServerClient();
-src/lib/sales/aliasLearning.ts:134:    if (!supabase) {
-src/lib/sales/aliasLearning.ts:141:    let query = supabase
-src/lib/sales/aliasLearning.ts:142:      .from("aliases_de")
-src/lib/sales/aliasLearning.ts:173:    const { error } = await supabase
-src/lib/sales/aliasLearning.ts:174:      .from("aliases_de")
-src/lib/supabase/admin.ts:1:import { createClient, SupabaseClient } from "@supabase/supabase-js";
-src/lib/supabase/admin.ts:20:  adminClient = createClient(url, serviceRoleKey, {
-src/lib/fetchSupabaseProducts.ts:20:  const url = `/api/supabase-products?q=${encodeURIComponent(q || "")}&limit=${limit}`;
-src/lib/sales/catalogKeywordAnalyzer.ts:166:  const keywords = Array.from(keywordMap.values()).sort(
-src/lib/sales/kb/kbStore.ts:32: * Später: supabase upsert nach shop_kb_facts.
-src/lib/sales/languageRules.de.ts:845:      existing.extraKeywords = Array.from(merged);
-src/lib/sales/languageRules.de.ts:846:      existing.keywords = Array.from(merged);
-src/lib/sales/languageRules.de.ts:855:      existing.categoryHints = Array.from(merged);
-src/lib/sales/dynamicLanguageRules.ts:24:import { supabase } from "../supabaseClient";
-src/lib/sales/dynamicLanguageRules.ts:44:    const { data, error } = await supabase
-src/lib/sales/dynamicLanguageRules.ts:45:      .from("language_rules")
-src/lib/sales/dynamicLanguageRules.ts:111:      const { error } = await supabase
-src/lib/sales/dynamicLanguageRules.ts:112:        .from("language_rules")
-src/lib/sales/dynamicLanguageRules.ts:127:      const { error } = await supabase
-src/lib/sales/dynamicLanguageRules.ts:128:        .from("language_rules")
+src/lib/shops/db.ts:4:import { createClient } from "@/utils/supabase/server";
+src/lib/shops/db.ts:28:    const supabase = createClient(cookieStore);
+src/lib/shops/db.ts:30:    const { data, error } = await supabase
+src/lib/shops/db.ts:31:      .from("efro_shops")
+src/lib/shops/db.ts:74:    const supabase = createClient(cookieStore);
+src/lib/shops/db.ts:76:    const { error } = await supabase
+src/lib/shops/db.ts:77:      .from("efro_shops")
 src/lib/sales/aliasMap.ts:104:    const { getEfroSupabaseServerClient } = await import("@/lib/efro/supabaseServer");
 src/lib/sales/aliasMap.ts:105:    const supabase = getEfroSupabaseServerClient();
 src/lib/sales/aliasMap.ts:107:    if (!supabase) {
@@ -454,15 +435,33 @@ src/lib/sales/aliasMap.ts:498:    const normalizedValues = Array.from(
 src/lib/sales/aliasMap.ts:508:      const merged = Array.from(new Set([...existing, ...normalizedValues]));
 src/lib/sales/aliasMap.ts:529:          map[key] = Array.from(new Set([...existing, normalizedValue]));
 src/lib/sales/aliasMap.ts:554:      exampleKnown: Array.from(known)
-src/lib/sales/keywordHintGenerator.ts:151:  const hints = Array.from(hintMap.values());
-src/lib/products/shopifyMapper.ts:106:    const supabase = getSupabaseClient();
-src/lib/products/shopifyMapper.ts:109:    const { data, error } = await supabase
-src/lib/products/shopifyMapper.ts:110:      .from("products")
 src/lib/sales/loadLanguageRulesFromSupabase.ts:11:import { supabase } from "../supabaseClient";
 src/lib/sales/loadLanguageRulesFromSupabase.ts:20:    const { data, error } = await supabase
 src/lib/sales/loadLanguageRulesFromSupabase.ts:21:      .from("language_rules")
-src/lib/products/enrichProducts.ts:111:    const uniqueTags = Array.from(new Set(tags));
+src/lib/sales/catalogKeywordAnalyzer.ts:166:  const keywords = Array.from(keywordMap.values()).sort(
+src/lib/sales/aliasLearning.ts:131:    const { getEfroSupabaseServerClient } = await import("@/lib/efro/supabaseServer");
+src/lib/sales/aliasLearning.ts:132:    const supabase = getEfroSupabaseServerClient();
+src/lib/sales/aliasLearning.ts:134:    if (!supabase) {
+src/lib/sales/aliasLearning.ts:141:    let query = supabase
+src/lib/sales/aliasLearning.ts:142:      .from("aliases_de")
+src/lib/sales/aliasLearning.ts:173:    const { error } = await supabase
+src/lib/sales/aliasLearning.ts:174:      .from("aliases_de")
+src/lib/sales/dynamicLanguageRules.ts:24:import { supabase } from "../supabaseClient";
+src/lib/sales/dynamicLanguageRules.ts:44:    const { data, error } = await supabase
+src/lib/sales/dynamicLanguageRules.ts:45:      .from("language_rules")
+src/lib/sales/dynamicLanguageRules.ts:111:      const { error } = await supabase
+src/lib/sales/dynamicLanguageRules.ts:112:        .from("language_rules")
+src/lib/sales/dynamicLanguageRules.ts:127:      const { error } = await supabase
+src/lib/sales/dynamicLanguageRules.ts:128:        .from("language_rules")
+src/lib/sales/keywordHintGenerator.ts:151:  const hints = Array.from(hintMap.values());
+src/lib/sales/languageRules.de.ts:845:      existing.extraKeywords = Array.from(merged);
+src/lib/sales/languageRules.de.ts:846:      existing.keywords = Array.from(merged);
+src/lib/sales/languageRules.de.ts:855:      existing.categoryHints = Array.from(merged);
 src/lib/sales/modules/category/index.ts:223:  const allCategories = Array.from(
+src/lib/sales/modules/utils/textUtils.ts:17:      const out = B.from(s, "latin1").toString("utf8");
+src/lib/sales/modules/utils/textUtils.ts:25:      const bytes = Uint8Array.from(s, (c) => c.charCodeAt(0) & 0xff);
+src/lib/sales/modules/utils/textUtils.ts:129:  return Array.from(new Set(hits));
+src/lib/sales/kb/kbStore.ts:32: * Später: supabase upsert nach shop_kb_facts.
 src/lib/sales/modules/filter/index.ts:386:  const vocabulary: ShopAttributeVocabulary[] = Array.from(
 src/lib/sales/modules/filter/index.ts:390:    values: Array.from(data.values).sort(),
 src/lib/sales/modules/filter/index.ts:623:  const expanded = Array.from(result);
@@ -503,9 +502,6 @@ src/lib/sales/brain/orchestrator.ts:4831:    Array.from(catalogKeywordsSetForAli
 src/lib/sales/brain/orchestrator.ts:4974:  const unknownTermsFromAnalysis = Array.from(unknownTermsSet);
 src/lib/sales/brain/orchestrator.ts:5359:    Array.from(catalogKeywordsSetForAlias || []).map((kw) =>
 src/lib/sales/brain/orchestrator.ts:6307:    const allCategories = Array.from(
-src/lib/sales/modules/utils/textUtils.ts:17:      const out = B.from(s, "latin1").toString("utf8");
-src/lib/sales/modules/utils/textUtils.ts:25:      const bytes = Uint8Array.from(s, (c) => c.charCodeAt(0) & 0xff);
-src/lib/sales/modules/utils/textUtils.ts:129:  return Array.from(new Set(hits));
 ```
 
 ## SHOPIFY_HINTS
@@ -513,25 +509,14 @@ src/lib/sales/modules/utils/textUtils.ts:129:  return Array.from(new Set(hits));
 ```
 src/lib/shopify.ts:1:// src/lib/shopify.ts
 src/lib/shopify.ts:13:export async function shopifyFetch(query: string, variables: Record<string, any> = {}) {
-src/lib/shops/meta.ts:33:  "snow-demo.myshopify.com": {
-src/lib/shops/meta.ts:34:    shopDomain: "snow-demo.myshopify.com",
-src/lib/products/efroProductLoader.ts:12:  source: "shopify" | "mock" | "none";
-src/lib/products/efroProductLoader.ts:56:      id: String(p.id ?? `shopify-${index}`),
-src/lib/products/efroProductLoader.ts:70: * Versucht echte Produkte aus Shopify zu laden (Ã¼ber /api/shopify-products).
-src/lib/products/efroProductLoader.ts:142:    const shopifyProducts: ShopifyProduct[] = Array.isArray(data?.products)
-src/lib/products/efroProductLoader.ts:148:    if (shopifyProducts.length === 0) {
-src/lib/products/efroProductLoader.ts:152:    let products = mapShopifyToEfro(shopifyProducts);
-src/lib/products/efroProductLoader.ts:164:      source: "shopify",
-src/lib/products/efroProductLoader.ts:240:    const shopifyProducts: ShopifyProduct[] = Array.isArray(data?.products)
-src/lib/products/efroProductLoader.ts:246:    if (!shopifyProducts.length) {
-src/lib/products/efroProductLoader.ts:250:    let products = mapShopifyToEfro(shopifyProducts);
-src/lib/products/shopifyLinks.ts:1:// src/lib/products/shopifyLinks.ts
-src/lib/products/shopifyLinks.ts:4: * Extrahiert aus einer Shopify GID (z. B. gid://shopify/Product/7512440471619)
-src/lib/products/shopifyMapper.ts:1:// src/lib/products/shopifyMapper.ts
+src/lib/efro/efroSupabaseRepository.ts:160: * Sucht nach is_demo = true oder shop_domain = 'test-shop.myshopify.com' / 'demo'.
+src/lib/efro/efroSupabaseRepository.ts:218:    const demoDomains = ["demo", "test-shop.myshopify.com"];
 src/lib/fetchShopifyProducts.ts:64:      url: "https://avatarsalespro.myshopify.com/products/tshirt-basic-001",
 src/lib/fetchShopifyProducts.ts:75:      url: "https://avatarsalespro.myshopify.com/products/tshirt-premium-001",
 src/lib/fetchShopifyProducts.ts:86:      url: "https://avatarsalespro.myshopify.com/products/hoodie-001",
-src/components/CrossSellingSuggestions.tsx:23:      const response = await fetch(`/api/shopify-products?category=${product.tags}&limit=3`);
+src/lib/products/shopifyLinks.ts:1:// src/lib/products/shopifyLinks.ts
+src/lib/products/shopifyLinks.ts:4: * Extrahiert aus einer Shopify GID (z. B. gid://shopify/Product/7512440471619)
+src/lib/products/shopifyMapper.ts:1:// src/lib/products/shopifyMapper.ts
 src/app/admin/page.tsx:16:    shopify?: string;
 src/app/admin/page.tsx:33:      domain: "avatarsalespro.myshopify.com",
 src/app/admin/page.tsx:39:        shopify: ""
@@ -542,9 +527,23 @@ src/app/admin/page.tsx:114:        shopify: ""
 src/app/admin/page.tsx:229:                      placeholder="mein-shop.myshopify.com"
 src/app/admin/page.tsx:311:                        value={currentShop.apiKeys.shopify || ''}
 src/app/admin/page.tsx:314:                          apiKeys: {...currentShop.apiKeys, shopify: e.target.value}
-src/components/EfroProductPanel.tsx:38:    anyProd.shopifyUrl ||
-src/lib/sales/aliases.de.dynamic.json:17:      "mapToCategorySlug": "shopify",
-src/app/efro/admin/events/page.tsx:118:                placeholder="z. B. test-shop.myshopify.com oder local-dev"
+src/lib/products/efroProductLoader.ts:12:  source: "shopify" | "mock" | "none";
+src/lib/products/efroProductLoader.ts:56:      id: String(p.id ?? `shopify-${index}`),
+src/lib/products/efroProductLoader.ts:70: * Versucht echte Produkte aus Shopify zu laden (Ã¼ber /api/shopify-products).
+src/lib/products/efroProductLoader.ts:142:    const shopifyProducts: ShopifyProduct[] = Array.isArray(data?.products)
+src/lib/products/efroProductLoader.ts:148:    if (shopifyProducts.length === 0) {
+src/lib/products/efroProductLoader.ts:152:    let products = mapShopifyToEfro(shopifyProducts);
+src/lib/products/efroProductLoader.ts:164:      source: "shopify",
+src/lib/products/efroProductLoader.ts:240:    const shopifyProducts: ShopifyProduct[] = Array.isArray(data?.products)
+src/lib/products/efroProductLoader.ts:246:    if (!shopifyProducts.length) {
+src/lib/products/efroProductLoader.ts:250:    let products = mapShopifyToEfro(shopifyProducts);
+src/app/admin/billing/page.tsx:68:    const shop = urlParams.get('shop') || 'mein-shop.myshopify.com';
+src/app/admin/billing/page.tsx:75:      const response = await fetch('/api/billing', {
+src/app/page.tsx:290:              desc="Du installierst EFRO im Shopify Admin. (Später mit OAuth + Billing)."
+src/lib/shops/meta.ts:33:  "snow-demo.myshopify.com": {
+src/lib/shops/meta.ts:34:    shopDomain: "snow-demo.myshopify.com",
+src/app/avatar-seller/page.tsx:88:      id: String(p.id ?? `shopify-${index}`),
+src/app/avatar-seller/page.tsx:1356:        normalizedDomain === "test-shop.myshopify.com";
 src/lib/sales/allProductsForShop.ts:38:      id: String(p.id ?? `shopify-${index}`),
 src/lib/sales/allProductsForShop.ts:83:        const shopifyProducts: ShopifyProduct[] = Array.isArray(data?.products)
 src/lib/sales/allProductsForShop.ts:89:        if (shopifyProducts.length > 0) {
@@ -553,32 +552,30 @@ src/lib/sales/allProductsForShop.ts:118:        const res = await fetch(`${baseU
 src/lib/sales/allProductsForShop.ts:124:          const shopifyProducts: ShopifyProduct[] = Array.isArray(data?.products)
 src/lib/sales/allProductsForShop.ts:130:          if (shopifyProducts.length > 0) {
 src/lib/sales/allProductsForShop.ts:131:            let products = mapShopifyToEfro(shopifyProducts);
-src/app/efro/admin/shops/page.tsx:331:                  Shop-Domain (z. B. <code>test-shop.myshopify.com</code>)
+src/lib/sales/aliases.de.dynamic.json:17:      "mapToCategorySlug": "shopify",
 src/lib/sales/sellerBrainTypes.ts:85:  shopDomain: string; // z.B. 'test-shop.myshopify.com' oder 'demo'
-src/app/page.tsx:290:              desc="Du installierst EFRO im Shopify Admin. (Später mit OAuth + Billing)."
-src/app/avatar-seller/page.tsx:88:      id: String(p.id ?? `shopify-${index}`),
-src/app/avatar-seller/page.tsx:1356:        normalizedDomain === "test-shop.myshopify.com";
-src/lib/efro/efroSupabaseRepository.ts:160: * Sucht nach is_demo = true oder shop_domain = 'test-shop.myshopify.com' / 'demo'.
-src/lib/efro/efroSupabaseRepository.ts:218:    const demoDomains = ["demo", "test-shop.myshopify.com"];
-src/lib/sales/modules/types/index.ts:42:   * Optionale Shop-Domain (z.B. "demo-shop.myshopify.com"), wird u.a. für
-src/efro_legacy/dev-pages/dev-chat/page.tsx:14:import { buildShopifyAdminProductUrl } from "../../lib/products/shopifyLinks";
-src/efro_legacy/dev-pages/dev-chat/page.tsx:46:  const devShopDomain = "avatarsalespro-dev.myshopify.com";
-src/app/api/shopify-webhook/route.ts:13:    const topic = request.headers.get("x-shopify-topic") || "unknown";
+src/components/EfroProductPanel.tsx:38:    anyProd.shopifyUrl ||
 src/app/api/shopify-products/route.ts:5:// src/app/api/shopify-products/route.ts
 src/app/api/shopify-products/route.ts:60:      source: "shopify-admin",
+src/components/CrossSellingSuggestions.tsx:23:      const response = await fetch(`/api/shopify-products?category=${product.tags}&limit=3`);
+src/app/efro/admin/events/page.tsx:118:                placeholder="z. B. test-shop.myshopify.com oder local-dev"
+src/app/efro/admin/shops/page.tsx:331:                  Shop-Domain (z. B. <code>test-shop.myshopify.com</code>)
+src/app/api/explain-product/route.ts:35:      `${baseUrl}/api/shopify-products?handle=${encodeURIComponent(handle)}`,
+src/app/api/explain-product/route.ts:44:          error: "shopify-products returned error",
+src/app/api/shopify-webhook/route.ts:13:    const topic = request.headers.get("x-shopify-topic") || "unknown";
 src/app/api/landing-chat/route.ts:45:  if (/(install|installation|onboarding|shopify admin|embedded|oauth|billing)/.test(t)) return "install";
-src/app/admin/billing/page.tsx:68:    const shop = urlParams.get('shop') || 'mein-shop.myshopify.com';
-src/app/admin/billing/page.tsx:75:      const response = await fetch('/api/billing', {
-src/app/api/shopify/callback/route.ts:1:// src/app/api/shopify/callback/route.ts
-src/app/api/shopify/callback/route.ts:6: * Minimaler Shopify-OAuth-Callback:
+src/lib/sales/modules/types/index.ts:42:   * Optionale Shop-Domain (z.B. "demo-shop.myshopify.com"), wird u.a. für
+src/app/api/billing/route.ts:4:// src/app/api/billing/route.ts
+src/app/api/billing/route.ts:85:        confirmationUrl: "https://dev.local/billing/test-confirmation",
+src/app/api/billing/route.ts:106:      !/^.+\.myshopify\.com$/i.test(shop) &&
+src/app/api/billing/route.ts:107:      !/^admin\.shopify\.com\/store\//i.test(shop)
+src/app/api/billing/route.ts:139:        ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/billing`
+src/app/api/billing/route.ts:140:        : "https://admin.shopify.com");
 src/app/api/shopify-import/route.ts:34:    const shopifyUrl = `https://${store}/admin/api/2024-01/products.json`;
 src/app/api/shopify-import/route.ts:61:      const res = await fetch(shopifyUrl, {
 src/app/api/shopify-import/route.ts:78:          shopifyResponse: json,
-src/app/api/webhooks/app-uninstalled/route.ts:11:  console.log("[webhooks/app-uninstalled] Stub received payload:", bodyText);
+src/lib/sales/brain/orchestrator.ts:6891:  shopDomain: string; // z.B. 'test-shop.myshopify.com' oder 'demo'
 src/app/api/efro/debug-shop-meta/route.ts:13: *   /api/efro/debug-shop-meta?shop=test-shop.myshopify.com
-src/app/api/efro/onboard-shop/route.ts:34: *   "shopDomain": "test-shop.myshopify.com",
-src/app/api/webhooks/gdpr/customer-redact/route.ts:4:// src/app/api/webhooks/gdpr/customer-redact/route.ts
-src/app/api/webhooks/gdpr/customer-redact/route.ts:10:  const hmac = req.headers.get("x-shopify-hmac-sha256") || "";
 src/app/api/efro/debug-products/route.ts:30:  shopifyUrl?: string;
 src/app/api/efro/debug-products/route.ts:31:  shopifyStatus?: number;
 src/app/api/efro/debug-products/route.ts:73:      : "shopify";
@@ -593,21 +590,20 @@ src/app/api/efro/debug-products/route.ts:140:      debug.error = `HTTP ${res.sta
 src/app/api/efro/debug-products/route.ts:157:      debug.step = "shopify-empty";
 src/app/api/efro/debug-products/route.ts:160:        "mockCatalog (fallback: /api/shopify-products returned 0 products)";
 src/app/api/efro/debug-products/route.ts:169:    debug.productsSource = "shopify-products (mapped to EfroProduct)";
-src/lib/sales/brain/orchestrator.ts:6891:  shopDomain: string; // z.B. 'test-shop.myshopify.com' oder 'demo'
-src/app/api/efro/suggest/route.ts:227: *   "shop": "avatarsalespro-dev.myshopify.com",
-src/app/api/explain-product/route.ts:35:      `${baseUrl}/api/shopify-products?handle=${encodeURIComponent(handle)}`,
-src/app/api/explain-product/route.ts:44:          error: "shopify-products returned error",
-src/app/api/billing/route.ts:4:// src/app/api/billing/route.ts
-src/app/api/billing/route.ts:85:        confirmationUrl: "https://dev.local/billing/test-confirmation",
-src/app/api/billing/route.ts:106:      !/^.+\.myshopify\.com$/i.test(shop) &&
-src/app/api/billing/route.ts:107:      !/^admin\.shopify\.com\/store\//i.test(shop)
-src/app/api/billing/route.ts:139:        ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/billing`
-src/app/api/billing/route.ts:140:        : "https://admin.shopify.com");
+src/app/api/webhooks/gdpr/customer-redact/route.ts:4:// src/app/api/webhooks/gdpr/customer-redact/route.ts
+src/app/api/webhooks/gdpr/customer-redact/route.ts:10:  const hmac = req.headers.get("x-shopify-hmac-sha256") || "";
+src/app/api/webhooks/app-uninstalled/route.ts:11:  console.log("[webhooks/app-uninstalled] Stub received payload:", bodyText);
+src/efro_legacy/dev-pages/dev-chat/page.tsx:14:import { buildShopifyAdminProductUrl } from "../../lib/products/shopifyLinks";
+src/efro_legacy/dev-pages/dev-chat/page.tsx:46:  const devShopDomain = "avatarsalespro-dev.myshopify.com";
+src/app/api/shopify/callback/route.ts:1:// src/app/api/shopify/callback/route.ts
+src/app/api/shopify/callback/route.ts:6: * Minimaler Shopify-OAuth-Callback:
+src/app/api/efro/onboard-shop/route.ts:34: *   "shopDomain": "test-shop.myshopify.com",
 src/app/api/efro/admin/update-plan/route.ts:10: *   "shopDomain": "test-shop.myshopify.com",
 src/app/api/efro/products/route.ts:130:    cleanText(sp.product_type && sp.product_type.trim().length > 0 ? sp.product_type : "shopify") || "shopify";
 src/app/api/efro/products/route.ts:178:        const res = await fetch(`${baseUrl}/api/shopify-products`, { cache: "no-store" });
 src/app/api/efro/products/route.ts:185:          const payload: any = { success: true, source: "shopify", products, shopDomain: "demo" };
 src/app/api/efro/products/route.ts:186:          if (debug) payload.debug = { shopDomain: "demo", isDemo: true, preferredSource: "shopify", forcedSource: null };
+src/app/api/efro/suggest/route.ts:227: *   "shop": "avatarsalespro-dev.myshopify.com",
 ```
 
 DONE.
