@@ -292,3 +292,8 @@ Siehe: docs/GATE2_FINAL_SSOT_2026-01-07.md
 ## Post-RLS Proof (2026-01-09)
 SSOT: `docs/POST_RLS_PROOF_SSOT_2026-01-09.md`
 Enthält: Service-Role Log-Proof, Column-Reality (shop != shop_domain), Claim-Reality (shop_domain fallback shop), No-Leak Proof.
+
+---
+
+## FINAL Gate-1/2/3 Doku Pack (2026-01-09)
+Siehe: docs/FINAL_GATE123_PACK_2026-01-09.md
