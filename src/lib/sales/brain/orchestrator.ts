@@ -27,17 +27,17 @@
 
 /**
  * ============================================================
- * ?NDERUNGEN (Senior TypeScript/Next.js Engineer - Debug-Fix)
+ * ÄNDERUNGEN (Senior TypeScript/Next.js Engineer - Debug-Fix)
  * ============================================================
  * 
- * 1. Defensive Guard f?r leere allProducts in runSellerBrain() hinzugef?gt
- *    ? Fr?her Return mit Fallback-Text, wenn keine Produkte verf?gbar
+ * 1. Defensive Guard für leere allProducts in runSellerBrain() hinzugefügt
+ *    ? Früher Return mit Fallback-Text, wenn keine Produkte verfügbar
  * 
- * 2. Defensive Guard f?r leeren/undefined replyText am Ende von runSellerBrain()
- *    ? Sicherstellt, dass IMMER ein g?ltiger String zur?ckgegeben wird
+ * 2. Defensive Guard für leeren/undefined replyText am Ende von runSellerBrain()
+ *    ? Sicherstellt, dass IMMER ein gültiger String zurückgegeben wird
  * 
  * 3. Frontend-Integration verbessert (src/app/avatar-seller/page.tsx)
- *    ? Pr?fung auf nicht-leeren String statt nur truthy-Check
+ *    ? Prüfung auf nicht-leeren String statt nur truthy-Check
  *    ? Fallback-Nachricht, wenn replyText leer ist
  * 
  * 4. JSON-Imports verifiziert (tsconfig.json hat resolveJsonModule: true)
@@ -47,19 +47,19 @@
  *    ? isPerfumeProduct() und isMoldProduct() behandeln tags als Array oder String
  * 
  * 6. buildAttributeIndex() wird sicher mit Array aufgerufen
- *    ? Guard in filterProducts() pr?ft allProducts.length === 0
+ *    ? Guard in filterProducts() prüft allProducts.length === 0
  * 
- * 7. buildRuleBasedReplyText() gibt IMMER einen String zur?ck
+ * 7. buildRuleBasedReplyText() gibt IMMER einen String zurück
  *    ? Auch bei count === 0 gibt es einen Fallback-Text
  * 
- * 8. Logging erweitert f?r besseres Debugging
+ * 8. Logging erweitert für besseres Debugging
  *    ? Warn-Logs bei leeren Produktlisten oder replyText
  *    ? replyTextLength in [EFRO SB RETURN] Log
  * 
- * 9. Keine ?nderungen an API-Signaturen
- *    ? runSellerBrain() und SellerBrainResult bleiben unver?ndert
+ * 9. Keine Änderungen an API-Signaturen
+ *    ? runSellerBrain() und SellerBrainResult bleiben unverändert
  * 
- * 10. Keine ?nderungen an Avatar/LipSync-Code
+ * 10. Keine Änderungen an Avatar/LipSync-Code
  *     ? Nur sellerBrain.ts und Frontend-Integration angepasst
  * 
  * ============================================================
@@ -74,16 +74,16 @@
  * 
  * 2. PRICE: Preisbereich extrahieren
  *    - extractUserPriceRange(text) ? userMinPrice, userMaxPrice
- *    - Wird sp?ter angewendet (nach KEYWORD_MATCHES)
+ *    - Wird später angewendet (nach KEYWORD_MATCHES)
  * 
  * 3. CATEGORY: Kategorie-Filter
  *    - matchedCategories aus Text extrahieren
  *    - candidates = candidates.filter(p => matchedCategories.includes(p.category))
  * 
  * 4. WORDS: Keyword-Extraktion
- *    - words aus Text extrahieren (Stopw?rter entfernt)
+ *    - words aus Text extrahieren (Stopwörter entfernt)
  *    - catalogKeywords aus allen Produkten extrahieren
- *    - expandWordsWithCatalogKeywords() f?r Komposita-Aufbrechen
+ *    - expandWordsWithCatalogKeywords() für Komposita-Aufbrechen
  * 
  * 5. ALIAS-PREPROCESSING: Alias-Map vor Keyword-Matching
  *    - resolveUnknownTerms() mit catalogKeywords
@@ -91,37 +91,37 @@
  *    - AliasHardFilter: Bei aliasMapUsed === true nur Produkte mit Alias-Tokens
  * 
  * 6. KEYWORD_MATCHES: Scoring und Filterung
- *    - scoreProductsForWords() f?r alle Kandidaten
+ *    - scoreProductsForWords() für alle Kandidaten
  *    - candidates = scored.filter(score > 0).sort().slice(0, 20)
  *    - PERFUME-SYNONYMS: Wenn userAskedForPerfume === true
- *      ? candidates = perfumeCandidates (nur echte Parf?m-Produkte)
+ *      ? candidates = perfumeCandidates (nur echte Parfüm-Produkte)
  * 
  * 7. PRICE-FILTER: Preisbereich anwenden
  *    - candidates = candidates.filter(price >= minPrice && price <= maxPrice)
  * 
  * 8. FALLBACK: Wenn candidates.length === 0
- *    - Bei Parf?m-Intent: originalPerfumeCandidates beibehalten
+ *    - Bei Parfüm-Intent: originalPerfumeCandidates beibehalten
  *    - Sonst: candidates = [...allProducts] + Kategorie/Preis-Filter erneut
  * 
  * 9. SORTIERUNG: Nach Intent/Budget
  *    - Premium: teuerste zuerst
- *    - Bargain/Quick-Buy: g?nstigste zuerst
+ *    - Bargain/Quick-Buy: günstigste zuerst
  *    - Budget: je nach Min/Max sortiert
  * 
  * 10. RESULT: return candidates.slice(0, 4)
  * 
  * WICHTIGE VARIABLEN:
- * - candidates: Haupt-Kandidatenliste (wird durch Filter ver?ndert)
+ * - candidates: Haupt-Kandidatenliste (wird durch Filter verändert)
  * - currentIntent: Intent kann innerhalb der Funktion angepasst werden
- * - hasPerfumeCandidates: Flag f?r Parf?m-Intent (sch?tzt vor Fallback-?berschreibung)
- * - originalPerfumeCandidates: Backup der Parf?m-Kandidaten f?r Fallback-Schutz
+ * - hasPerfumeCandidates: Flag für Parfüm-Intent (schützt vor Fallback-überschreibung)
+ * - originalPerfumeCandidates: Backup der Parfüm-Kandidaten für Fallback-Schutz
  * 
- * INTENT-?NDERUNGEN:
- * - explore ? quick_buy: Bei "zeige mir X" mit 1-4 W?rtern (Zeile ~1595-1611)
+ * INTENT-ÄNDERUNGEN:
+ * - explore ? quick_buy: Bei "zeige mir X" mit 1-4 Wörtern (Zeile ~1595-1611)
  * 
  * ============================================================
  * 
- * TEST-CASES F?R GESUNDHEITSCHECK:
+ * TEST-CASES FÜR GESUNDHEITSCHECK:
  * ============================================================
  * 
  * Budget-Only:
@@ -129,34 +129,34 @@
  *   Erwartung: [EFRO FILTER PRICE] userMaxPrice: 20, UI zeigt Produkte ? 20?
  * 
  * - "Mein Budget ist 50 Euro."
- *   Erwartung: [EFRO FILTER PRICE] userMaxPrice: 50, UI zeigt Produkte ? 50?
+ *   Erwartung: [EFRO FILTER PRICE] userMaxPrice: 50, UI zeigt Produkte ? 50€
  * 
  * Kategorie/Brand:
  * - "Zeige mir Fressnapf."
  *   Erwartung: [EFRO AliasHardFilter] reduziert Kandidaten, UI zeigt Fressnapf-Artikel
  * 
- * Parf?m:
- * - "Zeige mir Parf?m."
+ * Parfüm:
+ * - "Zeige mir Parfüm."
  * - "Zeig mir Parfum!"
  *   Erwartung:
- *     [EFRO PERFUME] afterCount = Anzahl echter Parf?m-Produkte
- *     [EFRO FINAL PRODUCTS] ? nur Parf?m-Produkte (categories z. B. "perfume" / "duft")
- *     KEINE Duschgele/Shampoos/Lotions/T?cher
+ *     [EFRO PERFUME] afterCount = Anzahl echter Parfüm-Produkte
+ *     [EFRO FINAL PRODUCTS] ? nur Parfüm-Produkte (categories z. B. "perfume" / "duft")
+ *     KEINE Duschgele/Shampoos/Lotions/Tücher
  * 
  * High-Budget:
- * - "Zeig mir Produkte ?ber 350 Euro!"
+ * - "Zeig mir Produkte über 350 Euro!"
  *   Erwartung: Nur teure Produkte (High-End) in FINAL/UI
  * 
  * Kombi:
- * - "Zeig mir Parf?m unter 50 Euro."
- *   Erwartung: Entweder echte Parf?ms ? 50? ODER klarer Fallback (keine K?rperpflege-Nicht-Parf?ms)
+ * - "Zeig mir Parfüm unter 50 Euro."
+ *   Erwartung: Entweder echte Parfüms ? 50€ ODER klarer Fallback (keine Körperpflege-Nicht-Parfüms)
  * 
  * STATUS:
  * - Budget-Only: ? Funktioniert
  * - Fressnapf: ? Funktioniert (AliasHardFilter)
- * - Parf?m: ?? Wird repariert (zu breite Erkennung)
+ * - Parfüm: ?? Wird repariert (zu breite Erkennung)
  * - High-Budget: ? Funktioniert
- * - Kombi: ?? Wird getestet nach Parf?m-Fix
+ * - Kombi: ?? Wird getestet nach Parfüm-Fix
  * 
  * ============================================================
  */
@@ -210,7 +210,7 @@ import { detectExplanationModeBoolean } from "../intent/explanationMode";
 // Import der generierten Hints aus JSON
 // Hinweis: TypeScript erwartet hier einen Typ-Assertion, da JSON-Imports als any kommen
 import generatedProductHintsJson from "../generatedProductHints.json";
-// Import f?r SellerBrain v2 (Repository & Cache)
+// Import für SellerBrain v2 (Repository & Cache)
 import {
   getEfroShopByDomain,
   getEfroDemoShop,
@@ -219,12 +219,12 @@ import {
   upsertCachedResponse,
   type EfroCachedResponse,
 } from "../../efro/efroSupabaseRepository";
-// Import der Alias-Map f?r AI-gest?tzte Begriff-Aufl?sung
+// Import der Alias-Map für AI-gestützte Begriff-Auflösung
 import type { AliasMap } from "../aliasMap";
 import { normalizeAliasKey, initializeAliasMap } from "../aliasMap";
-// Import der Debug-Funktion f?r Katalog-?bersicht
+// Import der Debug-Funktion für Katalog-übersicht
 import { debugCatalogOverview } from "../debugCatalog";
-// Import der Sprach-Konfiguration f?r deutsche Budget- und Keyword-Erkennung
+// Import der Sprach-Konfiguration für deutsche Budget- und Keyword-Erkennung
 import {
   BUDGET_RANGE_PATTERNS,
   BUDGET_MIN_WORDS,
@@ -272,7 +272,7 @@ import { isPerfumeProduct, isMoldProduct } from "../categories";
 
 
 // EFRO Modularization Phase 2: Typen nach modules/types ausgelagert
-// Re-export f?r Kompatibilit?t
+// Re-export für Kompatibilität
 export type { SellerBrainContext, SellerBrainResult, PriceRangeInfo } from "@/lib/sales/modules/types";
 
 /**
@@ -282,7 +282,7 @@ export type { SellerBrainContext, SellerBrainResult, PriceRangeInfo } from "@/li
 type ProductAttributeMap = Record<string, string[]>;
 
 /**
- * Vokabular-Eintrag f?r ein Attribut auf Shop-Ebene
+ * Vokabular-Eintrag für ein Attribut auf Shop-Ebene
  */
 type ShopAttributeVocabulary = {
   key: string;           // z. B. "skin_type", "audience", "room", "pet", "family"
@@ -292,7 +292,7 @@ type ShopAttributeVocabulary = {
 };
 
 /**
- * Vollst?ndiger Attribut-Index f?r den Shop
+ * Vollständiger Attribut-Index für den Shop
  */
 type AttributeIndex = {
   perProduct: Record<string, ProductAttributeMap>;  // Key = product.id
@@ -300,7 +300,7 @@ type AttributeIndex = {
 };
 
 /**
- * Typ f?r Produkt-Hints (statisch oder generiert)
+ * Typ für Produkt-Hints (statisch oder generiert)
  */
 export type ProductHint = {
   keyword: string;
@@ -311,11 +311,11 @@ export type ProductHint = {
 
 /**
  * Zentrale Text-Normalisierung (vereinheitlicht)
- * ? Umlaute bleiben erhalten, damit Stopwords wie "f?r", "gr??er" etc. sauber matchen.
+ * ? Umlaute bleiben erhalten, damit Stopwords wie "für", "gr??er" etc. sauber matchen.
  */
 
 /**
- * Kategorien, die typischerweise f?r menschliche Haut-/Kosmetik-Produkte verwendet werden
+ * Kategorien, die typischerweise für menschliche Haut-/Kosmetik-Produkte verwendet werden
  */
 const HUMAN_SKIN_CATEGORIES = [
   "kosmetik",
@@ -327,7 +327,7 @@ const HUMAN_SKIN_CATEGORIES = [
 ];
 
 /**
- * Nutzertext normalisieren (Legacy-Kompatibilit?t)
+ * Nutzertext normalisieren (Legacy-Kompatibilität)
  */
 
 
@@ -340,7 +340,7 @@ export const productHints: string[] = PRODUCT_HINTS;
 
 /**
  * Typisierte Version der statischen Hints
- * Wird aus productHints generiert, um Kompatibilit?t zu gew?hrleisten.
+ * Wird aus productHints generiert, um Kompatibilität zu gewährleisten.
  */
 export const staticProductHints: ProductHint[] = productHints.map((keyword) => ({
   keyword,
@@ -348,52 +348,52 @@ export const staticProductHints: ProductHint[] = productHints.map((keyword) => (
 }));
 
 /**
- * F?hrt statische und generierte Hints zusammen.
+ * Führt statische und generierte Hints zusammen.
  * 
  * Regeln:
- * - Statische Hints haben Priorit?t bei Duplikaten
- * - Wenn beide ein weight haben, wird das h?here verwendet
- * - Generierte Hints ohne Duplikate werden ?bernommen
+ * - Statische Hints haben Priorität bei Duplikaten
+ * - Wenn beide ein weight haben, wird das höhere verwendet
+ * - Generierte Hints ohne Duplikate werden übernommen
  * 
  * @param staticHints Statische, manuell gepflegte Hints
  * @param generatedHints Optional: Dynamisch generierte Hints (z. B. aus JSON)
- * @returns Zusammengef?hrte Liste von ProductHint
+ * @returns Zusammengeführte Liste von ProductHint
  */
 function mergeHints(
   staticHints: ProductHint[],
   generatedHints?: ProductHint[]
 ): ProductHint[] {
-  // Wenn keine generierten Hints vorhanden, nur statische zur?ckgeben
+  // Wenn keine generierten Hints vorhanden, nur statische zurückgeben
   if (!generatedHints || generatedHints.length === 0) {
     return [...staticHints];
   }
 
-  // Map f?r schnelles Lookup nach keyword
+  // Map für schnelles Lookup nach keyword
   const mergedMap = new Map<string, ProductHint>();
 
-  // Zuerst alle statischen Hints einf?gen (haben Priorit?t)
+  // Zuerst alle statischen Hints einfügen (haben Priorität)
   for (const hint of staticHints) {
     mergedMap.set(hint.keyword.toLowerCase(), { ...hint });
   }
 
-  // Dann generierte Hints hinzuf?gen, falls nicht bereits vorhanden
+  // Dann generierte Hints hinzufügen, falls nicht bereits vorhanden
   for (const hint of generatedHints) {
     const key = hint.keyword.toLowerCase();
     const existing = mergedMap.get(key);
 
     if (!existing) {
-      // Neues Keyword ? ?bernehmen
+      // Neues Keyword ? übernehmen
       mergedMap.set(key, { ...hint });
     } else {
-      // Duplikat: Statischer Hint hat Priorit?t, aber weight kann ?berschrieben werden
-      // wenn der generierte Hint ein h?heres weight hat
+      // Duplikat: Statischer Hint hat Priorität, aber weight kann überschrieben werden
+      // wenn der generierte Hint ein höheres weight hat
       if (
         hint.weight !== undefined &&
         (existing.weight === undefined || hint.weight > existing.weight)
       ) {
         existing.weight = hint.weight;
       }
-      // Weitere Felder (categoryHint, attributes) k?nnen optional vom generierten Hint erg?nzt werden,
+      // Weitere Felder (categoryHint, attributes) können optional vom generierten Hint ergänzt werden,
       // wenn sie im statischen Hint fehlen
       if (!existing.categoryHint && hint.categoryHint) {
         existing.categoryHint = hint.categoryHint;
@@ -407,7 +407,7 @@ function mergeHints(
   // In Array konvertieren und sortieren (optional: nach weight absteigend, dann alphabetisch)
   const merged = Array.from(mergedMap.values());
   merged.sort((a, b) => {
-    // Zuerst nach weight (h?her = besser)
+    // Zuerst nach weight (höher = besser)
     const weightA = a.weight ?? 0;
     const weightB = b.weight ?? 0;
     if (weightB !== weightA) {
@@ -423,7 +423,7 @@ function mergeHints(
 // initializeAliasMap ist jetzt in aliasMap.ts definiert und wird von dort importiert
 
 /**
- * Gibt die aktuell aktiven Produkt-Hints zur?ck.
+ * Gibt die aktuell aktiven Produkt-Hints zurück.
  * 
  * Kombiniert statische Hints (manuell gepflegt) mit generierten Hints
  * aus generatedProductHints.json.
@@ -436,7 +436,7 @@ function getActiveProductHints(): ProductHint[] {
     const generatedHints: ProductHint[] =
       (generatedProductHintsJson as unknown as ProductHint[]) ?? [];
 
-    // Statische und generierte Hints zusammenf?hren
+    // Statische und generierte Hints zusammenführen
     const merged = mergeHints(staticProductHints, generatedHints);
 
     console.log("[EFRO ActiveHints]", {
@@ -454,13 +454,13 @@ function getActiveProductHints(): ProductHint[] {
 }
 
 /**
- * Erkennt, ob der Nutzer eher eine Erkl?rung will
+ * Erkennt, ob der Nutzer eher eine Erklärung will
  * (Inhaltsstoffe / Material / Anwendung / Pflege).
  */
 /**
  * EFRO Explanation-Mode-Erkennung verbessert
- * Erkennt Fragen wie "Wie benutze ich...?", "Erkl?r mir...", "Wie funktioniert...?"
- * EFRO S18/S19 Fix: Robuste Erkennung f?r "Wie wende ich...", "Wie genau funktioniert..."
+ * Erkennt Fragen wie "Wie benutze ich...?", "Erklär mir...", "Wie funktioniert...?"
+ * EFRO S18/S19 Fix: Robuste Erkennung für "Wie wende ich...", "Wie genau funktioniert..."
  */
 function detectExplanationMode(text: string): ExplanationMode | null {
   const t = normalize(text || "");
@@ -481,7 +481,7 @@ function detectExplanationMode(text: string): ExplanationMode | null {
     return null;
   }
 
-  // EFRO S18/S19 Fix: Robuste Pattern-Erkennung f?r Usage-Mode
+  // EFRO S18/S19 Fix: Robuste Pattern-Erkennung für Usage-Mode
   const normalized = text.toLowerCase();
   
   const usagePatterns: RegExp[] = [
@@ -521,14 +521,14 @@ function detectExplanationMode(text: string): ExplanationMode | null {
   // CLUSTER 1 FIX: Erkenne auch "erklär mir" / "erkläre mir" direkt (auch mit "bitte")
   const hasErklarMirPattern = /^erkl(?:ä|ae|a)r(?:e|en)?\s+mir\s+(?:bitte\s+)?/i.test(normalized);
   
-  // Erweiterte Erkennung f?r Erkl?rungsanfragen
+  // Erweiterte Erkennung für Erklärungsanfragen
   if (
     hasExplanationPhrase ||
     hasExplainPattern ||
     hasErklarMirPattern || // CLUSTER 1 FIX: "Erklär mir bitte" am Anfang
-    t.includes("erkl?r") ||
+    t.includes("erklär") ||
     t.includes("erklaer") ||
-    t.includes("erkl?re") ||
+    t.includes("erkläre") ||
     t.includes("erklaere") ||
     t.includes("wie benutze ich") ||
     t.includes("wie verwende ich") ||
@@ -554,7 +554,7 @@ function detectExplanationMode(text: string): ExplanationMode | null {
     return "washing";
   }
 
-    // Fallback: generische Erkl?rung
+    // Fallback: generische Erklärung
     return "usage";
   }
 
@@ -582,7 +582,7 @@ function detectExplanationMode(text: string): ExplanationMode | null {
 
 
 /**
- * EFRO S18/S19 Fix: Patch f?r ProductRelated bei Wax-Erkl?rungen
+ * EFRO S18/S19 Fix: Patch für ProductRelated bei Wax-Erklärungen
  */
 function patchProductRelatedForWax(
   result: { isProductRelated: boolean; reason: string },
@@ -596,7 +596,7 @@ function patchProductRelatedForWax(
 }
 
 /**
- * EFRO S18/S19 Fix: Handle Wax-Erkl?rungen mit AI-Trigger
+ * EFRO S18/S19 Fix: Handle Wax-Erklärungen mit AI-Trigger
  */
 function handleWaxExplanation(
   text: string,
@@ -618,7 +618,7 @@ function handleWaxExplanation(
   const normalized = text.toLowerCase();
   const mentionsWax = /\b(wax|wachs)\b/.test(normalized);
 
-  // Wenn keine Erkl?rfrage oder kein Wax erw?hnt wird, nichts Besonderes tun
+  // Wenn keine Erklärfrage oder kein Wax erwähnt wird, nichts Besonderes tun
   if (!explanationMode || !mentionsWax) {
     return {
       explanationMode,
@@ -656,7 +656,7 @@ function handleWaxExplanation(
   let stepsExtracted = 0;
   let bestDescription = "";
 
-  // L?ngste, nicht-leere Beschreibung suchen (z. B. "Selling Plans Ski Wax")
+  // Längste, nicht-leere Beschreibung suchen (z. B. "Selling Plans Ski Wax")
   for (const p of waxProducts) {
     const desc = (p.description ?? "").trim();
     if (!desc) continue;
@@ -699,10 +699,10 @@ function handleWaxExplanation(
     ...result,
   });
 
-  // EFRO Fix: KEIN AI-Trigger mehr f?r Erkl?rungen mit/ohne Beschreibung
+  // EFRO Fix: KEIN AI-Trigger mehr für Erklärungen mit/ohne Beschreibung
   // Die Antwort wird direkt aus der Beschreibung generiert (wenn vorhanden)
   // oder ehrlich kommuniziert, dass keine Beschreibung vorhanden ist (ohne AI)
-  // AI wird nur f?r unbekannte Begriffe (z. B. "Fressnapf") genutzt
+  // AI wird nur für unbekannte Begriffe (z. B. "Fressnapf") genutzt
   const aiTrigger: SellerBrainAiTrigger | undefined = undefined;
 
   return {
@@ -711,7 +711,7 @@ function handleWaxExplanation(
 }
 
 /**
- * Pr?ft, ob der Text produktbezogen ist
+ * Prüft, ob der Text produktbezogen ist
  */
 function isProductRelated(text: string): boolean {
   const t = normalize(text || "");
@@ -741,7 +741,7 @@ function isProductRelated(text: string): boolean {
     return true;
   }
 
-  // Kontext-Keywords: "f?r die K?che", "f?rs Bad", etc.
+  // Kontext-Keywords: "für die Küche", "fürs Bad", etc.
   // Importiert aus languageRules.de.ts
   if (CONTEXT_KEYWORDS.some((w) => t.includes(w))) {
     console.log("[EFRO ProductRelated]", {
@@ -752,10 +752,10 @@ function isProductRelated(text: string): boolean {
     return true;
   }
 
-  // W?rter, die auf typische Produkt-/Shopfragen hindeuten
+  // Wörter, die auf typische Produkt-/Shopfragen hindeuten
   // HINWEIS: Die lokale productHints-Liste wurde entfernt.
-  // Stattdessen wird getActiveProductHints() verwendet, um k?nftig
-  // auch generierte Hints zu ber?cksichtigen.
+  // Stattdessen wird getActiveProductHints() verwendet, um künftig
+  // auch generierte Hints zu berücksichtigen.
 
   const activeHints = getActiveProductHints();
   let result = activeHints.some((hint) => t.includes(hint.keyword));
@@ -771,22 +771,22 @@ function isProductRelated(text: string): boolean {
     }
   }
 
-  // Budget-S?tze als produktbezogen erkennen
-  // Beispiel: "Mein Budget ist 50 Euro.", "Maximal 80 ?", "Ich m?chte nicht mehr als 30 Euro ausgeben."
+  // Budget-Sätze als produktbezogen erkennen
+  // Beispiel: "Mein Budget ist 50 Euro.", "Maximal 80 ?", "Ich möchte nicht mehr als 30 Euro ausgeben."
   if (!result) {
     const hasEuroNumber = /\b(\d+)\s*(euro|eur|€)\b/i.test(text);
     // CLUSTER 1 FIX S4v2: Erkenne auch "zwischen X und Y €" oder "X und Y Euro"
     const hasPriceRange = /\b(\d+)\s*(und|bis|-)\s*(\d+)\s*(euro|eur|€)\b/i.test(text) ||
       /\bzwischen\s+(\d+)\s+(und|bis|-)\s*(\d+)\s*(euro|eur|€)\b/i.test(text);
-    // Importiert aus languageRules.de.ts - nutze BUDGET_MAX_WORDS f?r Budget-Wort-Erkennung
+    // Importiert aus languageRules.de.ts - nutze BUDGET_MAX_WORDS für Budget-Wort-Erkennung
     const budgetWordsForRegex = ["budget", "preis", ...BUDGET_MAX_WORDS].join("|");
     const hasBudgetWord = new RegExp(`\\b(${budgetWordsForRegex})\\b`, "i").test(
       text.toLowerCase()
     );
 
-    // EFRO Fix 2025-12-05: Budget-/Preis-S?tze auch ohne explizites Budgetwort
+    // EFRO Fix 2025-12-05: Budget-/Preis-Sätze auch ohne explizites Budgetwort
     // als produktbezogen werten, sobald eine konkrete Euro-Angabe vorhanden ist
-    // (z. B. "Ich habe nur 20 Euro.", "Ich m?chte ?ber 100 Euro ausgeben.").
+    // (z. B. "Ich habe nur 20 Euro.", "Ich möchte über 100 Euro ausgeben.").
     // CLUSTER 1 FIX S4v2: Auch Preisbereiche wie "zwischen 600 und 900 €" erkennen
     // CLUSTER 2 FIX: Erkenne auch "ungefähr X €" oder "X € zur Verfügung" ohne explizites Budgetwort
     const hasBudgetPhrase = /\b(ungefähr|etwa|ca\.?|circa)\s*(\d+)\s*(euro|eur|€)\b/i.test(text) ||
@@ -912,7 +912,7 @@ function isProductRelated(text: string): boolean {
 }
 
 /**
- * Hilfsfunktionen f?r Intent-Detection
+ * Hilfsfunktionen für Intent-Detection
  */
 
 /**
@@ -926,47 +926,47 @@ function isProductRelated(text: string): boolean {
  * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
  *
  * WICHTIG:
- * - Budget-S?tze ("mein Budget ist 50 Euro") werden als OBERGRENZE interpretiert ? maxPrice = 50
- * - "unter / bis / h?chstens" ? OBERGRENZE ? maxPrice = X
- * - "?ber / mindestens / ab" ? UNTERGRENZE ? minPrice = X
+ * - Budget-Sätze ("mein Budget ist 50 Euro") werden als OBERGRENZE interpretiert ? maxPrice = 50
+ * - "unter / bis / höchstens" ? OBERGRENZE ? maxPrice = X
+ * - "über / mindestens / ab" ? UNTERGRENZE ? minPrice = X
  */
 /**
  * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
  *
  * WICHTIG:
- * - Budget-S?tze ("mein Budget ist 50 Euro") werden als OBERGRENZE interpretiert ? maxPrice = 50
- * - "unter / bis / h?chstens / maximal / nicht mehr als" ? OBERGRENZE ? maxPrice = X
- * - "?ber / mindestens / ab / mehr als" ? UNTERGRENZE ? minPrice = X
+ * - Budget-Sätze ("mein Budget ist 50 Euro") werden als OBERGRENZE interpretiert ? maxPrice = 50
+ * - "unter / bis / höchstens / maximal / nicht mehr als" ? OBERGRENZE ? maxPrice = X
+ * - "über / mindestens / ab / mehr als" ? UNTERGRENZE ? minPrice = X
  */
 /**
  * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
  *
  * Regeln:
- * - Budget-S?tze ("mein Budget ist 50 Euro") => OBERGRENZE ? maxPrice = 50
- * - "unter / bis / h?chstens / maximal / nicht mehr als" => OBERGRENZE
- * - "?ber / mindestens / ab X Euro / mehr als"           => UNTERGRENZE
+ * - Budget-Sätze ("mein Budget ist 50 Euro") => OBERGRENZE ? maxPrice = 50
+ * - "unter / bis / höchstens / maximal / nicht mehr als" => OBERGRENZE
+ * - "über / mindestens / ab X Euro / mehr als"           => UNTERGRENZE
  */
 /**
  * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
  *
  * Regeln:
- * - Budget-S?tze ("mein Budget ist 50 Euro") => OBERGRENZE ? maxPrice = 50
- * - "unter / bis / h?chstens / maximal / nicht mehr als" => OBERGRENZE
- * - "?ber / ueber / uber / mindestens / ab X Euro / mehr als" => UNTERGRENZE
+ * - Budget-Sätze ("mein Budget ist 50 Euro") => OBERGRENZE ? maxPrice = 50
+ * - "unter / bis / höchstens / maximal / nicht mehr als" => OBERGRENZE
+ * - "über / ueber / uber / mindestens / ab X Euro / mehr als" => UNTERGRENZE
  */
 /**
  * Versucht, aus dem Nutzertext einen Preisbereich zu lesen.
  *
  * Regeln:
- * - Budget-S?tze ("mein Budget ist 50 Euro") => OBERGRENZE ? maxPrice = 50
- * - "unter / bis / h?chstens / maximal / weniger als / nicht mehr als" => OBERGRENZE
- * - "?ber / ueber / uber / mindestens / ab X Euro / mehr als / gr??er als" => UNTERGRENZE
+ * - Budget-Sätze ("mein Budget ist 50 Euro") => OBERGRENZE ? maxPrice = 50
+ * - "unter / bis / höchstens / maximal / weniger als / nicht mehr als" => OBERGRENZE
+ * - "über / ueber / uber / mindestens / ab X Euro / mehr als / gr??er als" => UNTERGRENZE
  */
 /**
- * EFRO Budget-Parser: Extrahiert Zahlen f?r Budget, ignoriert Zahlen in Produktcodes
+ * EFRO Budget-Parser: Extrahiert Zahlen für Budget, ignoriert Zahlen in Produktcodes
  * 
  * Unterscheidet zwischen "reinen Zahlen" (z. B. "50") und Zahlen in alphanumerischen Tokens (z. B. "XY-9000").
- * Bei "Zeig mir Produkte f?r XY-9000 unter 50 Euro" wird nur 50 als Budget interpretiert, nicht 9000.
+ * Bei "Zeig mir Produkte für XY-9000 unter 50 Euro" wird nur 50 als Budget interpretiert, nicht 9000.
  */
 
 
@@ -981,8 +981,8 @@ function isProductRelated(text: string): boolean {
  * - room: "bathroom", "kitchen", "living_room", "bedroom"
  * - family: "shower_gel", "shampoo", "hoodie", "cleaner", "wipes", "spray", "cream", "oil", "soap"
  *
- * Diese Funktion wird in einem sp?teren Schritt von EFRO genutzt,
- * um pro Shop eine Lernbasis f?r Attribute aufzubauen.
+ * Diese Funktion wird in einem späteren Schritt von EFRO genutzt,
+ * um pro Shop eine Lernbasis für Attribute aufzubauen.
  */
 function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
   const perProduct: Record<string, ProductAttributeMap> = {};
@@ -998,7 +998,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
   >();
 
   /**
-   * Hilfsfunktion: F?gt ein Attribut zu einem Produkt hinzu
+   * Hilfsfunktion: Fügt ein Attribut zu einem Produkt hinzu
    */
   function addAttribute(
     productId: string,
@@ -1031,7 +1031,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     vocab.values.add(attributeValue);
     vocab.usageCount += 1;
 
-    // Beispiel-Titel hinzuf?gen (max. 3 verschiedene)
+    // Beispiel-Titel hinzufügen (max. 3 verschiedene)
     const product = allProducts.find((p) => p.id === productId);
     if (product && vocab.examples.length < 3) {
       if (!vocab.examples.includes(product.title)) {
@@ -1086,7 +1086,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     const normalized = normalizeText(text);
 
     if (
-      /f?r\s+herren|f?r\s+m?nner|for\s+men\b|herren\b|m?nner\b|\bmen\b/.test(
+      /für\s+herren|für\s+männer|for\s+men\b|herren\b|männer\b|\bmen\b/.test(
         normalized
       )
     ) {
@@ -1094,7 +1094,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     }
 
     if (
-      /f?r\s+damen|f?r\s+frauen|for\s+women\b|damen\b|frauen\b|\bwomen\b/.test(
+      /für\s+damen|für\s+frauen|for\s+women\b|damen\b|frauen\b|\bwomen\b/.test(
         normalized
       )
     ) {
@@ -1102,7 +1102,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     }
 
     if (
-      /f?r\s+kinder|for\s+kids\b|\bkinder\b|\bkids\b|\bchildren\b|f?r\s+jungs|f?r\s+m?dchen/.test(
+      /für\s+kinder|for\s+kids\b|\bkinder\b|\bkids\b|\bchildren\b|für\s+jungs|für\s+mädchen/.test(
         normalized
       )
     ) {
@@ -1110,14 +1110,14 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     }
 
     if (
-      /f?r\s+babys|f?r\s+babies|for\s+baby\b|\bbaby\b|\bbabies\b/.test(
+      /für\s+babys|für\s+babies|for\s+baby\b|\bbaby\b|\bbabies\b/.test(
         normalized
       )
     ) {
       addAttribute(productId, "audience", "baby");
     }
 
-    if (/unisex\b|f?r\s+alle|for\s+all\b/.test(normalized)) {
+    if (/unisex\b|für\s+alle|for\s+all\b/.test(normalized)) {
       addAttribute(productId, "audience", "unisex");
     }
   }
@@ -1129,7 +1129,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     const normalized = normalizeText(text);
 
     if (
-      /f?r\s+hunde|for\s+dog\b|\bhund\b|\bhunde\b|\bdog\b|\bdogs\b|\bwelpe\b|\bpuppy\b/.test(
+      /für\s+hunde|for\s+dog\b|\bhund\b|\bhunde\b|\bdog\b|\bdogs\b|\bwelpe\b|\bpuppy\b/.test(
         normalized
       )
     ) {
@@ -1137,7 +1137,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     }
 
     if (
-      /f?r\s+katzen|for\s+cat\b|\bkatze\b|\bkatzen\b|\bcat\b|\bcats\b|\bkitten\b/.test(
+      /für\s+katzen|for\s+cat\b|\bkatze\b|\bkatzen\b|\bcat\b|\bcats\b|\bkitten\b/.test(
         normalized
       )
     ) {
@@ -1146,7 +1146,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
 
     if (
       !perProduct[productId]?.pet &&
-      /haustier|haustiere|\bpet\b|\bpets\b|f?r\s+tiere/.test(normalized)
+      /haustier|haustiere|\bpet\b|\bpets\b|für\s+tiere/.test(normalized)
     ) {
       addAttribute(productId, "pet", "pet");
     }
@@ -1159,7 +1159,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     const normalized = normalizeText(text);
 
     if (
-      /f?r\s+bad|f?r\s+badezimmer|for\s+bathroom\b|\bbad\b|\bbadezimmer\b|\bbathroom\b|\bbath\b/.test(
+      /für\s+bad|für\s+badezimmer|for\s+bathroom\b|\bbad\b|\bbadezimmer\b|\bbathroom\b|\bbath\b/.test(
         normalized
       )
     ) {
@@ -1167,7 +1167,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     }
 
     if (
-      /f?r\s+k?che|f?r\s+kueche|for\s+kitchen\b|\bk?che\b|\bkueche\b|\bkitchen\b/.test(
+      /für\s+küche|für\s+kueche|for\s+kitchen\b|\bküche\b|\bkueche\b|\bkitchen\b/.test(
         normalized
       )
     ) {
@@ -1175,7 +1175,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     }
 
     if (
-      /f?r\s+wohnzimmer|for\s+living\s+room\b|\bwohnzimmer\b|\bliving\s+room\b/.test(
+      /für\s+wohnzimmer|for\s+living\s+room\b|\bwohnzimmer\b|\bliving\s+room\b/.test(
         normalized
       )
     ) {
@@ -1183,7 +1183,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     }
 
     if (
-      /f?r\s+schlafzimmer|for\s+bedroom\b|\bschlafzimmer\b|\bbedroom\b/.test(
+      /für\s+schlafzimmer|for\s+bedroom\b|\bschlafzimmer\b|\bbedroom\b/.test(
         normalized
       )
     ) {
@@ -1213,7 +1213,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
       addAttribute(productId, "family", "cleaner");
     }
 
-    if (/t?cher|tuecher|tuch|wipes/.test(normalized)) {
+    if (/tücher|tuecher|tuch|wipes/.test(normalized)) {
       addAttribute(productId, "family", "wipes");
     }
 
@@ -1234,7 +1234,7 @@ function buildAttributeIndex(allProducts: EfroProduct[]): AttributeIndex {
     }
 
     // NEU: Napf/Futternapf als eigene Familie "bowl"
-    // WICHTIG: "fressnapf" wurde entfernt - soll dynamisch ?ber AI gelernt werden
+    // WICHTIG: "fressnapf" wurde entfernt - soll dynamisch über AI gelernt werden
     if (/napf|futternapf/.test(normalized)) {
       addAttribute(productId, "family", "bowl");
     }
@@ -1308,17 +1308,17 @@ function parseQueryForAttributes(text: string): ParsedQuery {
   for (const phrase of attributePhrases) {
     if (remainingText.includes(phrase)) {
       foundPhrases.push(phrase);
-      // Phrase aus Text entfernen, um Doppelz?hlung zu vermeiden
+      // Phrase aus Text entfernen, um Doppelzählung zu vermeiden
       remainingText = remainingText.replace(phrase, " ");
     }
   }
 
-  // Einzelw?rter aus dem verbleibenden Text
+  // Einzelwörter aus dem verbleibenden Text
   const remainingTokens = remainingText
     .split(" ")
     .filter((t) => t.length >= 3 && !stopwords.includes(t));
 
-  // Attribute-Terms: Phrasen + einzelne W?rter, die typischerweise Attribute sind
+  // Attribute-Terms: Phrasen + einzelne Wörter, die typischerweise Attribute sind
   const attributeKeywords = ATTRIBUTE_KEYWORDS;
 
   const attributeTerms: string[] = [...foundPhrases];
@@ -1341,7 +1341,7 @@ function parseQueryForAttributes(text: string): ParsedQuery {
   const attributeFilters: ProductAttributeMap = {};
 
   /**
-   * Hilfsfunktion: F?gt einen Filter-Wert hinzu
+   * Hilfsfunktion: Fügt einen Filter-Wert hinzu
    */
   function addFilter(key: string, value: string): void {
     if (!attributeFilters[key]) {
@@ -1388,47 +1388,47 @@ function parseQueryForAttributes(text: string): ParsedQuery {
 
   // audience Erkennung
   if (
-    /f?r\s+herren|f?r\s+m?nner|for\s+men\b|herren\b|m?nner\b|\bmen\b/.test(
+    /für\s+herren|für\s+männer|for\s+men\b|herren\b|männer\b|\bmen\b/.test(
       normalized
     )
   ) {
     addFilter("audience", "men");
   }
   if (
-    /f?r\s+damen|f?r\s+frauen|for\s+women\b|damen\b|frauen\b|\bwomen\b/.test(
+    /für\s+damen|für\s+frauen|for\s+women\b|damen\b|frauen\b|\bwomen\b/.test(
       normalized
     )
   ) {
     addFilter("audience", "women");
   }
   if (
-    /f?r\s+kinder|for\s+kids\b|\bkinder\b|\bkids\b|\bchildren\b|f?r\s+jungs|f?r\s+m?dchen/.test(
+    /für\s+kinder|for\s+kids\b|\bkinder\b|\bkids\b|\bchildren\b|für\s+jungs|für\s+mädchen/.test(
       normalized
     )
   ) {
     addFilter("audience", "kids");
   }
   if (
-    /f?r\s+babys|f?r\s+babies|for\s+baby\b|\bbaby\b|\bbabies\b/.test(
+    /für\s+babys|für\s+babies|for\s+baby\b|\bbaby\b|\bbabies\b/.test(
       normalized
     )
   ) {
     addFilter("audience", "baby");
   }
-  if (/unisex\b|f?r\s+alle|for\s+all\b/.test(normalized)) {
+  if (/unisex\b|für\s+alle|for\s+all\b/.test(normalized)) {
     addFilter("audience", "unisex");
   }
 
   // pet Erkennung
   if (
-    /f?r\s+hunde|hund\b|\bhunde\b|for\s+dog\b|\bdog\b|\bdogs\b|\bwelpe\b|\bpuppy\b/.test(
+    /für\s+hunde|hund\b|\bhunde\b|for\s+dog\b|\bdog\b|\bdogs\b|\bwelpe\b|\bpuppy\b/.test(
       normalized
     )
   ) {
     addFilter("pet", "dog");
   }
   if (
-    /f?r\s+katzen|katze\b|\bkatzen\b|for\s+cat\b|\bcat\b|\bcats\b|\bkitten\b/.test(
+    /für\s+katzen|katze\b|\bkatzen\b|for\s+cat\b|\bcat\b|\bcats\b|\bkitten\b/.test(
       normalized
     )
   ) {
@@ -1437,35 +1437,35 @@ function parseQueryForAttributes(text: string): ParsedQuery {
   // Allgemein Haustier (nur wenn nicht bereits dog oder cat gesetzt)
   if (
     !attributeFilters.pet &&
-    /haustier|haustiere|\bpet\b|\bpets\b|f?r\s+tiere/.test(normalized)
+    /haustier|haustiere|\bpet\b|\bpets\b|für\s+tiere/.test(normalized)
   ) {
     addFilter("pet", "pet");
   }
 
   // room Erkennung
   if (
-    /f?r\s+bad|f?r\s+badezimmer|\bbad\b|\bbadezimmer\b|for\s+bathroom\b|\bbathroom\b|\bbath\b/.test(
+    /für\s+bad|für\s+badezimmer|\bbad\b|\bbadezimmer\b|for\s+bathroom\b|\bbathroom\b|\bbath\b/.test(
       normalized
     )
   ) {
     addFilter("room", "bathroom");
   }
   if (
-    /f?r\s+k?che|f?r\s+kueche|\bk?che\b|\bkueche\b|for\s+kitchen\b|\bkitchen\b/.test(
+    /für\s+küche|für\s+kueche|\bküche\b|\bkueche\b|for\s+kitchen\b|\bkitchen\b/.test(
       normalized
     )
   ) {
     addFilter("room", "kitchen");
   }
   if (
-    /f?r\s+wohnzimmer|\bwohnzimmer\b|for\s+living\s+room\b|\bliving\s+room\b/.test(
+    /für\s+wohnzimmer|\bwohnzimmer\b|for\s+living\s+room\b|\bliving\s+room\b/.test(
       normalized
     )
   ) {
     addFilter("room", "living_room");
   }
   if (
-    /f?r\s+schlafzimmer|\bschlafzimmer\b|for\s+bedroom\b|\bbedroom\b/.test(
+    /für\s+schlafzimmer|\bschlafzimmer\b|for\s+bedroom\b|\bbedroom\b/.test(
       normalized
     )
   ) {
@@ -1485,7 +1485,7 @@ function parseQueryForAttributes(text: string): ParsedQuery {
   if (/reiniger|cleaner|reinigungs|cleaning|schmutz|verschmutz|verschmutzungen|fleck|flecken|kalk/.test(normalized)) {
     addFilter("family", "cleaner");
   }
-  if (/t?cher|tuecher|tuch|wipes/.test(normalized)) {
+  if (/tücher|tuecher|tuch|wipes/.test(normalized)) {
     addFilter("family", "wipes");
   }
   if (/\bspray\b/.test(normalized)) {
@@ -1509,13 +1509,13 @@ function parseQueryForAttributes(text: string): ParsedQuery {
 }
 
 /**
- * Erweitert W?rter um Katalog-Keywords, wenn sie als Komposita erkannt werden.
+ * Erweitert Wörter um Katalog-Keywords, wenn sie als Komposita erkannt werden.
  * 
  * Beispiel: "fressnapf" ? ["fressnapf", "napf"] (wenn "napf" im Katalog vorkommt)
  * 
- * @param words Array von normalisierten User-W?rtern
+ * @param words Array von normalisierten User-Wörtern
  * @param catalogKeywords Array von bekannten Katalog-Keywords
- * @returns Erweiterte Liste von W?rtern (inkl. Originale + aufgebrochene Komposita)
+ * @returns Erweiterte Liste von Wörtern (inkl. Originale + aufgebrochene Komposita)
  */
 function expandWordsWithCatalogKeywords(
   words: string[],
@@ -1534,7 +1534,7 @@ function expandWordsWithCatalogKeywords(
     result.add(lower);
 
     // Heuristik: wenn das Wort mit einem bekannten Keyword endet,
-    // z. B. "fressnapf" -> "napf", dann dieses Keyword zus?tzlich ?bernehmen.
+    // z. B. "fressnapf" -> "napf", dann dieses Keyword zusätzlich übernehmen.
     for (const kw of keywordSet) {
       if (lower !== kw && lower.endsWith(kw)) {
         result.add(kw);
@@ -1548,13 +1548,13 @@ function expandWordsWithCatalogKeywords(
 }
 
 /**
- * Simple fuzzy helper: findet nahe Tokens im Katalog f?r ein gegebenes Wort
+ * Simple fuzzy helper: findet nahe Tokens im Katalog für ein gegebenes Wort
  * 
- * Verwendet eine einfache Heuristik basierend auf L?ngenunterschied und Substring-Matching.
+ * Verwendet eine einfache Heuristik basierend auf Längenunterschied und Substring-Matching.
  * 
  * @param term Der zu suchende Begriff (normalisiert)
  * @param catalogKeywords Array von bekannten Katalog-Keywords
- * @param maxDistance Maximale L?ngendifferenz (Standard: 2)
+ * @param maxDistance Maximale Längendifferenz (Standard: 2)
  * @returns Array von gefundenen Fuzzy-Matches
  */
 function getClosestCatalogTokens(
@@ -1572,13 +1572,13 @@ function getClosestCatalogTokens(
 
     const normalizedKeyword = normalizeAliasKey(keyword);
 
-    // Exakte ?bereinstimmung
+    // Exakte übereinstimmung
     if (normalizedKeyword === normalizedTerm) {
       matches.push(keyword);
       continue;
     }
 
-    // Sehr einfache Distanz-Heuristik: L?nge + enthalten
+    // Sehr einfache Distanz-Heuristik: Länge + enthalten
     const lengthDiff = Math.abs(normalizedKeyword.length - normalizedTerm.length);
     const contains =
       normalizedKeyword.includes(normalizedTerm) || normalizedTerm.includes(normalizedKeyword);
@@ -1603,15 +1603,15 @@ function getClosestCatalogTokens(
 }
 
 /**
- * Identifiziert unbekannte Begriffe im User-Text und l?st sie auf bekannte Keywords auf.
+ * Identifiziert unbekannte Begriffe im User-Text und löst sie auf bekannte Keywords auf.
  * 
- * Verwendet eine Alias-Map f?r AI-generierte Mappings, Fuzzy-Matching f?r ?hnliche Schreibvarianten,
- * und zus?tzlich Substring-Heuristiken als Fallback.
+ * Verwendet eine Alias-Map für AI-generierte Mappings, Fuzzy-Matching für ?hnliche Schreibvarianten,
+ * und zusätzlich Substring-Heuristiken als Fallback.
  * 
- * @param text Der urspr?ngliche User-Text
- * @param knownKeywords Array von bekannten Keywords (aus Katalog + erweiterte User-W?rter)
+ * @param text Der ursprüngliche User-Text
+ * @param knownKeywords Array von bekannten Keywords (aus Katalog + erweiterte User-Wörter)
  * @param aliasMap Alias-Map mit Mappings von unbekannten Begriffen zu bekannten Keywords
- * @returns Objekt mit unbekannten Begriffen und aufgel?sten Begriffen
+ * @returns Objekt mit unbekannten Begriffen und aufgelösten Begriffen
  */
 type UnknownTermsResult = {
   rawTerms: string[];
@@ -1633,7 +1633,7 @@ function resolveUnknownTerms(
     .map((w) => w.trim())
     .filter((w) => w.length >= 3);
 
-  // WICHTIG: Nur normalizeAliasKey verwenden f?r Konsistenz
+  // WICHTIG: Nur normalizeAliasKey verwenden für Konsistenz
   const normalizedTerms = rawTerms
     .map((t) => normalizeAliasKey(t))
     .filter((t) => t.length > 0);
@@ -1666,8 +1666,8 @@ function resolveUnknownTerms(
           const normalizedAlias = normalizeAliasKey(alias);
 
           if (normalizedAlias.length > 0) {
-            // Nur Aliase hinzuf?gen, die auch in knownSet enthalten sind
-            // (damit wir keine Phantom-W?rter haben, die im Katalog gar nicht vorkommen)
+            // Nur Aliase hinzufügen, die auch in knownSet enthalten sind
+            // (damit wir keine Phantom-Wörter haben, die im Katalog gar nicht vorkommen)
             if (knownSet.has(normalizedAlias)) {
               aliasResolvedSet.add(normalizedAlias);
             }
@@ -1678,7 +1678,7 @@ function resolveUnknownTerms(
   }
 
   // Schritt 2: Fuzzy-Matching als Fallback (vor Substring-Heuristik)
-  // Grundlage f?r "smarte" Schreibvarianten (z. B. parfum ? perfume mit Levenshtein-Distanz)
+  // Grundlage für "smarte" Schreibvarianten (z. B. parfum ? perfume mit Levenshtein-Distanz)
   const fuzzyResolvedSet = new Set<string>();
   if (!aliasMapUsed && unknownTermsSet.size > 0 && knownSet.size > 0) {
     for (const unknown of unknownTermsSet) {
@@ -1702,16 +1702,16 @@ function resolveUnknownTerms(
     }
   }
 
-  // Schritt 4: Resolved-Tokens zusammenf?hren (Priorit?t: Alias > Fuzzy > Substring)
+  // Schritt 4: Resolved-Tokens zusammenführen (Priorität: Alias > Fuzzy > Substring)
   const resolvedSet = new Set<string>();
   if (aliasResolvedSet.size > 0) {
-    // Alias-Tokens haben h?chste Priorit?t
+    // Alias-Tokens haben höchste Priorität
     aliasResolvedSet.forEach((t) => resolvedSet.add(t));
   } else if (fuzzyResolvedSet.size > 0) {
-    // Fuzzy-Tokens als zweite Priorit?t
+    // Fuzzy-Tokens als zweite Priorität
     fuzzyResolvedSet.forEach((t) => resolvedSet.add(t));
   } else if (substringResolvedSet.size > 0) {
-    // Substring-Tokens als letzte Priorit?t
+    // Substring-Tokens als letzte Priorität
     substringResolvedSet.forEach((t) => resolvedSet.add(t));
   }
 
@@ -1748,7 +1748,7 @@ function resolveUnknownTerms(
 }
 
 /**
- * Produkt-Scoring f?r Keywords
+ * Produkt-Scoring für Keywords
  */
 function scoreProductForWords(product: EfroProduct, words: string[]): number {
   if (words.length === 0) return 0;
@@ -1773,7 +1773,7 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
   for (const word of words) {
     if (!word) continue;
 
-    // Exakte Treffer ? st?rker gewichten
+    // Exakte Treffer ? stärker gewichten
     if (title.includes(word)) {
       score += 5;
     } else if (tagsText.includes(word)) {
@@ -1784,7 +1784,7 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
       score += 2;
     }
 
-    // NEU: robustes Fuzzy-Matching mit mehreren Pr?fixen (z. B. "dusch", "duschg")
+    // NEU: robustes Fuzzy-Matching mit mehreren Prüfixen (z. B. "dusch", "duschg")
     if (word.length >= 4) {
       const maxLen = Math.min(6, word.length);
       for (let len = 4; len <= maxLen; len++) {
@@ -1808,7 +1808,7 @@ function scoreProductForWords(product: EfroProduct, words: string[]): number {
 // EFRO Modularization Phase 3: collectMatches nach modules/utils ausgelagert
 
 /**
- * Pr?ft, ob der Nutzertext explizit nach Parf?m fragt
+ * Prüft, ob der Nutzertext explizit nach Parfüm fragt
  */
 function userMentionsPerfume(text: string): boolean {
   const normalizedText = normalize(text);
@@ -1846,7 +1846,7 @@ async function buildFilterContext(
   // Erkenne, ob User explizit nach dem teuersten Produkt fragt
   const wantsMostExpensive = detectMostExpensiveRequest(text);
 
-  // Dynamischen Attribut-Index f?r alle Produkte bauen
+  // Dynamischen Attribut-Index für alle Produkte bauen
   const attributeIndex = buildAttributeIndex(allProducts);
 
   /**
@@ -1866,8 +1866,8 @@ async function buildFilterContext(
   let missingCategoryHint = categoryResult.missingCategoryHint;
   const triggerWord = categoryResult.triggerWord;
 
-  // EFRO Parf?m-Fix: Wenn der Nutzer klar nach Parf?m fragt und der Katalog eine "perfume"-Kategorie hat,
-  // dann setze die effektive Kategorie auf "perfume" und erg?nze matchedCategories entsprechend.
+  // EFRO Parfüm-Fix: Wenn der Nutzer klar nach Parfüm fragt und der Katalog eine "perfume"-Kategorie hat,
+  // dann setze die effektive Kategorie auf "perfume" und ergänze matchedCategories entsprechend.
   // WICHTIG: Nur wenn es tatsächlich Produkte in dieser Kategorie gibt (Kategorie-Optimierung).
   const allCategories = Array.from(
     new Set(
@@ -1879,7 +1879,7 @@ async function buildFilterContext(
   const normalizedQueryForPerfume = normalize(text);
   const perfumeKeywords = [
     "parfum",
-    "parf?m",
+    "parfüm",
     "parfum",
     "duft",
     "eau de parfum",
@@ -1965,13 +1965,13 @@ async function buildFilterContext(
   // Katalog-Keywords aus allen Produkten extrahieren
   const catalogKeywordsSet = new Set<string>();
   for (const product of allProducts) {
-    // Kategorie normalisieren und hinzuf?gen (wichtig f?r canonicalTokens)
+    // Kategorie normalisieren und hinzufügen (wichtig für canonicalTokens)
     if (product.category) {
       const catNormalized = normalizeText(product.category);
       const catWords = catNormalized.split(/\s+/).filter((w) => w.length >= 3);
       catWords.forEach((w) => catalogKeywordsSet.add(w));
-      // Auch die gesamte normalisierte Kategorie als Token hinzuf?gen (konsistent mit normalizeAliasKey)
-      // z. B. "Perfume" -> "perfume" (f?r Language-Aliase wie "parfum" -> "perfume")
+      // Auch die gesamte normalisierte Kategorie als Token hinzufügen (konsistent mit normalizeAliasKey)
+      // z. B. "Perfume" -> "perfume" (für Language-Aliase wie "parfum" -> "perfume")
       const fullCat = normalizeAliasKey(product.category);
       if (fullCat && fullCat.length >= 3) {
         catalogKeywordsSet.add(fullCat);
@@ -2012,10 +2012,10 @@ async function buildFilterContext(
   // HINWEIS: Dynamic Aliases werden in runSellerBrain() verwendet (dort ist vollständiger SellerBrainContext verfügbar)
   const aliasMap = await initializeAliasMap(catalogKeywords);
 
-  // W?rter mit Katalog-Keywords erweitern (Komposita aufbrechen)
+  // Wörter mit Katalog-Keywords erweitern (Komposita aufbrechen)
   let expandedWords = expandWordsWithCatalogKeywords(words, catalogKeywords);
 
-  // Query in Core- und Attribute-Terms aufteilen (f?r Log)
+  // Query in Core- und Attribute-Terms aufteilen (für Log)
   const parsedQuery = parseQueryForAttributes(text);
   
   // Wort-Classification: Kategorien, Usage, Skin-Keywords erkennen
@@ -2040,7 +2040,7 @@ async function buildFilterContext(
   }
   
   const categoryHints = collectMatches(fullTextLower, CATEGORY_KEYWORDS);
-  // Erg?nze dynamische Kategorie-Hints
+  // Ergänze dynamische Kategorie-Hints
   if (dynamicCategoryHints.length > 0) {
     categoryHints.push(...dynamicCategoryHints);
   }
@@ -2133,13 +2133,13 @@ function computeBudgetAndPriceRange(
     candidateCountBeforePriceFilter: candidates.length,
   });
 
-  // Sprachbasierte Korrektur f?r "?ber / unter / bis / maximal"
+  // Sprachbasierte Korrektur für "über / unter / bis / maximal"
   const loweredForBudget = text.toLowerCase();
 
   // ?? Kein Regex mit Wortgrenzen mehr ? wir arbeiten mit einfachen includes,
   // damit auch kaputte Markups wie "%]%ber 800" erkannt werden.
   const hasOverToken =
-    loweredForBudget.includes("?ber") ||
+    loweredForBudget.includes("über") ||
     loweredForBudget.includes("ueber") ||
     loweredForBudget.includes("uber") ||
     loweredForBudget.includes(" mindest") ||
@@ -2153,7 +2153,7 @@ function computeBudgetAndPriceRange(
   const hasUnderToken =
     loweredForBudget.includes("unter") ||
     loweredForBudget.includes(" bis ") ||
-    loweredForBudget.includes("h?chstens") ||
+    loweredForBudget.includes("höchstens") ||
     loweredForBudget.includes("hochstens") ||
     loweredForBudget.includes("hoechstens") ||
     loweredForBudget.includes(" maximal") ||
@@ -2166,8 +2166,8 @@ function computeBudgetAndPriceRange(
   let rawMax: number | null = userMaxPrice ?? null;
 
   if (rawMin !== null || rawMax !== null) {
-    // Fall 1: Parser liefert nur max, Text sagt "?ber" ? wir deuten es als Untergrenze
-    // Beispiel: "?ber 800 Euro" ? rawMin = null, rawMax = 800
+    // Fall 1: Parser liefert nur max, Text sagt "über" ? wir deuten es als Untergrenze
+    // Beispiel: "über 800 Euro" ? rawMin = null, rawMax = 800
     if (hasOverToken && rawMax !== null && rawMin === null) {
       rawMin = rawMax;
       rawMax = null;
@@ -2186,14 +2186,14 @@ function computeBudgetAndPriceRange(
 
   // EFRO Modularization Phase 2: priceRangeInfo-Typ aus modules/types verwendet
   // - Track, ob nach Price-Filter keine Produkte gefunden wurden
-  // - Unrealistische Budgets erkennen (unterhalb g?nstigstem / oberhalb teuerstem Produkt)
+  // - Unrealistische Budgets erkennen (unterhalb günstigstem / oberhalb teuerstem Produkt)
   let priceRangeNoMatch = false;
   let priceRangeInfo: PriceRangeInfo | undefined = undefined;
 
   if (minPrice !== null || maxPrice !== null) {
     const beforePriceFilter = candidates.length;
 
-    // EFRO Modularization Phase 2: Preis-Informationen ?ber computePriceRangeInfo berechnen
+    // EFRO Modularization Phase 2: Preis-Informationen über computePriceRangeInfo berechnen
     const categoryForInfo = effectiveCategorySlug || contextCategory || null;
     
     const priceRangeInfoTemp = computePriceRangeInfo({
@@ -2237,7 +2237,7 @@ function computeBudgetAndPriceRange(
         afterPriceFilter: candidates.length,
         priceRangeInfo,
         note:
-          "Keine oder nur sehr unpassende Produkte im gew?nschten Preisbereich gefunden.",
+          "Keine oder nur sehr unpassende Produkte im gewünschten Preisbereich gefunden.",
       });
     }
   }
@@ -2253,7 +2253,7 @@ function computeBudgetAndPriceRange(
 }
 
 /**
- * Helper: L?st unbekannte Begriffe auf (resolveUnknownTerms, AliasMap, CodeDetect)
+ * Helper: Löst unbekannte Begriffe auf (resolveUnknownTerms, AliasMap, CodeDetect)
  */
 function resolveUnknownTermsForFilter(
   text: string,
@@ -2268,7 +2268,7 @@ function resolveUnknownTermsForFilter(
 } {
   // --- EFRO Alias-Preprocessing -----------------------------------------
   // Alias-Map VOR dem Keyword-Matching anwenden, damit unbekannte Begriffe
-  // in bekannte Keywords aufgel?st werden
+  // in bekannte Keywords aufgelöst werden
   // EFRO Fressnapf-Fix: "fressnapf" soll NICHT als Alias verwendet werden, sondern als unbekannte Marke behandelt werden
   // Erstelle eine gefilterte AliasMap ohne "fressnapf"
   const filteredAliasMap: AliasMap = {};
@@ -2282,7 +2282,7 @@ function resolveUnknownTermsForFilter(
   
   const aliasResult = resolveUnknownTerms(text, catalogKeywords, filteredAliasMap);
 
-  // Speichere aliasResult f?r sp?teren Hard-Filter
+  // Speichere aliasResult für späteren Hard-Filter
   const unknownResult = aliasResult;
 
   if (aliasResult.resolved.length > 0) {
@@ -2329,7 +2329,7 @@ function resolveUnknownTermsForFilter(
       expandedBefore,
       wordsAfter: words,
       expandedAfter: expandedWords,
-      // Debug f?r "Parf?m" / Language-Aliase
+      // Debug für "Parfüm" / Language-Aliase
       ...(text.toLowerCase().includes("parf") ? {
         debugParfum: {
           normalizedText: normalizeText(text),
@@ -2481,7 +2481,7 @@ function applyProductFilters(
   // ?? EFRO Category Filter Fix:
   // - Nur dann hart nach Kategorie filtern, wenn es mindestens ein Produkt
   //   mit diesem Category-Slug gibt.
-  // - Wenn kein Produkt diese Kategorie hat, Kandidaten NICHT auf 0 schie?en,
+  // - Wenn kein Produkt diese Kategorie hat, Kandidaten NICHT auf 0 schießen,
   //   sondern missingCategoryHint setzen und einen Debug-Hinweis schreiben.
  
  // EFRO: Kategorie-Inferenz bei Tippfehlern / generischen Begriffen (z. B. "snowbord", "einsteiger-board")
@@ -2578,13 +2578,13 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
       if (!missingCategoryHint) {
         missingCategoryHint = effectiveCategorySlug;
       }
-      // candidates bleibt unver?ndert.
+      // candidates bleibt unverändert.
     }
     
-    // TODO Vorschlag: Bei Budget-only Anfragen (ohne Produktkategorie) k?nnte man
+    // TODO Vorschlag: Bei Budget-only Anfragen (ohne Produktkategorie) könnte man
     // den Kategorie-Filter optional machen, damit nicht alle Produkte wegfallen.
-    // Aktuell: Kategorie-Filter ist hart, was bei "zeig mir Parf?m" korrekt ist,
-    // aber bei "50 Euro Budget" ohne Kategorie k?nnte es zu streng sein.
+    // Aktuell: Kategorie-Filter ist hart, was bei "zeig mir Parfüm" korrekt ist,
+    // aber bei "50 Euro Budget" ohne Kategorie könnte es zu streng sein.
     
     console.log("[EFRO SB] AFTER CATEGORY FILTER", {
       text: text.substring(0, 80),
@@ -2608,7 +2608,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
       const hasHairKeywords = WAX_HAIR_KEYWORDS.some((kw) => normalizedText.includes(kw));
       const hasSnowboardKeywords = WAX_SNOWBOARD_KEYWORDS.some((kw) => normalizedText.includes(kw));
       
-      // Pr?fe auf explizite Negationen
+      // Prüfe auf explizite Negationen
       const hasHairNegation = /nicht.*haar|kein.*haar|nicht.*frisur|kein.*frisur/i.test(text);
       const hasSnowboardNegation = /nicht.*snowboard|kein.*snowboard|nicht.*ski|kein.*ski|nicht.*board|kein.*board/i.test(text);
       
@@ -2635,7 +2635,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
           (Array.isArray(p.tags) ? p.tags.join(" ") : "")
         ).toLowerCase();
         
-        // EFRO WAX-Disambiguierung: Wenn "wax"/"wachs" im Query ist, pr?fe Intent
+        // EFRO WAX-Disambiguierung: Wenn "wax"/"wachs" im Query ist, prüfe Intent
         if (hasWaxKeyword) {
           const hasWaxInTitle = (p.title ?? "").toLowerCase().includes("wax") || 
                                 (p.title ?? "").toLowerCase().includes("wachs");
@@ -2644,7 +2644,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
           );
           
           if (hasWaxInTitle || hasWaxInTags) {
-            // Pr?fe, ob Produkt zu Intent passt
+            // Prüfe, ob Produkt zu Intent passt
             const isSnowboardWax = haystack.includes("snowboard") || 
                                    haystack.includes("ski") || 
                                    haystack.includes("belag") ||
@@ -2658,10 +2658,10 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
             
             // Intent-basierte Filterung
             if (waxIntent === "snowboard" && !isSnowboardWax) {
-              return false; // Haarwachs bei Snowboard-Intent ausschlie?en
+              return false; // Haarwachs bei Snowboard-Intent ausschließen
             }
             if (waxIntent === "hair" && !isHairWax) {
-              return false; // Snowboard-Wachs bei Hair-Intent ausschlie?en
+              return false; // Snowboard-Wachs bei Hair-Intent ausschließen
             }
             
             return true; // Wax-Produkt gefunden, auch ohne Kategorie
@@ -2699,7 +2699,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
       }
     }
     
-    // Keine Kategorie-Matches und kein Kontext: Log f?r Budget-only Szenarien
+    // Keine Kategorie-Matches und kein Kontext: Log für Budget-only Szenarien
     // WICHTIG: Nur loggen, wenn wirklich kein Kontext vorhanden ist
     if (userMinPrice !== null || userMaxPrice !== null) {
       if (!contextCategory) {
@@ -2758,7 +2758,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
       const productAttrs: ProductAttributeMap =
         attributeIndex.perProduct[product.id] ?? {};
 
-      // Alle aktiven Filter m?ssen matchen
+      // Alle aktiven Filter müssen matchen
       return activeAttributeFilterEntries.every(([key, values]) => {
         const prodValues = productAttrs[key] ?? [];
 
@@ -2766,7 +2766,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
           return false;
         }
 
-        // Speziallogik f?r Haustiere (pet = dog/cat/pet)
+        // Speziallogik für Haustiere (pet = dog/cat/pet)
         if (key === "pet") {
           const hasGeneric = prodValues.includes("pet");
           const hasDog = prodValues.includes("dog");
@@ -2789,7 +2789,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
           return directMatch || genericMatchesSpecies || speciesMatchesGeneric;
         }
 
-        // Standardfall f?r alle anderen Attribute
+        // Standardfall für alle anderen Attribute
         return values.some((v) => prodValues.includes(v));
       });
     });
@@ -2808,7 +2808,7 @@ new Set(allProducts.map((p) => normalize(p.category || "")).filter(Boolean))
         attributeFilters,
         beforeAttrFilterCount,
       });
-      // Kein harter Filter: wir behalten die urspr?nglichen Kandidaten
+      // Kein harter Filter: wir behalten die ursprünglichen Kandidaten
     }
   }
 
@@ -2874,15 +2874,15 @@ function rankAndSliceCandidates(
   cleaned: string
 ): EfroProduct[] {
   /**
-   * 5) Sortierung abh?ngig von Budget & Intent
+   * 5) Sortierung abhängig von Budget & Intent
    */
 
   if (hasBudget) {
     if (userMinPrice !== undefined && userMaxPrice === undefined) {
-      // nur Untergrenze: g?nstigste ?ber X zuerst
+      // nur Untergrenze: günstigste über X zuerst
       candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     } else {
-      // Obergrenze / Range: teuer nach g?nstig
+      // Obergrenze / Range: teuer nach günstig
       candidates.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
     }
   } else {
@@ -2919,21 +2919,21 @@ function rankAndSliceCandidates(
       currentIntent === "gift" ||
       currentIntent === "quick_buy"
     ) {
-      // Schn?ppchen / Geschenk / Quick-Buy: g?nstigste zuerst
+      // Schnäppchen / Geschenk / Quick-Buy: günstigste zuerst
       candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     } else if (currentIntent === "explore") {
       candidates.sort((a, b) => a.title.localeCompare(b.title));
     }
   }
 
-  // Spezialfall: User fragt explizit nach dem "g?nstigsten"/"billigsten"/"cheapest" Produkt
+  // Spezialfall: User fragt explizit nach dem "günstigsten"/"billigsten"/"cheapest" Produkt
   const normalizedTextForCheapest = normalize(text);
-  const wantsCheapestOne = /\b(g?nstigste(?:s|n)?|guenstigste(?:s|n)?|gunstigste(?:s|n)?|billigste(?:s|n)?|cheapest)\b/.test(
+  const wantsCheapestOne = /\b(günstigste(?:s|n)?|guenstigste(?:s|n)?|gunstigste(?:s|n)?|billigste(?:s|n)?|cheapest)\b/.test(
     normalizedTextForCheapest
   );
 
   if (!hasBudget && wantsCheapestOne && candidates.length > 0) {
-    // Immer nach Preis aufsteigend sortieren und NUR das billigste Produkt zur?cklassen
+    // Immer nach Preis aufsteigend sortieren und NUR das billigste Produkt zurücklassen
     candidates.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     candidates = [candidates[0]];
 
@@ -2950,12 +2950,12 @@ function rankAndSliceCandidates(
   // Nur wenn candidateCount == 0: Fallback verwenden
   let finalProducts: EfroProduct[] = [];
 
-  // Spezieller Fall: "g?nstigstes/billigstes Snowboard"
-  // ? Nur das preislich g?nstigste Produkt zur?ckgeben.
+  // Spezieller Fall: "günstigstes/billigstes Snowboard"
+  // ? Nur das preislich günstigste Produkt zurückgeben.
   const normalizedText = cleaned.toLowerCase();
   const wantsCheapestSnowboard =
     normalizedText.includes("snowboard") &&
-    /\b(g?nstigstes|g?nstigste|g?nstigsten|billigste|billigsten|preiswerteste)\b/.test(
+    /\b(günstigstes|günstigste|günstigsten|billigste|billigsten|preiswerteste)\b/.test(
       normalizedText
     );
 
@@ -2968,7 +2968,7 @@ function rankAndSliceCandidates(
     const baseList =
       snowboardCandidates.length > 0 ? snowboardCandidates : candidates;
 
-    // Nach Preis aufsteigend sortieren und nur das g?nstigste Produkt zur?ckgeben
+    // Nach Preis aufsteigend sortieren und nur das günstigste Produkt zurückgeben
     baseList.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     const cheapest = baseList[0] ? [baseList[0]] : [];
 
@@ -3015,7 +3015,7 @@ function rankAndSliceCandidates(
 
 /**
  * Produkte nach Keywords, Kategorie und Preis filtern
- * ? NIE wieder [] zur?ckgeben, solange allProducts nicht leer ist.
+ * ? NIE wieder [] zurückgeben, solange allProducts nicht leer ist.
  */
 async function filterProducts(
   text: string,
@@ -3027,7 +3027,7 @@ async function filterProducts(
 }
 
 /**
- * Szenario-Typen f?r Profiseller-Reply-Engine
+ * Szenario-Typen für Profiseller-Reply-Engine
  */
 type ProfisellerScenario =
   | "S1" // QUICK BUY ? EIN klares Produkt
@@ -3050,16 +3050,16 @@ function detectProfisellerScenario(
   maxPrice: number | null,
   attributeTerms: string[]
 ): ProfisellerScenario {
-  // S6: ZERO RESULTS (wird bereits in buildRuleBasedReplyText behandelt, aber f?r Vollst?ndigkeit)
+  // S6: ZERO RESULTS (wird bereits in buildRuleBasedReplyText behandelt, aber für Vollständigkeit)
   if (count === 0) {
     return "S6";
   }
 
   // S4: BUDGET-ONLY ANFRAGE
-  // Erkennung: Budget vorhanden, aber wenig oder keine Keywords (nur Budget-W?rter)
+  // Erkennung: Budget vorhanden, aber wenig oder keine Keywords (nur Budget-Wörter)
   if (hasBudget) {
     const normalized = normalize(text);
-    // Pr?fe, ob der Text haupts?chlich Budget-Keywords enth?lt
+    // Prüfe, ob der Text hauptsächlich Budget-Keywords enthält
     // Importiert aus languageRules.de.ts
     const hasOnlyBudgetKeywords = BUDGET_KEYWORDS_FOR_SCENARIO.some(kw => normalized.includes(kw)) && 
                                    attributeTerms.length === 0 &&
@@ -3108,17 +3108,17 @@ function detectProfisellerScenario(
  */
 
 /**
- * AI-Kl?rungstexte basierend auf aiTrigger hinzuf?gen
+ * AI-Klärungstexte basierend auf aiTrigger hinzufügen
  */
 
 
 /**
- * Reply-Text f?r EFRO bauen
+ * Reply-Text für EFRO bauen
  */
 
 
 /**
- * Pr?ft, ob ein Begriff wie ein Produktcode aussieht (z. B. ABC123 oder ABCDFG)
+ * Prüft, ob ein Begriff wie ein Produktcode aussieht (z. B. ABC123 oder ABCDFG)
  * WICHTIG: Reine Zahlen werden NICHT als Code akzeptiert
  */
 function looksLikeProductCode(term: string): boolean {
@@ -3142,19 +3142,19 @@ function looksLikeProductCode(term: string): boolean {
   const hasSpecial = /[-_]/.test(t);
   if (hasSpecial) return true;
   
-  // Reine Buchstaben-W?rter (z. B. "hundefutter", "katzenfutter", "parfum") sind KEINE Codes
+  // Reine Buchstaben-Wörter (z. B. "hundefutter", "katzenfutter", "parfum") sind KEINE Codes
   // Nur Codes mit Ziffern oder Bindestrich/Unterstrich gelten als Produktcode
   return false;
 }
 
-// H?ufige W?rter, die KEIN Produktcode sind, auch wenn sie Buchstaben/Zahlen enthalten k?nnten
+// Häufige Wörter, die KEIN Produktcode sind, auch wenn sie Buchstaben/Zahlen enthalten könnten
 const NON_CODE_TERMS_SET = new Set(NON_CODE_TERMS_ARRAY);
 
-// Stopw?rter f?r AI-Unknown-Terms-Filterung
-// Diese W?rter sollen NICHT als "unbekannte Begriffe" f?r AI-Trigger z?hlen
+// Stopwörter für AI-Unknown-Terms-Filterung
+// Diese Wörter sollen NICHT als "unbekannte Begriffe" für AI-Trigger zählen
 const UNKNOWN_AI_STOPWORDS_SET = new Set<string>(UNKNOWN_AI_STOPWORDS_ARRAY);
 
-// [EFRO AI] Stopwords und generische W?rter, die nicht als unknownTerms gez?hlt werden sollen
+// [EFRO AI] Stopwords und generische Wörter, die nicht als unknownTerms gezählt werden sollen
 const GENERIC_UNKNOWN_STOPWORDS = new Set([
   "produkte",
   "produkt",
@@ -3182,7 +3182,7 @@ function extractCodeTermFromText(text: string): string | null {
   if (!text) return null;
   const lower = text.toLowerCase();
 
-  // Schritt 1: Einfache Wort-Splittung f?r gemischte Codes (ABC123)
+  // Schritt 1: Einfache Wort-Splittung für gemischte Codes (ABC123)
   // CLUSTER K FIX K16v1: Erweitere Pattern für längere Codes wie "Alpha ULTRA PRO 1TB"
   const candidates = lower.match(/\b[a-z0-9\-]{4,30}\b/gi);
   if (!candidates) return null;
@@ -3207,8 +3207,8 @@ function extractCodeTermFromText(text: string): string | null {
     return codeCandidates[0];
   }
 
-  // Schritt 2: F?r reine Buchstabencodes (ABCDFG) - isolierte unbekannte Terms pr?fen
-  // Extrahiere alle Terms nach Entfernen von Stoppw?rtern
+  // Schritt 2: Für reine Buchstabencodes (ABCDFG) - isolierte unbekannte Terms prüfen
+  // Extrahiere alle Terms nach Entfernen von Stoppwörtern
   const stopwords = new Set([
     "kannst", "du", "mir", "zeigen", "zeige", "zeig", "bitte", "ich", "suche", "ein", "eine", "einen",
     "produkt", "produkte", "artikel", "kann", "können", "soll", "sollte", "möchte", "will", "würde",
@@ -3216,8 +3216,8 @@ function extractCodeTermFromText(text: string): string | null {
     "er", "sie", "wir", "ihr",
     // Verben (haben)
     "habe", "hast", "hat", "haben",
-    // Budget/Preis-W?rter
-    "budget", "preis", "euro", "unter", "?ber", "bis", "ca", "etwa", "ungef?hr", "von",
+    // Budget/Preis-Wörter
+    "budget", "preis", "euro", "unter", "über", "bis", "ca", "etwa", "ungefähr", "von",
   ]);
   
   const normalized = normalize(text);
@@ -3264,7 +3264,7 @@ export async function runOrchestrator({
     });
 
     const fallbackReplyText =
-      "Entschuldigung, im Moment sind keine Produkte verf?gbar. Bitte versuche es sp?ter noch einmal.";
+      "Entschuldigung, im Moment sind keine Produkte verfügbar. Bitte versuche es später noch einmal.";
 
     return {
       intent: currentIntent,
@@ -3280,7 +3280,7 @@ export async function runOrchestrator({
     };
   }
 
-  // Debug: Katalog-?bersicht loggen (nur einmal pro Run)
+  // Debug: Katalog-übersicht loggen (nur einmal pro Run)
   debugCatalogOverview(allProducts);
 
   const nextIntent = detectIntentFromText(cleaned, currentIntent);
@@ -3339,7 +3339,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     previousCount: state.previousRecommendedCount,
   });
 
-  // EFRO S18/S19 Fix: Handle Wax-Erkl?rungen mit AI-Trigger
+  // EFRO S18/S19 Fix: Handle Wax-Erklärungen mit AI-Trigger
   // CLUSTER 1 FIX: Berücksichtige explanationModeBoolean auch in handleWaxExplanation
   // Wenn explanationMode null ist, aber explanationModeBoolean true, dann setze explanationMode auf "usage"
   const effectiveExplanationModeForWax = explanationMode || (explanationModeBoolean ? "usage" : null);
@@ -3350,14 +3350,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
     previousRecommendedCount
   );
 
-  // explanationMode ggf. ?bernehmen (f?r S18/S19)
+  // explanationMode ggf. übernehmen (für S18/S19)
   // EFRO Explanation-Mode Boolean: Berücksichtige auch explanationModeBoolean für robuste Erkennung
   const effectiveExplanationMode = 
     waxExplanationInfo.explanationMode || 
     explanationMode || 
     (explanationModeBoolean ? "usage" : null);
 
-  // EFRO Explanation-Mode: Erkennt Erkl?rungsanfragen und setzt AI-Trigger
+  // EFRO Explanation-Mode: Erkennt Erklärungsanfragen und setzt AI-Trigger
   if (effectiveExplanationMode) {
     // EFRO Wax-Fall: Wenn keine Kategorie erkannt wird, suche nach "wachs"/"wax" in Produkten
     const normalized = normalize(cleaned);
@@ -3397,12 +3397,12 @@ function isAmbiguousBoardQuery(text: string): boolean {
       ? explanationProducts
       : [];
 
-    // EFRO WAX-Fix: Pr?fe Beschreibung f?r Wax-Produkte
-    // Nutze previousRecommended, wenn vorhanden (f?r Follow-up-Fragen)
+    // EFRO WAX-Fix: Prüfe Beschreibung für Wax-Produkte
+    // Nutze previousRecommended, wenn vorhanden (für Follow-up-Fragen)
     let hasUsableDescription = false;
     let waxProductWithDescription: EfroProduct | null = null;
     
-    // Priorisiere previousRecommended f?r Follow-up-Fragen
+    // Priorisiere previousRecommended für Follow-up-Fragen
     const productsToCheck = previousRecommended && previousRecommended.length > 0 
       ? previousRecommended 
       : recommended;
@@ -3416,7 +3416,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       
       if (waxProduct) {
         const desc = (waxProduct.description || "").trim();
-        hasUsableDescription = desc.length >= 30; // Mindestens 30 Zeichen f?r sinnvolle Beschreibung
+        hasUsableDescription = desc.length >= 30; // Mindestens 30 Zeichen für sinnvolle Beschreibung
         waxProductWithDescription = hasUsableDescription ? waxProduct : null;
         
         console.log("[EFRO WAX Description Check]", {
@@ -3428,14 +3428,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
       }
     }
 
-    // EFRO Explanation-Mode: AI-Trigger f?r Erkl?rungsanfragen setzen
+    // EFRO Explanation-Mode: AI-Trigger für Erklärungsanfragen setzen
     const matchedProductsForContext = recommended.slice(0, 3).map((p) => ({
       id: p.id,
       title: p.title,
       category: p.category,
     }));
 
-    // EFRO Fix: KEIN AI-Trigger f?r Erkl?rungen mit Produktbeschreibung
+    // EFRO Fix: KEIN AI-Trigger für Erklärungen mit Produktbeschreibung
     // Die Antwort wird direkt aus der Beschreibung generiert (siehe ReplyText-Logik unten)
     let aiTrigger: SellerBrainAiTrigger | undefined = undefined;
 
@@ -3454,17 +3454,17 @@ function isAmbiguousBoardQuery(text: string): boolean {
           replyText = `Hier ist die Anleitung für ${productTitle}:\n\n` +
             steps.map((step: string, idx: number) => `${idx + 1}. ${step}`).join("\n");
         } else {
-          // Fallback: Nutze Beschreibung direkt (gek?rzt, falls zu lang)
+          // Fallback: Nutze Beschreibung direkt (gekürzt, falls zu lang)
           const maxLength = 500;
           const truncatedDesc = description.length > maxLength 
             ? description.substring(0, maxLength) + "..."
             : description;
-          replyText = `F?r ${productTitle}:\n\n${truncatedDesc}`;
+          replyText = `Für ${productTitle}:\n\n${truncatedDesc}`;
         }
       } else {
         // Beschreibung fehlt: Ehrliche Antwort ohne AI
-        replyText = "F?r dieses Produkt liegt aktuell keine ausf?hrliche Beschreibung im Shop vor. " +
-          "Bitte wenden Sie sich direkt an den Shop oder schauen Sie sp?ter noch einmal vorbei.";
+        replyText = "Für dieses Produkt liegt aktuell keine ausführliche Beschreibung im Shop vor. " +
+          "Bitte wenden Sie sich direkt an den Shop oder schauen Sie später noch einmal vorbei.";
       }
     } else {
       replyText = "Ich kann dir gerne Fragen zu Inhaltsstoffen, Anwendung oder Pflege beantworten. " +
@@ -3533,7 +3533,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
         replyText,
         explanationMode: true,
         aiTrigger, // Nur setzen, wenn Beschreibung vorhanden
-        // EFRO WAX-Fix: Debug-Flag f?r fehlende Beschreibung
+        // EFRO WAX-Fix: Debug-Flag für fehlende Beschreibung
         debugFlags: hasUsableDescription ? undefined : { missingDescription: true },
         sales: salesPolicyOutputExplanation,
       };
@@ -3636,9 +3636,9 @@ function isAmbiguousBoardQuery(text: string): boolean {
   );
   const candidateCount = filterResult.length;
 
-  // EFRO Budget-Fix 2025-11-30: Pr?fe, ob nach Price-Filter keine Produkte
-  // im gew?nschten Preisbereich gefunden wurden ? Budget-Parsing jetzt
-  // zentral ?ber analyzeBudget (gemeinsam mit filterProducts).
+  // EFRO Budget-Fix 2025-11-30: Prüfe, ob nach Price-Filter keine Produkte
+  // im gewünschten Preisbereich gefunden wurden ? Budget-Parsing jetzt
+  // zentral über analyzeBudget (gemeinsam mit filterProducts).
   const budgetAnalysis = analyzeBudget(cleaned);
   const {
     userMinPrice,
@@ -3650,7 +3650,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   const hasUserPriceRange =
     userMinPrice !== null || userMaxPrice !== null;
   
-  // EFRO Budget-Fix 2025-01-XX: Bestimme effectiveCategorySlug f?r Budget-Pr?fung
+  // EFRO Budget-Fix 2025-01-XX: Bestimme effectiveCategorySlug für Budget-Prüfung
   let effectiveCategorySlug: string | null = null;
   if (context?.activeCategorySlug) {
     effectiveCategorySlug = normalize(context.activeCategorySlug);
@@ -3666,7 +3666,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   }
   
   // EFRO Budget-Fix 2025-01-XX: Fall A - Vages Budget (z. B. "Ich habe ein kleines Budget.")
-  // SCHRITT 1 FIX: Bei "Budget ohne Zahl" KEIN AI-Trigger, sondern regelbasierte R?ckfrage
+  // SCHRITT 1 FIX: Bei "Budget ohne Zahl" KEIN AI-Trigger, sondern regelbasierte Rückfrage
   // WICHTIG: Prüfe ZUERST, ob es ein Preis-Einwand ist (höhere Priorität als Budget-Ambiguität)
   const normalizedForPriceCheck = normalize(cleaned || "");
   const isPriceObjection = detectPriceObjection(normalizedForPriceCheck);
@@ -3683,10 +3683,10 @@ function isAmbiguousBoardQuery(text: string): boolean {
     console.log("[EFRO SB Budget Ambiguous] Vages Budget erkannt, keine Produktempfehlungen, KEIN AI-Trigger", {
       text: cleaned.substring(0, 100),
       isBudgetAmbiguous,
-      note: "Regelbasierte R?ckfrage statt AI-Trigger",
+      note: "Regelbasierte Rückfrage statt AI-Trigger",
     });
     
-    // Regelbasierte R?ckfrage direkt hier generieren (ohne AI-Trigger)
+    // Regelbasierte Rückfrage direkt hier generieren (ohne AI-Trigger)
     const replyText =
       `Du hast erwähnt, dass dein Budget eher klein ist. Damit ich dir wirklich passende Produkte empfehlen kann:\n\n` +
       `? Für welche Art von Produkt suchst du etwas (z. B. Snowboard, Haustier, Parfüm, Haushalt)?\n` +
@@ -3721,7 +3721,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   
       // EFRO Budget-Fix 2025-01-XX: Fall B - vages Budget ohne Zahl und ohne Kategorie
   // SCHRITT 1 FIX: Nur bei vagem Budget ohne Zahl + ohne Kategorie KEIN AI-Trigger,
-  // sondern regelbasierte R?ckfrage (z. B. "Ich habe ein kleines Budget.")
+  // sondern regelbasierte Rückfrage (z. B. "Ich habe ein kleines Budget.")
   // WICHTIG: Prüfe ZUERST, ob es ein Preis-Einwand ist (höhere Priorität als Budget-Ambiguität)
   // C1v2/F6v2 Fix: Premium-Intent mit wantsMostExpensive ausschließen (z. B. "Premium-Produkte mit dem höchsten Preis")
   if (isBudgetAmbiguous && hasBudgetWord && !hasUserPriceRange && !effectiveCategorySlug && !isPriceObjection && !isPremiumWithMostExpensive && !isCheapestLikeQuery) {
@@ -3731,7 +3731,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       hasUserPriceRange,
       isBudgetAmbiguous,
       effectiveCategorySlug,
-      note: "Regelbasierte R?ckfrage statt AI-Trigger (vages Budget ohne Zahl)",
+      note: "Regelbasierte Rückfrage statt AI-Trigger (vages Budget ohne Zahl)",
     });
     
     // KEIN AI-Trigger ? aiTrigger bleibt undefined
@@ -3756,14 +3756,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
   }
 
 
-  // EFRO Budget-Fix 2025-11-30: Pr?fe, ob nach Price-Filter keine Produkte im gew?nschten Preisbereich gefunden wurden
+  // EFRO Budget-Fix 2025-11-30: Prüfe, ob nach Price-Filter keine Produkte im gewünschten Preisbereich gefunden wurden
   let priceRangeNoMatch = false;
   let priceRangeInfo: PriceRangeInfo | undefined = undefined;
   
-  // EFRO Budget-Optimierung: Pr?fe, ob die gefundenen Produkte wirklich im Preisbereich liegen
+  // EFRO Budget-Optimierung: Prüfe, ob die gefundenen Produkte wirklich im Preisbereich liegen
   // und setze priceRangeNoMatch entsprechend
   if (hasUserPriceRange) {
-    // Pr?fe, ob die gefundenen Produkte wirklich im Preisbereich liegen
+    // Prüfe, ob die gefundenen Produkte wirklich im Preisbereich liegen
     const productsInPriceRange = filterResult.filter((p) => {
       const price = p.price ?? 0;
       if (userMinPrice !== null && price < userMinPrice) return false;
@@ -3876,11 +3876,11 @@ function isAmbiguousBoardQuery(text: string): boolean {
     }
   }
   
-    // Budget-only-Query: Maximal 2 g?nstigste Produkte
+    // Budget-only-Query: Maximal 2 günstigste Produkte
   const { minPrice, maxPrice } = extractUserPriceRange(cleaned);
   const hasBudget = minPrice !== undefined || maxPrice !== undefined;
 
-  // Erkennung: Budget vorhanden, aber haupts?chlich nur Budget-Keywords (keine Produkt-Keywords)
+  // Erkennung: Budget vorhanden, aber hauptsächlich nur Budget-Keywords (keine Produkt-Keywords)
   const isBudgetOnly = hasBudget && (() => {
     const normalized = normalize(cleaned);
     const parsed = parseQueryForAttributes(cleaned);
@@ -3895,7 +3895,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
         normalized.includes(kw)
       );
 
-    // Harte Produkt-W?rter, damit "Snowboard", "Wasserkocher", "Smartphone", "Jeans" etc.
+    // Harte Produkt-Wörter, damit "Snowboard", "Wasserkocher", "Smartphone", "Jeans" etc.
     // NICHT als reine Budget-Query gelten
     const HARD_PRODUCT_KEYWORDS = [
       "snowboard",
@@ -3911,7 +3911,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       "t shirt",
       "shirt",
       "parfum",
-      "parf?m",
+      "parfüm",
       "duft",
       "hund",
       "katze",
@@ -3937,13 +3937,13 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
     // Budget-only NUR wenn:
     // - Budget da
-    // - KEINE klaren Produktw?rter
+    // - KEINE klaren Produktwörter
     // - und entweder reine Budget-Phrase oder nur Zahl+Euro ohne Produkt
     return hasPureBudgetPhrase || (!hasBudgetKeyword && hasNumberWithEuro);
   })();
 
   if (isBudgetOnly && finalRanked.length > 2) {
-    // Sortiere nach Preis (g?nstigste zuerst) und nehme die 2 g?nstigsten
+    // Sortiere nach Preis (günstigste zuerst) und nehme die 2 günstigsten
     const sortedByPrice = [...finalRanked].sort(
       (a, b) => (a.price ?? 0) - (b.price ?? 0)
     );
@@ -4078,7 +4078,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       "Frag mich z. B. nach Kategorien, Preisen, Gr??en, Materialien oder bestimmten Artikeln ? " +
       "dann zeige ich dir passende Produkte.";
   } else {
-    // AI-Trigger wird sp?ter berechnet, hier noch undefined
+    // AI-Trigger wird später berechnet, hier noch undefined
     replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, context?.storeFacts);
   }
 
@@ -4093,7 +4093,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       usedCount: recommended.length,
     });
     // Reply-Text neu generieren, wenn noch nicht gesetzt
-    // AI-Trigger wird sp?ter berechnet, hier noch undefined
+    // AI-Trigger wird später berechnet, hier noch undefined
     if (!replyText || replyText.includes("helfe dir nur")) {
       replyText = buildReplyText(cleaned, nextIntent, recommended, undefined, false, undefined, undefined, context?.replyMode, context?.storeFacts);
     }
@@ -4101,26 +4101,26 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
   // [EFRO AI] Premium-Fallback: Wenn Premium-Intent und keine Produkte empfohlen wurden
   // F1: Globale Premium-Anfrage ? teuerstes Produkt im gesamten Katalog
-  // F2: Premium-Parf?m ? teuerstes Parf?m-Produkt
+  // F2: Premium-Parfüm ? teuerstes Parfüm-Produkt
   // K3: Premium-Wasserkocher ab 60 ? ? Wasserkocher mit Preis ? 60 ?
   if (recommended.length === 0 && nextIntent === "premium") {
     const normalizedText = normalize(cleaned);
     
-    // F2: Premium-Parf?m
-    if (normalizedText.includes("parfum") || normalizedText.includes("parf?m") || normalizedText.includes("perfume")) {
+    // F2: Premium-Parfüm
+    if (normalizedText.includes("parfum") || normalizedText.includes("parfüm") || normalizedText.includes("perfume")) {
       const perfumeProducts = allProducts.filter((p) => {
         const title = normalize(p.title || "");
         const category = normalize(p.category || "");
         const desc = normalize(p.description || "");
-        return title.includes("parfum") || title.includes("parf?m") || title.includes("perfume") ||
-               category.includes("parfum") || category.includes("parf?m") || category.includes("perfume") ||
-               desc.includes("parfum") || desc.includes("parf?m") || desc.includes("perfume");
+        return title.includes("parfum") || title.includes("parfüm") || title.includes("perfume") ||
+               category.includes("parfum") || category.includes("parfüm") || category.includes("perfume") ||
+               desc.includes("parfum") || desc.includes("parfüm") || desc.includes("perfume");
       });
       
       if (perfumeProducts.length > 0) {
         const sortedByPrice = [...perfumeProducts].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
         recommended = sortedByPrice.slice(0, 1);
-        console.log("[EFRO AI Premium Fallback] F2 - Parf?m", {
+        console.log("[EFRO AI Premium Fallback] F2 - Parfüm", {
           text: cleaned.substring(0, 100),
           recommendedCount: recommended.length,
           productTitle: recommended[0]?.title,
@@ -4187,12 +4187,12 @@ function isAmbiguousBoardQuery(text: string): boolean {
     })),
   });
 
-  // AI-Trigger: Analysiere, ob zus?tzliche AI-Hilfe sinnvoll w?re
+  // AI-Trigger: Analysiere, ob zusätzliche AI-Hilfe sinnvoll wäre
   // Analysiere Query erneut, um unknownTerms und coreTerms zu bekommen
   const parsedForAi = parseQueryForAttributes(cleaned);
   const { coreTerms: aiCoreTerms } = parsedForAi;
 
-  // Baue Katalog-Keywords-Set f?r Alias-Analyse
+  // Baue Katalog-Keywords-Set für Alias-Analyse
   const catalogKeywordsSetForAlias = new Set<string>();
   for (const product of allProducts) {
     const titleWords = normalizeText(product.title || "")
@@ -4206,8 +4206,8 @@ function isAmbiguousBoardQuery(text: string): boolean {
     descWords.forEach((w) => catalogKeywordsSetForAlias.add(w));
   }
   
-  // Pr?fe, ob ein erfolgreicher AliasMatch vorhanden war
-  // (wird sp?ter in CodeDetect verwendet, um zu verhindern, dass Produkte verworfen werden)
+  // Prüfe, ob ein erfolgreicher AliasMatch vorhanden war
+  // (wird später in CodeDetect verwendet, um zu verhindern, dass Produkte verworfen werden)
   // Dynamic Aliases aus context hinzufügen (vom AI-Resolver gelernt)
   const dynamicAliasesForCodeDetect = context?.dynamicAliases;
   const aliasMap = await initializeAliasMap(Array.from(catalogKeywordsSetForAlias), context?.shopDomain, dynamicAliasesForCodeDetect);
@@ -4226,20 +4226,20 @@ function isAmbiguousBoardQuery(text: string): boolean {
   // Analysiere unbekannte Begriffe
   const normalizedText = normalize(cleaned);
   const stopwords = [
-    "f?r", "mit", "und", "oder", "der", "die", "das", "ein", "eine", "einen",
+    "für", "mit", "und", "oder", "der", "die", "das", "ein", "eine", "einen",
     "mir", "mich", "dir", "dich", "ihm", "ihr", "uns", "euch", "ihnen",
     "zeige", "zeig", "zeigen", "zeigst", "zeigt", "zeigten", "gezeigt",
     "habe", "hast", "hat", "haben", "hatte", "hattest", "hatten",
     "bin", "bist", "ist", "sind", "war", "warst", "waren",
-    "kann", "kannst", "k?nnen", "konnte", "konntest", "konnten",
+    "kann", "kannst", "können", "konnte", "konntest", "konnten",
     "will", "willst", "wollen", "wollte", "wolltest", "wollten",
     "soll", "sollst", "sollen", "sollte", "solltest", "sollten",
-    "muss", "musst", "m?ssen", "musste", "musstest", "mussten",
-    "darf", "darfst", "d?rfen", "durfte", "durftest", "durften",
+    "muss", "musst", "müssen", "musste", "musstest", "mussten",
+    "darf", "darfst", "dürfen", "durfte", "durftest", "durften",
   ];
   const stopwordsSet = new Set(stopwords.map((w) => normalizeText(w)));
   
-  // Baue Katalog-Keywords-Set f?r AI-Trigger-Analyse
+  // Baue Katalog-Keywords-Set für AI-Trigger-Analyse
   const catalogKeywordsSet = new Set<string>();
   for (const product of allProducts) {
     const titleWords = normalizeText(product.title || "")
@@ -4253,7 +4253,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     descWords.forEach((w) => catalogKeywordsSet.add(w));
   }
   
-  // EFRO: Sammle m?gliche Produktcodes (z. B. "XY-9000") f?r AI-Trigger
+  // EFRO: Sammle mögliche Produktcodes (z. B. "XY-9000") für AI-Trigger
   const possibleProductCodes: string[] = [];
   const tokens = normalizedText.split(/\s+/);
   for (const token of tokens) {
@@ -4262,7 +4262,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     const hasDigits = /\d/.test(lower);
     
     if (hasLetters && hasDigits && looksLikeProductCode(lower)) {
-      // Pr?fe, ob Token NICHT durch bekannte Alias-/Kategorie-Maps abgedeckt ist
+      // Prüfe, ob Token NICHT durch bekannte Alias-/Kategorie-Maps abgedeckt ist
       const isKnown = CATEGORY_KEYWORDS && Object.values(CATEGORY_KEYWORDS).some((keywords) =>
         keywords.some((kw) => lower.includes(kw.toLowerCase()) || kw.toLowerCase().includes(lower))
       );
@@ -4287,14 +4287,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
   const unknownTermsFromAnalysis = Array.from(unknownTermsSet);
 
-  // Heuristiken f?r AI-Trigger
+  // Heuristiken für AI-Trigger
   const aiUnknownTerms: string[] = [];
 
   if (unknownTermsFromAnalysis && unknownTermsFromAnalysis.length > 0) {
     aiUnknownTerms.push(...unknownTermsFromAnalysis);
   }
 
-  // Basiswerte f?r Heuristik
+  // Basiswerte für Heuristik
   const finalCount = recommended.length;
   const unknownCount = aiUnknownTerms.length;
 
@@ -4302,11 +4302,11 @@ function isAmbiguousBoardQuery(text: string): boolean {
   // Spezieller Check: Nutzer nennt nur einen Produktcode wie "ABC123"
   // -> Falls dieser Code im Katalog NICHT vorkommt, behandeln wir es
   //    als "unknown_product_code_only" und zeigen KEINE Produkte an.
-  // WICHTIG: Budget-Only-Queries d?rfen NIE als unknown_product_code_only behandelt werden.
-  // WICHTIG: Kategorie-Codes (z.B. "snowboards" bei Kategorie "snowboard") d?rfen NIE als unknown_product_code_only behandelt werden.
+  // WICHTIG: Budget-Only-Queries dürfen NIE als unknown_product_code_only behandelt werden.
+  // WICHTIG: Kategorie-Codes (z.B. "snowboards" bei Kategorie "snowboard") dürfen NIE als unknown_product_code_only behandelt werden.
   // ---------------------------------------------
   
-  // EFRO Modularization Phase 3: Kategorie-Informationen ?ber determineEffectiveCategory berechnen
+  // EFRO Modularization Phase 3: Kategorie-Informationen über determineEffectiveCategory berechnen
   const t = normalize(cleaned);
   const categoryResultForCodeDetect = determineEffectiveCategory({
     text: cleaned,
@@ -4325,14 +4325,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
     effectiveCategorySlugForCodeDetect = normalize(recommended[0].category);
   }
   
-  // Budget-Wort-Erkennung f?r zus?tzliche Sicherheit (wird bereits oben berechnet, hier wiederverwenden)
+  // Budget-Wort-Erkennung für zusätzliche Sicherheit (wird bereits oben berechnet, hier wiederverwenden)
   // Verwende die bereits oben berechneten Variablen: hasBudget, isBudgetOnly
   const originalForBudget = cleaned.toLowerCase();
   // Importiert aus languageRules.de.ts
-  // WICHTIG: hasBudgetWord wurde bereits oben aus budgetInfo destructured, hier nur f?r Logik verwenden
+  // WICHTIG: hasBudgetWord wurde bereits oben aus budgetInfo destructured, hier nur für Logik verwenden
   const hasBudgetWordForCodeDetect =
     BUDGET_WORD_PATTERNS.some((pattern) => originalForBudget.includes(pattern)) ||
-    /\b(budget|preis|maximal|max|h?chstens|hoechstens|nicht mehr als|unter|bis)\b/i.test(cleaned);
+    /\b(budget|preis|maximal|max|höchstens|hoechstens|nicht mehr als|unter|bis)\b/i.test(cleaned);
 
   let unknownProductCodeOnly = false;
   let detectedCodeTerm: string | null = null;
@@ -4346,7 +4346,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   if (detectedCodeTerm) {
     const codeLc = detectedCodeTerm.toLowerCase();
 
-    // Pr?fen, ob dieser Code irgendwo im Katalog vorkommt
+    // Prüfen, ob dieser Code irgendwo im Katalog vorkommt
     const productCodeExistsInCatalog = allProducts.some((p) => {
       const fields: string[] = [];
       if (typeof (p as any).sku === "string") fields.push((p as any).sku);
@@ -4361,7 +4361,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       return fields.some((f) => f.toLowerCase().includes(codeLc));
     });
 
-    // Hilfsflags f?r CodeDetect
+    // Hilfsflags für CodeDetect
     const hasRecommendations = finalCount > 0;
     const hasEffectiveCategory =
       !!effectiveCategorySlugForCodeDetect ||
@@ -4374,7 +4374,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       (detectedCodeTerm.toLowerCase().includes(effectiveCategorySlugForCodeDetect) ||
        effectiveCategorySlugForCodeDetect.includes(detectedCodeTerm.toLowerCase()));
 
-    // WICHTIG: Budget-Only-Queries d?rfen NIE als unknown_product_code_only behandelt werden
+    // WICHTIG: Budget-Only-Queries dürfen NIE als unknown_product_code_only behandelt werden
     // Verwende die bereits oben berechneten Variablen hasBudgetWord und isBudgetOnly
     if (hasBudgetWordForCodeDetect || isBudgetOnly || isCheapestLikeQuery) {
       // Budget-Only-Query erkannt ? unknownProductCodeOnly NICHT setzen
@@ -4390,7 +4390,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
         note: "Budget-Only-Queries werden nicht als unknown_product_code_only behandelt",
       });
     } else if (aliasMatchSuccessful && candidateCountAfterAlias > 0) {
-      // WICHTIG: Wenn ein erfolgreicher AliasMatch vorhanden ist, d?rfen diese Produkte NICHT verworfen werden
+      // WICHTIG: Wenn ein erfolgreicher AliasMatch vorhanden ist, dürfen diese Produkte NICHT verworfen werden
       unknownProductCodeOnly = false;
       console.log("[EFRO CodeDetect] AliasMatch erfolgreich, CodeDetect blockiert", {
         text: cleaned,
@@ -4402,11 +4402,11 @@ function isAmbiguousBoardQuery(text: string): boolean {
         note: "Erfolgreiche AliasMatches werden nicht als unknown_product_code_only behandelt",
       });
     } else {
-      // Pr?fe, ob der Term wirklich wie ein Produktcode aussieht (Ziffern oder Bindestrich/Unterstrich)
+      // Prüfe, ob der Term wirklich wie ein Produktcode aussieht (Ziffern oder Bindestrich/Unterstrich)
       const isCodeLike = looksLikeProductCode(detectedCodeTerm);
       
-      // Nur echte Code-Begriffe k?nnen unknownProductCodeOnly ausl?sen
-      // Normale W?rter wie "hundefutter", "katzenfutter", "parfum" werden nicht als Code behandelt
+      // Nur echte Code-Begriffe können unknownProductCodeOnly auslösen
+      // Normale Wörter wie "hundefutter", "katzenfutter", "parfum" werden nicht als Code behandelt
       unknownProductCodeOnly = isCodeLike && !productCodeExistsInCatalog;
       
       // 1.2) Unknown-Code-Flag korrigieren: Kategorie-Codes ignorieren
@@ -4588,9 +4588,9 @@ function isAmbiguousBoardQuery(text: string): boolean {
     aiCoreTerms.some((t) => looksLikeProductCode(t));
 
   // AI-Trigger-Heuristik: Vereinfachte Logik
-  // WICHTIG: Budget-Only-Queries d?rfen NIE als unknown_product_code_only behandelt werden
+  // WICHTIG: Budget-Only-Queries dürfen NIE als unknown_product_code_only behandelt werden
   
-  // [EFRO AI] Filtere triviale W?rter aus unknownTerms f?r AI-Trigger-Entscheidungen
+  // [EFRO AI] Filtere triviale Wörter aus unknownTerms für AI-Trigger-Entscheidungen
   // Entferne generische Stopwords und Begriffe, die bereits als Kategorie- oder Alias-Treffer erkannt wurden
   const resolvedTermsSet = new Set(
     (aliasCheckResult?.resolved || []).map((t) => normalizeAliasKey(t.toLowerCase()))
@@ -4656,8 +4656,8 @@ function isAmbiguousBoardQuery(text: string): boolean {
     });
   }
 
-  // NEU: Zentrale AI-Trigger-Entscheidung f?r Budget-F?lle (G3, J1)
-  // Rufe decideAiTrigger auf, sobald alle ben?tigten Daten verf?gbar sind
+  // NEU: Zentrale AI-Trigger-Entscheidung für Budget-Fälle (G3, J1)
+  // Rufe decideAiTrigger auf, sobald alle benötigten Daten verfügbar sind
   // Verwende priceRangeInfo, falls vorhanden, sonst berechne categoryMinPrice/categoryMaxPrice aus allProducts
   const resolvedUnknownTermsForBudget = aliasCheckResult?.resolved || [];
   let categoryMinPriceForDecide: number | null = null;
@@ -4668,7 +4668,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     categoryMinPriceForDecide = priceRangeInfo.categoryMinPrice;
     categoryMaxPriceForDecide = priceRangeInfo.categoryMaxPrice;
   } else if (hasUserPriceRange && (userMinPrice !== null || userMaxPrice !== null)) {
-    // Berechne categoryMinPrice/categoryMaxPrice aus allProducts, falls priceRangeInfo nicht verf?gbar ist
+    // Berechne categoryMinPrice/categoryMaxPrice aus allProducts, falls priceRangeInfo nicht verfügbar ist
     const effectiveCategorySlugForDecide = effectiveCategorySlugForCodeDetect || context?.activeCategorySlug || null;
     const productsInCategoryForDecide = effectiveCategorySlugForDecide
       ? allProducts.filter((p) => normalize(p.category || "") === normalize(effectiveCategorySlugForDecide))
@@ -4683,7 +4683,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     categoryMaxPriceForDecide = pricesInCategoryForDecide.length > 0 ? pricesInCategoryForDecide[pricesInCategoryForDecide.length - 1] : null;
   }
   
-  // EFRO S14 Fix: Erweitere unknownTerms f?r decideAiTrigger um detectedCodeTerm,
+  // EFRO S14 Fix: Erweitere unknownTerms für decideAiTrigger um detectedCodeTerm,
   // wenn dieser nicht im Katalog gefunden wurde und ein Budget vorhanden ist
   let unknownTermsForDecide = [...filteredUnknownTerms];
   if (detectedCodeTerm && (priceRangeInfo || hasUserPriceRange || hasBudgetWord)) {
@@ -4706,7 +4706,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     }
   }
   
-  // [EFRO AI] Bestimme hasCategoryMatch f?r decideAiTrigger
+  // [EFRO AI] Bestimme hasCategoryMatch für decideAiTrigger
   const hasCategoryMatchForDecide = 
     (matchedCategories && matchedCategories.length > 0) ||
     !!effectiveCategorySlugForCodeDetect ||
@@ -4739,10 +4739,10 @@ function isAmbiguousBoardQuery(text: string): boolean {
     };
     const budgetAiTrigger = decideAiTrigger(aiTriggerInput);
     
-    // Wenn decideAiTrigger einen Trigger zur?ckgibt, verwende diesen f?r Budget-F?lle
-    // Die alte Logik f?r andere F?lle (unknown_product_code_only, etc.) wird weiterhin verwendet
+    // Wenn decideAiTrigger einen Trigger zurückgibt, verwende diesen für Budget-Fälle
+    // Die alte Logik für andere Fälle (unknown_product_code_only, etc.) wird weiterhin verwendet
     if (budgetAiTrigger) {
-      // ?berschreibe aiTrigger nur, wenn es noch nicht gesetzt wurde
+      // überschreibe aiTrigger nur, wenn es noch nicht gesetzt wurde
       // oder wenn der Grund ein Budget-bezogener ist
       if (!aiTrigger || budgetAiTrigger.reason === "budget_very_low") {
         aiTrigger = budgetAiTrigger;
@@ -4758,25 +4758,25 @@ function isAmbiguousBoardQuery(text: string): boolean {
                categoryMaxPriceForDecide !== null && categoryMinPriceForDecide !== null &&
                (priceRangeInfo?.userMaxPrice ?? userMaxPrice ?? 0) >= categoryMaxPriceForDecide * 1.5) {
       // J1-Fall: Sehr hohes Budget ? KEIN AI-Trigger
-      // Stelle sicher, dass kein AI-Trigger f?r Budget-F?lle gesetzt wird
+      // Stelle sicher, dass kein AI-Trigger für Budget-Fälle gesetzt wird
       console.log("[EFRO SB decideAiTrigger] Sehr hohes Budget erkannt, KEIN AI-Trigger (J1)", {
         text: cleaned.substring(0, 100),
         userMaxPrice: priceRangeInfo?.userMaxPrice ?? userMaxPrice,
         categoryMaxPrice: categoryMaxPriceForDecide,
-        note: "EFRO kann problemlos Produkte empfehlen, AI ist hier nicht n?tig",
+        note: "EFRO kann problemlos Produkte empfehlen, AI ist hier nicht nötig",
       });
-      // Stelle sicher, dass aiTrigger f?r Budget-F?lle nicht gesetzt wird
-      // (wird sp?ter in der alten Logik ?berschrieben, wenn andere Gr?nde vorhanden sind)
+      // Stelle sicher, dass aiTrigger für Budget-Fälle nicht gesetzt wird
+      // (wird später in der alten Logik überschrieben, wenn andere Gründe vorhanden sind)
     }
   }
 
-  // EFRO S14 Fix: Pr?fe fr?hzeitig auf unbekannte Produktcodes (vor Budget-Only-Check)
-  // Diese sollen auch bei Budget-Only-Queries einen AI-Trigger ausl?sen
+  // EFRO S14 Fix: Prüfe frühzeitig auf unbekannte Produktcodes (vor Budget-Only-Check)
+  // Diese sollen auch bei Budget-Only-Queries einen AI-Trigger auslösen
   let hasUnknownProductCode = false;
   let hasFressnapf = false;
   let unknownProductCodesForTrigger: string[] = [];
   
-  // Pr?fe possibleProductCodes
+  // Prüfe possibleProductCodes
   if (possibleProductCodes.length > 0) {
     for (const code of possibleProductCodes) {
       const codeExists = allProducts.some((p) => {
@@ -4793,7 +4793,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     }
   }
   
-  // Pr?fe auch detectedCodeTerm (wird sp?ter im CodeDetect-Block berechnet, hier vorbereiten)
+  // Prüfe auch detectedCodeTerm (wird später im CodeDetect-Block berechnet, hier vorbereiten)
   if (detectedCodeTerm) {
     const codeLc = detectedCodeTerm.toLowerCase();
     const productCodeExistsInCatalogForTrigger = allProducts.some((p) => {
@@ -4808,15 +4808,15 @@ function isAmbiguousBoardQuery(text: string): boolean {
     }
   }
   
-  // EFRO Fressnapf-Fix: Pr?fe, ob "fressnapf" in den unbekannten Begriffen ist
+  // EFRO Fressnapf-Fix: Prüfe, ob "fressnapf" in den unbekannten Begriffen ist
   hasFressnapf = filteredUnknownTerms.some((t) => 
     normalizeAliasKey(t) === "fressnapf" || t.toLowerCase().includes("fressnapf")
   );
   
   const hasUnknownBrandOrCode = hasUnknownProductCode || hasFressnapf;
 
-  // SCHRITT 1 FIX: Pr?fe auf "pure budget query ohne Zahl" (z. B. "Ich habe ein kleines Budget.")
-  // Diese Logik sollte KEIN AI-Trigger setzen, sondern regelbasierte R?ckfrage
+  // SCHRITT 1 FIX: Prüfe auf "pure budget query ohne Zahl" (z. B. "Ich habe ein kleines Budget.")
+  // Diese Logik sollte KEIN AI-Trigger setzen, sondern regelbasierte Rückfrage
   const hasNoNumber = userMinPrice === undefined && userMaxPrice === undefined;
   const isPureBudgetQuery = hasBudgetWord && hasNoNumber && !isProductRelated(cleaned);
 
@@ -4844,7 +4844,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       hasBudgetWord,
       hasNoNumber,
       isProductRelated: isProductRelated(cleaned),
-      note: "Regelbasierte R?ckfrage statt AI-Trigger",
+      note: "Regelbasierte Rückfrage statt AI-Trigger",
     });
     // KEIN AI-Trigger ? aiTrigger bleibt undefined
   } else {
@@ -4859,27 +4859,27 @@ function isAmbiguousBoardQuery(text: string): boolean {
       filteredUnknownCount === 0;
 
     // TODO-AI-REFACTOR: Alte Budget-Logik neutralisiert - wird durch decideAiTrigger ersetzt
-    // Pr?fe, ob decideAiTrigger bereits einen Budget-Trigger zur?ckgegeben hat
+    // Prüfe, ob decideAiTrigger bereits einen Budget-Trigger zurückgegeben hat
     const hasBudgetTriggerFromDecide = aiTrigger?.reason === "budget_very_low";
     
     if (isGlobalBudgetOnly && !hasBudgetTriggerFromDecide) {
-      // Alte Logik nur ausf?hren, wenn decideAiTrigger noch keinen Trigger zur?ckgegeben hat
+      // Alte Logik nur ausführen, wenn decideAiTrigger noch keinen Trigger zurückgegeben hat
       needsAiHelp = true;
       reason = "budget_only";
     } else {
-      // Hilfsflags f?r AI-Trigger (wiederverwenden, falls bereits berechnet)
+      // Hilfsflags für AI-Trigger (wiederverwenden, falls bereits berechnet)
       const hasRecommendations = finalCount > 0;
       const hasEffectiveCategory =
         !!effectiveCategorySlugForCodeDetect ||
         (matchedCategories && matchedCategories.length > 0) ||
         (categoryHintsInText && categoryHintsInText.length > 0);
-      // EFRO Fix: Erkl?rungs-Intent mit Produkt ? KEINE AI
+      // EFRO Fix: Erklärungs-Intent mit Produkt ? KEINE AI
       // Die Antwort wird direkt aus der Produktbeschreibung generiert (wenn vorhanden)
       // oder ehrlich kommuniziert, dass keine Beschreibung vorhanden ist (ohne AI)
       const isExplanationIntent = effectiveExplanationMode !== null;
     
       if (isExplanationIntent && hasRecommendations) {
-        // Erkl?rung + Produkt gefunden ? KEINE AI
+        // Erklärung + Produkt gefunden ? KEINE AI
         needsAiHelp = false;
         reason = "";
         console.log("[EFRO SB AI-Trigger] Skipped for explanation with product match", {
@@ -4887,10 +4887,10 @@ function isAmbiguousBoardQuery(text: string): boolean {
           explanationMode: effectiveExplanationMode,
           finalCount,
           hasRecommendations,
-          note: "Antwort wird direkt aus Produktbeschreibung generiert, keine AI n?tig",
+          note: "Antwort wird direkt aus Produktbeschreibung generiert, keine AI nötig",
         });
       } else {
-        // Standard AI-Trigger-Logik f?r alle anderen F?lle
+        // Standard AI-Trigger-Logik für alle anderen Fälle
         
         // a) Code-Only-Unknown-Fall (soll bleiben)
         // 1.3) AI-Trigger ?unknown_product_code_only" nur im echten Code-Only-Fall erlauben
@@ -4917,7 +4917,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
           reason = "unknown_product_code_only";
         } else if (finalCount === 0) {
           // EFRO Fix: Nur AI, wenn auch unbekannte Keywords vorhanden sind
-          // synonymLookupTerms wird weiter unten definiert, daher hier nur filteredUnknownCount pr?fen
+          // synonymLookupTerms wird weiter unten definiert, daher hier nur filteredUnknownCount prüfen
           const hasUnknownKeywords = filteredUnknownCount > 0;
           if (hasUnknownKeywords) {
             needsAiHelp = true;
@@ -4968,20 +4968,20 @@ function isAmbiguousBoardQuery(text: string): boolean {
         // EFRO S14 Fix: Unbekannter Begriff + Budget
         // Wenn noch kein AI-Trigger gesetzt wurde, aber unbekannte Begriffe UND Budget vorhanden sind
         if (!needsAiHelp && finalCount > 0) {
-          // Pr?fe auf unbekannte Begriffe (Codes oder normale Begriffe)
+          // Prüfe auf unbekannte Begriffe (Codes oder normale Begriffe)
           const hasUnknownTerms = 
             filteredUnknownCount > 0 || 
             unknownProductCodeOnly || 
             (unknownProductCodesForTrigger && unknownProductCodesForTrigger.length > 0);
           
-          // Pr?fe auf Budget-Information
+          // Prüfe auf Budget-Information
           // EFRO Budget: userMinPrice/userMaxPrice kommen zentral aus src/lib/sales/budget.ts (analyzeBudget)
           const hasBudgetInfo = 
             hasBudgetWord || 
             (userMinPrice !== null && userMinPrice !== undefined) || 
             (userMaxPrice !== null && userMaxPrice !== undefined);
           
-          // Pr?fe, ob es NICHT ein High-Budget-Only-Fall ist (J1-Guard)
+          // Prüfe, ob es NICHT ein High-Budget-Only-Fall ist (J1-Guard)
           const skipForHighBudgetOnly = shouldSkipLowConfidenceForHighBudget({
             isBudgetOnly,
             userMinPrice,
@@ -5014,19 +5014,19 @@ function isAmbiguousBoardQuery(text: string): boolean {
         ? unknownProductCodesForTrigger 
         : [];
       
-      // EFRO: Pr?fe auf unbekannte Begriffe f?r Synonym-Lookup (z. B. "fressnapf")
+      // EFRO: Prüfe auf unbekannte Begriffe für Synonym-Lookup (z. B. "fressnapf")
       // Diese Begriffe sind nicht in CATEGORY_KEYWORDS, nicht in statischen Synonym-Maps,
       // und nicht in Tag-/Titel-Treffern gefunden
       const synonymLookupTerms: string[] = [];
       if (filteredUnknownTerms.length > 0) {
-        // Pr?fe, ob Begriffe in dynamischen Synonymen vorhanden sind
+        // Prüfe, ob Begriffe in dynamischen Synonymen vorhanden sind
         const dynamicSynonyms = getDynamicSynonyms();
         const dynamicSynonymTerms = new Set(dynamicSynonyms.map((s) => s.term.toLowerCase()));
         
         for (const term of filteredUnknownTerms) {
           // Wenn Begriff nicht in dynamischen Synonymen und nicht wie ein Produktcode aussieht
           if (!dynamicSynonymTerms.has(term) && !looksLikeProductCode(term)) {
-            // Pr?fe, ob Begriff in Produkten gefunden wurde
+            // Prüfe, ob Begriff in Produkten gefunden wurde
             const foundInProducts = allProducts.some((p) => {
               const searchText = `${p.title} ${p.description} ${(p.tags || []).join(" ")}`.toLowerCase();
               return searchText.includes(term);
@@ -5039,11 +5039,11 @@ function isAmbiguousBoardQuery(text: string): boolean {
         }
       }
       
-      // EFRO: Setze AI-Trigger f?r unknown_product_code / unknown_product_code_with_budget, wenn Codes gefunden wurden
+      // EFRO: Setze AI-Trigger für unknown_product_code / unknown_product_code_with_budget, wenn Codes gefunden wurden
       if (unknownProductCodes.length > 0 && !needsAiHelp) {
         needsAiHelp = true;
 
-        // Pr?fe, ob der Nutzer tats?chlich ein Budget angegeben hat
+        // Prüfe, ob der Nutzer tatsächlich ein Budget angegeben hat
         const hasUserBudget =
           (userMinPrice !== undefined && !Number.isNaN(userMinPrice)) ||
           (userMaxPrice !== undefined && !Number.isNaN(userMaxPrice));
@@ -5056,14 +5056,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
         }
       }
       
-      // EFRO: Setze AI-Trigger f?r synonym_lookup, wenn unbekannte Begriffe gefunden wurden
+      // EFRO: Setze AI-Trigger für synonym_lookup, wenn unbekannte Begriffe gefunden wurden
       if (synonymLookupTerms.length > 0 && !needsAiHelp && finalCount === 0) {
         needsAiHelp = true;
         reason = "synonym_lookup";
       }
 
 
-      // TODO-AI-REFACTOR: Hauptstelle f?r AI-Trigger-Setzung (wird durch decideAiTrigger ersetzt)
+      // TODO-AI-REFACTOR: Hauptstelle für AI-Trigger-Setzung (wird durch decideAiTrigger ersetzt)
       // J3v2 Fix: Überschreibe NICHT, wenn bereits Budget-Smalltalk erkannt wurde
       if (needsAiHelp && !(aiTrigger && aiTrigger.reason === "budget_smalltalk_no_ai")) {
         aiTrigger = {
@@ -5089,7 +5089,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
           aiTrigger.unknownProductCodes = unknownProductCodesForTrigger;
         }
         
-        // EFRO Fressnapf-Fix: Setze unknownTerms f?r "fressnapf" als unbekannte Marke
+        // EFRO Fressnapf-Fix: Setze unknownTerms für "fressnapf" als unbekannte Marke
         if (hasFressnapf) {
           const fressnapfTerms = filteredUnknownTerms.filter((t) => 
             normalizeAliasKey(t) === "fressnapf" || t.toLowerCase().includes("fressnapf")
@@ -5099,23 +5099,23 @@ function isAmbiguousBoardQuery(text: string): boolean {
           }
         }
         
-        // EFRO S14 Fix: Bei Budget + unbekanntem Code, f?ge Code zu unknownTerms hinzu
+        // EFRO S14 Fix: Bei Budget + unbekanntem Code, füge Code zu unknownTerms hinzu
         if ((reason === "unknown_product_code_with_budget" || reason === "unknown_product_code") && 
             unknownProductCodesForTrigger.length > 0) {
           aiTrigger.unknownTerms = [...(aiTrigger.unknownTerms || []), ...unknownProductCodesForTrigger];
         }
         
-        // EFRO S14 Fix: Bei unknown_term_with_budget, f?ge Codes zu unknownTerms hinzu (falls vorhanden)
+        // EFRO S14 Fix: Bei unknown_term_with_budget, füge Codes zu unknownTerms hinzu (falls vorhanden)
         if (reason === "unknown_term_with_budget" && unknownProductCodesForTrigger.length > 0) {
           aiTrigger.unknownTerms = [...(aiTrigger.unknownTerms || []), ...unknownProductCodesForTrigger];
         }
         
-        // EFRO: Setze unknownTerms f?r synonym_lookup
+        // EFRO: Setze unknownTerms für synonym_lookup
         if (reason === "synonym_lookup" && synonymLookupTerms.length > 0) {
           aiTrigger.unknownTerms = synonymLookupTerms;
         }
         
-        // EFRO Fressnapf-Fix: Setze termExplainRequests f?r unbekannte Begriffe
+        // EFRO Fressnapf-Fix: Setze termExplainRequests für unbekannte Begriffe
         if (filteredUnknownTerms.length > 0 && (reason === "unknown_term_expansion" || reason === "low_confidence_unknown_terms" || reason === "synonym_lookup" || reason === "unknown_term_with_budget")) {
           aiTrigger.termExplainRequests = filteredUnknownTerms.map((term) => ({
             term,
@@ -5138,14 +5138,14 @@ function isAmbiguousBoardQuery(text: string): boolean {
         });
       }
 	
-      // TODO-AI-REFACTOR: AI-Trigger f?r priceRangeNoMatch (wird durch decideAiTrigger ersetzt)
-      // EFRO Budget-Fix 2025-12-XX: AI-Trigger f?r unrealistische Budgets / keinen Treffer im Preisbereich
+      // TODO-AI-REFACTOR: AI-Trigger für priceRangeNoMatch (wird durch decideAiTrigger ersetzt)
+      // EFRO Budget-Fix 2025-12-XX: AI-Trigger für unrealistische Budgets / keinen Treffer im Preisbereich
       // Falls priceRangeNoMatch gesetzt ist, aber bisher kein anderer AI-Trigger existiert,
       // signalisieren wir der AI, dass sie helfen soll, das Budget sinnvoll einzuordnen.
-      // Pr?fe, ob decideAiTrigger bereits einen Budget-Trigger zur?ckgegeben hat
+      // Prüfe, ob decideAiTrigger bereits einen Budget-Trigger zurückgegeben hat
       const hasBudgetTriggerFromDecide = aiTrigger?.reason === "budget_very_low";
       if (!aiTrigger && priceRangeNoMatch && !hasBudgetTriggerFromDecide) {
-        // Alte Logik nur ausf?hren, wenn decideAiTrigger noch keinen Trigger zur?ckgegeben hat
+        // Alte Logik nur ausführen, wenn decideAiTrigger noch keinen Trigger zurückgegeben hat
         aiTrigger = {
           needsAiHelp: true,
           reason: "price_range_no_match",
@@ -5159,7 +5159,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
           userMinPrice,
           userMaxPrice,
           finalCount,
-          note: "Unrealistischer oder leerer Preisbereich ? AI soll Budget erkl?ren/helfen",
+          note: "Unrealistischer oder leerer Preisbereich ? AI soll Budget erklären/helfen",
         });
       }
     }
@@ -5169,7 +5169,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   // ?? EFRO Budget-AI-Override (G3/J1 Fix)
   // Ziel:
   // - Kleine, reine Budget-Queries ohne Produkt (z. B. "Ich habe nur 20 Euro.")
-  //   ? AI soll helfen, Kategorie/Kontext zu kl?ren.
+  //   ? AI soll helfen, Kategorie/Kontext zu klären.
   // - Sehr hohes Budget (J1) mit vorhandenen Produkten
   //   ? KEIN AI-Trigger, damit Antwort rein regelbasiert bleibt.
   if (!aiTrigger && hasBudget) {
@@ -5182,7 +5182,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
         ? userMaxPrice
         : undefined;
 
-    // Schwelle f?r "sehr hohes Budget" (J1)
+    // Schwelle für "sehr hohes Budget" (J1)
     const HIGH_BUDGET_THRESHOLD = 1000;
 
     if (isBudgetOnly && hasNumericBudget && maxBudget !== undefined) {
@@ -5200,7 +5200,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
           userMaxPrice,
           finalCount,
           isBudgetOnly,
-          note: "Reine Budget-Query mit kleinem Budget ? AI soll Kategorie/Kontext kl?ren",
+          note: "Reine Budget-Query mit kleinem Budget ? AI soll Kategorie/Kontext klären",
         });
       } else if (recommended.length > 0) {
         // ?? J1: sehr hohes Budget, aber wir haben bereits Empfehlungen
@@ -5211,7 +5211,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
           userMaxPrice,
           finalCount,
           isBudgetOnly,
-          note: "Sehr hohes Budget + Produkte gefunden ? keine AI n?tig",
+          note: "Sehr hohes Budget + Produkte gefunden ? keine AI nötig",
         });
       }
     }
@@ -5220,7 +5220,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   
     // EFRO S14 Hard Rule: Unbekannter Produktcode/Marke + Budget ? immer AI-Hilfe
   // Wenn bisher kein AI-Trigger gesetzt wurde, aber ein unbekannter Code/Brand
-  // und eine explizite Preisangabe vorhanden sind, erzwinge AI-Unterst?tzung.
+  // und eine explizite Preisangabe vorhanden sind, erzwinge AI-Unterstützung.
   if (
     (!aiTrigger || !aiTrigger.needsAiHelp) &&
     hasUnknownBrandOrCode &&
@@ -5267,7 +5267,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
 
 
-  // Hilfsflags f?r AI-Trigger-Log (wiederverwenden, falls bereits berechnet)
+  // Hilfsflags für AI-Trigger-Log (wiederverwenden, falls bereits berechnet)
   const hasRecommendationsForLog = recommended.length > 0;
   const hasEffectiveCategoryForLog =
     !!effectiveCategorySlugForCodeDetect ||
@@ -5285,12 +5285,12 @@ function isAmbiguousBoardQuery(text: string): boolean {
     hasBudgetWord,
     hasEffectiveCategory: hasEffectiveCategoryForLog,
     hasRecommendations: hasRecommendationsForLog,
-    filteredUnknownTerms: filteredUnknownTerms.slice(0, 10), // Nur erste 10 f?r ?bersicht
+    filteredUnknownTerms: filteredUnknownTerms.slice(0, 10), // Nur erste 10 für übersicht
     unknownProductCodeOnly,
     codeTerm: aiTrigger?.codeTerm,
   });
 
-  // Bestimme effectiveCategorySlug f?r nextContext
+  // Bestimme effectiveCategorySlug für nextContext
   // (muss aus filterProducts extrahiert werden, hier vereinfacht: aus recommended ableiten)
   // WICHTIG: effectiveCategorySlug wurde bereits oben deklariert (Zeile 1647 aus Category-Modul)
   // EFRO F7 Fix: effectiveCategorySlug aus Category-Modul hat Priorität, nicht überschreiben
@@ -5354,7 +5354,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   //
   // Wenn trotz unbekanntem Produktcode noch Produkte gefunden wurden (finalCount > 0),
   // sollen diese weiterhin angezeigt werden. In diesem Fall wird NUR der AI-Trigger
-  // verwendet, um den unbekannten Begriff zu kl?ren ? die Empfehlungen bleiben erhalten.
+  // verwendet, um den unbekannten Begriff zu klären ? die Empfehlungen bleiben erhalten.
   if (
     aiTrigger?.reason === "unknown_product_code_only" &&
     !hasBudgetWord &&
@@ -5392,7 +5392,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     });
   }
 
-  // EFRO Budget-Fix 2025-11-30: Pr?fe auf fehlende Kategorie (z. B. "Bindungen" nicht im Katalog)
+  // EFRO Budget-Fix 2025-11-30: Prüfe auf fehlende Kategorie (z. B. "Bindungen" nicht im Katalog)
  let missingCategoryHint: string | null = null;
   const categoryHintsFromText = collectMatches(normalize(cleaned).toLowerCase(), CATEGORY_KEYWORDS);
   if (categoryHintsFromText.length > 0) {
@@ -5416,8 +5416,8 @@ function isAmbiguousBoardQuery(text: string): boolean {
     }
   }
 
-  // Reply-Text mit AI-Kl?rung neu generieren, falls aiTrigger vorhanden
-  // EFRO Budget-Fix 2025-11-30: priceRangeNoMatch hat Priorit?t vor AI-Trigger
+  // Reply-Text mit AI-Klärung neu generieren, falls aiTrigger vorhanden
+  // EFRO Budget-Fix 2025-11-30: priceRangeNoMatch hat Priorität vor AI-Trigger
   // WICHTIG: Bei priceRangeNoMatch werden Fallback-Produkte (aboveBudget) bereits in recommended sein
   // (durch die Anpassung des Budget-Filters, der bei priceRangeNoMatch = true nicht angewendet wird)
   let finalReplyText = replyText;
@@ -5460,7 +5460,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       "Ich habe deine Anfrage erhalten. Bitte beschreibe dein Anliegen etwas genauer, dann kann ich dir besser helfen.";
   }
 
-  // [EFRO AI] Smartphone-Exact-Match (K6): Exakte Titel-Matches vor AI-Fallback pr?fen
+  // [EFRO AI] Smartphone-Exact-Match (K6): Exakte Titel-Matches vor AI-Fallback prüfen
   // Wenn recommended.length === 0 und ein sehr starker Match auf den Produktnamen vorliegt
   // K6v2 Fix: Auch prüfen, wenn recommended.length > 0, aber die Produkte nicht passen (z.B. kein "alpha" im Titel)
   // WICHTIG: Nicht ausführen, wenn priceRangeNoMatch === true (dann sollen keine Produkte empfohlen werden)
@@ -5474,7 +5474,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
   if ((recommended.length === 0 || recommendedProductsDontMatch) && !priceRangeNoMatch) {
     const normalizedText = normalize(cleaned);
     // Extrahiere relevante Produktbegriffe (z. B. "smartphone", "alpha", "128gb", "schwarz")
-    // F?r K6: "Ich suche das Smartphone Alpha 128GB Schwarz" ? ["smartphone", "alpha", "128gb", "schwarz"]
+    // Für K6: "Ich suche das Smartphone Alpha 128GB Schwarz" ? ["smartphone", "alpha", "128gb", "schwarz"]
     const productNameFragments = normalizedText
       .split(/\s+/)
       .filter((w) => w.length >= 3) // Reduziert von 4 auf 3, damit "alpha" erkannt wird
@@ -5632,7 +5632,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     }
   }
 
-  // [EFRO AI] Fallback-Logik bei recommended.length === 0 f?r Budget-F?lle
+  // [EFRO AI] Fallback-Logik bei recommended.length === 0 für Budget-Fälle
   // Wenn Budget zu streng ist und keine Produkte gefunden wurden, versuche wenigstens 1 Produkt zu finden
   // WICHTIG: Nicht ausführen, wenn priceRangeNoMatch === true (dann sollen keine Produkte empfohlen werden)
   if (
@@ -5653,7 +5653,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
       : allProducts;
 
     if (fallbackProducts.length > 0) {
-      // F?r Budget-Anfragen: nimm hier bewusst das g?nstigste Produkt
+      // Für Budget-Anfragen: nimm hier bewusst das günstigste Produkt
       const sortedByPrice = [...fallbackProducts].sort(
         (a, b) => (a.price ?? 0) - (b.price ?? 0)
       );
@@ -5670,7 +5670,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
 
   // EFRO Haustier-Fallback:
   // Wenn Kategorie-Kontext Haustier/Tierbedarf ist, aber noch keine Produkte empfohlen wurden,
-  // w?hle ein paar sinnvolle Haustier-Produkte aus dem Katalog.
+  // wähle ein paar sinnvolle Haustier-Produkte aus dem Katalog.
   const normalizedQuery = normalize(cleaned || userText || "");
 
   const looksLikePetQuery =
@@ -5713,7 +5713,7 @@ function isAmbiguousBoardQuery(text: string): boolean {
     });
 
     if (petFallback.length > 0) {
-      // F?r Premium-Anfragen: teuerste Haustierprodukte zuerst
+      // Für Premium-Anfragen: teuerste Haustierprodukte zuerst
       const sorted = [...petFallback].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
       // Begrenze auf z.B. 3 Produkte
       recommended = sorted.slice(0, 3);
@@ -5883,12 +5883,12 @@ export async function runSellerBrain(
 }
 
 // ------------------------------------------------------
-// Spezialisierte Logik f?r Schimmel-Anfragen
+// Spezialisierte Logik für Schimmel-Anfragen
 // ------------------------------------------------------
 
 function isMoldQuery(text: string): boolean {
   const t = (text || "").toLowerCase();
-  // Typische deutsche Formulierungen f?r Schimmel
+  // Typische deutsche Formulierungen für Schimmel
   // Importiert aus languageRules.de.ts
   return MOLD_KEYWORDS.some((kw) => t.includes(kw));
 }
@@ -5900,7 +5900,7 @@ function isMoldQuery(text: string): boolean {
 // ============================================================================
 
 /**
- * Optionen f?r runSellerBrainV2
+ * Optionen für runSellerBrainV2
  */
 export interface RunSellerBrainV2Options {
   shopDomain: string; // z.B. 'test-shop.myshopify.com' oder 'demo'
@@ -5923,8 +5923,8 @@ export interface SellerBrainV2Result extends SellerBrainResult {
 }
 
 /**
- * Einfache, deterministische Hash-Funktion f?r Frage-Text.
- * Verwendet FNV-1a Algorithmus (32-bit), keine externen Abh?ngigkeiten.
+ * Einfache, deterministische Hash-Funktion für Frage-Text.
+ * Verwendet FNV-1a Algorithmus (32-bit), keine externen Abhängigkeiten.
  */
 function hashQuestion(text: string): string {
   const str = text.trim().toLowerCase();
@@ -5941,7 +5941,7 @@ function hashQuestion(text: string): string {
 
 /**
  * Baut ein SellerBrainResult aus einem gecachten Response.
- * Mappt cached.products (IDs + Basisdaten) zur?ck zu EfroProduct[].
+ * Mappt cached.products (IDs + Basisdaten) zurück zu EfroProduct[].
  */
 function buildResultFromCache(
   cached: EfroCachedResponse,
@@ -5951,10 +5951,10 @@ function buildResultFromCache(
   let recommended: EfroProduct[] = [];
 
   if (cached.products && Array.isArray(cached.products)) {
-    // cached.products kann IDs oder vollst?ndige Produkt-Objekte enthalten
+    // cached.products kann IDs oder vollständige Produkt-Objekte enthalten
     recommended = cached.products
       .map((cachedProduct: any) => {
-        // Wenn es ein vollst?ndiges Produkt-Objekt ist, verwende es direkt
+        // Wenn es ein vollständiges Produkt-Objekt ist, verwende es direkt
         if (cachedProduct.id && cachedProduct.title) {
           return cachedProduct as EfroProduct;
         }
@@ -5976,7 +5976,7 @@ function buildResultFromCache(
     recommended = [];
   }
 
-  // Default-Intent (kann aus Cache erweitert werden, falls n?tig)
+  // Default-Intent (kann aus Cache erweitert werden, falls nötig)
   const intent: ShoppingIntent = "explore";
 
   return {
@@ -5994,21 +5994,21 @@ function buildResultFromCache(
 }
 
 /**
- * K?rzt SellerBrain-ReplyTexte f?r das UI:
+ * Kürzt SellerBrain-ReplyTexte für das UI:
  * - Entfernt den Klarstellungs-Block "Einige deiner Begriffe ..."
- *   (AI-Clarify-Teil), der am Ende angeh?ngt wird.
- * - L?sst den produktbezogenen Teil unver?ndert.
+ *   (AI-Clarify-Teil), der am Ende angehängt wird.
+ * - Lässt den produktbezogenen Teil unverändert.
  */
 
 
 /**
  * SellerBrain v2: Wrapper mit Supabase-Repository & Antwort-Cache.
  *
- * - L?dt Shop und Produkte aus Supabase
- * - Pr?ft Cache f?r bereits beantwortete Fragen
+ * - Lädt Shop und Produkte aus Supabase
+ * - Prüft Cache für bereits beantwortete Fragen
  * - Ruft intern runSellerBrain (v1) als Engine auf
  * - Speichert Antworten im Cache
- * - K?rzt ReplyText f?r UI (entfernt Klarstellungs-Bl?cke bei Produktempfehlungen)
+ * - Kürzt ReplyText für UI (entfernt Klarstellungs-Blöcke bei Produktempfehlungen)
  *
  * @param userText - Benutzer-Frage
  * @param allProducts - Fallback-Produktliste (wird verwendet, wenn Supabase leer ist)
@@ -6062,13 +6062,13 @@ export async function runSellerBrainV2(
     };
   }
 
-  // 2) Produkte f?r diesen Shop laden
+  // 2) Produkte für diesen Shop laden
   const shopProductsResult = await getProductsForShop(shop);
 
   // Verwende shopProducts, falls vorhanden, sonst Fallback zu allProducts
   const productsToUse = shopProductsResult.products.length > 0 ? shopProductsResult.products : allProducts;
 
-  // Debug: Katalog-?bersicht loggen (nur einmal pro Run)
+  // Debug: Katalog-übersicht loggen (nur einmal pro Run)
   debugCatalogOverview(productsToUse);
 
   console.log("[EFRO SB V2] Products loaded", {
@@ -6118,7 +6118,7 @@ export async function runSellerBrainV2(
           "Einige deiner Begriffe kann ich im Katalog nicht zuordnen"
         );
 
-        // Wenn Klarstellungsblock entfernt wurde, aiTrigger entsch?rfen
+        // Wenn Klarstellungsblock entfernt wurde, aiTrigger entschärfen
         if (hadClarifyBlock) {
           uiAiTrigger = undefined;
         }
@@ -6147,7 +6147,7 @@ export async function runSellerBrainV2(
   });
 
   // 5) SellerBrain v1 aufrufen
-  // Default-Intent: "explore" (kann sp?ter erweitert werden)
+  // Default-Intent: "explore" (kann später erweitert werden)
   const sbResult = await runSellerBrain(
     userText,
     "explore",
@@ -6169,14 +6169,14 @@ export async function runSellerBrainV2(
       "Einige deiner Begriffe kann ich im Katalog nicht zuordnen"
     );
 
-    // Wenn Klarstellungsblock entfernt wurde, aiTrigger entsch?rfen
+    // Wenn Klarstellungsblock entfernt wurde, aiTrigger entschärfen
     if (hadClarifyBlock) {
       uiAiTrigger = undefined;
     }
   }
 
   // 7) Cache schreiben (wenn sinnvolle Antwort)
-  // WICHTIG: Original-ReplyText im Cache speichern (nicht den gek?rzten)
+  // WICHTIG: Original-ReplyText im Cache speichern (nicht den gekürzten)
   if (
     useCache &&
     shop.id &&
@@ -6230,7 +6230,7 @@ export async function runSellerBrainV2(
  * - Intern weiterhin runSellerBrain (v1) als Engine verwendet
  *
  * WICHTIG:
- * - runSellerBrain (v1) bleibt unver?ndert und ist die eigentliche Engine
+ * - runSellerBrain (v1) bleibt unverändert und ist die eigentliche Engine
  * - Avatar-, TTS- und UI-Code werden NICHT angefasst
  * - Nur neue Funktion + klar dokumentierter Export
  *
@@ -6254,35 +6254,35 @@ export async function runSellerBrainV2(
  */
 
 // ============================================================================
-// [EFRO AI] Logic-Fix-Pass 2025-01-XX: Gezielte Fixes f?r 10 failing Szenarien
+// [EFRO AI] Logic-Fix-Pass 2025-01-XX: Gezielte Fixes für 10 failing Szenarien
 // ============================================================================
 // 
-// Durchgef?hrte ?nderungen:
+// Durchgeführte Änderungen:
 // 
 // 1. Unknown-Term-Filtern verbessert:
-//    - GENERIC_UNKNOWN_STOPWORDS hinzugef?gt (produkte, produkt, sachen, etc.)
+//    - GENERIC_UNKNOWN_STOPWORDS hinzugefügt (produkte, produkt, sachen, etc.)
 //    - Filterung erweitert: Entfernt Begriffe, die bereits als Kategorie- oder Alias-Treffer erkannt wurden
-//    - Ziel: D6, F1, K3, K6 sollen nicht mehr nur aus generischen W?rtern bestehen
+//    - Ziel: D6, F1, K3, K6 sollen nicht mehr nur aus generischen Wörtern bestehen
 // 
 // 2. decideAiTrigger angepasst:
-//    - S14: unknown_product_with_budget reason hinzugef?gt (unbekannter Produktcode + Budget)
-//    - Premium-F?lle: Nicht triggern, wenn Kategorie erkannt wurde (D6, F1, K3, K6)
-//    - Budget-F?lle: no_results_budget_only reason (aber kein needsAiHelp, da Fallback-Produkte angeboten werden)
+//    - S14: unknown_product_with_budget reason hinzugefügt (unbekannter Produktcode + Budget)
+//    - Premium-Fälle: Nicht triggern, wenn Kategorie erkannt wurde (D6, F1, K3, K6)
+//    - Budget-Fälle: no_results_budget_only reason (aber kein needsAiHelp, da Fallback-Produkte angeboten werden)
 // 
-// 3. Fallback-Logik bei recommended.length === 0 f?r Budget-F?lle:
+// 3. Fallback-Logik bei recommended.length === 0 für Budget-Fälle:
 //    - Wenn Budget zu streng ist, versuche wenigstens 1 Produkt in der relevanten Kategorie zu finden
 //    - Ziel: S1, D8, K2, K8 sollen wenigstens 1 Produkt empfehlen
 // 
 // 4. Premium-Auswahl fixiert:
 //    - F1: Globale Premium-Anfrage ? teuerstes Produkt im gesamten Katalog
-//    - F2: Premium-Parf?m ? teuerstes Parf?m-Produkt
+//    - F2: Premium-Parfüm ? teuerstes Parfüm-Produkt
 //    - K3: Premium-Wasserkocher ab 60 ? ? Wasserkocher mit Preis ? 60 ?
 // 
 // 5. Smartphone-Exact-Match fixiert (K6):
-//    - Exakte Titel-Matches vor AI-Fallback pr?fen
+//    - Exakte Titel-Matches vor AI-Fallback prüfen
 //    - Wenn genau 1 Match oder sehr starke Matches, verwende diese
 // 
-// Erwartetes Ergebnis: M?glichst alle 10 Szenarien (S1, S14, D6, D8, F1, F2, K2, K3, K6, K8) sollen bestehen.
+// Erwartetes Ergebnis: Möglichst alle 10 Szenarien (S1, S14, D6, D8, F1, F2, K2, K3, K6, K8) sollen bestehen.
 // 
 // ============================================================================
 
